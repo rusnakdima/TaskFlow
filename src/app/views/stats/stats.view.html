@@ -14,9 +14,9 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm text-blue-100">Total Tasks</p>
-          <p class="text-2xl font-bold">{{ statistics().totalTasks }}</p>
+          <p class="text-2xl font-bold">{{ statistics().total_tasks }}</p>
           <p class="mt-1 text-xs text-blue-200">
-            {{ getPercentageChange(statistics().totalTasks, statistics().previousTotalTasks) }}%
+            {{ getPercentageChange(statistics().total_tasks, statistics().previous_total_tasks) }}%
             from last period
           </p>
         </div>
@@ -32,10 +32,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm text-green-100">Completion Rate</p>
-          <p class="text-2xl font-bold">{{ statistics().completionRate }}%</p>
+          <p class="text-2xl font-bold">{{ statistics().completion_rate }}%</p>
           <p class="mt-1 text-xs text-blue-200">
             {{
-              getPercentageChange(statistics().completionRate, statistics().previousCompletionRate)
+              getPercentageChange(
+                statistics().completion_rate,
+                statistics().previous_completion_rate
+              )
             }}% from last period
           </p>
         </div>
@@ -51,10 +54,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm text-purple-100">Avg. Task Time</p>
-          <p class="text-2xl font-bold">{{ statistics().averageTaskTime }}h</p>
+          <p class="text-2xl font-bold">{{ statistics().average_task_time }}h</p>
           <p class="mt-1 text-xs text-purple-200">
             {{
-              getPercentageChange(statistics().averageTaskTime, statistics().previousAverageTime)
+              getPercentageChange(
+                statistics().average_task_time,
+                statistics().previous_average_time
+              )
             }}% from last period
           </p>
         </div>
@@ -70,12 +76,12 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm text-orange-100">Productivity Score</p>
-          <p class="text-2xl font-bold">{{ statistics().productivityScore }}</p>
+          <p class="text-2xl font-bold">{{ statistics().productivity_score }}</p>
           <p class="mt-1 text-xs text-orange-200">
             {{
               getPercentageChange(
-                statistics().productivityScore,
-                statistics().previousProductivityScore
+                statistics().productivity_score,
+                statistics().previous_productivity_score
               )
             }}% from last period
           </p>
@@ -97,7 +103,7 @@
       </div>
 
       <div class="space-y-4">
-        @for (data of chartData().completionTrend; track $index) {
+        @for (data of chartData().completion_trend; track $index) {
           <div class="flex items-center justify-between">
             <span class="textMuted text-sm">{{ data.label }}</span>
             <div class="flex max-w-xs flex-1 items-center gap-2">
@@ -157,9 +163,9 @@
       </div>
 
       <div class="grid grid-cols-7 gap-1">
-        @for (day of chartData().dailyActivity; track $index) {
+        @for (day of chartData().daily_activity; track $index) {
           <div class="text-center">
-            <div class="textMuted mb-2 text-xs">{{ day.dayName }}</div>
+            <div class="textMuted mb-2 text-xs">{{ day.day_name }}</div>
             <div
               class="flex h-16 w-full items-center justify-center rounded-lg text-sm font-medium"
               [ngClass]="{
