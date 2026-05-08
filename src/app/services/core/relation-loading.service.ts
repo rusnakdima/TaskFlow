@@ -3,7 +3,7 @@ import { Observable, of } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
 /* services */
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 export interface RelationLoadingStats {
   totalQueries: number;
@@ -14,7 +14,7 @@ export interface RelationLoadingStats {
   providedIn: "root",
 })
 export class RelationLoadingService {
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
 
   private stats: RelationLoadingStats = {
     totalQueries: 0,
@@ -26,7 +26,7 @@ export class RelationLoadingService {
   load<T>(table: string, id: string, load: string[], visibility?: string): Observable<T> {
     const startTime = Date.now();
 
-    return this.dataService.get<T>(table, id, { load, visibility }).pipe(
+    return this.requestService.get<T>(table, id, { load, visibility: visibility as any }).pipe(
       tap(() => {
         const elapsed = Date.now() - startTime;
         this.stats.totalQueries++;
@@ -43,16 +43,18 @@ export class RelationLoadingService {
   ): Observable<T[]> {
     const startTime = Date.now();
 
-    return this.dataService.getAll<T>(table, { filter, load, visibility }).pipe(
-      tap((result) => {
-        const elapsed = Date.now() - startTime;
-        this.stats.totalQueries++;
-        this.stats.loadTimeMs += elapsed;
-      }),
-      catchError((err: unknown) => {
-        return of(null as unknown as T[]);
-      })
-    );
+    return this.requestService
+      .getAll<T>(table, { filter, load, visibility: visibility as any })
+      .pipe(
+        tap((result) => {
+          const elapsed = Date.now() - startTime;
+          this.stats.totalQueries++;
+          this.stats.loadTimeMs += elapsed;
+        }),
+        catchError((err: unknown) => {
+          return of(null as unknown as T[]);
+        })
+      );
   }
 
   loadOne<T>(
@@ -63,13 +65,15 @@ export class RelationLoadingService {
   ): Observable<T | null> {
     const startTime = Date.now();
 
-    return this.dataService.get<T>(table, filter["id"] || "", { filter, load, visibility }).pipe(
-      tap(() => {
-        const elapsed = Date.now() - startTime;
-        this.stats.totalQueries++;
-        this.stats.loadTimeMs += elapsed;
-      })
-    );
+    return this.requestService
+      .get<T>(table, filter["id"] || "", { filter, load, visibility: visibility as any })
+      .pipe(
+        tap(() => {
+          const elapsed = Date.now() - startTime;
+          this.stats.totalQueries++;
+          this.stats.loadTimeMs += elapsed;
+        })
+      );
   }
 
   getStats(): RelationLoadingStats {

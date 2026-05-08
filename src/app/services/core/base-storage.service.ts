@@ -12,7 +12,7 @@ export abstract class BaseStorageService {
   /**
    * Check if cache is valid (not expired)
    */
-  protected isCacheValid(cacheExpiryMs: number): boolean {
+  public isCacheValid(cacheExpiryMs: number): boolean {
     if (!this.loadedSignal()) return false;
     const lastLoaded = this.lastLoadedSignal();
     if (!lastLoaded) return false;
