@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { Router } from "@angular/router";
-import { Observable, forkJoin, switchMap, of, catchError } from "rxjs";
+import { Observable, forkJoin, switchMap, of, catchError, concat, merge } from "rxjs";
+import { scan, tap } from "rxjs/operators";
 import { Profile } from "@models/profile.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
@@ -105,6 +106,25 @@ export class DataLoaderService {
 
     const userId = this.jwtTokenService.getCurrentUserId() || "";
 
+    const getCachedTodos = (): Todo[] => {
+      if (visibility === "all") {
+        return [
+          ...this.storageService.privateTodos(),
+          ...this.storageService.sharedTodos(),
+          ...this.storageService.publicTodos(),
+        ];
+      } else if (visibility === "private") {
+        return this.storageService.privateTodos();
+      } else if (visibility === "shared") {
+        return this.storageService.sharedTodos();
+      } else if (visibility === "public") {
+        return this.storageService.publicTodos();
+      }
+      return this.storageService.privateTodos();
+    };
+
+    const cachedTodos = getCachedTodos();
+
     if (visibility === "all") {
       const isFirstPage = page === 0;
       const privateFilter = { user_id: userId };
@@ -116,50 +136,58 @@ export class DataLoaderService {
       };
       const publicFilter = { visibility: "public" };
 
-      return forkJoin([
-        this.requestService.getTodos({
+      const private$ = this.requestService
+        .getTodos({
           filter: privateFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "private",
-        }),
-        this.requestService.getTodos({
+        })
+        .pipe(
+          tap((privateTodos) => {
+            this.storageService.setCollection("privateTodos", privateTodos || [], {
+              append: !isFirstPage,
+              resetPagination: isFirstPage,
+            });
+          })
+        );
+
+      const shared$ = this.requestService
+        .getTodos({
           filter: sharedFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "shared",
-        }),
-        this.requestService.getTodos({
+        })
+        .pipe(
+          tap((sharedTodos) => {
+            this.storageService.setCollection("sharedTodos", sharedTodos || [], {
+              append: !isFirstPage,
+              resetPagination: isFirstPage,
+            });
+          })
+        );
+
+      const public$ = this.requestService
+        .getTodos({
           filter: publicFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "public",
-        }),
-      ]).pipe(
-        switchMap(([privateTodos, sharedTodos, publicTodos]) => {
-          this.storageService.setCollection("privateTodos", privateTodos || [], {
-            append: !isFirstPage,
-            resetPagination: isFirstPage,
-          });
-          this.storageService.setCollection("sharedTodos", sharedTodos || [], {
-            append: !isFirstPage,
-            resetPagination: isFirstPage,
-          });
-          this.storageService.setCollection("publicTodos", publicTodos || [], {
-            append: !isFirstPage,
-            resetPagination: isFirstPage,
-          });
-          this.todosLoading.set(false);
-          return of([...(privateTodos || []), ...(sharedTodos || []), ...(publicTodos || [])]);
-        }),
-        catchError(() => {
-          this.todosLoading.set(false);
-          return of([]);
         })
-      );
+        .pipe(
+          tap((publicTodos) => {
+            this.storageService.setCollection("publicTodos", publicTodos || [], {
+              append: !isFirstPage,
+              resetPagination: isFirstPage,
+            });
+          })
+        );
+
+      return concat(of(cachedTodos), private$, shared$, public$);
     }
 
     let filter: any;
@@ -175,9 +203,9 @@ export class DataLoaderService {
       filter = { visibility: visibility };
     }
 
-    return this.requestService
-      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
-      .pipe(
+    return concat(
+      of(cachedTodos),
+      this.requestService.getTodos({ filter, skip, limit, load: ["categories"], visibility }).pipe(
         switchMap((todos) => {
           const loadedTodos = todos || [];
           const isFirstPage = page === 0;
@@ -195,9 +223,10 @@ export class DataLoaderService {
         }),
         catchError(() => {
           this.todosLoading.set(false);
-          return of([]);
+          return of(cachedTodos);
         })
-      );
+      )
+    );
   }
 
   loadMoreTodosPage(visibility: string = "private"): Observable<Todo[]> {
@@ -210,6 +239,19 @@ export class DataLoaderService {
 
     const userId = this.jwtTokenService.getCurrentUserId() || "";
 
+    const getCachedTodosForAppend = (): Todo[] => {
+      if (visibility === "all") {
+        return [
+          ...this.storageService.privateTodos(),
+          ...this.storageService.sharedTodos(),
+          ...this.storageService.publicTodos(),
+        ];
+      }
+      return [];
+    };
+
+    const cachedForAppend = getCachedTodosForAppend();
+
     if (visibility === "all") {
       const privateFilter = { user_id: userId };
       const sharedFilter = {
@@ -220,40 +262,61 @@ export class DataLoaderService {
       };
       const publicFilter = { visibility: "public" };
 
-      return forkJoin([
-        this.requestService.getTodos({
+      const private$ = this.requestService
+        .getTodos({
           filter: privateFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "private",
-        }),
-        this.requestService.getTodos({
+        })
+        .pipe(
+          tap((privateTodos) => {
+            this.storageService.setCollection("privateTodos", privateTodos || [], { append: true });
+          })
+        );
+
+      const shared$ = this.requestService
+        .getTodos({
           filter: sharedFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "shared",
-        }),
-        this.requestService.getTodos({
+        })
+        .pipe(
+          tap((sharedTodos) => {
+            this.storageService.setCollection("sharedTodos", sharedTodos || [], { append: true });
+          })
+        );
+
+      const public$ = this.requestService
+        .getTodos({
           filter: publicFilter,
           skip,
           limit,
           load: ["categories"],
           visibility: "public",
-        }),
-      ]).pipe(
-        switchMap(([privateTodos, sharedTodos, publicTodos]) => {
-          this.storageService.setCollection("privateTodos", privateTodos || [], { append: true });
-          this.storageService.setCollection("sharedTodos", sharedTodos || [], { append: true });
-          this.storageService.setCollection("publicTodos", publicTodos || [], { append: true });
-          this.todosLoading.set(false);
-          return of([...(privateTodos || []), ...(sharedTodos || []), ...(publicTodos || [])]);
-        }),
-        catchError(() => {
-          this.todosLoading.set(false);
-          return of([]);
         })
+        .pipe(
+          tap((publicTodos) => {
+            this.storageService.setCollection("publicTodos", publicTodos || [], { append: true });
+          })
+        );
+
+      return concat(
+        of(cachedForAppend),
+        merge(private$, shared$, public$).pipe(
+          scan(
+            (acc: Todo[]) => [
+              ...this.storageService.privateTodos(),
+              ...this.storageService.sharedTodos(),
+              ...this.storageService.publicTodos(),
+            ],
+            cachedForAppend
+          ),
+          tap(() => this.todosLoading.set(false))
+        )
       );
     }
 
@@ -266,25 +329,27 @@ export class DataLoaderService {
       filter = { visibility: visibility };
     }
 
-    return this.requestService
-      .getTodos({ filter, skip, limit, load: ["categories"], visibility })
-      .pipe(
-        switchMap((todos) => {
-          const newItems = todos || [];
+    return concat(
+      of(cachedForAppend),
+      this.requestService.getTodos({ filter, skip, limit, load: ["categories"], visibility }).pipe(
+        tap((newItems) => {
           let collectionName: "privateTodos" | "sharedTodos" | "publicTodos" = "privateTodos";
           if (visibility === "private") collectionName = "privateTodos";
           else if (visibility === "shared") collectionName = "sharedTodos";
           else if (visibility === "public") collectionName = "publicTodos";
-          this.storageService.setCollection(collectionName, newItems, { append: true });
-          this.storageService.updatePagination("todos", skip, limit, newItems.length);
+          this.storageService.setCollection(collectionName, newItems || [], { append: true });
+        }),
+        switchMap((newItems) => {
+          this.storageService.updatePagination("todos", skip, limit, (newItems || []).length);
           this.todosLoading.set(false);
-          return of(newItems);
+          return of(newItems || []);
         }),
         catchError(() => {
           this.todosLoading.set(false);
-          return of([]);
+          return of(cachedForAppend);
         })
-      );
+      )
+    );
   }
 
   loadInitialTodos(visibility: string = "private", limit: number = 10): Observable<Todo[]> {
@@ -307,18 +372,44 @@ export class DataLoaderService {
 
   loadInitialTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
     this.tasksLoading.set(true);
-    return this.dataService.getTasksByVisibility(visibility, limit).pipe(
-      switchMap((tasks) => {
-        const loadedTasks = tasks || [];
-        this.storageService.setCollection("tasks", loadedTasks, { resetPagination: true });
-        this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
-        this.tasksLoading.set(false);
-        return of(loadedTasks);
-      }),
-      catchError(() => {
-        this.tasksLoading.set(false);
-        return of([]);
-      })
+    const cachedTasks = this.storageService.tasks().filter((t) => !t.deleted_at);
+
+    if (visibility === "all") {
+      return concat(
+        of(cachedTasks),
+        this.dataService
+          .getTasksByVisibility("private", limit)
+          .pipe(
+            tap((tasks) =>
+              this.storageService.setCollection("tasks", tasks, { resetPagination: true })
+            )
+          ),
+        this.dataService
+          .getTasksByVisibility("shared", limit)
+          .pipe(
+            tap((tasks) => this.storageService.setCollection("tasks", tasks, { append: true }))
+          ),
+        this.dataService
+          .getTasksByVisibility("public", limit)
+          .pipe(tap((tasks) => this.storageService.setCollection("tasks", tasks, { append: true })))
+      );
+    }
+
+    return concat(
+      of(cachedTasks),
+      this.dataService.getTasksByVisibility(visibility, limit).pipe(
+        switchMap((tasks) => {
+          const loadedTasks = tasks || [];
+          this.storageService.setCollection("tasks", loadedTasks, { resetPagination: true });
+          this.storageService.updatePagination("tasks", 0, limit, loadedTasks.length);
+          this.tasksLoading.set(false);
+          return of(loadedTasks);
+        }),
+        catchError(() => {
+          this.tasksLoading.set(false);
+          return of(cachedTasks);
+        })
+      )
     );
   }
 
@@ -337,28 +428,33 @@ export class DataLoaderService {
     const skip = page * limit;
     this.tasksLoading.set(true);
 
-    return this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
-      switchMap((tasks) => {
-        if (this.currentTasksTodoId() !== todoId) {
-          return of([]);
-        }
+    const cachedTasks = page === 0 ? this.storageService.getTasksByTodoId(todoId) : [];
 
-        const loadedTasks = tasks || [];
-        const isFirstPage = page === 0;
-        if (isFirstPage) {
-          this.storageService.resetPagination("tasks");
-        }
-        this.storageService.setCollection("tasks", loadedTasks, {
-          append: !isFirstPage,
-        });
-        this.storageService.updatePagination("tasks", skip, limit, loadedTasks.length);
-        this.tasksLoading.set(false);
-        return of(loadedTasks);
-      }),
-      catchError(() => {
-        this.tasksLoading.set(false);
-        return of([]);
-      })
+    return concat(
+      of(cachedTasks),
+      this.requestService.getTasks(todoId, { filter: { todo_id: todoId } }, skip, limit).pipe(
+        switchMap((tasks) => {
+          if (this.currentTasksTodoId() !== todoId) {
+            return this.loadMoreTasksPage(this.currentTasksTodoId() || todoId, visibility);
+          }
+
+          const loadedTasks = tasks || [];
+          const isFirstPage = page === 0;
+          if (isFirstPage) {
+            this.storageService.resetPagination("tasks");
+          }
+          this.storageService.setCollection("tasks", loadedTasks, {
+            append: !isFirstPage,
+          });
+          this.storageService.updatePagination("tasks", skip, limit, loadedTasks.length);
+          this.tasksLoading.set(false);
+          return of(loadedTasks);
+        }),
+        catchError(() => {
+          this.tasksLoading.set(false);
+          return of(cachedTasks);
+        })
+      )
     );
   }
 
@@ -506,7 +602,7 @@ export class DataLoaderService {
     this.commentsLoading.set(true);
     this.storageService.resetPagination("comments");
 
-    return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
+    return this.requestService.getComments(taskId, undefined, skip, limit, visibility).pipe(
       switchMap((comments) => {
         if (requestId !== this.currentCommentsRequestId()) return of([]);
         const loadedComments = comments || [];
@@ -542,7 +638,7 @@ export class DataLoaderService {
     const limit = current.limit;
     this.commentsLoading.set(true);
 
-    return this.requestService.getComments(taskId, undefined, skip, limit).pipe(
+    return this.requestService.getComments(taskId, undefined, skip, limit, visibility).pipe(
       switchMap((comments) => {
         if (this.currentCommentsTaskId() !== taskId) return of([]);
         const newItems = comments || [];
@@ -584,7 +680,7 @@ export class DataLoaderService {
     this.commentsLoading.set(true);
     this.commentsPagination.set({ skip, limit, hasMore: true });
 
-    return this.requestService.getComments(undefined, subtaskId, skip, limit).pipe(
+    return this.requestService.getComments(undefined, subtaskId, skip, limit, visibility).pipe(
       switchMap((comments) => {
         const loadedComments = comments || [];
         const isFirstPage = page === 0;
@@ -618,7 +714,7 @@ export class DataLoaderService {
     const limit = current.limit;
     this.commentsLoading.set(true);
 
-    return this.requestService.getComments(undefined, subtaskId, skip, limit).pipe(
+    return this.requestService.getComments(undefined, subtaskId, skip, limit, visibility).pipe(
       switchMap((comments) => {
         const newItems = comments || [];
         this.storageService.setCollection("comments", newItems, { append: true });
@@ -703,7 +799,7 @@ export class DataLoaderService {
     const limit = current.limit;
     this.chatsLoading.set(true);
 
-    return this.requestService.getChats(todoId, skip, limit).pipe(
+    return this.requestService.getChats(todoId, skip, limit, visibility).pipe(
       switchMap((chats) => {
         const newItems = chats || [];
         this.storageService.setCollection("chats", newItems, { append: true });
