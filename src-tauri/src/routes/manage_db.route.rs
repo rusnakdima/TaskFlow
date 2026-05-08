@@ -42,7 +42,16 @@ pub async fn manage_data(
     if !read_operations.contains(&operation.as_str()) {
       let effective_visibility = visibility.as_deref().unwrap_or("private");
 
-      if effective_visibility != "private" {
+      let is_status_only_update = operation == "update"
+        && data.as_ref().is_some_and(|d| {
+          if let Some(obj) = d.as_object() {
+            obj.len() == 1 && obj.contains_key("status")
+          } else {
+            false
+          }
+        });
+
+      if effective_visibility != "private" && !is_status_only_update {
         return Err(err_response(
           "Operation not available while offline. Please connect to the internet and try again.",
         ));
