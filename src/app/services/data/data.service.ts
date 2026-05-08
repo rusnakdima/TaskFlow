@@ -1,5 +1,6 @@
 import { Injectable, inject, Injector } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { switchMap, map, catchError } from "rxjs/operators";
 
 import { Response } from "@models/response.model";
 import { Todo } from "@models/todo.model";
@@ -69,7 +70,52 @@ export class DataService {
   }
 
   getTasksByVisibility(visibility: string, limit: number = 10): Observable<Task[]> {
-    return this.requestService.getTasks(undefined, { visibility }, 0, limit, visibility);
+    const userId = (this.requestService as any).currentUserId || "";
+
+    if (visibility === "all") {
+      const privateFilter = { user_id: userId };
+      const sharedFilter = {
+        $or: [
+          { visibility: "shared", user_id: userId },
+          { visibility: "shared", assignees: { $in: [userId] } },
+        ],
+      };
+      const publicFilter = { visibility: "public" };
+
+      return this.requestService.getTasks(undefined, privateFilter, 0, limit, "private").pipe(
+        switchMap((privateTasks) => {
+          return this.requestService.getTasks(undefined, sharedFilter, 0, limit, "shared").pipe(
+            switchMap((sharedTasks) => {
+              return this.requestService
+                .getTasks(undefined, publicFilter, 0, limit, "public")
+                .pipe(
+                  map((publicTasks) => [
+                    ...(privateTasks || []),
+                    ...(sharedTasks || []),
+                    ...(publicTasks || []),
+                  ])
+                );
+            })
+          );
+        })
+      );
+    }
+
+    let taskFilter: any;
+    if (visibility === "private") {
+      taskFilter = { user_id: userId };
+    } else if (visibility === "shared") {
+      taskFilter = {
+        $or: [
+          { visibility: "shared", user_id: userId },
+          { visibility: "shared", assignees: { $in: [userId] } },
+        ],
+      };
+    } else {
+      taskFilter = { visibility: visibility };
+    }
+
+    return this.requestService.getTasks(undefined, taskFilter, 0, limit, visibility);
   }
 
   getTask(id: string): Observable<Task> {

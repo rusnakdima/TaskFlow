@@ -164,7 +164,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private chatEffect = effect(() => {
     const tid = this.todoId();
-    if (tid) {
+    const todo = this.todo();
+    if (tid && todo) {
       if (this.loadedChatTodoIds.has(tid)) return;
       const visibility = this.isPrivate() ? "private" : "shared";
       if (!this.chatLoadingGuard.has(tid)) {
@@ -183,7 +184,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private taskLoadEffect = effect(() => {
     const todoId = this.todoId();
-    if (todoId && todoId !== this.lastLoadedTaskTodoId) {
+    const todo = this.todo();
+    if (todoId && todoId !== this.lastLoadedTaskTodoId && todo) {
       this.lastLoadedTaskTodoId = todoId;
       this.loadInitialTasks();
     }
@@ -261,9 +263,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
     } else if (!isMongoConnected) {
-      this.todoTasks.set([]);
+      const storedTasks = this._storageService.getTasksByTodoId(todoId);
+      this.todoTasks.set(storedTasks);
       this.taskPagination.update((p) => ({
         ...p,
+        skip: storedTasks.length,
+        total: storedTasks.length,
+        hasMore: false,
         loading: false,
       }));
       return;

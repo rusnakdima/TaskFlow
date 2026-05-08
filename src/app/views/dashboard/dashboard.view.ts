@@ -48,12 +48,8 @@ export class DashboardView implements OnInit {
 
   profile: () => Profile | null;
   userId = "";
-  tasksLoaded = signal(false);
 
   private allTasksData = computed<DisplayTask[]>(() => {
-    if (!this.tasksLoaded()) {
-      return [];
-    }
     const currentTasks = this.storageService.tasks();
 
     return currentTasks
@@ -126,11 +122,9 @@ export class DashboardView implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.dataLoaderService.loadInitialTasksByVisibility("all", 10).subscribe({
-      complete: () => {
-        this.tasksLoaded.set(true);
-      },
-    });
+    this.dataLoaderService.loadInitialTasksByVisibility("private", 10).subscribe({});
+    this.dataLoaderService.loadInitialTasksByVisibility("shared", 10).subscribe({});
+    this.dataLoaderService.loadInitialTasksByVisibility("public", 10).subscribe({});
   }
 
   getCircleColor(status: TaskStatus): string {
