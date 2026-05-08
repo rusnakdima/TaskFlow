@@ -643,28 +643,49 @@ impl RepositoryService {
 
     if table == "tasks" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let _ = self.count_service.on_task_created(todo_id, offline).await;
+        let count_service = self.count_service.clone();
+        let todo_id_clone = todo_id.to_string();
+        tokio::spawn(async move {
+          let _ = count_service.on_task_created(&todo_id_clone, offline).await;
+        });
       }
     } else if table == "subtasks" {
       if let Some(task_id) = created_record.get("task_id").and_then(|v| v.as_str()) {
-        if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
-          let _ = self
-            .count_service
-            .on_subtask_created(task_id, &todo_id, offline)
-            .await;
+        let count_service = self.count_service.clone();
+        let task_id_clone = task_id.to_string();
+        let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
+        if let Some(todo_id) = todo_id_opt {
+          let todo_id_clone = todo_id.to_string();
+          tokio::spawn(async move {
+            let _ = count_service
+              .on_subtask_created(&task_id_clone, &todo_id_clone, offline)
+              .await;
+          });
         }
       }
     } else if table == "chats" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let _ = self.count_service.on_chat_created(todo_id, offline).await;
+        let count_service = self.count_service.clone();
+        let todo_id_clone = todo_id.to_string();
+        tokio::spawn(async move {
+          let _ = count_service.on_chat_created(&todo_id_clone, offline).await;
+        });
       }
     } else if table == "comments" {
       let task_id = created_record.get("task_id").and_then(|v| v.as_str());
       let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
-      let _ = self
-        .count_service
-        .on_comment_created(task_id, subtask_id, offline)
-        .await;
+      let count_service = self.count_service.clone();
+      let task_id_clone = task_id.map(|s| s.to_string());
+      let subtask_id_clone = subtask_id.map(|s| s.to_string());
+      tokio::spawn(async move {
+        let _ = count_service
+          .on_comment_created(
+            task_id_clone.as_deref(),
+            subtask_id_clone.as_deref(),
+            offline,
+          )
+          .await;
+      });
     }
 
     self
@@ -1164,32 +1185,52 @@ impl RepositoryService {
           if table == "tasks" {
             let was_completed = existing.get("status") == Some(&json!("completed"));
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
-              let _ = self
-                .count_service
-                .on_task_deleted(todo_id, was_completed, offline)
-                .await;
+              let count_service = self.count_service.clone();
+              let todo_id_clone = todo_id.to_string();
+              tokio::spawn(async move {
+                let _ = count_service
+                  .on_task_deleted(&todo_id_clone, was_completed, offline)
+                  .await;
+              });
             }
           } else if table == "subtasks" {
             let was_completed = existing.get("status") == Some(&json!("completed"));
             if let Some(task_id) = existing.get("task_id").and_then(|v| v.as_str()) {
-              if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
-                let _ = self
-                  .count_service
-                  .on_subtask_deleted(task_id, &todo_id, was_completed, offline)
-                  .await;
+              let count_service = self.count_service.clone();
+              let task_id_clone = task_id.to_string();
+              let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
+              if let Some(todo_id) = todo_id_opt {
+                let todo_id_clone = todo_id.to_string();
+                tokio::spawn(async move {
+                  let _ = count_service
+                    .on_subtask_deleted(&task_id_clone, &todo_id_clone, was_completed, offline)
+                    .await;
+                });
               }
             }
           } else if table == "chats" {
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
-              let _ = self.count_service.on_chat_deleted(todo_id, offline).await;
+              let count_service = self.count_service.clone();
+              let todo_id_clone = todo_id.to_string();
+              tokio::spawn(async move {
+                let _ = count_service.on_chat_deleted(&todo_id_clone, offline).await;
+              });
             }
           } else if table == "comments" {
             let task_id = existing.get("task_id").and_then(|v| v.as_str());
             let subtask_id = existing.get("subtask_id").and_then(|v| v.as_str());
-            let _ = self
-              .count_service
-              .on_comment_deleted(task_id, subtask_id, offline)
-              .await;
+            let count_service = self.count_service.clone();
+            let task_id_clone = task_id.map(|s| s.to_string());
+            let subtask_id_clone = subtask_id.map(|s| s.to_string());
+            tokio::spawn(async move {
+              let _ = count_service
+                .on_comment_deleted(
+                  task_id_clone.as_deref(),
+                  subtask_id_clone.as_deref(),
+                  offline,
+                )
+                .await;
+            });
           }
         }
       }

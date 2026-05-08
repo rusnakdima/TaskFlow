@@ -4,6 +4,7 @@ import { Component, OnInit, signal, computed, OnDestroy, inject, DestroyRef } fr
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -29,6 +30,8 @@ import { StorageService } from "@services/storage.service";
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private destroyRef = inject(DestroyRef);
+
+  private profileLoaded = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -60,13 +63,69 @@ export class ProfileView implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-
+    this.loadProfile();
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
   }
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+  }
+
+  private loadProfile(): void {
+    if (this.profileLoaded && this.profile()) {
+      return;
+    }
+
+    const storedProfile = this.storageService.profile();
+    const storedUser = this.storageService.user();
+
+    if (storedProfile && storedUser) {
+      this.profileLoaded = true;
+      return;
+    }
+
+    if (this.storageService.isLoading()) {
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkStorage = () => {
+        attempts++;
+        const profile = this.storageService.profile();
+        const user = this.storageService.user();
+        if (profile && user) {
+          this.profileLoaded = true;
+          return;
+        }
+        if (attempts < maxAttempts) {
+          setTimeout(checkStorage, 100);
+        } else {
+          this.fetchProfileFromApi();
+        }
+      };
+      setTimeout(checkStorage, 100);
+      return;
+    }
+
+    this.fetchProfileFromApi();
+  }
+
+  private fetchProfileFromApi(): void {
+    const userId = this.authService.getValueByKey("id");
+    this.requestService
+      .getAll<Profile>("profiles", {
+        visibility: "private",
+        filter: { user_id: userId },
+        load: ["user"],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profiles) => {
+          if (profiles && profiles.length > 0) {
+            this.profileLoaded = true;
+          }
+        },
+        error: () => {},
+      });
   }
 
   isMyProfile(): boolean {
