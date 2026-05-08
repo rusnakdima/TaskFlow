@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-center justify-end gap-2">
-  @if (config?.selectAll) {
+  @if (config?.selectAll && config?.viewMode?.mode !== "table") {
     <button
       class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.selectAll!.onToggle()"

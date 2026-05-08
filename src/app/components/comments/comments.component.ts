@@ -167,13 +167,13 @@ export class CommentsComponent
   }
 
   addComment() {
-    if (this.newCommentContent().trim()) {
-      this.addCommentEvent.emit(this.newCommentContent().trim());
-      this.newCommentContent.set("");
-      this.forceScrollBottom = true;
-      this.shouldScroll.set(true);
-      setTimeout(() => this.updateObservedElements(".unread-comment", "data-comment-id"), 100);
+    console.log("[Comments] addComment called, content:", this.newCommentContent());
+    if (!this.newCommentContent().trim()) {
+      console.log("[Comments] Empty comment, skipping");
+      return;
     }
+    this.addCommentEvent.emit(this.newCommentContent().trim());
+    this.newCommentContent.set("");
   }
 
   deleteComment(commentId: string) {

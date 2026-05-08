@@ -41,7 +41,7 @@ export class CategoryCardComponent {
     this.delete.emit(this.category.id);
   }
 
-  toggleSelection(_checked: boolean) {
+  toggleSelection(_result: { checked: boolean; event?: MouseEvent }) {
     this.selectionChangeEvent.emit(this.category.id);
   }
 

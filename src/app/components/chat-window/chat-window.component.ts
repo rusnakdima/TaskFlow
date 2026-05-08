@@ -30,6 +30,7 @@ import { Todo } from "@models/todo.model";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { REQUEST_SERVICE } from "@services/api.service";
+import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* mixins */
 import { ScrollingMixin } from "@mixins/scrolling.mixin";
@@ -53,6 +54,7 @@ export class ChatWindowComponent
   storageService = inject(StorageService);
   apiService = inject(REQUEST_SERVICE);
   private destroyRef = inject(DestroyRef);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   chats = signal<Chat[]>([]);
 
@@ -289,7 +291,12 @@ export class ChatWindowComponent
     const todo = this.currentTodo();
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
     this.apiService.delete("chats", chatId, { visibility }).subscribe({
-      error: (err) => {},
+      next: () => {
+        this.messages.update((current) => current.filter((c) => c.id !== chatId));
+      },
+      error: (err) => {
+        console.error("Failed to delete message:", err);
+      },
     });
   }
 
@@ -316,14 +323,24 @@ export class ChatWindowComponent
     } as any);
   }
 
-  clearChat() {
-    if (!confirm("Are you sure you want to clear all messages from this chat?")) return;
+  async clearChat() {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Clear Chat",
+      message: "Are you sure you want to clear all messages from this chat?",
+      confirmText: "Clear",
+      confirmClass: "bg-red-600 hover:bg-red-700",
+    });
+    if (!confirmed) return;
 
     const chats = this.chats();
     if (!chats || chats.length === 0) return;
 
     const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
-    this.apiService.updateAll("chats", chatsToDelete, { visibility: "private" }).subscribe();
+    this.apiService.updateAll("chats", chatsToDelete, { visibility: "private" }).subscribe({
+      next: () => {
+        this.messages.set([]);
+      },
+    });
   }
 
   getUsername(userId: string): string {
