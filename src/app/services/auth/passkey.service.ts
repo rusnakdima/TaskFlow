@@ -1,9 +1,9 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap } from "rxjs/operators";
-import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
+import { RequestService } from "@services/core/request.service";
 
 export interface PasskeyRegistrationOptions {
   options: any;
@@ -21,7 +21,7 @@ export interface PasskeyAuthOptions {
   providedIn: "root",
 })
 export class PasskeyService {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private jwtTokenService = inject(JwtTokenService);
 
   isPasskeyEnabledForCurrentUser(): boolean {
@@ -37,7 +37,7 @@ export class PasskeyService {
   }
 
   initPasskeyRegistration(): Observable<PasskeyRegistrationOptions> {
-    return this.dataSyncProvider.invokeCommand<PasskeyRegistrationOptions>(
+    return this.requestService.invokeCommand<PasskeyRegistrationOptions>(
       "initPasskeyRegistration",
       { username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "" }
     );
@@ -48,7 +48,7 @@ export class PasskeyService {
     attestationObject: string,
     device: string
   ): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("completePasskeyRegistration", {
+    return this.requestService.invokeCommand<string>("completePasskeyRegistration", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       attestationObject,
@@ -57,7 +57,7 @@ export class PasskeyService {
   }
 
   initPasskeyAuthentication(username?: string): Observable<PasskeyAuthOptions> {
-    return this.dataSyncProvider.invokeCommand<PasskeyAuthOptions>("initPasskeyAuthentication", {
+    return this.requestService.invokeCommand<PasskeyAuthOptions>("initPasskeyAuthentication", {
       username: username || null,
     });
   }
@@ -68,7 +68,7 @@ export class PasskeyService {
     clientData: string,
     username?: string
   ): Observable<{ verified: boolean; username: string; method: string }> {
-    return this.dataSyncProvider.invokeCommand<{
+    return this.requestService.invokeCommand<{
       verified: boolean;
       username: string;
       method: string;
@@ -81,13 +81,13 @@ export class PasskeyService {
   }
 
   disablePasskey(): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disablePasskey", {
+    return this.requestService.invokeCommand<string>("disablePasskey", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableBiometric(credentialId: string, publicKey: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("enableBiometric", {
+    return this.requestService.invokeCommand<string>("enableBiometric", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       publicKey,
@@ -97,59 +97,22 @@ export class PasskeyService {
   initBiometricAuth(
     username?: string
   ): Observable<{ options: any; challenge: string; platform: string }> {
-    return this.dataSyncProvider.invokeCommand<any>("initBiometricAuth", {
+    return this.requestService.invokeCommand<any>("initBiometricAuth", {
       username: username || null,
     });
   }
 
   completeBiometricAuth(signature: string, username?: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("completeBiometricAuth", {
+    return this.requestService.invokeCommand<string>("completeBiometricAuth", {
       username: username || this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       signature,
     });
   }
 
   disableBiometric(): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disableBiometric", {
+    return this.requestService.invokeCommand<string>("disableBiometric", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
-  }
-
-  async registerPasskey(): Promise<{ success: boolean; error?: string }> {
-    try {
-      const result = await new Promise<PasskeyRegistrationOptions>((resolve, reject) => {
-        this.initPasskeyRegistration().subscribe({
-          next: resolve,
-          error: reject,
-        });
-      });
-
-      const publicKeyCredential = await this.createPasskeyCredential(result.options);
-
-      if (!publicKeyCredential) {
-        return { success: false, error: "Failed to create passkey credential" };
-      }
-
-      const pkCredential = publicKeyCredential as any;
-      const signature = EncodingHelper.arrayBufferToBase64(pkCredential.response.signature);
-      const authenticatorData = EncodingHelper.arrayBufferToBase64(
-        pkCredential.response.authenticatorData
-      );
-      const clientData = btoa(pkCredential.response.clientDataJSON);
-
-      return new Promise((resolve, reject) => {
-        this.completePasskeyRegistration(
-          EncodingHelper.arrayBufferToBase64(pkCredential.credentialId),
-          EncodingHelper.arrayBufferToBase64(pkCredential.response.attestationObject),
-          "cross-platform"
-        ).subscribe({
-          next: () => resolve({ success: true }),
-          error: (err) => reject(err),
-        });
-      });
-    } catch (error: any) {
-      return { success: false, error: error.message || "Passkey registration failed" };
-    }
   }
 
   private async createPasskeyCredential(options: any): Promise<any> {
@@ -294,6 +257,8 @@ export class PasskeyService {
   }
 
   async registerBiometric(): Promise<{ success: boolean; error?: string }> {
-    return this.registerPasskey();
+    return this.initPasskeyRegistration().toPromise()
+      .then(() => ({ success: true, requiresTotp: false }))
+      .catch((err) => ({ success: false, error: err.message || "Biometric registration failed" }));
   }
 }

@@ -6,12 +6,12 @@ import { invoke } from "@tauri-apps/api/core";
 
 /* models */
 
-import { ApiProvider } from "@providers/api.provider";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { PasskeyService } from "@services/auth/passkey.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
 import { AuthResponse } from "@models/auth-forms.model";
+import { RequestService } from "@services/core/request.service";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -47,7 +47,7 @@ export interface BiometricInfo {
   providedIn: "root",
 })
 export class SecurityService {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
   private jwtTokenService = inject(JwtTokenService);
   private passkeyService = inject(PasskeyService);
   private webauthnService = inject(WebAuthnService);
@@ -120,56 +120,48 @@ export class SecurityService {
   }
 
   setupTotp(): Observable<TotpSetupResult> {
-    return this.dataSyncProvider.invokeCommand<TotpSetupResult>("setupTotp", {
+    return this.requestService.invokeCommand<TotpSetupResult>("setupTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableTotp(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("enableTotp", {
+    return this.requestService.invokeCommand<string>("enableTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   disableTotp(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disableTotp", {
+    return this.requestService.invokeCommand<string>("disableTotp", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
   useRecoveryCode(code: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("useRecoveryCode", {
+    return this.requestService.invokeCommand<string>("useRecoveryCode", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       code,
     });
   }
 
-  /**
-   * Complete login with TOTP after passkey/biometric authentication
-   * This returns AuthResponse with token, needsProfile, and profile
-   */
   completeTotpLogin(username: string, code: string): Observable<AuthResponse> {
-    return this.dataSyncProvider.invokeCommand<AuthResponse>("verifyLoginTotp", {
+    return this.requestService.invokeCommand<AuthResponse>("verifyLoginTotp", {
       username,
       code,
     });
   }
 
-  /**
-   * Initialize TOTP QR code for desktop login
-   * Returns a QR code URI that can be scanned with Google Authenticator
-   */
   initTotpForLogin(username: string): Observable<{ qrCode: string; secret?: string }> {
-    return this.dataSyncProvider.invokeCommand<{ qrCode: string; secret?: string }>(
+    return this.requestService.invokeCommand<{ qrCode: string; secret?: string }>(
       "initTotpQrLogin",
       { username }
     );
   }
 
   initPasskeyRegistration(): Observable<PasskeyRegistrationOptions> {
-    return this.dataSyncProvider.invokeCommand<PasskeyRegistrationOptions>(
+    return this.requestService.invokeCommand<PasskeyRegistrationOptions>(
       "initPasskeyRegistration",
       { username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "" }
     );
@@ -180,7 +172,7 @@ export class SecurityService {
     attestationObject: string,
     device: string
   ): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("completePasskeyRegistration", {
+    return this.requestService.invokeCommand<string>("completePasskeyRegistration", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       attestationObject,
@@ -189,7 +181,7 @@ export class SecurityService {
   }
 
   initPasskeyAuthentication(username?: string): Observable<PasskeyAuthOptions> {
-    return this.dataSyncProvider.invokeCommand<PasskeyAuthOptions>("initPasskeyAuthentication", {
+    return this.requestService.invokeCommand<PasskeyAuthOptions>("initPasskeyAuthentication", {
       username: username || null,
     });
   }
@@ -200,7 +192,7 @@ export class SecurityService {
     clientData: string,
     username?: string
   ): Observable<{ verified: boolean; username: string; method: string }> {
-    return this.dataSyncProvider.invokeCommand<{
+    return this.requestService.invokeCommand<{
       verified: boolean;
       username: string;
       method: string;
@@ -213,13 +205,13 @@ export class SecurityService {
   }
 
   disablePasskey(): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disablePasskey", {
+    return this.requestService.invokeCommand<string>("disablePasskey", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }
 
   enableBiometric(credentialId: string, publicKey: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("enableBiometric", {
+    return this.requestService.invokeCommand<string>("enableBiometric", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       credentialId,
       publicKey,
@@ -229,20 +221,20 @@ export class SecurityService {
   initBiometricAuth(
     username?: string
   ): Observable<{ options: any; challenge: string; platform: string }> {
-    return this.dataSyncProvider.invokeCommand<any>("initBiometricAuth", {
+    return this.requestService.invokeCommand<any>("initBiometricAuth", {
       username: username || null,
     });
   }
 
   completeBiometricAuth(signature: string, username?: string): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("completeBiometricAuth", {
+    return this.requestService.invokeCommand<string>("completeBiometricAuth", {
       username: username || this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
       signature,
     });
   }
 
   disableBiometric(): Observable<string> {
-    return this.dataSyncProvider.invokeCommand<string>("disableBiometric", {
+    return this.requestService.invokeCommand<string>("disableBiometric", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
   }

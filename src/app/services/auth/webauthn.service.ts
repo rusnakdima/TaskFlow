@@ -1,6 +1,5 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom } from "rxjs";
-import { ApiProvider } from "@providers/api.provider";
 import { invoke } from "@tauri-apps/api/core";
 import {
   PasskeyCredential,
@@ -10,12 +9,13 @@ import {
 } from "@models/webauthn.model";
 import { AuthResponse } from "@models/auth-forms.model";
 import { EncodingHelper } from "@helpers/encoding.helper";
+import { RequestService } from "@services/core/request.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class WebAuthnService {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
 
   getPlatformName(): string {
     if (typeof navigator === "undefined") return "Unknown";
@@ -180,19 +180,16 @@ export class WebAuthnService {
     options: WebAuthnRegistrationOptions;
     challenge: string;
   }> {
-    return this.dataSyncProvider.invokeCommand<{
+    return this.requestService.invokeCommand<{
       options: WebAuthnRegistrationOptions;
       challenge: string;
     }>("initPasskeyRegistration", {});
   }
 
   completePasskeyRegistration(responseJson: string): Observable<{ success: boolean }> {
-    return this.dataSyncProvider.invokeCommand<{ success: boolean }>(
-      "completePasskeyRegistration",
-      {
-        responseJson,
-      }
-    );
+    return this.requestService.invokeCommand<{ success: boolean }>("completePasskeyRegistration", {
+      responseJson,
+    });
   }
 
   initPasskeyAuthentication(username?: string): Observable<{
@@ -201,7 +198,7 @@ export class WebAuthnService {
     challenge: string;
     username: string;
   }> {
-    return this.dataSyncProvider.invokeCommand<{
+    return this.requestService.invokeCommand<{
       options: WebAuthnAuthOptions;
       qrCode: string;
       challenge: string;
@@ -219,7 +216,7 @@ export class WebAuthnService {
     needsProfile: boolean;
     profile: any | null;
   }> {
-    return this.dataSyncProvider.invokeCommand<{
+    return this.requestService.invokeCommand<{
       verified: boolean;
       username: string;
       method: string;
