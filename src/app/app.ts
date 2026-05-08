@@ -22,7 +22,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
@@ -62,7 +62,7 @@ export class App implements OnInit, OnDestroy {
   private profileRequiredService = inject(ProfileRequiredService);
   private appStateService = inject(AppStateService);
   private userValidationService = inject(UserValidationService);
-  private dataService = inject(DataService);
+  private requestService = inject(REQUEST_SERVICE);
   private mongoConnectionService = inject(MongoConnectionService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
@@ -99,7 +99,7 @@ export class App implements OnInit, OnDestroy {
 
     this.authService.initializeSession(this.authRoutes);
 
-    this.dataService.getProfile().subscribe();
+    this.requestService.getProfile().subscribe();
 
     this.mongoConnectionService.checkConnection().subscribe();
 
@@ -114,25 +114,6 @@ export class App implements OnInit, OnDestroy {
           : this.router.url.length;
       this.url.set(this.router.url.slice(0, lastIndex));
       this.updateShowComponents();
-    });
-  }
-
-  /**
-   * Check token with backend in background (non-blocking)
-   */
-  private checkTokenWithBackend(token: string): void {
-    this.authService.checkToken<User>(token).subscribe({
-      next: (user: User) => {
-        this.triggerSync();
-      },
-      error: (err: Response<string>) => {
-        if (NetworkErrorHelper.isNetworkError(err)) {
-          this.notifyService.showWarning("Working offline - data sync paused");
-        } else {
-          this.notifyService.showError(err.message ?? err.toString());
-          this.userValidationService.redirectToLogin();
-        }
-      },
     });
   }
 
