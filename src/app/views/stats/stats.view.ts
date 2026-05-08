@@ -97,8 +97,8 @@ export class StatsView implements OnInit {
     if (userId && userId !== "") {
       this.requestService
         .invokeCommand<StatisticsResponse>("statistics_get", {
-          user_id: userId,
-          time_range: this.selectedTimeRange(),
+          userId,
+          timeRange: this.selectedTimeRange(),
         })
         .subscribe({
           next: (response: any) => {

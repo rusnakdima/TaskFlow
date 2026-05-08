@@ -205,6 +205,7 @@ export class KanbanView extends BaseListView implements OnInit {
       } else if (cachedTodos.length > 0) {
         this.selectedTodoId.set(cachedTodos[0].id);
       }
+      this.loadTasksForTodo(this.selectedTodoId(), true);
       return;
     }
 
@@ -217,9 +218,16 @@ export class KanbanView extends BaseListView implements OnInit {
 
     this.requestService.getAll("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
       next: () => {
-        const selectedId = this.selectedTodoId();
-        if (selectedId) {
-          this.loadTasksForTodo(selectedId);
+        let todoId = this.selectedTodoId();
+        if (!todoId) {
+          const firstTodo = this.todos()[0];
+          if (firstTodo) {
+            todoId = firstTodo.id;
+            this.selectedTodoId.set(todoId);
+          }
+        }
+        if (todoId) {
+          this.loadTasksForTodo(todoId);
         }
       },
       error: (err) => console.error("Failed to load todos:", err),
@@ -329,10 +337,12 @@ export class KanbanView extends BaseListView implements OnInit {
     }
   }
 
-  private loadTasksForTodo(todoId: string): void {
-    const cachedTasks = this.storageService.getTasksByTodoId(todoId);
-    if (cachedTasks.length > 0 && this.storageService.isCacheValid(300000)) {
-      return;
+  private loadTasksForTodo(todoId: string, forceRefresh = false): void {
+    if (!forceRefresh) {
+      const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+      if (cachedTasks.length > 0 && this.storageService.isCacheValid(300000)) {
+        return;
+      }
     }
 
     this.requestService
