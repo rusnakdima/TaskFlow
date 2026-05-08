@@ -14,11 +14,10 @@ import { NetworkErrorHelper } from "@helpers/network-error.helper";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { DataService } from "@services/data/data.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
-import { RequestService } from "@services/core/request.service";
 
 // ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
 // token handling, and profile operations. Future refactoring should split these responsibilities
@@ -27,26 +26,20 @@ import { RequestService } from "@services/core/request.service";
   providedIn: "root",
 })
 export class AuthService {
-  private _requestService: RequestService | null = null;
+  private _requestService: REQUEST_SERVICE | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
-  private _dataService: DataService | null = null;
-  private _profileRequiredService: ProfileRequiredService | null = null;
   private _notifyService: NotifyService | null = null;
   private _router: Router | null = null;
   private _userValidationService: UserValidationService | null = null;
   private _injector = inject(Injector);
 
-  private get requestService(): RequestService {
-    if (!this._requestService) this._requestService = this._injector.get(RequestService);
+  private get requestService(): REQUEST_SERVICE {
+    if (!this._requestService) this._requestService = this._injector.get(REQUEST_SERVICE);
     return this._requestService;
   }
   private get jwtTokenService(): JwtTokenService {
     if (!this._jwtTokenService) this._jwtTokenService = this._injector.get(JwtTokenService);
     return this._jwtTokenService;
-  }
-  private get dataService(): DataService {
-    if (!this._dataService) this._dataService = this._injector.get(DataService);
-    return this._dataService;
   }
   private get notifyService(): NotifyService {
     if (!this._notifyService) this._notifyService = this._injector.get(NotifyService);
@@ -241,18 +234,5 @@ export class AuthService {
   loadUserData(): void {
     const userId = this.getValueByKey("id");
     if (!userId) return;
-
-    // Load from backend via DataService
-    this.dataService
-      .getEntitiesByType("users", { filter: { id: userId, visibility: "private" } })
-      .pipe(take(1))
-      .subscribe({
-        next: (users) => {
-          if (users && users.length > 0) {
-            // Data is loaded through DataLoaderService cache updates
-          }
-        },
-        error: (err) => {},
-      });
   }
 }

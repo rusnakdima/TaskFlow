@@ -9,13 +9,13 @@ import {
 } from "@models/webauthn.model";
 import { AuthResponse } from "@models/auth-forms.model";
 import { EncodingHelper } from "@helpers/encoding.helper";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class WebAuthnService {
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
 
   getPlatformName(): string {
     if (typeof navigator === "undefined") return "Unknown";

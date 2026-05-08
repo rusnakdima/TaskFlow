@@ -11,7 +11,7 @@ import { PasskeyService } from "@services/auth/passkey.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
 import { AuthResponse } from "@models/auth-forms.model";
-import { RequestService } from "@services/core/request.service";
+import { REQUEST_SERVICE } from "@services/api.service";
 
 export interface TotpSetupResult {
   qrCode: string;
@@ -47,7 +47,7 @@ export interface BiometricInfo {
   providedIn: "root",
 })
 export class SecurityService {
-  private requestService = inject(RequestService);
+  private requestService = inject(REQUEST_SERVICE);
   private jwtTokenService = inject(JwtTokenService);
   private passkeyService = inject(PasskeyService);
   private webauthnService = inject(WebAuthnService);
@@ -240,7 +240,7 @@ export class SecurityService {
   }
 
   async registerPasskey(): Promise<{ success: boolean; error?: string }> {
-    return this.passkeyService.registerPasskey();
+    return this.passkeyService.registerBiometric();
   }
 
   async authenticateWithPasskey(): Promise<{
