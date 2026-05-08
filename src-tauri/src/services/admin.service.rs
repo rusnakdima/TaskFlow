@@ -14,7 +14,6 @@ use crate::helpers::common::convert_data_to_object;
 
 /* services */
 use crate::services::cascade::CascadeService;
-use crate::services::entity_resolution_service::EntityResolutionService;
 
 /* AdminManager - Handles admin operations for data management */
 #[derive(Clone)]
@@ -22,7 +21,6 @@ pub struct AdminManager {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Arc<MongoProvider>,
   pub cascade_service: CascadeService,
-  pub entity_resolution: Arc<EntityResolutionService>,
 }
 
 impl AdminManager {
@@ -30,13 +28,11 @@ impl AdminManager {
     json_provider: JsonProvider,
     mongodb_provider: Arc<MongoProvider>,
     cascade_service: CascadeService,
-    entity_resolution: Arc<EntityResolutionService>,
   ) -> Self {
     Self {
       json_provider,
       mongodb_provider,
       cascade_service,
-      entity_resolution,
     }
   }
 
