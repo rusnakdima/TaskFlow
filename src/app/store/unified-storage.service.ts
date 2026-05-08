@@ -1212,7 +1212,13 @@ export class UnifiedStorageService extends BaseStorageService {
         if (options?.append) {
           this.tasksSignal.update((existing) => [...existing, ...(items as Task[])]);
         } else {
-          this.tasksSignal.set(items as Task[]);
+          this.tasksSignal.update((existing) => {
+            const existingById = new Map(existing.map((t) => [t.id, t]));
+            for (const item of items as Task[]) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         if (options?.resetPagination) {
           this.resetPagination("tasks");
@@ -1222,7 +1228,13 @@ export class UnifiedStorageService extends BaseStorageService {
         if (options?.append) {
           this.subtasksSignal.update((existing) => [...existing, ...(items as Subtask[])]);
         } else {
-          this.subtasksSignal.set(items as Subtask[]);
+          this.subtasksSignal.update((existing) => {
+            const existingById = new Map(existing.map((s) => [s.id, s]));
+            for (const item of items as Subtask[]) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         if (options?.resetPagination) {
           this.resetPagination("subtasks");
@@ -1232,7 +1244,13 @@ export class UnifiedStorageService extends BaseStorageService {
         if (options?.append) {
           this.commentsSignal.update((existing) => [...existing, ...(items as Comment[])]);
         } else {
-          this.commentsSignal.set(items as Comment[]);
+          this.commentsSignal.update((existing) => {
+            const existingById = new Map(existing.map((c) => [c.id, c]));
+            for (const item of items as Comment[]) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         if (options?.resetPagination) {
           this.resetPagination("comments");
@@ -1242,26 +1260,50 @@ export class UnifiedStorageService extends BaseStorageService {
         if (options?.append) {
           this.chatsSignal.update((existing) => [...existing, ...(items as Chat[])]);
         } else {
-          this.chatsSignal.set(items as Chat[]);
+          this.chatsSignal.update((existing) => {
+            const existingById = new Map(existing.map((c) => [c.id, c]));
+            for (const item of items as Chat[]) {
+              existingById.set(item.id, item);
+            }
+            return Array.from(existingById.values());
+          });
         }
         if (options?.resetPagination) {
           this.resetPagination("chats");
         }
         break;
       case "privateTodos":
-        this.privateTodosSignal.set(items as Todo[]);
+        this.privateTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of items as Todo[]) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         if (options?.resetPagination) {
           this.resetPagination("todos");
         }
         break;
       case "sharedTodos":
-        this.sharedTodosSignal.set(items as Todo[]);
+        this.sharedTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of items as Todo[]) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         if (options?.resetPagination) {
           this.resetPagination("todos");
         }
         break;
       case "publicTodos":
-        this.publicTodosSignal.set(items as Todo[]);
+        this.publicTodosSignal.update((existing) => {
+          const existingById = new Map(existing.map((t) => [t.id, t]));
+          for (const item of items as Todo[]) {
+            existingById.set(item.id, item);
+          }
+          return Array.from(existingById.values());
+        });
         if (options?.resetPagination) {
           this.resetPagination("todos");
         }

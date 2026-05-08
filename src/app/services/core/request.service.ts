@@ -135,7 +135,9 @@ export class RequestService {
         visibility,
       }).subscribe({
         next: (data: any) => {
-          subscriber.next((data as any)?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -234,7 +236,9 @@ export class RequestService {
         ...options,
       }).subscribe({
         next: (data: any) => {
-          subscriber.next(data?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -331,7 +335,9 @@ export class RequestService {
         ...options,
       }).subscribe({
         next: (data: any) => {
-          subscriber.next(data?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -421,7 +427,9 @@ export class RequestService {
         visibility: "private",
       }).subscribe({
         next: (data: any) => {
-          subscriber.next(data?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -453,7 +461,9 @@ export class RequestService {
         ...options,
       }).subscribe({
         next: (data: any) => {
-          subscriber.next(data?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
@@ -477,7 +487,9 @@ export class RequestService {
         ...options,
       }).subscribe({
         next: (data: any) => {
-          subscriber.next(data?.data ?? data ?? []);
+          subscriber.next(
+            Array.isArray(data) ? data : data && typeof data === "object" ? (data.data ?? []) : []
+          );
           subscriber.complete();
           this.removeRequest(key);
         },
