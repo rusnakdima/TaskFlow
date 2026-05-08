@@ -72,7 +72,6 @@ export class ChatWindowComponent
     const todoId = this.todo_id;
     const todo = this.currentTodo();
     if (!todoId) return;
-    if (this.loadingInitial()) return;
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
     this.loadInitialChats(todoId, visibility);
   });
