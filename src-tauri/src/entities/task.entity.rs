@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
+/* helpers */
+use crate::helpers::timestamp_helper::get_current_datetime;
+
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -84,7 +87,7 @@ pub struct TaskCreateModel {
 
 impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
-    let now = Utc::now();
+    let now = get_current_datetime();
     let formatted_start_date = if value.start_date.is_empty() {
       None
     } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {

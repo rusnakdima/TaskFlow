@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use nosql_orm::Model;
 use nosql_orm::Validate;
 
+/* helpers */
+use crate::helpers::timestamp_helper::get_current_datetime;
+
 #[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("todos")]
 #[soft_delete]
@@ -64,7 +67,7 @@ pub struct TodoCreateModel {
 
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
-    let now = Utc::now();
+    let now = get_current_datetime();
     let formatted_start_date = if value.start_date.is_empty() {
       None
     } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {
