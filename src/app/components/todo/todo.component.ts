@@ -85,6 +85,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   @Output() updateTodoEvent: EventEmitter<{ field: string; value: any }> = new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
+  @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
 
   isExpandedDetails = signal(false);
   isDragging = signal(false);
@@ -249,9 +250,15 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
     return this.completedSubtasksCount();
   }
 
-  toggleSelection(checked: boolean): void {
+  toggleSelection(result: { checked: boolean; event?: MouseEvent }): void {
     if (this.todo) {
-      this.selectionChangeEvent.emit({ id: this.todo.id, selected: checked });
+      this.selectionChangeEvent.emit({ id: this.todo.id, selected: result.checked });
+    }
+  }
+
+  onCardClick(event: MouseEvent): void {
+    if (this.todo) {
+      this.cardClick.emit({ event, id: this.todo.id });
     }
   }
 

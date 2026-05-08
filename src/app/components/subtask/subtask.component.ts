@@ -92,6 +92,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     new EventEmitter();
   @Output() selectionChangeEvent: EventEmitter<{ id: string; selected: boolean }> =
     new EventEmitter();
+  @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
 
   showComments = signal(false);
   loadingSubtaskComments = signal(false);
@@ -262,28 +263,49 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   onAddComment(content: string) {
-    if (!this.subtask) return;
+    console.log("[Subtask] onAddComment called, content:", content, "subtask:", this.subtask?.id);
+    if (!this.subtask) {
+      console.log("[Subtask] No subtask, returning");
+      return;
+    }
     let effectiveTodoId: string | null = this.todo_id;
+    console.log("[Subtask] effectiveTodoId from todo_id:", effectiveTodoId);
 
     if (!effectiveTodoId && this.subtask.task_id) {
       const taskReactive = this.storageService.getTaskReactive(this.subtask.task_id);
       const task = taskReactive();
+      console.log("[Subtask] task from storage:", task?.id, "todo_id:", task?.todo_id);
       if (task?.todo_id) {
         effectiveTodoId = task.todo_id;
         this.createComment(content, effectiveTodoId);
+      } else {
+        console.log("[Subtask] No todo_id found in task");
       }
     } else if (effectiveTodoId) {
+      console.log("[Subtask] Using effectiveTodoId:", effectiveTodoId);
       this.createComment(content, effectiveTodoId);
+    } else {
+      console.log("[Subtask] No effectiveTodoId found, cannot create comment");
     }
   }
 
   private createComment(content: string, effectiveTodoId: string) {
-    if (!this.subtask) return;
+    console.log("[Subtask] createComment called, content:", content, "todoId:", effectiveTodoId);
+    if (!this.subtask) {
+      console.log("[Subtask] createComment: no subtask, returning");
+      return;
+    }
 
     if (!effectiveTodoId) {
+      console.log("[Subtask] createComment: no effectiveTodoId");
       this.notifyService.showError("Cannot add comment: User or Project not found");
       return;
     }
+
+    console.log("[Subtask] createComment: calling commentService.createComment", {
+      subtaskId: this.subtask.id,
+      visibility: this.isPrivate ? "private" : "shared",
+    });
 
     this.commentService
       .createComment(content, effectiveTodoId, {
@@ -292,11 +314,13 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (comment) => {
+          console.log("[Subtask] createComment: success, comment:", comment);
           this.showComments.set(true);
           this.cdr.markForCheck();
         },
         error: (err) => {
+          console.error("[Subtask] createComment: error:", err);
           this.notifyService.showError(err.message || "Failed to add comment");
         },
       });
@@ -383,9 +407,15 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     }
   }
 
-  toggleSelection(checked: boolean): void {
+  toggleSelection(result: { checked: boolean; event?: MouseEvent }): void {
     if (this.subtask) {
-      this.selectionChangeEvent.emit({ id: this.subtask.id, selected: checked });
+      this.selectionChangeEvent.emit({ id: this.subtask.id, selected: result.checked });
+    }
+  }
+
+  onCardClick(event: MouseEvent): void {
+    if (this.subtask) {
+      this.cardClick.emit({ event, id: this.subtask.id });
     }
   }
 }
