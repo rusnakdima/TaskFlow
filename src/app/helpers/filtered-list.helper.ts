@@ -14,12 +14,18 @@ export interface FilteredListOptions {
 
 export class FilteredListHelper {
   static filterAndSort<
-    T extends { title?: string; description?: string; order: number; visibility?: string },
+    T extends {
+      title?: string;
+      description?: string;
+      order: number;
+      visibility?: string;
+      deleted_at?: string | null;
+    },
   >(items: T[], options: FilteredListOptions): T[] {
     if (!items || !Array.isArray(items)) {
       return [];
     }
-    let filtered: T[] = [...items];
+    let filtered: T[] = items.filter((item) => !item.deleted_at);
     const { filter, query, filterType } = options;
 
     if (filterType === "visibility") {
