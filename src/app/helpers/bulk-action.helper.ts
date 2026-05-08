@@ -64,14 +64,15 @@ export class BulkActionHelper {
    */
   bulkDelete<T>(
     items: T[],
-    deleteFn: (id: string) => Observable<any>
+    deleteFn: (id: string, options?: any) => Observable<any>,
+    options?: any
   ): Observable<BulkOperationResult> {
     if (items.length === 0) {
       return of({ successCount: 0, errorCount: 0, errors: [] });
     }
 
     const deleteObservables = items.map((item: any) =>
-      deleteFn(item.id).pipe(
+      deleteFn(item.id, options).pipe(
         map((result) => ({ success: true, id: item.id })),
         catchError((error) => of({ success: false, id: item.id, error: error.message }))
       )
