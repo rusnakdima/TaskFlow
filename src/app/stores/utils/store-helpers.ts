@@ -138,15 +138,89 @@ export function groupByKey<T, K>(entities: T[], keyFn: (entity: T) => K): Map<K,
   return map;
 }
 
-/**
- * Update entity in signal array by ID
- */
+export function createGroupedMap<T, K>(
+  entities: T[],
+  keyFn: (entity: T) => K | undefined,
+  filterFn?: (entity: T) => boolean
+): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const entity of filterFn ? entities.filter(filterFn) : entities) {
+    const key = keyFn(entity);
+    if (key !== undefined) {
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(entity);
+    }
+  }
+  return map;
+}
+
+export function createEntityLookupMap<T extends { id: string }>(entities: T[]): Map<string, T> {
+  return new Map(entities.map((e) => [e.id, e]));
+}
+
+export function applyUpdate<T extends { id: string }>(entity: T, updates: Partial<T>): T {
+  return { ...entity, ...updates };
+}
+
+export function upsertEntity<T extends { id: string }>(
+  entities: T[],
+  entity: T,
+  updateExisting = true
+): T[] {
+  const index = entities.findIndex((e) => e.id === entity.id);
+  if (index === -1) {
+    return [entity, ...entities];
+  }
+  if (updateExisting) {
+    return entities.map((e) => (e.id === entity.id ? { ...e, ...entity } : e));
+  }
+  return entities;
+}
+
+export function addEntityToSignal<T extends { id: string }>(
+  signal: WritableSignal<T[]>,
+  entity: T
+): void {
+  if (!signal().some((e) => e.id === entity.id)) {
+    signal.update((items) => [entity, ...items]);
+  }
+}
+
+export function removeEntityFromSignal<T extends { id: string }>(
+  signal: WritableSignal<T[]>,
+  id: string
+): void {
+  signal.update((items) => items.filter((item) => item.id !== id));
+}
+
 export function updateEntityInSignal<T extends { id: string }>(
   signal: WritableSignal<T[]>,
   id: string,
   updates: Partial<T>
 ): void {
   signal.update((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+}
+
+export function upsertEntityBulk<T extends { id: string }>(
+  entities: T[],
+  newEntities: T[],
+  updateExisting = true
+): T[] {
+  const entityMap = new Map(entities.map((e) => [e.id, e]));
+  for (const entity of newEntities) {
+    entityMap.set(entity.id, updateExisting ? { ...entityMap.get(entity.id), ...entity } : entity);
+  }
+  return Array.from(entityMap.values());
+}
+
+export function addEntityBulkToSignal<T extends { id: string }>(
+  signal: WritableSignal<T[]>,
+  newEntities: T[],
+  updateExisting = true
+): void {
+  signal.update((existing) => upsertEntityBulk(existing, newEntities, updateExisting));
 }
 
 /**
