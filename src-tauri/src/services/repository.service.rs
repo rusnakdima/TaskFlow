@@ -551,7 +551,7 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    let data_val = data.ok_or_else(|| err_response("Data required for create"))?;
+    let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
     let visibility_str = visibility
       .or_else(|| self.get_visibility_from_data(&table, &data_val))
@@ -559,6 +559,15 @@ impl RepositoryService {
         tauri::async_runtime::block_on(self.resolve_visibility_from_parent(&table, &data_val))
       })
       .unwrap_or_else(|| "private".to_string());
+
+    if table == "todos" {
+      if let serde_json::Value::Object(ref mut obj) = data_val {
+        obj.insert(
+          "visibility".to_string(),
+          serde_json::Value::String(visibility_str.clone()),
+        );
+      }
+    }
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 

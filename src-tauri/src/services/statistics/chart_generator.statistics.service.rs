@@ -7,14 +7,6 @@ use std::collections::HashMap;
 
 pub struct ChartGenerator;
 
-fn get_i64_or(activity: &serde_json::Value, snake_key: &str, camel_key: &str) -> i64 {
-  activity
-    .get(snake_key)
-    .or_else(|| activity.get(camel_key))
-    .and_then(|v| v.as_i64())
-    .unwrap_or(0)
-}
-
 impl ChartGenerator {
   pub fn compute_chart_data(
     tasks: &[Value],
@@ -88,7 +80,10 @@ impl ChartGenerator {
 
     for activity in daily_activities {
       if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
-        let total_activity = get_i64_or(activity, "total_activity", "totalActivity");
+        let total_activity = activity
+          .get("total_activity")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
         if total_activity > 0 {
           if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
             let weekday = date.weekday();

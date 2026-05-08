@@ -4,14 +4,6 @@ use serde_json::Value;
 
 pub struct TaskAnalytics;
 
-fn get_i64_or(activity: &Value, snake_key: &str, camel_key: &str) -> i64 {
-  activity
-    .get(snake_key)
-    .or_else(|| activity.get(camel_key))
-    .and_then(|v| v.as_i64())
-    .unwrap_or(0)
-}
-
 impl TaskAnalytics {
   pub fn calculate_average_task_time(tasks: &[Value]) -> i32 {
     let completed_tasks: Vec<_> = tasks
@@ -57,21 +49,25 @@ impl TaskAnalytics {
     let total_tasks: i32 = daily_activities
       .iter()
       .filter_map(|activity| {
-        let created = get_i64_or(activity, "tasks_created", "tasksCreated");
-        let updated = get_i64_or(activity, "tasks_updated", "tasksUpdated");
-        let completed = get_i64_or(activity, "tasks_completed", "tasksCompleted");
+        let created = activity
+          .get("tasks_created")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let updated = activity
+          .get("tasks_updated")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let completed = activity
+          .get("tasks_completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
         Some(created + updated + completed)
       })
       .sum::<i64>() as i32;
 
     let completed_tasks = daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_completed")
-          .or_else(|| activity.get("tasksCompleted"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let completion_rate = if total_tasks > 0 {
@@ -86,13 +82,34 @@ impl TaskAnalytics {
       let total_score: i32 = daily_activities
         .iter()
         .filter_map(|activity| {
-          let creates = get_i64_or(activity, "todos_created", "todosCreated");
-          let updates = get_i64_or(activity, "todos_updated", "todosUpdated");
-          let deletes = get_i64_or(activity, "todos_deleted", "todosDeleted");
-          let task_creates = get_i64_or(activity, "tasks_created", "tasksCreated");
-          let task_completes = get_i64_or(activity, "tasks_completed", "tasksCompleted");
-          let subtask_creates = get_i64_or(activity, "subtasks_created", "subtasksCreated");
-          let subtask_completes = get_i64_or(activity, "subtasks_completed", "subtasksCompleted");
+          let creates = activity
+            .get("todos_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let updates = activity
+            .get("todos_updated")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let deletes = activity
+            .get("todos_deleted")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_creates = activity
+            .get("tasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_completes = activity
+            .get("tasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_creates = activity
+            .get("subtasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_completes = activity
+            .get("subtasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
           Some(
             (creates
               + updates
@@ -112,21 +129,25 @@ impl TaskAnalytics {
     let previous_total_tasks: i32 = previous_daily_activities
       .iter()
       .filter_map(|activity| {
-        let created = get_i64_or(activity, "tasks_created", "tasksCreated");
-        let updated = get_i64_or(activity, "tasks_updated", "tasksUpdated");
-        let completed = get_i64_or(activity, "tasks_completed", "tasksCompleted");
+        let created = activity
+          .get("tasks_created")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let updated = activity
+          .get("tasks_updated")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
+        let completed = activity
+          .get("tasks_completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0);
         Some(created + updated + completed)
       })
       .sum::<i64>() as i32;
 
     let previous_completed_tasks = previous_daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_completed")
-          .or_else(|| activity.get("tasksCompleted"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let previous_completion_rate = if previous_total_tasks > 0 {
@@ -141,13 +162,34 @@ impl TaskAnalytics {
       let total_score: i32 = previous_daily_activities
         .iter()
         .filter_map(|activity| {
-          let creates = get_i64_or(activity, "todos_created", "todosCreated");
-          let updates = get_i64_or(activity, "todos_updated", "todosUpdated");
-          let deletes = get_i64_or(activity, "todos_deleted", "todosDeleted");
-          let task_creates = get_i64_or(activity, "tasks_created", "tasksCreated");
-          let task_completes = get_i64_or(activity, "tasks_completed", "tasksCompleted");
-          let subtask_creates = get_i64_or(activity, "subtasks_created", "subtasksCreated");
-          let subtask_completes = get_i64_or(activity, "subtasks_completed", "subtasksCompleted");
+          let creates = activity
+            .get("todos_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let updates = activity
+            .get("todos_updated")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let deletes = activity
+            .get("todos_deleted")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_creates = activity
+            .get("tasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let task_completes = activity
+            .get("tasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_creates = activity
+            .get("subtasks_created")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+          let subtask_completes = activity
+            .get("subtasks_completed")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
           Some(
             (creates
               + updates
@@ -182,61 +224,43 @@ impl TaskAnalytics {
   ) -> Vec<DetailedMetricModel> {
     let current_tasks_created = daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_created")
-          .or_else(|| activity.get("tasksCreated"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let current_tasks_completed = daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_completed")
-          .or_else(|| activity.get("tasksCompleted"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let current_weekly_active_days = daily_activities
       .iter()
       .filter(|activity| {
-        let val = activity
+        activity
           .get("total_tasks")
-          .or_else(|| activity.get("totalTasks"));
-        val.and_then(|v| v.as_i64()).unwrap_or(0) > 0
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0)
+          > 0
       })
       .count() as i32;
 
     let previous_tasks_created = previous_daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_created")
-          .or_else(|| activity.get("tasksCreated"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let previous_tasks_completed = previous_daily_activities
       .iter()
-      .filter_map(|activity| {
-        let val = activity
-          .get("tasks_completed")
-          .or_else(|| activity.get("tasksCompleted"));
-        val.and_then(|v| v.as_i64())
-      })
+      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
       .sum::<i64>() as i32;
 
     let previous_weekly_active_days = previous_daily_activities
       .iter()
       .filter(|activity| {
-        let val = activity
+        activity
           .get("total_tasks")
-          .or_else(|| activity.get("totalTasks"));
-        val.and_then(|v| v.as_i64()).unwrap_or(0) > 0
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0)
+          > 0
       })
       .count() as i32;
 
