@@ -1,56 +1,64 @@
-/* sys lib */
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
+import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
-
-/* materials */
 import { MatIconModule } from "@angular/material/icon";
-
-/* helpers */
-import { BaseItemHelper } from "@helpers/base-item.helper";
+import { TaskStatus } from "@models/task.model";
 
 @Component({
   selector: "app-status-toggle",
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: "./status-toggle.component.html",
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatusToggleComponent {
-  @Input() status: string = "pending";
-  @Input() itemType: "task" | "subtask" = "task";
-  @Output() statusChange = new EventEmitter<string>();
+  @Input() status: TaskStatus | string = TaskStatus.PENDING;
+  @Input() size: "sm" | "md" | "lg" = "md";
+  @Output() toggle = new EventEmitter<TaskStatus>();
 
-  get icon(): string {
-    return BaseItemHelper.getStatusIcon(this.status);
-  }
+  TaskStatus = TaskStatus;
 
-  get buttonClasses(): string {
+  getIcon(): string {
     switch (this.status) {
+      case TaskStatus.COMPLETED:
       case "completed":
-        return "bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900/60";
+        return "check_circle";
+      case TaskStatus.SKIPPED:
       case "skipped":
-        return "bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60";
+        return "cancel";
+      case TaskStatus.FAILED:
       case "failed":
-        return "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60";
+        return "dangerous";
       default:
-        return "bg-blue-100 text-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60";
+        return "radio_button_unchecked";
     }
   }
 
-  get buttonSizeClass(): string {
-    return this.itemType === "task" ? "h-8 w-8" : "h-7 w-7";
-  }
-
-  get iconSizeClass(): string {
-    return this.itemType === "task" ? "h-5! w-5! min-w-5 text-xl!" : "h-5! w-5! min-w-5 text-xl!";
-  }
-
-  get title(): string {
+  getButtonClass(): string {
+    const sizeClass =
+      this.size === "sm" ? "!text-lg!" : this.size === "lg" ? "!text-3xl!" : "!text-2xl!";
     switch (this.status) {
+      case TaskStatus.COMPLETED:
       case "completed":
-        return "Mark as skipped";
+        return `${sizeClass} text-green-600! hover:bg-green-50! dark:text-green-400! dark:hover:bg-green-900/30!`;
+      case TaskStatus.SKIPPED:
       case "skipped":
-        return "Mark as failed";
+        return `${sizeClass} text-orange-600! hover:bg-orange-50! dark:text-orange-400! dark:hover:bg-orange-900/30!`;
+      case TaskStatus.FAILED:
+      case "failed":
+        return `${sizeClass} text-red-600! hover:bg-red-50! dark:text-red-400! dark:hover:bg-red-900/30!`;
+      default:
+        return `${sizeClass} text-gray-400! hover:bg-gray-100! dark:text-gray-500! dark:hover:bg-gray-700!`;
+    }
+  }
+
+  getTitle(): string {
+    switch (this.status) {
+      case TaskStatus.COMPLETED:
+      case "completed":
+        return "Mark as pending";
+      case TaskStatus.SKIPPED:
+      case "skipped":
+        return "Mark as pending";
+      case TaskStatus.FAILED:
       case "failed":
         return "Mark as pending";
       default:
@@ -58,9 +66,12 @@ export class StatusToggleComponent {
     }
   }
 
-  onClick(event: Event): void {
-    event.stopPropagation();
-    const nextStatus = BaseItemHelper.getNextStatus(this.status as any);
-    this.statusChange.emit(nextStatus);
+  onToggle(): void {
+    const currentStatus = this.status as TaskStatus;
+    if (currentStatus === TaskStatus.PENDING || this.status === "pending") {
+      this.toggle.emit(TaskStatus.COMPLETED);
+    } else {
+      this.toggle.emit(TaskStatus.PENDING);
+    }
   }
 }

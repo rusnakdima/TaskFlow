@@ -32,6 +32,7 @@ import { UnifiedStorageService } from "@app/store/unified-storage.service";
 
 /* components */
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 
 /* models */
 import { TableField, TableFieldActionButton } from "./table-field.model";
@@ -52,6 +53,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
     DragDropModule,
     CommentsComponent,
     ItemExpandDetailsComponent,
+    StatusToggleComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,6 +78,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Input() expandTemplate: TemplateRef<any> | null = null;
   @Input() showCommentToggle = false;
   @Input() showStatusToggle = false;
+  @Input() statusKey = "status";
   @Input() itemType: ItemType = "task";
 
   @Output() rowClick = new EventEmitter<any>();
@@ -84,7 +87,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
   @Output() additiveSelect = new EventEmitter<string>();
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
-  @Output() actionClick = new EventEmitter<{ action: string; item: any }>();
+  @Output() actionClick = new EventEmitter<{ action: string; item: any; newStatus?: TaskStatus }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any[]>>();
   @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
   @Output() deleteComment = new EventEmitter<string>();
@@ -404,25 +407,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
     this.actionClick.emit({ action, item });
   }
 
-  isItemCompleted(item: any): boolean {
-    return item.status === TaskStatus.COMPLETED || item.status === "completed";
-  }
-
-  isItemPending(item: any): boolean {
-    return item.status === TaskStatus.PENDING || item.status === "pending";
-  }
-
-  isItemSkipped(item: any): boolean {
-    return item.status === TaskStatus.SKIPPED || item.status === "skipped";
-  }
-
-  isItemFailed(item: any): boolean {
-    return item.status === TaskStatus.FAILED || item.status === "failed";
-  }
-
-  onStatusToggle(item: any): void {
+  onStatusToggle(item: any, newStatus?: TaskStatus): void {
     queueMicrotask(() => this.setCurrentItem(item));
-    this.actionClick.emit({ action: "toggle_status", item });
+    this.actionClick.emit({ action: "toggle_status", item, newStatus });
   }
 
   onSelectionChangeById(id: string, checked: boolean): void {

@@ -11,6 +11,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -20,7 +21,14 @@ import { PRIORITY_COLORS, STATUS_COLORS, ActionColors } from "@constants/table-f
 @Component({
   selector: "app-kanban-task-card",
   standalone: true,
-  imports: [CommonModule, RouterModule, DragDropModule, MatIconModule, ProgressBarComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    DragDropModule,
+    MatIconModule,
+    ProgressBarComponent,
+    StatusToggleComponent,
+  ],
   templateUrl: "./kanban-task-card.component.html",
 })
 export class KanbanTaskCardComponent {
@@ -32,6 +40,7 @@ export class KanbanTaskCardComponent {
   @Input() todo_id = "";
 
   @Output() toggleExpand = new EventEmitter<Task>();
+  @Output() toggleStatus = new EventEmitter<Task>();
   @Output() moveTaskEvent = new EventEmitter<{ taskId: string; newStatus: TaskStatus }>();
   @Output() toggleSubtaskCompletion = new EventEmitter<Subtask>();
 
@@ -47,6 +56,10 @@ export class KanbanTaskCardComponent {
 
   moveTask(targetColId: string): void {
     this.moveTaskEvent.emit({ taskId: this.task.id, newStatus: targetColId as TaskStatus });
+  }
+
+  onStatusToggle(newStatus: TaskStatus): void {
+    this.toggleStatus.emit(this.task);
   }
 
   onSubtaskToggleCompletion(subtask: Subtask): void {

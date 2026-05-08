@@ -28,6 +28,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
@@ -48,6 +49,7 @@ import {
   ActionColors,
 } from "@constants/table-field.constants";
 import { Subtask } from "@models/subtask.model";
+import { TaskStatus } from "@models/task.model";
 import { Comment } from "@models/comment.model";
 import { Task } from "@models/task.model";
 
@@ -62,6 +64,7 @@ import { Task } from "@models/task.model";
     DragDropModule,
     CommentsComponent,
     CheckboxComponent,
+    StatusToggleComponent,
   ],
   templateUrl: "./subtask.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -172,69 +175,61 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
 
     if (!wasOpen && this.subtask) {
       const subtaskId = this.subtask.id;
-      const existingComments = this.storageService
-        .comments()
-        .filter((c: Comment) => c.subtask_id === subtaskId && !c.deleted_at);
+      const subtask = this.subtask;
+      const visibility = this.isPrivate ? "private" : "shared";
+      this.requestService
+        .loadPage("comments", {
+          filter: { subtask_id: subtaskId },
+          visibility,
+          skip: 0,
+          limit: 20,
+        })
+        .subscribe({
+          next: () => {
+            this.cdr.markForCheck();
+            const userId = this.authService.getValueByKey("id");
+            const subtaskComments = this.comments().filter(
+              (c: Comment) => c.subtask_id === subtaskId && !c.deleted_at
+            );
+            if (userId && subtaskComments.length > 0) {
+              const hasUnread = subtaskComments.some(
+                (c: Comment) =>
+                  c.subtask_id &&
+                  c.user_id !== userId &&
+                  (!c.read_by || !c.read_by.includes(userId))
+              );
 
-      if (existingComments.length === 0) {
-        const visibility = this.isPrivate ? "private" : "shared";
-        this.requestService
-          .loadPage("comments", {
-            filter: { subtask_id: subtaskId },
-            visibility,
-            skip: 0,
-            limit: 20,
-          })
-          .subscribe({
-            next: () => {
-              this.cdr.markForCheck();
-            },
-            error: () => {
-              this.notifyService.showError("Failed to load comments");
-            },
-          });
-      }
+              if (hasUnread) {
+                const updatedComments = subtaskComments.map((c: Comment) => {
+                  if (c.deleted_at || !c.subtask_id) return c;
+                  if (c.user_id === userId) return c;
 
-      const userId = this.authService.getValueByKey("id");
-      const subtaskComments = this.comments().filter(
-        (c: Comment) => c.subtask_id === subtaskId && !c.deleted_at
-      );
-      if (userId && subtaskComments.length > 0) {
-        const hasUnread = subtaskComments.some(
-          (c: Comment) =>
-            c.subtask_id && c.user_id !== userId && (!c.read_by || !c.read_by.includes(userId))
-        );
+                  if (!c.read_by || !c.read_by.includes(userId)) {
+                    return {
+                      ...c,
+                      read_by: [...(c.read_by || []), userId],
+                    };
+                  }
+                  return c;
+                });
 
-        if (hasUnread) {
-          const updatedComments = subtaskComments.map((c: Comment) => {
-            if (c.deleted_at || !c.subtask_id) return c;
-            if (c.user_id === userId) return c;
-
-            if (!c.read_by || !c.read_by.includes(userId)) {
-              return {
-                ...c,
-                read_by: [...(c.read_by || []), userId],
-              };
+                const effectiveTodoId: string | null = this.todo_id;
+                if (!effectiveTodoId && subtask.task_id) {
+                  const taskReactive = this.storageService.getTaskReactive(subtask.task_id);
+                  const task = taskReactive();
+                  if (task?.todo_id) {
+                    this.handleCommentsRead(updatedComments, task.todo_id, userId);
+                  }
+                } else if (effectiveTodoId) {
+                  this.handleCommentsRead(updatedComments, effectiveTodoId, userId);
+                }
+              }
             }
-            return c;
-          });
-
-          this.storageService.updateItem("subtasks", this.subtask.id, {
-            ...this.subtask,
-          });
-
-          const effectiveTodoId: string | null = this.todo_id;
-          if (!effectiveTodoId && this.subtask.task_id) {
-            const taskReactive = this.storageService.getTaskReactive(this.subtask.task_id);
-            const task = taskReactive();
-            if (task?.todo_id) {
-              this.handleCommentsRead(updatedComments, task.todo_id, userId);
-            }
-          } else if (effectiveTodoId) {
-            this.handleCommentsRead(updatedComments, effectiveTodoId, userId);
-          }
-        }
-      }
+          },
+          error: () => {
+            this.notifyService.showError("Failed to load comments");
+          },
+        });
     }
 
     this.cdr.markForCheck();
@@ -355,13 +350,16 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
     let effectiveTodoId: string | null = this.todo_id;
     if (!this.subtask || !userId || commentIds.length === 0) return;
 
+    const visibility = this.isPrivate ? "private" : "shared";
     if (!effectiveTodoId && this.subtask.task_id) {
-      this.requestService.get<Task>("tasks", this.subtask.task_id).subscribe((task) => {
-        if (task?.todo_id) {
-          effectiveTodoId = task.todo_id;
-          this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId!);
-        }
-      });
+      this.requestService
+        .get<Task>("tasks", this.subtask.task_id, { visibility } as any)
+        .subscribe((task) => {
+          if (task?.todo_id) {
+            effectiveTodoId = task.todo_id;
+            this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId!);
+          }
+        });
     } else if (effectiveTodoId) {
       this.commentService.markCommentsAsRead(commentIds, userId, effectiveTodoId);
     }
@@ -387,6 +385,13 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   toggleCompletion() {
+    if (this.subtask) {
+      this.toggleCompletionEvent.emit(this.subtask);
+      this.cdr.markForCheck();
+    }
+  }
+
+  onStatusToggle(newStatus: TaskStatus) {
     if (this.subtask) {
       this.toggleCompletionEvent.emit(this.subtask);
       this.cdr.markForCheck();
