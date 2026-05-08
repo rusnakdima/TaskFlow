@@ -31,16 +31,15 @@ import { ResponseStatus } from "@models/response.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
-import { ApiProvider } from "@providers/api.provider";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { DataService } from "@services/data/data.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { STATUS_ICONS, STATUS_BG_COLORS } from "@constants/table-field.constants";
+import { RequestService } from "@services/core/request.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -62,7 +61,6 @@ import {
 @Component({
   selector: "app-kanban",
   standalone: true,
-  providers: [ApiProvider],
   imports: [
     CommonModule,
     FormsModule,
@@ -84,10 +82,9 @@ import {
 export class KanbanView extends BaseListView implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private dataSyncProvider = inject(ApiProvider);
-  private dragDropService = inject(KanbanDragDropService);
   private dataService = inject(DataService);
-  private dataLoaderService = inject(DataLoaderService);
+  private requestService = inject(RequestService);
+  private dragDropService = inject(KanbanDragDropService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
@@ -221,7 +218,7 @@ export class KanbanView extends BaseListView implements OnInit {
       }
     });
 
-    this.dataLoaderService.loadInitialTodos("all", 20).subscribe({
+    this.dataService.loadPage("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
       next: () => {
         const selectedId = this.selectedTodoId();
         if (selectedId) {
@@ -271,14 +268,19 @@ export class KanbanView extends BaseListView implements OnInit {
     const existingSubtasks = this.storageService.getSubtasksByTaskId(taskId);
     if (existingSubtasks.length > 0) return;
 
-    if (this.dataLoaderService.isSubtasksLoading()) return;
-
-    this.dataLoaderService.loadInitialSubtasksForTask(taskId, "private", 20).subscribe({
-      next: () => {},
-      error: (err) => {
-        console.error("Failed to load subtasks for task", taskId, err);
-      },
-    });
+    this.dataService
+      .getAll("subtasks", {
+        filter: { task_id: taskId },
+        visibility: "private",
+        limit: 20,
+        skip: 0,
+      })
+      .subscribe({
+        next: () => {},
+        error: (err) => {
+          console.error("Failed to load subtasks for task", taskId, err);
+        },
+      });
   }
 
   onMoveTask(event: { taskId: string; newStatus: TaskStatus }): void {
@@ -295,19 +297,12 @@ export class KanbanView extends BaseListView implements OnInit {
 
     const { isPrivate, isOwner } = this.selectedTodoMeta();
 
-    this.dataSyncProvider
-      .crud<Subtask>("update", "subtasks", {
-        id: subtask.id,
-        data: { status: newStatus },
-        parentTodoId: todoId,
-        visibility: isPrivate ? "private" : "shared",
-      })
-      .subscribe({
-        next: () => {},
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to update subtask");
-        },
-      });
+    this.dataService.updateAll("subtasks", [{ id: subtask.id, status: newStatus }]).subscribe({
+      next: () => {},
+      error: (err: any) => {
+        this.notifyService.showError(err.message || "Failed to update subtask");
+      },
+    });
   }
 
   getSubtasksForTask(taskId?: string): Subtask[] {
@@ -340,10 +335,12 @@ export class KanbanView extends BaseListView implements OnInit {
       return;
     }
 
-    this.dataLoaderService.loadInitialTasksForTodo(todoId, "private", 20).subscribe({
-      next: () => {},
-      error: (err) => console.error("Failed to load tasks:", err),
-    });
+    this.dataService
+      .getAll("tasks", { filter: { todo_id: todoId }, visibility: "private", limit: 20, skip: 0 })
+      .subscribe({
+        next: () => {},
+        error: (err) => console.error("Failed to load tasks:", err),
+      });
   }
 
   getTasksByStatus(status: string): Task[] {
@@ -419,29 +416,22 @@ export class KanbanView extends BaseListView implements OnInit {
       return;
     }
 
-    this.dataSyncProvider
-      .crud<Task>("update", "tasks", {
-        id: taskId,
-        data: { ...task, status: newStatus },
-        parentTodoId: todoId,
-        visibility: isPrivate ? "private" : "shared",
-      })
-      .subscribe({
-        next: (updatedTask) => {
-          this.isUpdatingOrder.set(false);
-          setTimeout(() => {
-            this.cdr.detectChanges();
-          }, 0);
-          this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
-        },
-        error: (err: any) => {
-          this.isUpdatingOrder.set(false);
-          this.notifyService.showError(err.message || "Failed to update task");
-          setTimeout(() => {
-            this.cdr.detectChanges();
-          }, 0);
-        },
-      });
+    this.dataService.updateAll("tasks", [{ id: taskId, status: newStatus }]).subscribe({
+      next: (updatedTask) => {
+        this.isUpdatingOrder.set(false);
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        }, 0);
+        this.notifyService.showNotify(ResponseStatus.SUCCESS, `Task moved to ${newStatus}`);
+      },
+      error: (err: any) => {
+        this.isUpdatingOrder.set(false);
+        this.notifyService.showError(err.message || "Failed to update task");
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        }, 0);
+      },
+    });
   }
 
   navigateToTask(task: Task) {

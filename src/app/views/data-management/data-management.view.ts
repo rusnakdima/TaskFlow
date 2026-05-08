@@ -65,6 +65,7 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 
 @Component({
   selector: "app-data-management-view",
@@ -89,6 +90,7 @@ import {
     FilterSidebarComponent,
     SegmentSelectorComponent,
     PageToolbarComponent,
+    ItemExpandDetailsComponent,
   ],
   templateUrl: "./data-management.view.html",
 })

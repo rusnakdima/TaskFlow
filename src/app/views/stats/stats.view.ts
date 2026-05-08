@@ -18,9 +18,7 @@ import {
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
@@ -43,7 +41,7 @@ import {
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
-  private dataSyncProvider = inject(ApiProvider);
+  private requestService = inject(RequestService);
 
   constructor(
     private authService: AuthService,
@@ -97,7 +95,7 @@ export class StatsView implements OnInit {
     const userId: string = this.authService.getValueByKey("id");
 
     if (userId && userId !== "") {
-      this.dataSyncProvider
+      this.requestService
         .invokeCommand<StatisticsResponse>("statistics_get", {
           user_id: userId,
           time_range: this.selectedTimeRange(),

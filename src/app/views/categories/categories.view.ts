@@ -18,8 +18,6 @@ import { ResponseStatus } from "@models/response.model";
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { ApiProvider } from "@providers/api.provider";
-import { DataLoaderService } from "@services/data/data-loader.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
@@ -59,8 +57,6 @@ import {
 })
 export class CategoriesView extends BaseListView implements OnInit {
   private dataService = inject(DataService);
-  private dataSyncProvider = inject(ApiProvider);
-  private dataLoaderService = inject(DataLoaderService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -134,7 +130,9 @@ export class CategoriesView extends BaseListView implements OnInit {
       })
     );
 
-    this.dataLoaderService.loadInitialCategories().subscribe();
+    this.dataService
+      .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
+      .subscribe();
   }
 
   toggleCreateForm() {
@@ -169,7 +167,9 @@ export class CategoriesView extends BaseListView implements OnInit {
         const response = await this.adminService.toggleDeleteStatusLocal("categories", categoryId);
         if (response.status === ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess("Category archived successfully");
-          this.dataLoaderService.loadInitialCategories().subscribe();
+          this.dataService
+            .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
+            .subscribe();
           this.searchQuery.set("");
         } else {
           this.notifyService.showError(response.message || "Failed to archive category");
