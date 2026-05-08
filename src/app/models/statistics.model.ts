@@ -1,25 +1,25 @@
 export interface Statistics {
-  totalTasks: number;
-  completionRate: number;
-  averageTaskTime: number;
-  productivityScore: number;
-  previousTotalTasks: number;
-  previousCompletionRate: number;
-  previousAverageTime: number;
-  previousProductivityScore: number;
+  total_tasks: number;
+  completion_rate: number;
+  average_task_time: number;
+  productivity_score: number;
+  previous_total_tasks: number;
+  previous_completion_rate: number;
+  previous_average_time: number;
+  previous_productivity_score: number;
 }
 
 export interface StatisticsResponse {
   statistics: Statistics;
-  chartData: ChartData;
+  chart_data: ChartData;
   achievements: Achievement[];
-  detailedMetrics: DetailedMetric[];
+  detailed_metrics: DetailedMetric[];
 }
 
 export interface ChartData {
-  completionTrend: Array<{ label: string; value: number }>;
+  completion_trend: Array<{ label: string; value: number }>;
   categories: Array<CategoryChart>;
-  dailyActivity: Array<{ dayName: string; activity: number }>;
+  daily_activity: Array<{ day_name: string; activity: number }>;
 }
 
 export interface CategoryChart {
