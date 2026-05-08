@@ -2,6 +2,7 @@
 /* sys lib */
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::time::Instant;
 
 /* nosql_orm */
 use nosql_orm::cache::QueryCache;
@@ -53,6 +54,13 @@ impl RepositoryService {
     visibility: Option<&str>,
     offline: bool,
   ) -> Result<DataProvider<'_>, ResponseModel> {
+    let vis = visibility.unwrap_or("private");
+
+    // IMMEDIATE return for offline + private - no MongoDB operations allowed
+    if offline && vis == "private" {
+      return Ok(DataProvider::Json(&self.json_provider));
+    }
+
     let use_json = self.use_json_provider(table, visibility, offline);
 
     if use_json {
@@ -119,6 +127,18 @@ impl RepositoryService {
       let vis = visibility.unwrap_or("private");
       vis == "private"
     }
+  }
+
+  fn resolve_visibility_for_offline(&self, visibility: Option<String>, offline: bool) -> String {
+    if let Some(vis) = visibility {
+      return vis;
+    }
+
+    if offline {
+      return "private".to_string();
+    }
+
+    "private".to_string()
   }
 
   fn get_visibility_from_data(&self, _table: &str, data: &Value) -> Option<String> {
@@ -393,12 +413,22 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
+    let request_id = "unknown".to_string();
+    tracing::debug!(
+      "[Repo] >>> getAll START table={} offline={} request_id={}",
+      table,
+      offline,
+      request_id
+    );
+
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt = self.build_filter(&filter_val);
 
-    let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
 
-    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let load_paths = Self::parse_load_param(load);
 
@@ -431,14 +461,20 @@ impl RepositoryService {
       docs
     };
 
-    // Only filter deleted when using MongoDB directly
-    // JSON data (including fallback and direct JSON for "all" visibility) should not be filtered
-    // because JSON provider already filters deleted records internally
     let docs = if used_json_fallback || use_json {
       docs
     } else {
       self.filter_out_deleted(docs)
     };
+
+    let elapsed = start.elapsed();
+    tracing::debug!(
+      "[Repo] <<< getAll COMPLETE table={} offline={} count={} elapsed={:?}",
+      table,
+      offline,
+      docs.len(),
+      elapsed
+    );
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -500,12 +536,29 @@ impl RepositoryService {
     filter: Option<Value>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
+    let start = Instant::now();
+    tracing::debug!(
+      "[Repo] >>> get START table={} id={:?} offline={}",
+      table,
+      id,
+      offline
+    );
+
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
       match provider.find_by_id(&table, &id_val).await? {
         Some(d) => vec![d],
-        None => return Err(err_response("Document not found")),
+        None => {
+          if filter.is_some() {
+            let filter_obj = nosql_orm::query::Filter::from_json(filter.as_ref().unwrap())
+              .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+            provider.find_many(&table, Some(&filter_obj)).await?
+          } else {
+            return Err(err_response("Document not found"));
+          }
+        }
       }
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
@@ -531,6 +584,15 @@ impl RepositoryService {
     };
 
     let projected = self.apply_projection_recursive(docs);
+    let elapsed = start.elapsed();
+    tracing::debug!(
+      "[Repo] <<< get COMPLETE table={} id={:?} found={} elapsed={:?}",
+      table,
+      id,
+      !projected.is_empty(),
+      elapsed
+    );
+
     if id.is_some() {
       if !projected.is_empty() {
         Ok(success_response(DataValue::Object(
@@ -551,14 +613,16 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
+    tracing::debug!(
+      "[Repo] >>> create START table={} offline={}",
+      table,
+      offline
+    );
+
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
-    let visibility_str = visibility
-      .or_else(|| self.get_visibility_from_data(&table, &data_val))
-      .or_else(|| {
-        tauri::async_runtime::block_on(self.resolve_visibility_from_parent(&table, &data_val))
-      })
-      .unwrap_or_else(|| "private".to_string());
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
 
     if table == "todos" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
@@ -580,27 +644,27 @@ impl RepositoryService {
 
     if table == "tasks" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let _ = self.count_service.on_task_created(todo_id).await;
+        let _ = self.count_service.on_task_created(todo_id, offline).await;
       }
     } else if table == "subtasks" {
       if let Some(task_id) = created_record.get("task_id").and_then(|v| v.as_str()) {
         if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
           let _ = self
             .count_service
-            .on_subtask_created(task_id, &todo_id)
+            .on_subtask_created(task_id, &todo_id, offline)
             .await;
         }
       }
     } else if table == "chats" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let _ = self.count_service.on_chat_created(todo_id).await;
+        let _ = self.count_service.on_chat_created(todo_id, offline).await;
       }
     } else if table == "comments" {
       let task_id = created_record.get("task_id").and_then(|v| v.as_str());
       let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
       let _ = self
         .count_service
-        .on_comment_created(task_id, subtask_id)
+        .on_comment_created(task_id, subtask_id, offline)
         .await;
     }
 
@@ -637,6 +701,18 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&final_record);
+    let elapsed = start.elapsed();
+    let created_id = final_record
+      .get("id")
+      .and_then(|v| v.as_str())
+      .unwrap_or("unknown");
+    tracing::debug!(
+      "[Repo] <<< create COMPLETE table={} id={} elapsed={:?}",
+      table,
+      created_id,
+      elapsed
+    );
+
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -888,6 +964,13 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
+    tracing::debug!(
+      "[Repo] >>> updateAll START table={} offline={}",
+      table,
+      offline
+    );
+
     let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
 
     let raw_records = data_val
@@ -896,7 +979,8 @@ impl RepositoryService {
       .clone();
 
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
-    let provider = self.get_provider(&table, visibility.as_deref(), offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility.clone(), offline);
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     for record in raw_records {
       let validated = validate_model(&table, &record, false, visibility.clone())
@@ -922,6 +1006,14 @@ impl RepositoryService {
     }
 
     let projected_records = self.apply_projection_recursive(validated_records);
+    let elapsed = start.elapsed();
+    tracing::debug!(
+      "[Repo] <<< updateAll COMPLETE table={} count={} elapsed={:?}",
+      table,
+      projected_records.len(),
+      elapsed
+    );
+
     Ok(success_response(DataValue::Array(projected_records)))
   }
 
@@ -933,14 +1025,22 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
+    tracing::debug!(
+      "[Repo] >>> update START table={} id={} offline={}",
+      table,
+      id_str,
+      offline
+    );
+
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
 
     let validated_data = validate_model(&table, &data_val, false, visibility.clone())
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
-    let visibility_str = visibility.as_deref();
-    let provider = self.get_provider(&table, visibility_str, offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let existing_record = provider
       .find_by_id(&table, &id_str)
@@ -974,18 +1074,21 @@ impl RepositoryService {
       if let Some(tid) = todo_id {
         if table == "tasks" {
           if new_status == Some("completed") && old_status != Some("completed") {
-            let _ = self.count_service.on_task_completed(&tid).await;
+            let _ = self.count_service.on_task_completed(&tid, offline).await;
           } else if old_status == Some("completed") && new_status != Some("completed") {
-            let _ = self.count_service.on_task_uncompleted(&tid).await;
+            let _ = self.count_service.on_task_uncompleted(&tid, offline).await;
           }
         } else if table == "subtasks" {
           if let Some(task_id) = updated_record.get("task_id").and_then(|v| v.as_str()) {
             if new_status == Some("completed") && old_status != Some("completed") {
-              let _ = self.count_service.on_subtask_completed(task_id, &tid).await;
+              let _ = self
+                .count_service
+                .on_subtask_completed(task_id, &tid, offline)
+                .await;
             } else if old_status == Some("completed") && new_status != Some("completed") {
               let _ = self
                 .count_service
-                .on_subtask_uncompleted(task_id, &tid)
+                .on_subtask_uncompleted(task_id, &tid, offline)
                 .await;
             }
           }
@@ -1021,6 +1124,14 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
+    let elapsed = start.elapsed();
+    tracing::debug!(
+      "[Repo] <<< update COMPLETE table={} id={} elapsed={:?}",
+      table,
+      id_str,
+      elapsed
+    );
+
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -1032,12 +1143,22 @@ impl RepositoryService {
     is_permanent: bool,
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-    let use_json = self.use_json_provider(&table, visibility.as_deref(), offline);
+    tracing::debug!(
+      "[Repo] >>> delete START table={} id={} permanent={} offline={}",
+      table,
+      id_str,
+      is_permanent,
+      offline
+    );
+
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
 
     if table == "tasks" || table == "subtasks" || table == "chats" || table == "comments" {
       let provider = self
-        .get_provider(&table, visibility.as_deref(), offline)
+        .get_provider(&table, Some(&visibility_str), offline)
         .ok();
       if let Some(ref p) = provider {
         if let Ok(Some(existing)) = p.find_by_id(&table, &id_str).await {
@@ -1046,7 +1167,7 @@ impl RepositoryService {
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
               let _ = self
                 .count_service
-                .on_task_deleted(todo_id, was_completed)
+                .on_task_deleted(todo_id, was_completed, offline)
                 .await;
             }
           } else if table == "subtasks" {
@@ -1055,20 +1176,20 @@ impl RepositoryService {
               if let Some(todo_id) = self.get_todo_id_from_task(task_id).await {
                 let _ = self
                   .count_service
-                  .on_subtask_deleted(task_id, &todo_id, was_completed)
+                  .on_subtask_deleted(task_id, &todo_id, was_completed, offline)
                   .await;
               }
             }
           } else if table == "chats" {
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
-              let _ = self.count_service.on_chat_deleted(todo_id).await;
+              let _ = self.count_service.on_chat_deleted(todo_id, offline).await;
             }
           } else if table == "comments" {
             let task_id = existing.get("task_id").and_then(|v| v.as_str());
             let subtask_id = existing.get("subtask_id").and_then(|v| v.as_str());
             let _ = self
               .count_service
-              .on_comment_deleted(task_id, subtask_id)
+              .on_comment_deleted(task_id, subtask_id, offline)
               .await;
           }
         }
@@ -1103,7 +1224,7 @@ impl RepositoryService {
           .soft_delete_cascade_mongo(&table, &id_str)
           .await?;
       }
-      if visibility.as_deref() == Some("private") {
+      if visibility_str == "private" {
         if use_json {
           self
             .cascade_service
@@ -1126,6 +1247,14 @@ impl RepositoryService {
       .activity_monitor
       .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
       .await;
+
+    let elapsed = start.elapsed();
+    tracing::debug!(
+      "[Repo] <<< delete COMPLETE table={} id={} elapsed={:?}",
+      table,
+      id_str,
+      elapsed
+    );
 
     Ok(success_response(DataValue::String(id_str)))
   }

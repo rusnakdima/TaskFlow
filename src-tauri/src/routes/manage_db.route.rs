@@ -1,7 +1,6 @@
 /* sys lib */
 use crate::AppState;
 use serde_json::Value;
-use std::sync::Arc;
 use tauri::State;
 
 /* models */
@@ -24,27 +23,26 @@ pub async fn manage_data(
   load: Option<String>,
   visibility: Option<String>,
   offline: Option<bool>,
+  request_id: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
+  let req_id = request_id.unwrap_or_else(|| "no-req-id".to_string());
+  let start = std::time::Instant::now();
+
+  tracing::debug!(
+    "[Route] >>> manage_data request_id={} op={} table={} offline={}",
+    req_id,
+    operation,
+    table,
+    is_offline
+  );
 
   if is_offline {
     let read_operations = ["getAll", "get"];
-    if read_operations.contains(&operation.as_str()) {
-      // Read operations are allowed offline for all visibility levels
-    } else {
-      // Check visibility - either from parameter or from data object
-      let mut effective_visibility = visibility.as_deref();
-      if effective_visibility.is_none() {
-        if let Some(ref d) = data {
-          effective_visibility = d.get("visibility").and_then(|v| v.as_str());
-        }
-      }
+    if !read_operations.contains(&operation.as_str()) {
+      let effective_visibility = visibility.as_deref().unwrap_or("private");
 
-      if effective_visibility == Some("private") {
-        // Write operations are allowed offline ONLY for private data (stored in JSON)
-        // Private todos, tasks, subtasks are stored locally and don't need MongoDB
-      } else {
-        // Shared and public data requires MongoDB connection for write operations
+      if effective_visibility != "private" {
         return Err(err_response(
           "Operation not available while offline. Please connect to the internet and try again.",
         ));
@@ -52,6 +50,7 @@ pub async fn manage_data(
     }
   }
 
+  let op_for_log = operation.clone();
   let result = state
     .repository_service
     .execute(
@@ -65,6 +64,13 @@ pub async fn manage_data(
       is_offline,
     )
     .await;
+
+  let elapsed = start.elapsed();
+  match &result {
+    Ok(_) => tracing::debug!("[Route] <<< manage_data COMPLETE request_id={} op={} table={} elapsed={:?} status=success", req_id, op_for_log, table, elapsed),
+    Err(e) => tracing::debug!("[Route] <<< manage_data COMPLETE request_id={} op={} table={} elapsed={:?} status=error message={}", req_id, op_for_log, table, elapsed, e.message),
+  }
+
   result
 }
 
@@ -112,29 +118,6 @@ pub async fn check_mongodb_connection(
       "MongoDB is not connected".to_string()
     },
     data: DataValue::Bool(is_connected),
-  })
-}
-
-/// Reconnect to MongoDB
-#[tauri::command]
-pub async fn reconnect_mongodb(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .reconnect_mongodb(
-      Arc::new(state.repository_service.cascade_service.clone()),
-      state.repository_service.entity_resolution.clone(),
-    )
-    .await
-    .map_err(|e| ResponseModel {
-      status: ResponseStatus::Error,
-      message: e,
-      data: DataValue::Bool(false),
-    })?;
-
-  Ok(ResponseModel {
-    status: ResponseStatus::Success,
-    message: "MongoDB reconnected successfully".to_string(),
-    data: DataValue::Bool(true),
   })
 }
 

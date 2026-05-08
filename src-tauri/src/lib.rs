@@ -20,7 +20,6 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
 /* routes */
 use routes::{
-  about_route::{download_update, get_binary_name_file, open_file},
   auth_data_sync_route::initialize_user_data,
   auth_route::{
     authenticate_android_biometric, check_android_biometric, check_token, complete_biometric_auth,
@@ -42,7 +41,6 @@ use routes::{
     manage_data, permanently_delete_record, permanently_delete_record_local,
     sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
   },
-  profile_route::{profile_sync_all_for_user, profile_sync_to_cloud},
   statistics_route::statistics_get,
 };
 
@@ -125,7 +123,7 @@ pub fn run() {
   register_relations_for_entity::<ProfileEntity>();
   register_relations_for_entity::<UserEntity>();
 
-  let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+  let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("debug"));
 
   let stdout_layer = fmt::layer()
     .with_target(true)
@@ -278,9 +276,6 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      download_update,
-      get_binary_name_file,
-      open_file,
       check_token,
       login,
       register,
@@ -325,8 +320,6 @@ pub fn run() {
       toggle_delete_status,
       toggle_delete_status_local,
       sync_visibility_to_provider,
-      profile_sync_to_cloud,
-      profile_sync_all_for_user,
       statistics_get,
       initialize_user_data,
       process_queued_operation,
