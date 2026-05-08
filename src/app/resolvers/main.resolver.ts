@@ -42,11 +42,11 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.requestService.getTodo(todoId).pipe(take(1))
+          this.requestService.get("todos", todoId).pipe(take(1))
         ).catch(() => null);
 
         let taskFromApi = await firstValueFrom(
-          this.requestService.getTask(taskId).pipe(take(1))
+          this.requestService.get("tasks", taskId).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi || taskFromApi) {
@@ -65,7 +65,7 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.requestService.getTodo(todoId).pipe(take(1))
+          this.requestService.get("todos", todoId).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi) {
