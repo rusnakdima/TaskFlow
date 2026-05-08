@@ -87,12 +87,12 @@ export class RequestService {
     return !navigator.onLine;
   }
 
-  private getCurrentUserId(): string {
+  currentUserId(): string {
     return this.jwtTokenService.getCurrentUserId() || "";
   }
 
   filterTodosByVisibility(todos: any[], visibility: string): any[] {
-    const userId = this.getCurrentUserId();
+    const userId = this.currentUserId();
     if (!userId) return [];
 
     switch (visibility) {
