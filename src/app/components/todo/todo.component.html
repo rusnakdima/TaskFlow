@@ -21,6 +21,7 @@
       }"
       [routerLink]="['/todos/' + todo.id + '/tasks']"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
+      (click)="onCardClick($event)"
     >
       <div class="flex grow flex-col">
         <div class="mb-2 flex flex-row items-center justify-between transition-all duration-200">

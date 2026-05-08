@@ -112,6 +112,7 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     new EventEmitter();
   @Output() addSubtaskCommentEvent: EventEmitter<{ content: string; subtask_id: string }> =
     new EventEmitter();
+  @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
 
   showComments = signal(false);
   creatingGithubIssue = signal(false);
@@ -449,9 +450,15 @@ export class TaskComponent extends BaseItemComponent implements OnInit, OnChange
     }
   }
 
-  onSelectionChange(checked: boolean): void {
+  onSelectionChange(result: { checked: boolean; event?: MouseEvent }): void {
     if (this.task) {
-      this.selectionChangeEvent.emit({ id: this.task.id, selected: checked });
+      this.selectionChangeEvent.emit({ id: this.task.id, selected: result.checked });
+    }
+  }
+
+  onCardClick(event: MouseEvent): void {
+    if (this.task) {
+      this.cardClick.emit({ event, id: this.task.id });
     }
   }
 

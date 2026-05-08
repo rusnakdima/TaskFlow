@@ -5,7 +5,7 @@
       [ngClass]="{ 'animate-pulse ring-4 ring-green-500': highlight }"
       [routerLink]="!isExpanded ? [task.id + '/subtasks'] : []"
       [queryParams]="{ isOwner: isOwner, isPrivate: isPrivate }"
-      (click)="$event.stopPropagation()"
+      (click)="onCardClick($event); $event.stopPropagation()"
     >
       <ng-content></ng-content>
       <div class="flex grow flex-col">
