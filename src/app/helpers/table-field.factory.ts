@@ -1,6 +1,6 @@
 import { AdminFieldConfig, AdminFieldType } from "@models/admin-table.model";
 import { TableField, TableFieldType } from "@components/table-view/table-field.model";
-import { TABLE_COLUMNS, ARCHIVE_COLUMNS } from "@constants/table-field.constants";
+import { TABLE_COLUMNS } from "@constants/table-field.constants";
 
 export class TableFieldFactory {
   static fromAdminConfig(config: AdminFieldConfig): TableField {
@@ -58,8 +58,6 @@ export class TableFieldFactory {
   }
 
   static getArchiveColumns(dataType: string): TableField[] {
-    const columns = ARCHIVE_COLUMNS[dataType as keyof typeof ARCHIVE_COLUMNS];
-    if (!columns) return [];
-    return columns.map((config) => this.fromAdminConfig(config));
+    return this.getColumns(dataType);
   }
 }
