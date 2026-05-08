@@ -197,14 +197,6 @@ export class KanbanView extends BaseListView implements OnInit {
         this.selectedTodoId.set(targetTodoId);
       }
     });
-
-    effect(() => {
-      const todosLength = this.todos().length;
-      const selectedId = this.selectedTodoId();
-      if (selectedId && todosLength > 0) {
-        this.loadTasksForTodo(selectedId);
-      }
-    });
   }
 
   override ngOnInit(): void {
