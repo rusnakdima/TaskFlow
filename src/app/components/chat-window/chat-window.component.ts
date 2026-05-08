@@ -28,9 +28,7 @@ import { Chat, ChatCreate } from "@models/chat.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { DataService } from "@services/data/data.service";
-
-/* providers */
-import { ApiProvider } from "@providers/api.provider";
+import { RequestService } from "@services/core/request.service";
 
 /* mixins */
 import { ScrollingMixin } from "@mixins/scrolling.mixin";
@@ -50,9 +48,9 @@ export class ChatWindowComponent
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
   @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
 
-  dataSync = inject(ApiProvider);
-  authService = inject(AuthService);
   dataService = inject(DataService);
+  requestService = inject(RequestService);
+  authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
   chats = signal<Chat[]>([]);
@@ -63,6 +61,7 @@ export class ChatWindowComponent
   loadingInitial = signal(false);
   oldestTimestamp = signal<string | null>(null);
   currentTodoId = "";
+  private initialized = false;
 
   private subscriptions = new Subscription();
   private currentTodo = signal<any>(null);
@@ -70,9 +69,10 @@ export class ChatWindowComponent
 
   private loadChatsEffect = effect(() => {
     const todoId = this.todo_id;
+    if (!todoId || this.initialized) return;
     const todo = this.currentTodo();
-    if (!todoId) return;
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
+    this.initialized = true;
     this.loadInitialChats(todoId, visibility);
   });
 
@@ -128,8 +128,8 @@ export class ChatWindowComponent
     if (this.loadingInitial()) return;
     this.loadingInitial.set(true);
 
-    this.dataSync
-      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId }, load: ["user"], visibility })
+    this.dataService
+      .getAll("chats", { filter: { todo_id: todoId }, load: ["user"], visibility })
       .subscribe({
         next: (chats) => {
           const reversed = [...chats].reverse();
@@ -163,24 +163,22 @@ export class ChatWindowComponent
 
     this.loadingOlder.set(true);
 
-    this.dataSync
-      .crud<Chat[]>("get", "chats", { filter: { todo_id: todoId, before: timestamp } })
-      .subscribe({
-        next: (olderChats) => {
-          this.cacheUsernames(olderChats);
-          if (olderChats.length === 0) {
-            this.hasMoreMessages.set(false);
-          } else {
-            const reversed = [...olderChats].reverse();
-            this.messages.update((current) => [...reversed, ...current]);
-            this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
-          }
-          this.loadingOlder.set(false);
-        },
-        error: () => {
-          this.loadingOlder.set(false);
-        },
-      });
+    this.dataService.getAll("chats", { filter: { todo_id: todoId, before: timestamp } }).subscribe({
+      next: (olderChats) => {
+        this.cacheUsernames(olderChats);
+        if (olderChats.length === 0) {
+          this.hasMoreMessages.set(false);
+        } else {
+          const reversed = [...olderChats].reverse();
+          this.messages.update((current) => [...reversed, ...current]);
+          this.oldestTimestamp.set(olderChats[olderChats.length - 1].created_at);
+        }
+        this.loadingOlder.set(false);
+      },
+      error: () => {
+        this.loadingOlder.set(false);
+      },
+    });
   }
 
   onChatScroll(event: Event) {
@@ -249,22 +247,16 @@ export class ChatWindowComponent
     const todo = this.currentTodo();
     const visibility = todo?.visibility === "shared" ? "shared" : "private";
 
-    this.dataSync
-      .crud<Chat>("create", "chats", {
-        data: chatForBackend,
-        parentTodoId: this.todo_id,
-        visibility,
-      })
-      .subscribe(() => {
-        this.newMessage = "";
-        this.shouldScroll.set(true);
-        this.forceScrollBottom = true;
-        setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
-      });
+    this.dataService.create("chats", chatForBackend, visibility).subscribe(() => {
+      this.newMessage = "";
+      this.shouldScroll.set(true);
+      this.forceScrollBottom = true;
+      setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
+    });
   }
 
   deleteMessage(chatId: string) {
-    this.dataSync.crud("delete", "chats", { id: chatId, parentTodoId: this.todo_id }).subscribe({
+    this.dataService.delete("chats", chatId).subscribe({
       error: (err) => {},
     });
   }
@@ -286,10 +278,7 @@ export class ChatWindowComponent
 
     if (unreadChats.length === 0) return of([]);
 
-    return this.dataSync.crud<Chat[]>("updateAll", "chats", {
-      data: unreadChats,
-      parentTodoId: todo_id,
-    });
+    return this.dataService.updateAll("chats", unreadChats, { parentTodoId: todo_id });
   }
 
   clearChat() {
@@ -299,9 +288,7 @@ export class ChatWindowComponent
     if (!chats || chats.length === 0) return;
 
     const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
-    this.dataSync
-      .crud<Chat[]>("updateAll", "chats", { data: chatsToDelete, parentTodoId: this.todo_id })
-      .subscribe();
+    this.dataService.updateAll("chats", chatsToDelete).subscribe();
   }
 
   getUsername(userId: string): string {

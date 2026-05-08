@@ -29,7 +29,6 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { UnifiedStorageService } from "@app/store/unified-storage.service";
-import { DataLoaderService } from "@services/data/data-loader.service";
 
 /* components */
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
@@ -59,7 +58,6 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
   private storageService = inject(UnifiedStorageService);
-  private dataLoaderService = inject(DataLoaderService);
 
   @Input() data: any[] = [];
   @Input() fields: TableField[] = [];
