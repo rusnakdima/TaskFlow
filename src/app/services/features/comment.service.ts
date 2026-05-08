@@ -31,6 +31,12 @@ export class CommentService {
     options: { taskId?: string; subtaskId?: string; visibility?: "private" | "shared" }
   ): Observable<Comment> {
     const userId = this.authService.getValueByKey("id");
+    console.log("[CommentService] createComment called", {
+      content,
+      parentTodoId,
+      options,
+      userId,
+    });
     const payload: CommentPayload = {
       user_id: userId,
       content,
@@ -45,16 +51,16 @@ export class CommentService {
         CommentPayload & { id?: string; created_at?: string; updated_at?: string }
       >("comments", payload, { visibility: (options.visibility || "private") as Visibility })
       .pipe(
-        map(
-          (response) =>
-            ({
-              ...response,
-              id: response.id || crypto.randomUUID(),
-              created_at: response.created_at || new Date().toISOString(),
-              updated_at: response.updated_at || new Date().toISOString(),
-              deleted_at: response.deleted_at ?? null,
-            }) as Comment
-        )
+        map((response) => {
+          console.log("[CommentService] createComment: API response:", response);
+          return {
+            ...response,
+            id: response.id || crypto.randomUUID(),
+            created_at: response.created_at || new Date().toISOString(),
+            updated_at: response.updated_at || new Date().toISOString(),
+            deleted_at: response.deleted_at ?? null,
+          } as Comment;
+        })
       );
   }
 
