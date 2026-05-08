@@ -334,7 +334,11 @@ export class DataManagementView implements OnInit {
   onAdminAction(event: { action: string; item: any }): void {
     if (event.action === "toggleDelete") {
       this.toggleDeleteStatus(event.item);
-    } else if (event.action === "delete" || event.action === "deleteRecord") {
+    } else if (
+      event.action === "delete" ||
+      event.action === "delete_forever" ||
+      event.action === "deleteRecord"
+    ) {
       this.deleteRecord(event.item);
     }
   }
@@ -590,14 +594,7 @@ export class DataManagementView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-
-        this.dataMap.update((data) => {
-          const updated = { ...data };
-          if (updated[table]) {
-            updated[table] = updated[table].filter((r: any) => r.id !== record.id);
-          }
-          return updated;
-        });
+        this.loadData(true);
       }
     } catch (error) {
       this.notifyService.showError("Error: " + error);

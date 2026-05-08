@@ -683,7 +683,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskTableActions(): TableFieldActionButton[] {
-    const actions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.DELETE];
+    const actions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
 
     const currentTodo = this.todo();
     if (currentTodo?.github_repo_name) {
@@ -703,6 +703,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         break;
       case "delete":
         this.deleteTask(event.item.id);
+        break;
+      case "archive":
+        this.archiveTask(event.item.id);
         break;
       case "github_issue":
         this.createOrUpdateGithubIssueFromTask(event.item);
@@ -781,6 +784,20 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.requestService.delete("tasks", taskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
+        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
+      },
+    });
+  }
+
+  archiveTask(taskId?: string) {
+    const todoId = this.todoId();
+    if (!todoId || !taskId) return;
+
+    if (!confirm("Archive this task?")) return;
+
+    this.requestService.delete("tasks", taskId).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Task archived successfully");
         this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
       },
     });

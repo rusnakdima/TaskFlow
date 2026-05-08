@@ -634,14 +634,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   deleteTodoById(todoId?: string, isOwner: boolean = true): void {
     if (confirm("Are you sure you want to delete this project?")) {
-      const sub = this.requestService.delete("todos", todoId!).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo deleted successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete todo");
-        },
-      });
+      const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
+      const visibility = todo?.visibility || "private";
+      const sub = this.requestService
+        .delete("todos", todoId!, { visibility: visibility as Visibility })
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Todo deleted successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to delete todo");
+          },
+        });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
@@ -654,14 +658,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const sub = this.requestService.delete("todos", todoId!).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo archived successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to archive todo");
-        },
-      });
+      const todo = this.getTodosList().find((t: Todo) => t.id === todoId);
+      const visibility = todo?.visibility || "private";
+      const sub = this.requestService
+        .delete("todos", todoId!, { visibility: visibility as Visibility })
+        .subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Todo archived successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to archive todo");
+          },
+        });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
@@ -743,11 +751,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           confirmClass: "bg-orange-600 hover:bg-orange-700",
         });
         if (archiveConfirmed) {
-          const sub = this.requestService.delete("todos", item.id).subscribe({
-            next: () => this.notifyService.showSuccess("Project archived successfully"),
-            error: (err) =>
-              this.notifyService.showError(err.message || "Failed to archive project"),
-          });
+          const visibility = item.visibility || "private";
+          const sub = this.requestService
+            .delete("todos", item.id, { visibility: visibility as Visibility })
+            .subscribe({
+              next: () => this.notifyService.showSuccess("Project archived successfully"),
+              error: (err) =>
+                this.notifyService.showError(err.message || "Failed to archive project"),
+            });
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
         break;
@@ -924,9 +935,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const requests = Array.from(selected).map((todoId) =>
-        this.requestService.delete("todos", todoId)
-      );
+      const requests = Array.from(selected).map((todoId) => {
+        const todo = this.storageService.getTodoById(todoId);
+        const visibility = todo?.visibility || "private";
+        return this.requestService.delete("todos", todoId, {
+          visibility: visibility as Visibility,
+        });
+      });
 
       const sub = forkJoin(requests).subscribe({
         next: () => {
@@ -954,9 +969,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmText: "Delete",
     });
     if (confirmed) {
-      const requests = Array.from(selected).map((todoId) =>
-        this.requestService.delete("todos", todoId)
-      );
+      const requests = Array.from(selected).map((todoId) => {
+        const todo = this.storageService.getTodoById(todoId);
+        const visibility = todo?.visibility || "private";
+        return this.requestService.delete("todos", todoId, {
+          visibility: visibility as Visibility,
+        });
+      });
 
       const sub = forkJoin(requests).subscribe({
         next: () => {
