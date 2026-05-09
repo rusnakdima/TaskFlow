@@ -24,6 +24,9 @@ import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 /* views */
 import { BaseListView } from "@views/base-list.view";
 
+/* helpers */
+import { compareByTimestamp } from "@helpers/array.helper";
+
 /* components */
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
@@ -82,9 +85,9 @@ export class CategoriesView extends BaseListView implements OnInit {
       if (by === "title") {
         comparison = (a.title || "").localeCompare(b.title || "");
       } else if (by === "createdAt") {
-        comparison = new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        comparison = compareByTimestamp(a, b);
       } else if (by === "updatedAt") {
-        comparison = new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
+        comparison = compareByTimestamp(a, b);
       }
       return order === "asc" ? comparison : -comparison;
     });
