@@ -558,9 +558,7 @@ impl ManageDbService {
           .await
         {
           Ok(tasks) => all_tasks.extend(tasks),
-          Err(e) => {
-            println!("[ManageDbService] Error getting tasks from MongoDB: {}", e);
-          }
+          Err(_) => {}
         }
       }
     }
@@ -572,9 +570,7 @@ impl ManageDbService {
         .await
       {
         Ok(tasks) => all_tasks.extend(tasks),
-        Err(e) => {
-          println!("[ManageDbService] Error getting tasks from JSON: {}", e);
-        }
+        Err(_) => {}
       }
     }
 

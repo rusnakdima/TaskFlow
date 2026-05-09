@@ -399,60 +399,23 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let request_id = "unknown".to_string();
-    tracing::debug!(
-      "[Repo] >>> getAll START table={} offline={} request_id={}",
-      table,
-      offline,
-      request_id
-    );
 
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt = self.build_filter(&filter_val);
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
 
-    tracing::debug!(
-      "[Repo] getAll filter debugging - table={} filter_val={} filter_opt={:?} visibility_str={}",
-      table,
-      filter_val,
-      filter_opt,
-      visibility_str
-    );
-
     let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
-    tracing::debug!(
-      "[Repo] getAll provider info - table={} use_json={}",
-      table,
-      use_json
-    );
-
     let load_paths = Self::parse_load_param(load);
 
     let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
-      Ok(docs) => {
-        tracing::debug!(
-          "[Repo] getAll find_many SUCCESS - table={} count={} used_json_fallback={}",
-          table,
-          docs.len(),
-          false
-        );
-        (docs, false)
-      }
-      Err(e) => {
-        tracing::debug!(
-          "[Repo] getAll find_many FAILED - table={} trying_json=true",
-          table
-        );
+      Ok(docs) => (docs, false),
+      Err(_e) => {
         let json_provider = DataProvider::Json(&self.json_provider);
         let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
-        tracing::debug!(
-          "[Repo] getAll json_fallback result - table={} count={}",
-          table,
-          docs.len()
-        );
         (docs, true)
       }
     };
@@ -484,13 +447,6 @@ impl RepositoryService {
     };
 
     let elapsed = start.elapsed();
-    tracing::debug!(
-      "[Repo] <<< getAll COMPLETE table={} offline={} count={} elapsed={:?}",
-      table,
-      offline,
-      docs.len(),
-      elapsed
-    );
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -531,10 +487,10 @@ impl RepositoryService {
         Ok(loaded) => {
           current_docs = loaded;
         }
-        Err(e) => {
+        Err(_e) => {
           return Err(err_response_formatted(
             "Relation loading failed",
-            &e.to_string(),
+            &_e.to_string(),
           ));
         }
       }
@@ -553,12 +509,6 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    tracing::debug!(
-      "[Repo] >>> get START table={} id={:?} offline={}",
-      table,
-      id,
-      offline
-    );
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
@@ -601,13 +551,6 @@ impl RepositoryService {
 
     let projected = self.apply_projection_recursive(docs);
     let elapsed = start.elapsed();
-    tracing::debug!(
-      "[Repo] <<< get COMPLETE table={} id={:?} found={} elapsed={:?}",
-      table,
-      id,
-      !projected.is_empty(),
-      elapsed
-    );
 
     if id.is_some() {
       if !projected.is_empty() {
@@ -633,11 +576,6 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    tracing::debug!(
-      "[Repo] >>> create START table={} offline={}",
-      table,
-      offline
-    );
 
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
@@ -757,12 +695,6 @@ impl RepositoryService {
       .get("id")
       .and_then(|v| v.as_str())
       .unwrap_or("unknown");
-    tracing::debug!(
-      "[Repo] <<< create COMPLETE table={} id={} elapsed={:?}",
-      table,
-      created_id,
-      elapsed
-    );
 
     Ok(success_response(DataValue::Object(response_doc)))
   }
@@ -1016,11 +948,6 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    tracing::debug!(
-      "[Repo] >>> updateAll START table={} offline={}",
-      table,
-      offline
-    );
 
     let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
 
@@ -1058,12 +985,6 @@ impl RepositoryService {
 
     let projected_records = self.apply_projection_recursive(validated_records);
     let elapsed = start.elapsed();
-    tracing::debug!(
-      "[Repo] <<< updateAll COMPLETE table={} count={} elapsed={:?}",
-      table,
-      projected_records.len(),
-      elapsed
-    );
 
     Ok(success_response(DataValue::Array(projected_records)))
   }
@@ -1078,12 +999,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
-    tracing::debug!(
-      "[Repo] >>> update START table={} id={} offline={}",
-      table,
-      id_str,
-      offline
-    );
 
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
 
@@ -1198,12 +1113,6 @@ impl RepositoryService {
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
     let elapsed = start.elapsed();
-    tracing::debug!(
-      "[Repo] <<< update COMPLETE table={} id={} elapsed={:?}",
-      table,
-      id_str,
-      elapsed
-    );
 
     Ok(success_response(DataValue::Object(response_doc)))
   }
@@ -1218,13 +1127,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-    tracing::debug!(
-      "[Repo] >>> delete START table={} id={} permanent={} offline={}",
-      table,
-      id_str,
-      is_permanent,
-      offline
-    );
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
     let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
@@ -1336,12 +1238,6 @@ impl RepositoryService {
     }
 
     let elapsed = start.elapsed();
-    tracing::debug!(
-      "[Repo] <<< delete COMPLETE table={} id={} elapsed={:?}",
-      table,
-      id_str,
-      elapsed
-    );
 
     Ok(success_response(DataValue::String(id_str)))
   }

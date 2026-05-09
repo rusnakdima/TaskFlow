@@ -24,7 +24,7 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::response_helper::{err_response, log_response};
+use crate::helpers::response_helper::err_response;
 
 #[derive(Clone)]
 pub struct AuthRegisterService {
@@ -90,32 +90,22 @@ impl AuthRegisterService {
 
     let profile_sync_service = self.profile_sync_service.clone();
 
-    println!("[Register] Creating profile for user_id: {}", user_id);
     let create_result = profile_sync_service
       .create_profile_in_json(&new_profile)
       .await;
     match create_result {
-      Ok(_) => {
-        println!("[Register] Profile created in JSON successfully");
-      }
+      Ok(_) => {}
       Err(e) => {
-        println!("[Register] Failed to create profile in JSON: {}", e.message);
         return Err(e);
       }
     }
 
     if self.mongodb_provider.is_some() {
-      println!("[Register] Exporting profile to MongoDB");
       if let Err(e) = profile_sync_service
         .export_profile_to_mongo(&new_profile)
         .await
       {
-        println!(
-          "[Register] Warning: Failed to export profile to MongoDB: {}",
-          e.message
-        );
       } else {
-        println!("[Register] Profile exported to MongoDB");
       }
     }
 
@@ -158,9 +148,7 @@ impl AuthRegisterService {
       .map_err(|e| err_response(&format!("Error creating user in JSON: {}", e)))?;
 
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(e) = mongo.insert(table_name, user_val.clone()).await {
-        log_response(&format!("Warning: Failed to insert user in MongoDB: {}", e));
-      }
+      if let Err(_e) = mongo.insert(table_name, user_val.clone()).await {}
     }
 
     let token = self.token_service.generate_token(&user_id, "", "")?;

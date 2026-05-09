@@ -38,22 +38,15 @@ impl AuthDataSyncService {
   }
 
   pub async fn initialize_user_data(&self, user_id: &str) -> Result<UserDataResult, ResponseModel> {
-    println!(
-      "[AuthDataSync] initialize_user_data called with user_id: {}",
-      user_id
-    );
-
     // Step 1: Check if user exists in JSON (fast, offline-capable)
-    println!("[AuthDataSync] Step 1: Checking if user exists in JSON");
+
     let user_in_json = self.user_sync_service.user_exists_in_json(user_id).await;
-    println!("[AuthDataSync] User in JSON: {}", user_in_json);
 
     if !user_in_json {
       // User not found in JSON - check MongoDB but with timeout
-      println!("[AuthDataSync] User not in JSON, checking MongoDB...");
+
       let user_in_mongo = self.user_sync_service.user_exists_in_mongo(user_id).await;
       if !user_in_mongo {
-        println!("[AuthDataSync] User not found in either database");
         return Ok(UserDataResult {
           user_found: false,
           profile_found: false,
@@ -63,23 +56,19 @@ impl AuthDataSyncService {
         });
       }
       // User in MongoDB - try to sync to JSON but don't block
-      println!("[AuthDataSync] User found in MongoDB, attempting sync to JSON");
+
       let _ = self.user_sync_service.sync_user_to_json(user_id).await;
-      println!("[AuthDataSync] User synced from MongoDB to JSON");
     } else {
-      println!("[AuthDataSync] User found in JSON (offline mode)");
     }
 
     // Step 2: Check profile in JSON first (offline-capable)
-    println!("[AuthDataSync] Step 2: Checking profile in JSON");
+
     let profile_in_json = self
       .profile_sync_service
       .profile_exists_in_json(user_id)
       .await;
-    println!("[AuthDataSync] Profile in JSON: {}", profile_in_json);
 
     if profile_in_json {
-      println!("[AuthDataSync] Profile found in JSON - returning success (offline mode)");
       return Ok(UserDataResult {
         user_found: true,
         profile_found: true,
@@ -90,21 +79,20 @@ impl AuthDataSyncService {
     }
 
     // Profile not in JSON - try MongoDB with timeout
-    println!("[AuthDataSync] Profile not in JSON, checking MongoDB...");
+
     let profile_in_mongo = self
       .profile_sync_service
       .profile_exists_in_mongo(user_id)
       .await;
-    println!("[AuthDataSync] Profile in MongoDB: {}", profile_in_mongo);
 
     if profile_in_mongo {
       // Try to sync to JSON but don't block
-      println!("[AuthDataSync] Profile found in MongoDB, attempting sync to JSON");
+
       let _ = self
         .profile_sync_service
         .sync_profile_to_json_by_user(user_id)
         .await;
-      println!("[AuthDataSync] Profile synced from MongoDB to JSON");
+
       return Ok(UserDataResult {
         user_found: true,
         profile_found: true,
@@ -114,7 +102,6 @@ impl AuthDataSyncService {
       });
     }
 
-    println!("[AuthDataSync] Profile not found - needs profile creation");
     Ok(UserDataResult {
       user_found: true,
       profile_found: false,
