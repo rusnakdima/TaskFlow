@@ -11,6 +11,9 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 /* constants */
 import { ActionColors } from "@constants/table-field.constants";
 
+/* helpers */
+import { getActionColor } from "@helpers/action-color.helper";
+
 /* models */
 import { Category } from "@models/category.model";
 
@@ -46,8 +49,6 @@ export class CategoryCardComponent {
   }
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "p-1 transition-colors";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "p-1 transition-colors");
   }
 }
