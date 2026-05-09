@@ -22,6 +22,7 @@ import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { ItemType } from "@models/base.model";
+import { TableField } from "@models/table-field.model";
 
 @Component({
   selector: "app-item-display",
@@ -53,6 +54,7 @@ export class ItemDisplayComponent {
   @Input() itemType: ItemType = "task";
   @Input() order: number = 0;
   @Input() currentIndex: number = 0;
+  @Input() expandFields: TableField[] = [];
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
