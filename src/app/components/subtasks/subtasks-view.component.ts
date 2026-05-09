@@ -653,6 +653,19 @@ export class SubtasksViewComponent extends BaseListView {
     });
   }
 
+  onTableSelectAll(selectAll: boolean): void {
+    this.selectedItems.update((subtaskIds) => {
+      const newSelected = new Set(subtaskIds);
+      if (selectAll) {
+        this.listSubtasks().forEach((subtask) => newSelected.add(subtask.id));
+      } else {
+        this.listSubtasks().forEach((subtask) => newSelected.delete(subtask.id));
+      }
+      this.bulkService.setSelectionState(newSelected.size, selectAll);
+      return newSelected;
+    });
+  }
+
   bulkUpdateStatus(status: string): void {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;

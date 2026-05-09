@@ -65,7 +65,7 @@
           [actions]="getSubtaskTableActions()"
           [itemType]="'subtask'"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
-          (selectAll)="toggleSelectAll()"
+          (selectAll)="onTableSelectAll($event)"
           (rowClick)="onRowClick($event)"
           (rangeSelect)="onRangeSelect($event)"
           (additiveSelect)="onAdditiveSelect($event)"
