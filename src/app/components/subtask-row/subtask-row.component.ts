@@ -1,13 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  inject,
-  ChangeDetectionStrategy,
-} from "@angular/core";
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -17,16 +10,13 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { getActionColor } from "@helpers/action-color.helper";
 
 /* base */
 import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
 
 /* models */
-import {
-  STATUS_BUTTON_COLORS,
-  STATUS_BUTTON_ICONS,
-  ActionColors,
-} from "@constants/table-field.constants";
+import { STATUS_BUTTON_COLORS, STATUS_BUTTON_ICONS } from "@constants/table-field.constants";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 import { Subtask } from "@models/subtask.model";
@@ -39,6 +29,10 @@ import { Subtask } from "@models/subtask.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubtaskRowComponent extends ItemRowBaseComponent {
+  protected readonly BaseItemHelper = BaseItemHelper;
+  protected readonly STATUS_BUTTON_COLORS = STATUS_BUTTON_COLORS;
+  protected readonly STATUS_BUTTON_ICONS = STATUS_BUTTON_ICONS;
+
   @Input() subtask: Subtask | null = null;
   @Input() override todo: Todo | null = null;
   @Output() override toggleCompletionEvent = new EventEmitter<Subtask>();
@@ -84,29 +78,30 @@ export class SubtaskRowComponent extends ItemRowBaseComponent {
     return 0;
   }
 
-  override get itemDeleteEvent(): EventEmitter<string> {
-    return new EventEmitter<string>();
+  override get commentsTitle(): string {
+    return "Subtask Comments";
   }
 
-  override get addCommentEvent(): EventEmitter<{
-    content: string;
-    task_id?: string;
-    subtask_id?: string;
-  }> {
-    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
+  override get deleteItemTitle(): string {
+    return "Delete subtask";
   }
 
-  toggleCompletion() {
-    if (this.subtask) {
-      this.toggleCompletionEvent.emit(this.subtask);
-    }
-  }
-
-  getStatusBgColor(status: string): string {
+  getStatusColor(status: string): string {
     return (
       STATUS_BUTTON_COLORS[status as keyof typeof STATUS_BUTTON_COLORS] ||
       STATUS_BUTTON_COLORS["pending"]
     );
+  }
+
+  getStatusBgColor(status: string): string {
+    const statusLower = status.toLowerCase();
+    if (statusLower === "completed")
+      return "bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900/60";
+    if (statusLower === "skipped")
+      return "bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60";
+    if (statusLower === "failed")
+      return "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60";
+    return "bg-blue-100 text-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60";
   }
 
   getStatusIcon(status: string): string {
@@ -117,9 +112,17 @@ export class SubtaskRowComponent extends ItemRowBaseComponent {
   }
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "rounded-lg p-1 transition-all duration-200 hover:scale-110";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "rounded-lg p-1 transition-all duration-200 hover:scale-110");
+  }
+
+  deleteSubtask() {
+    this.deleteItemEvent.emit(this.itemId);
+  }
+
+  toggleCompletion() {
+    if (this.subtask) {
+      this.toggleCompletionEvent.emit(this.subtask);
+    }
   }
 
   override onAddComment(content: string): void {
