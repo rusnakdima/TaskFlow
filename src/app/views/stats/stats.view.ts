@@ -102,10 +102,15 @@ export class StatsView implements OnInit {
         })
         .subscribe({
           next: (response: any) => {
-            this.statistics.set(response.statistics);
-            this.chartData.set(response.chart_data);
-            this.achievements.set(response.achievements);
-            this.detailedMetrics.set(response.detailed_metrics);
+            const data = response?.data;
+            if (data?.statistics) {
+              this.statistics.set(data.statistics);
+              this.chartData.set(
+                data.chart_data || { completion_trend: [], categories: [], daily_activity: [] }
+              );
+              this.achievements.set(data.achievements || []);
+              this.detailedMetrics.set(data.detailed_metrics || []);
+            }
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to load statistics";
