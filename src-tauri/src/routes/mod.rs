@@ -12,3 +12,6 @@ pub mod statistics_route;
 
 #[path = "github.route.rs"]
 pub mod github_route;
+
+#[path = "cascade.route.rs"]
+pub mod cascade_route;
