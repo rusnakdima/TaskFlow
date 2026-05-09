@@ -37,6 +37,8 @@ import { Task } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
 
+import { FilterField } from "@models/filter-config.model";
+
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
@@ -48,7 +50,6 @@ import { LoadingStateComponent } from "@components/loading-state/loading-state.c
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { SubtasksListComponent } from "./subtasks-list.component";
-import { SubtasksFiltersComponent } from "./subtasks-filters.component";
 
 interface QueryParams {
   fromKanban?: string;
@@ -74,7 +75,6 @@ interface QueryParams {
     EmptyStateComponent,
     BulkActionsComponent,
     SubtasksListComponent,
-    SubtasksFiltersComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -398,8 +398,43 @@ export class SubtasksViewComponent extends BaseListView {
         pageKey: "subtasks",
         onModeChange: (mode) => this.setViewMode(mode),
       },
+      filterFields: this.filterFields,
+      showFilter: this.showFilter(),
+      onFiltersChange: (filters) => this.onFiltersChange(filters),
     };
   }
+
+  filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "checkbox",
+      options: [
+        { key: "all", label: "All" },
+        { key: "pending", label: "Pending" },
+        { key: "completed", label: "Completed" },
+        { key: "skipped", label: "Skipped" },
+        { key: "failed", label: "Failed" },
+      ],
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      type: "checkbox",
+      options: [
+        { key: "all", label: "All" },
+        { key: "low", label: "Low" },
+        { key: "medium", label: "Medium" },
+        { key: "high", label: "High" },
+      ],
+    },
+  ];
+
+  onFiltersChange(filters: Record<string, string | string[] | any>): void {
+    this._activeFilters.set(filters);
+  }
+
+  private _activeFilters = signal<Record<string, string | string[] | any>>({});
 
   override getUnreadCount(): number {
     return super.getUnreadCount(this.chats);

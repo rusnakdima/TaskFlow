@@ -29,7 +29,12 @@
     }
 
     <div class="flex items-center justify-between gap-2">
-      <app-page-toolbar [config]="getToolbarConfig()" />
+      <app-page-toolbar
+        [config]="getToolbarConfig()"
+        [filterFields]="filterFields"
+        (filtersChange)="onFiltersChange($event)"
+        (searchChange)="onSearchChange($event)"
+      />
     </div>
 
     @if (showInfoBlock()) {
@@ -71,15 +76,6 @@
     @if (showChat() && todoId()) {
       <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
     }
-
-    <app-subtasks-filters
-      [activeFilter]="activeFilter()"
-      [showFilter]="showFilter()"
-      [searchQuery]="searchQuery()"
-      (filterToggle)="toggleFilter()"
-      (filterChange)="changeFilter($any($event))"
-      (searchChange)="onSearchChange($any($event))"
-    />
 
     <app-bulk-actions
       [selectedCount]="selectedSubtasks().size"
