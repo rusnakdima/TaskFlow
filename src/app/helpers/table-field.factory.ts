@@ -1,4 +1,4 @@
-import { AdminFieldConfig, AdminFieldType } from "@models/admin-table.model";
+import { AdminFieldConfig } from "@models/admin-table.model";
 import { TableField, TableFieldType } from "@components/table-view/table-field.model";
 import { TABLE_COLUMNS } from "@constants/table-field.constants";
 

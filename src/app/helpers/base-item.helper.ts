@@ -38,36 +38,6 @@ export class BaseItemHelper {
   }
 
   /**
-   * Get assignee color based on name hash
-   */
-  static getAssigneeColor(assignee: string): string {
-    const colors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-purple-500",
-      "bg-orange-500",
-      "bg-pink-500",
-      "bg-teal-500",
-      "bg-indigo-500",
-      "bg-red-500",
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < assignee.length; i++) {
-      hash = assignee.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }
-
-  /**
-   * Get initials from name
-   */
-  static getInitials(name: string): string {
-    if (!name) return "?";
-    return name.substring(0, 1).toUpperCase();
-  }
-
-  /**
    * Get the next status in the cycle: Pending -> Completed -> Skipped -> Failed -> Pending
    */
   static getNextStatus(currentStatus: TaskStatus): TaskStatus {
@@ -83,6 +53,71 @@ export class BaseItemHelper {
       return statusCycle[0];
     }
     return statusCycle[currentIndex + 1];
+  }
+
+  /**
+   * Get assignee color
+   */
+  static getAssigneeColor(assignee: string): string {
+    if (!assignee) return "bg-gray-200 dark:bg-gray-600";
+    const colors = [
+      "bg-red-400",
+      "bg-orange-400",
+      "bg-amber-400",
+      "bg-yellow-400",
+      "bg-lime-400",
+      "bg-green-400",
+      "bg-emerald-400",
+      "bg-teal-400",
+      "bg-cyan-400",
+      "bg-sky-400",
+      "bg-blue-400",
+      "bg-indigo-400",
+      "bg-violet-400",
+      "bg-purple-400",
+      "bg-fuchsia-400",
+      "bg-pink-400",
+    ];
+    let hash = 0;
+    for (let i = 0; i < assignee.length; i++) {
+      hash = assignee.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length] + " text-white";
+  }
+
+  /**
+   * Get initials from name
+   */
+  static getInitials(name: string): string {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  /**
+   * Check if task is blocked by dependencies
+   */
+  static isBlockedByDependencies(
+    dependsOn: string | string[] | null | undefined,
+    allTasks: Task[]
+  ): boolean {
+    if (!dependsOn || !allTasks || allTasks.length === 0) return false;
+    const deps = Array.isArray(dependsOn) ? dependsOn : [dependsOn];
+    for (const depId of deps) {
+      const depTask = allTasks.find((t) => t.id === depId);
+      if (
+        depTask &&
+        depTask.status !== TaskStatus.COMPLETED &&
+        depTask.status !== TaskStatus.SKIPPED
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -164,24 +199,6 @@ export class BaseItemHelper {
       BaseItemHelper.countCompleted(subtasks),
       subtasks.length
     );
-  }
-
-  /**
-   * Check if item is blocked by dependencies
-   */
-  static isBlockedByDependencies(
-    dependsOn: string[] | undefined,
-    allItems: Array<{ id: string; status: string }>
-  ): boolean {
-    if (!dependsOn || dependsOn.length === 0) return false;
-
-    return dependsOn.some((depId) => {
-      const depItem = allItems.find((t) => t.id === depId);
-      return (
-        !depItem ||
-        (depItem.status !== TaskStatus.COMPLETED && depItem.status !== TaskStatus.SKIPPED)
-      );
-    });
   }
 
   /**
