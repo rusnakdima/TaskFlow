@@ -83,7 +83,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() selectAll = new EventEmitter<void>();
+  @Output() selectAll = new EventEmitter<boolean>();
   @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
   @Output() additiveSelect = new EventEmitter<string>();
   @Output() sortChange = new EventEmitter<{ field: string; direction: "asc" | "desc" }>();
@@ -265,8 +265,8 @@ export class TableViewComponent extends ItemRowBaseComponent {
     return this.selectedIds.has(id);
   }
 
-  onSelectAll(): void {
-    this.selectAll.emit();
+  onSelectAll(checked: boolean): void {
+    this.selectAll.emit(checked);
   }
 
   formatValue(item: any, field: TableField | ItemDisplayConfig): any {
