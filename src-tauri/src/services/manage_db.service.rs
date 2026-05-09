@@ -13,13 +13,11 @@ use serde_json::{json, Value};
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::response_helper::success_response;
 
 /* services */
 use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
 
 use crate::helpers::common::filter_deleted;
-use tracing::{error, info};
 
 fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
   filter_deleted(records)
@@ -29,8 +27,6 @@ pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
   admin_manager: Mutex<Option<AdminManager>>,
-  mongo_uri: String,
-  mongo_db_name: String,
 }
 
 impl ManageDbService {
@@ -38,8 +34,6 @@ impl ManageDbService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     cascade_service: CascadeService,
-    mongo_uri: String,
-    mongo_db_name: String,
   ) -> Self {
     let admin_manager = mongodb_provider
       .clone()
@@ -49,8 +43,6 @@ impl ManageDbService {
       json_provider,
       mongodb_provider: Mutex::new(mongodb_provider),
       admin_manager: Mutex::new(admin_manager),
-      mongo_uri,
-      mongo_db_name,
     }
   }
 
@@ -293,16 +285,6 @@ impl ManageDbService {
     })
   }
 
-  /// Check if MongoDB is connected
-  pub fn is_mongodb_connected(&self) -> bool {
-    self
-      .mongodb_provider
-      .lock()
-      .map(|g| g.is_some())
-      .unwrap_or(false)
-  }
-
-  /// Async check if MongoDB is connected (uses existing runtime)
   pub async fn check_mongodb_connection_async(&self) -> bool {
     let provider = match self.mongodb_provider.lock() {
       Ok(guard) => guard.clone(),
@@ -319,39 +301,6 @@ impl ManageDbService {
     }
   }
 
-  /// Attempt to reconnect to MongoDB
-  pub async fn reconnect_mongodb(
-    &self,
-    cascade_service: Arc<CascadeService>,
-  ) -> Result<(), String> {
-    info!(
-      "Attempting to reconnect to MongoDB at {}:{}",
-      self.mongo_uri, self.mongo_db_name
-    );
-
-    match MongoProvider::connect(&self.mongo_uri, &self.mongo_db_name).await {
-      Ok(new_provider) => {
-        let new_provider = Arc::new(new_provider);
-        let new_admin_manager = AdminManager::new(
-          self.json_provider.clone(),
-          new_provider.clone(),
-          (*cascade_service).clone(),
-        );
-
-        *self.mongodb_provider.lock().map_err(|_| "Lock poisoned")? = Some(new_provider);
-        *self.admin_manager.lock().map_err(|_| "Lock poisoned")? = Some(new_admin_manager);
-
-        info!("Successfully reconnected to MongoDB");
-        Ok(())
-      }
-      Err(e) => {
-        error!("Failed to reconnect to MongoDB: {:?}", e);
-        Err(format!("Failed to reconnect: {:?}", e))
-      }
-    }
-  }
-
-  /// Get all data for admin view (from MongoDB)
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
     let manager = match self.admin_manager.lock() {
       Ok(guard) => guard.clone(),
@@ -564,56 +513,6 @@ impl ManageDbService {
     }
   }
 
-  /// Sync a single category to MongoDB (for team todos)
-  pub async fn sync_category_to_mongo(
-    &self,
-    category_id: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let filter = Filter::Eq("id".to_string(), json!(category_id));
-    if let Ok(categories) = self
-      .json_provider
-      .find_many("categories", Some(&filter), None, None, None, true)
-      .await
-    {
-      if let Some(cat) = categories.first() {
-        let mongo_opt = match self.mongodb_provider.lock() {
-          Ok(guard) => guard.clone(),
-          Err(_) => None,
-        };
-        if let Some(mongo) = mongo_opt {
-          let _ = self
-            .upsert_to_mongo(&mongo, "categories", cat.clone())
-            .await;
-        }
-      }
-    }
-    Ok(success_response(DataValue::String(category_id)))
-  }
-
-  /// Sync a single category to JSON (for private todos)
-  pub async fn sync_category_to_json(
-    &self,
-    category_id: String,
-  ) -> Result<ResponseModel, ResponseModel> {
-    let mongo_opt = match self.mongodb_provider.lock() {
-      Ok(guard) => guard.clone(),
-      Err(_) => None,
-    };
-    if let Some(mongo) = mongo_opt {
-      let filter = Filter::Eq("id".to_string(), json!(category_id));
-      if let Ok(categories) = mongo
-        .find_many("categories", Some(&filter), None, None, None, true)
-        .await
-      {
-        if let Some(cat) = categories.first() {
-          let _ = self.upsert_to_json("categories", cat.clone()).await;
-        }
-      }
-    }
-    Ok(success_response(DataValue::String(category_id)))
-  }
-
-  /// Get all tasks that have start_date or end_date within a specific month
   /// Uses nosql_orm filter to filter at backend level
   pub async fn get_tasks_by_month(
     &self,

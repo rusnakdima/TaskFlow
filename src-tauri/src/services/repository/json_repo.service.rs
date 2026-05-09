@@ -5,7 +5,10 @@ use nosql_orm::query::Filter;
 use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel};
-use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
+use crate::helpers::{
+  common::{filter_deleted, parse_load_param},
+  response_helper::{err_response, err_response_formatted, success_response},
+};
 use crate::providers::json_provider::JsonProvider;
 use crate::services::entity_resolution_service::EntityResolutionService;
 
@@ -52,15 +55,7 @@ impl JsonRepoService {
   }
 
   fn parse_load_param(load: Option<String>) -> Vec<String> {
-    match load {
-      Some(l) => {
-        if let Ok(arr) = serde_json::from_str::<Vec<String>>(&l) {
-          return arr;
-        }
-        l.split(',').map(|s| s.trim().to_string()).collect()
-      }
-      None => vec![],
-    }
+    parse_load_param(load)
   }
 
   async fn invalidate_cache(&self, table: &str) {
@@ -69,9 +64,8 @@ impl JsonRepoService {
     }
   }
 
-  fn filter_out_deleted(&self, mut docs: Vec<Value>) -> Vec<Value> {
-    docs.retain(|doc| doc.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
-    docs
+  fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
+    filter_deleted(docs)
   }
 
   pub async fn find_many(

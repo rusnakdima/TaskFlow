@@ -123,20 +123,4 @@ impl EntityResolutionService {
     }
     Ok(None)
   }
-
-  pub async fn get_todo_id_for_task(&self, task_id: &str) -> OrmResult<Option<String>> {
-    if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Ok(Some(task)) = mongo.find_by_id("tasks", task_id).await {
-        if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-          return Ok(Some(todo_id.to_string()));
-        }
-      }
-    }
-    if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", task_id).await {
-      if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
-        return Ok(Some(todo_id.to_string()));
-      }
-    }
-    Ok(None)
-  }
 }
