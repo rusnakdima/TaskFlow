@@ -1,12 +1,6 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import {
-  ActivatedRouteSnapshot,
-  Router,
-  RouterStateSnapshot,
-  CanActivateChildFn,
-  CanActivateFn,
-} from "@angular/router";
+import { ActivatedRouteSnapshot, RouterStateSnapshot, CanActivateFn } from "@angular/router";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -17,12 +11,11 @@ import { UserValidationService } from "@services/auth/user-validation.service";
 })
 class AuthGuard {
   constructor(
-    private router: Router,
     private authService: AuthService,
     private userValidationService: UserValidationService
   ) {}
 
-  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+  canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): boolean {
     if (this.authService.isLoggedIn()) {
       const requiredRoles = route.data["expectedRoles"];
       if (!requiredRoles) {

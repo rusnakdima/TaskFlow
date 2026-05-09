@@ -1,9 +1,7 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { Observable, of, forkJoin } from "rxjs";
 import { map, catchError } from "rxjs/operators";
-
-import { REQUEST_SERVICE } from "@services/api.service";
 
 /**
  * Bulk operation result interface
@@ -21,8 +19,6 @@ export interface BulkOperationResult {
  */
 @Injectable({ providedIn: "root" })
 export class BulkActionHelper {
-  private requestService = inject(REQUEST_SERVICE);
-
   /**
    * Bulk update field for multiple items
    */
@@ -38,7 +34,7 @@ export class BulkActionHelper {
 
     const updateObservables = items.map((item: any) =>
       updateFn(item.id, { id: item.id, [field]: value }).pipe(
-        map((result) => ({ success: true, id: item.id })),
+        map((_result) => ({ success: true, id: item.id })),
         catchError((error) => of({ success: false, id: item.id, error: error.message }))
       )
     );
@@ -73,7 +69,7 @@ export class BulkActionHelper {
 
     const deleteObservables = items.map((item: any) =>
       deleteFn(item.id, options).pipe(
-        map((result) => ({ success: true, id: item.id })),
+        map((_result) => ({ success: true, id: item.id })),
         catchError((error) => of({ success: false, id: item.id, error: error.message }))
       )
     );

@@ -5,7 +5,6 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 
 /* helpers */
-import { DateHelper } from "./date.helper";
 
 /* constants */
 import {

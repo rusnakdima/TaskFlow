@@ -16,7 +16,7 @@ import { ChangePasswordView } from "@views/change-password/change-password.view"
 import { ResetPasswordView } from "@views/reset-password/reset-password.view";
 
 import { DashboardView } from "@views/dashboard/dashboard.view";
-import { SharedTasksView } from "@views/shared-tasks/shared-tasks.view";
+
 import { SyncView } from "@views/sync/sync.view";
 import { CategoriesView } from "@views/categories/categories.view";
 import { KanbanView } from "@views/kanban/kanban.view";

@@ -15,7 +15,7 @@ export class LoginCompletionHelper {
   }
 
   static completePasswordlessLogin(
-    username: string,
+    _username: string,
     remember: boolean,
     authResponse?: { token: string }
   ): void {

@@ -1,5 +1,3 @@
-import { TaskStatus } from "@models/task.model";
-
 export function filterBySearch<T>(items: T[], query: string, fields: (keyof T)[]): T[] {
   if (!query) return items;
   const lowerQuery = query.toLowerCase();
@@ -48,21 +46,4 @@ export function sortByField<T>(items: T[], field: keyof T, direction: "asc" | "d
     const comparison = aVal < bVal ? -1 : 1;
     return direction === "asc" ? comparison : -comparison;
   });
-}
-
-export function deduplicateById<T extends { id: string; updated_at?: string; deleted_at?: string }>(
-  entities: T[]
-): T[] {
-  const map = new Map<string, T>();
-  for (const entity of entities) {
-    if (entity.deleted_at) continue;
-    const existing = map.get(entity.id);
-    if (
-      !existing ||
-      (entity.updated_at && existing.updated_at && entity.updated_at > existing.updated_at)
-    ) {
-      map.set(entity.id, entity);
-    }
-  }
-  return Array.from(map.values());
 }

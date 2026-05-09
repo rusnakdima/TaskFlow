@@ -1,4 +1,4 @@
-import { signal, ElementRef, ViewChild } from "@angular/core";
+import { signal, ElementRef } from "@angular/core";
 
 export class ScrollingMixin {
   processedIds = signal<Set<string>>(new Set());
@@ -9,7 +9,7 @@ export class ScrollingMixin {
   protected observer?: IntersectionObserver;
 
   protected initIntersectionObserver(
-    getUnreadSelector: string,
+    _getUnreadSelector: string,
     getIdAttribute: string,
     onUnreadObserved: (id: string) => void
   ): void {
