@@ -202,7 +202,9 @@ export class ManageItemPage implements OnInit {
   ngOnInit(): void {
     this.initForm();
     this.subscribeToRoute();
-    this.subscriptions.add(bindSaveShortcut(this.shortcutService, () => this.onSubmit()));
+    bindSaveShortcut(this.shortcutService, () => this.onSubmit())
+      .pipe(takeUntilDestroyed())
+      .subscribe();
     this.loadGithubData();
     this.loadCategories();
     this.loadProfiles();
