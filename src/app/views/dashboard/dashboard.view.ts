@@ -18,6 +18,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
+import { getLatestTimestamp, compareByTimestamp } from "@helpers/array.helper";
 
 interface DisplayTask {
   id: string;
@@ -69,11 +70,7 @@ export class DashboardView implements OnInit {
         isPrivate: false,
         isOwner: false,
       }))
-      .sort((a, b) => {
-        const aTime = Math.max(new Date(a.created_at).getTime(), new Date(a.updated_at).getTime());
-        const bTime = Math.max(new Date(b.created_at).getTime(), new Date(b.updated_at).getTime());
-        return bTime - aTime;
-      });
+      .sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a));
   });
 
   totalTasks = computed(() => this.allTasksData().length);
@@ -102,7 +99,7 @@ export class DashboardView implements OnInit {
   filteredTasks = computed(() => this.allTasksData().slice(0, 10));
   recentActivities = computed(() => {
     return [...this.allTasksData()]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => compareByTimestamp(a, b) * -1)
       .slice(0, 4)
       .map((task) => {
         let text = "";
@@ -212,12 +209,8 @@ export class DashboardView implements OnInit {
   }
 
   getLastTime(task: DisplayTask): string {
-    const createdAt = new Date(task.created_at);
-    const updatedAt = new Date(task.updated_at);
-    const createdTime = isNaN(createdAt.getTime()) ? 0 : createdAt.getTime();
-    const updatedTime = isNaN(updatedAt.getTime()) ? 0 : updatedAt.getTime();
-    const latestDate = new Date(Math.max(createdTime, updatedTime));
-    if (isNaN(latestDate.getTime())) {
+    const latestDate = new Date(getLatestTimestamp(task));
+    if (!latestDate || isNaN(latestDate.getTime())) {
       return "-";
     }
     return this.formatDate(latestDate.toISOString());

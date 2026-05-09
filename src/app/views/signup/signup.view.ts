@@ -18,6 +18,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* helpers */
 import { Common } from "@helpers/common.helper";
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* models */
 import { ResponseStatus } from "@models/response.model";
@@ -122,7 +123,7 @@ export class SignupView implements OnDestroy {
     this.authService.signup<AuthResponse>(authData).subscribe({
       next: (authResponse) => {
         const token = authResponse.token;
-        localStorage.setItem("token", token);
+        TokenStorageHelper.setToken(token, true);
 
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");

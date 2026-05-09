@@ -15,6 +15,9 @@ import { QrScannerComponent } from "@components/qr-scanner/qr-scanner.component"
 /* models */
 import { Profile } from "@models/profile.model";
 
+/* helpers */
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
+
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -260,7 +263,7 @@ export class ProfileView implements OnInit, OnDestroy {
     this.requestService.invokeCommand<string>("qr_login_complete", { token }).subscribe({
       next: (jwtToken) => {
         if (jwtToken) {
-          localStorage.setItem("token", jwtToken);
+          TokenStorageHelper.setToken(jwtToken, true);
           this.notifyService.showSuccess("Login successful on desktop!");
           setTimeout(() => {
             window.location.href = "/dashboard";

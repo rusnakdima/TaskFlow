@@ -28,26 +28,6 @@ export interface OptionData {
   isShow: (param: any, index?: number) => boolean;
 }
 
-export function parseArrayOptions(array: any[], keyLabel: string, keyValue: string): OptionData[] {
-  return array.map((item) => {
-    return {
-      value: item[keyValue],
-      label: item[keyLabel],
-      isShow: (param: any, index?: number) => true,
-    } as OptionData;
-  });
-}
-
-export function parseEnumOptions(enumType: any): OptionData[] {
-  return Object.entries(enumType).map((value: any) => {
-    return {
-      value: value[1],
-      label: String(value[1]).slice(0, 1).toLocaleUpperCase() + String(value[1]).slice(1),
-      isShow: (param: any, index?: number) => true,
-    } as OptionData;
-  });
-}
-
 export interface TextField extends CommonFormField {
   type: TypeField.text;
 }
