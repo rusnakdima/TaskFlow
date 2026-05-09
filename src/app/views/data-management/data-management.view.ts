@@ -598,10 +598,15 @@ export class DataManagementView implements OnInit {
   }
 
   async onBulkSoftDelete(): Promise<void> {
-    await this.adminCascadeService.softDeleteBatch(
-      this.selectedType(),
-      Array.from(this.selectedRecords())
-    );
+    const selectedIds = Array.from(this.selectedRecords());
+    const allSelected = this.getCurrentData().filter((item) => selectedIds.includes(item.id));
+    const allArchived = allSelected.every((item) => item.deleted_at);
+
+    if (allArchived) {
+      await this.adminCascadeService.restoreBatch(this.selectedType(), selectedIds);
+    } else {
+      await this.adminCascadeService.softDeleteBatch(this.selectedType(), selectedIds);
+    }
     this.selectedRecords.set(new Set());
     this.loadData(true);
   }
