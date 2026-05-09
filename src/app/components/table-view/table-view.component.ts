@@ -312,7 +312,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
     if (this.itemType === "subtask") {
       return this.storageService.getCommentsBySubtaskId(item.id);
     }
-    return item.comments || [];
+    return this.storageService.getCommentsByTaskId(item.id);
   }
 
   getSubtaskCommentGroupsForItem(item: any): SubtaskCommentGroup[] {
