@@ -6,8 +6,11 @@ use nosql_orm::cache::QueryCache;
 
 use crate::providers::mongodb_provider::MongoProvider;
 use crate::entities::response_entity::{DataValue, ResponseModel};
-use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::security_helper::security_projection;
+use crate::helpers::{
+  common::{filter_deleted, parse_load_param},
+  response_helper::{err_response, success_response},
+  security_helper::security_projection,
+};
 
 pub struct MongoRepoService {
     pub provider: Option<Arc<MongoProvider>>,
@@ -71,11 +74,6 @@ impl MongoRepoService {
         docs.into_iter().map(|doc| projection.apply_recursive(&doc)).collect()
     }
 
-    pub fn filter_out_deleted(&self, mut docs: Vec<Value>) -> Vec<Value> {
-        docs.retain(|doc| doc.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
-        docs
-    }
-
     pub fn add_collection_metadata(&self, mut docs: Vec<Value>, collection: &str) -> Vec<Value> {
         for doc in &mut docs {
             if let Some(obj) = doc.as_object_mut() {
@@ -88,14 +86,6 @@ impl MongoRepoService {
     }
 
     pub fn parse_load_param(load: Option<String>) -> Vec<String> {
-        match load {
-            Some(l) => {
-                if let Ok(arr) = serde_json::from_str::<Vec<String>>(&l) {
-                    return arr;
-                }
-                l.split(',').map(|s| s.trim().to_string()).collect()
-            }
-            None => vec![],
-        }
+        parse_load_param(load)
     }
 }

@@ -19,6 +19,7 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::{
+  common::merge_immutable_fields,
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
 };
@@ -311,15 +312,7 @@ impl RepositoryService {
   }
 
   fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
-    if let (Some(existing_obj), Some(validated_obj)) =
-      (existing.as_object(), validated.as_object_mut())
-    {
-      if let Some(created_at) = existing_obj.get("created_at") {
-        if !validated_obj.contains_key("created_at") {
-          validated_obj.insert("created_at".to_string(), created_at.clone());
-        }
-      }
-    }
+    merge_immutable_fields(existing, validated);
   }
 
   fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
