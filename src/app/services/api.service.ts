@@ -65,7 +65,7 @@ function generateRequestId(): string {
 }
 
 @Injectable({ providedIn: "root" })
-export class REQUEST_SERVICE {
+export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
   private storageService = inject(StorageService);
   private jwtTokenService = inject(JwtTokenService);
@@ -132,11 +132,7 @@ export class REQUEST_SERVICE {
       return true;
     }
 
-    if (visibility === "private") {
-      return false;
-    }
-
-    return !isMongoConnected;
+    return false;
   }
 
   private getPaginationState(table: string): PaginationState {
@@ -506,3 +502,5 @@ export class REQUEST_SERVICE {
     return from(invoke<T>(command, args) as Promise<T>);
   }
 }
+
+export { ApiService as REQUEST_SERVICE };
