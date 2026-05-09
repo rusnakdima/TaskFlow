@@ -1057,6 +1057,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const selectedIds: string[] = Array.from(this.selectedTasks());
     if (selectedIds.length === 0) return;
 
+    const allTasks = this.listTasks();
+    const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
+    const allArchived = allSelected.every((t) => t.deleted_at);
+
+    if (allArchived) {
+      await this.bulkRestoreTasks(selectedIds);
+      return;
+    }
+
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Tasks",
       message: `Are you sure you want to archive ${selectedIds.length} task(s)?`,
@@ -1065,9 +1074,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
     if (!confirmed) return;
 
+    let successCount = 0;
+    let errorCount = 0;
+
     if (this.isOffline()) {
-      let successCount = 0;
-      let errorCount = 0;
       for (const taskId of selectedIds) {
         const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
         if (response.status === ResponseStatus.SUCCESS) {
@@ -1076,32 +1086,62 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           errorCount++;
         }
       }
-      this.clearSelection();
-      if (errorCount > 0) {
-        this.notifyService.showWarning(`Archived ${successCount} tasks, ${errorCount} failed.`);
-      } else {
-        this.notifyService.showSuccess(`Archived ${successCount} tasks.`);
+    } else {
+      for (const taskId of selectedIds) {
+        const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
+        if (response.status === ResponseStatus.SUCCESS) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
       }
-      return;
     }
 
-    this.bulkActionHelper
-      .bulkDelete(
-        selectedIds.map((id) => ({ id })),
-        (id) => this.requestService.delete("tasks", id)
-      )
-      .subscribe({
-        next: (result) => {
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Archived ${result.successCount} tasks, ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(`Archived ${result.successCount} tasks.`);
-          }
-        },
-      });
+    this.clearSelection();
+    if (errorCount > 0) {
+      this.notifyService.showWarning(`Archived ${successCount} tasks, ${errorCount} failed.`);
+    } else {
+      this.notifyService.showSuccess(`Archived ${successCount} tasks.`);
+    }
+    this.loadInitialTasks(true);
+  }
+
+  async bulkRestoreTasks(selectedIds: string[]): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Restore Tasks",
+      message: `Are you sure you want to restore ${selectedIds.length} task(s)?`,
+      confirmText: "Restore All",
+      confirmClass: "bg-green-600 hover:bg-green-700",
+    });
+    if (!confirmed) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const taskId of selectedIds) {
+      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
+      if (response.status === ResponseStatus.SUCCESS) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    }
+
+    this.clearSelection();
+    if (errorCount > 0) {
+      this.notifyService.showWarning(`Restored ${successCount} tasks, ${errorCount} failed.`);
+    } else {
+      this.notifyService.showSuccess(`Restored ${successCount} tasks.`);
+    }
+    this.loadInitialTasks(true);
+  }
+
+  isAllSelectedArchivedTasks(): boolean {
+    const selectedIds = Array.from(this.selectedTasks());
+    if (selectedIds.length === 0) return false;
+    const allTasks = this.listTasks();
+    const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
+    return allSelected.length > 0 && allSelected.every((t) => t.deleted_at);
   }
 
   async onBulkAction(actionId: string) {
