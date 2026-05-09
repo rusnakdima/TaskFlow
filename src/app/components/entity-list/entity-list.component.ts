@@ -5,14 +5,22 @@ import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TableFieldActionButton, TableField } from "@models/table-field.model";
+import { ItemDisplayConfig } from "@models/item-display.model";
+import { DisplayMode } from "@models/item-display.types";
 
-import { TodoComponent } from "@components/todo/todo.component";
-import { TaskComponent } from "@components/task/task.component";
-import { SubtaskComponent } from "@components/subtask/subtask.component";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import {
+  TODO_CARD_CONFIG,
+  TASK_CARD_CONFIG,
+  SUBTASK_CARD_CONFIG,
+  TODO_TABLE_CONFIG,
+  TASK_TABLE_CONFIG,
+  SUBTASK_TABLE_CONFIG,
+} from "@constants/item-display.constants";
 
 @Component({
   selector: "app-entity-list",
@@ -20,9 +28,7 @@ import { EmptyStateComponent } from "@components/empty-state/empty-state.compone
   imports: [
     CommonModule,
     DragDropModule,
-    TodoComponent,
-    TaskComponent,
-    SubtaskComponent,
+    ItemDisplayComponent,
     TableViewComponent,
     ItemExpandDetailsComponent,
     EmptyStateComponent,
@@ -43,24 +49,14 @@ export class EntityListComponent<T extends Todo | Task | Subtask> {
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Input() index: number = 0;
+  @Input() itemDisplayConfig: ItemDisplayConfig[] | null = null;
 
   @Output() itemAction = new EventEmitter<{ action: string; item: T }>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<T[]>>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
 
-  get itemComponent(): typeof TodoComponent | typeof TaskComponent | typeof SubtaskComponent {
-    switch (this.itemType) {
-      case "todo":
-        return TodoComponent;
-      case "task":
-        return TaskComponent;
-      case "subtask":
-        return SubtaskComponent;
-    }
-  }
-
-  trackById(index: number, item: T): string {
+  trackById(_index: number, item: T): string {
     return item.id;
   }
 
@@ -80,64 +76,49 @@ export class EntityListComponent<T extends Todo | Task | Subtask> {
     this.cardClick.emit(event);
   }
 
+  getDefaultConfig(): ItemDisplayConfig[] {
+    switch (this.itemType) {
+      case "todo":
+        return this.viewMode === "table" ? TODO_TABLE_CONFIG : TODO_CARD_CONFIG;
+      case "task":
+        return this.viewMode === "table" ? TASK_TABLE_CONFIG : TASK_CARD_CONFIG;
+      case "subtask":
+        return this.viewMode === "table" ? SUBTASK_TABLE_CONFIG : SUBTASK_CARD_CONFIG;
+    }
+  }
+
+  getEffectiveConfig(): ItemDisplayConfig[] {
+    return this.itemDisplayConfig ?? this.getDefaultConfig();
+  }
+
+  getDisplayMode(): DisplayMode {
+    switch (this.viewMode) {
+      case "table":
+        return "table-row";
+      case "list":
+        return "list";
+      case "grid":
+      case "card":
+      default:
+        return "card";
+    }
+  }
+
   getComponentInputs(item: T): Record<string, any> {
-    const base = {
+    return {
       index: this.index,
       isOwner: this.isOwner,
       isPrivate: this.isPrivate,
       highlight: this.highlightId === item.id,
       isSelected: this.selectedIds.has(item.id),
     };
-
-    switch (this.itemType) {
-      case "todo":
-        return { ...base, todo: item };
-      case "task":
-        return { ...base, task: item };
-      case "subtask":
-        return { ...base, subtask: item };
-    }
   }
 
-  getComponentOutputs(item: T): Record<string, any> {
-    switch (this.itemType) {
-      case "todo":
-        return {
-          deleteTodoEvent: (id: string) =>
-            this.itemAction.emit({ action: "delete", item: item as any }),
-          archiveTodoEvent: (id: string) =>
-            this.itemAction.emit({ action: "archive", item: item as any }),
-          restoreTodoEvent: (id: string) =>
-            this.itemAction.emit({ action: "restore", item: item as any }),
-          saveAsBlueprintEvent: (todo: Todo) =>
-            this.itemAction.emit({ action: "blueprint", item: item as any }),
-          updateTodoEvent: (event: any) =>
-            this.itemAction.emit({ action: "update", item: item as any }),
-          selectionChangeEvent: (e: { id: string; selected: boolean }) => this.onSelectionChange(e),
-          cardClick: (e: { event: MouseEvent; id: string }) => this.onCardClick(e),
-        };
-      case "task":
-        return {
-          deleteTaskEvent: (id: string) =>
-            this.itemAction.emit({ action: "delete", item: item as any }),
-          toggleCompletionEvent: (task: Task) =>
-            this.itemAction.emit({ action: "toggle", item: item as any }),
-          updateTaskEvent: (event: any) =>
-            this.itemAction.emit({ action: "update", item: item as any }),
-          selectionChangeEvent: (e: { id: string; selected: boolean }) => this.onSelectionChange(e),
-          cardClick: (e: { event: MouseEvent; id: string }) => this.onCardClick(e),
-        };
-      case "subtask":
-        return {
-          deleteSubtaskEvent: (id: string) =>
-            this.itemAction.emit({ action: "delete", item: item as any }),
-          toggleCompletionEvent: (subtask: Subtask) =>
-            this.itemAction.emit({ action: "toggle", item: item as any }),
-          updateSubtaskEvent: (event: any) =>
-            this.itemAction.emit({ action: "update", item: item as any }),
-          selectionChangeEvent: (e: { id: string; selected: boolean }) => this.onSelectionChange(e),
-          cardClick: (e: { event: MouseEvent; id: string }) => this.onCardClick(e),
-        };
-    }
+  getComponentOutputs(_item: T): Record<string, any> {
+    return {
+      selectionChangeEvent: (e: { id: string; selected: boolean }) => this.onSelectionChange(e),
+      cardClick: (e: { event: MouseEvent; id: string }) => this.onCardClick(e),
+      itemAction: (e: { action: string; item: any }) => this.itemAction.emit(e),
+    };
   }
 }

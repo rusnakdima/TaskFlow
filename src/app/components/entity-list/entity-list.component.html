@@ -31,72 +31,27 @@
       (cdkDropListDropped)="dropped.emit($event)"
     >
       @for (item of items; track trackById($index, item)) {
-        @if (itemType === "todo") {
-          <app-todo
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [todo]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteTodoEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (archiveTodoEvent)="itemAction.emit({ action: 'archive', item: $any(item) })"
-            (restoreTodoEvent)="itemAction.emit({ action: 'restore', item: $any(item) })"
-            (saveAsBlueprintEvent)="itemAction.emit({ action: 'blueprint', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-            ></div>
-          </app-todo>
-        } @else if (itemType === "task") {
-          <app-task
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [task]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteTaskEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (toggleCompletionEvent)="itemAction.emit({ action: 'toggle', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-            ></div>
-          </app-task>
-        } @else if (itemType === "subtask") {
-          <app-subtask
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [subtask]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteSubtaskEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (toggleCompletionEvent)="itemAction.emit({ action: 'toggle', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-            ></div>
-          </app-subtask>
-        }
+        <app-item-display
+          cdkDrag
+          [cdkDragData]="item"
+          cdkDragPreviewContainer="global"
+          [item]="item"
+          [config]="getEffectiveConfig()"
+          [displayMode]="'card'"
+          [index]="$index"
+          [isOwner]="isOwner"
+          [isPrivate]="isPrivate"
+          [highlight]="highlightId === item.id"
+          [isSelected]="selectedIds.has(item.id)"
+          (selectionChangeEvent)="selectionChange.emit($event)"
+          (cardClick)="cardClick.emit($event)"
+          (itemAction)="itemAction.emit($event)"
+        >
+          <div
+            *cdkDragPlaceholder
+            class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+          ></div>
+        </app-item-display>
       }
     </div>
   } @else {
@@ -107,72 +62,27 @@
       (cdkDropListDropped)="dropped.emit($event)"
     >
       @for (item of items; track trackById($index, item)) {
-        @if (itemType === "todo") {
-          <app-todo
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [todo]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteTodoEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (archiveTodoEvent)="itemAction.emit({ action: 'archive', item: $any(item) })"
-            (restoreTodoEvent)="itemAction.emit({ action: 'restore', item: $any(item) })"
-            (saveAsBlueprintEvent)="itemAction.emit({ action: 'blueprint', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-            ></div>
-          </app-todo>
-        } @else if (itemType === "task") {
-          <app-task
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [task]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteTaskEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (toggleCompletionEvent)="itemAction.emit({ action: 'toggle', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-            ></div>
-          </app-task>
-        } @else if (itemType === "subtask") {
-          <app-subtask
-            cdkDrag
-            [cdkDragData]="item"
-            cdkDragPreviewContainer="global"
-            [subtask]="$any(item)"
-            [index]="$index"
-            [isOwner]="isOwner"
-            [isPrivate]="isPrivate"
-            [highlight]="highlightId === item.id"
-            [isSelected]="selectedIds.has(item.id)"
-            (deleteSubtaskEvent)="itemAction.emit({ action: 'delete', item: $any(item) })"
-            (toggleCompletionEvent)="itemAction.emit({ action: 'toggle', item: $any(item) })"
-            (selectionChangeEvent)="selectionChange.emit($event)"
-            (cardClick)="cardClick.emit($event)"
-          >
-            <div
-              *cdkDragPlaceholder
-              class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-            ></div>
-          </app-subtask>
-        }
+        <app-item-display
+          cdkDrag
+          [cdkDragData]="item"
+          cdkDragPreviewContainer="global"
+          [item]="item"
+          [config]="getEffectiveConfig()"
+          [displayMode]="viewMode === 'list' ? 'list' : 'card'"
+          [index]="$index"
+          [isOwner]="isOwner"
+          [isPrivate]="isPrivate"
+          [highlight]="highlightId === item.id"
+          [isSelected]="selectedIds.has(item.id)"
+          (selectionChangeEvent)="selectionChange.emit($event)"
+          (cardClick)="cardClick.emit($event)"
+          (itemAction)="itemAction.emit($event)"
+        >
+          <div
+            *cdkDragPlaceholder
+            class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+          ></div>
+        </app-item-display>
       }
     </div>
   }
