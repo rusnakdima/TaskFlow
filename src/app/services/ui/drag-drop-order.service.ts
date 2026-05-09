@@ -24,7 +24,8 @@ export class DragDropOrderService {
     currentList: T[],
     entityType: string,
     table: string,
-    parentTodoId?: string
+    parentTodoId?: string,
+    isPrivate: boolean = true
   ): Observable<any> {
     const operationKey = `${entityType}-${parentTodoId || "root"}`;
 
@@ -34,6 +35,14 @@ export class DragDropOrderService {
     }
 
     if (event.previousIndex === event.currentIndex) {
+      return of(null);
+    }
+
+    const isOffline = this.requestService.isOffline();
+    if (isOffline && !isPrivate) {
+      this.notifyService.showWarning(
+        "Reordering is not available offline for shared tasks. Please connect to the internet and try again."
+      );
       return of(null);
     }
 
@@ -76,17 +85,22 @@ export class DragDropOrderService {
 
     this.updatingOrders.add(operationKey);
 
-    return this.requestService.updateAll(table, transformedItems).pipe(
-      tap(() => {
-        this.updatingOrders.delete(operationKey);
-        this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
-      }),
-      catchError((err) => {
-        this.updatingOrders.delete(operationKey);
-        this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
-        throw err;
-      })
-    );
+    const visibility = isPrivate ? "private" : "shared";
+    const offlineOption = isOffline ? { offline: true } : {};
+
+    return this.requestService
+      .updateAll(table, transformedItems, { visibility, ...offlineOption })
+      .pipe(
+        tap(() => {
+          this.updatingOrders.delete(operationKey);
+          this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
+        }),
+        catchError((err) => {
+          this.updatingOrders.delete(operationKey);
+          this.notifyService.showError(err.message || `Failed to update ${entityType} order`);
+          throw err;
+        })
+      );
   }
 
   private capitalize(s: string): string {

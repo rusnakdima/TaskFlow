@@ -797,7 +797,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       return;
     }
 
-    this.requestService.delete("tasks", taskId).subscribe({
+    const visibility = (this.todo()?.visibility || "private") as Visibility;
+    this.requestService.delete("tasks", taskId, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task archived successfully");
         this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));

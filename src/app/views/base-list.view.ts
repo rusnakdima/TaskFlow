@@ -93,7 +93,9 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     window.removeEventListener("offline", this.onOffline);
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.bindOfflineListeners();
+  }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
