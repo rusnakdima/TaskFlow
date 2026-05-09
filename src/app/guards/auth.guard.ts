@@ -49,10 +49,3 @@ export const canActivateAuth: CanActivateFn = (
 ): boolean => {
   return inject(AuthGuard).canActivate(route, state);
 };
-
-export const canActivateChildAuth: CanActivateChildFn = (
-  next: ActivatedRouteSnapshot,
-  state: RouterStateSnapshot
-): boolean => {
-  return inject(AuthGuard).canActivate(next, state);
-};

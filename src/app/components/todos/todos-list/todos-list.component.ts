@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, computed, signal } from "@angular/core";
+import { Component, Input, Output, EventEmitter, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-drop";
@@ -11,6 +11,7 @@ import { Comment } from "@models/comment.model";
 import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
 import { TodoComponent } from "@components/todo/todo.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
+import { EntityListComponent } from "@components/entity-list/entity-list.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
@@ -28,6 +29,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     MatIconModule,
     TodoComponent,
     TableViewComponent,
+    EntityListComponent,
     EmptyStateComponent,
     ItemExpandDetailsComponent,
     BulkActionsComponent,
