@@ -55,6 +55,7 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { GithubService } from "@services/github/github.service";
+import { CommentService } from "@services/features/comment.service";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
   PageToolbarComponent,
@@ -109,6 +110,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private appStateService = inject(AppStateService);
   private githubService = inject(GithubService);
+  private commentService = inject(CommentService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -752,6 +754,44 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onCommentToggle(): void {
     this.highlightCommentId.set(null);
+  }
+
+  onTaskCommentAdd(event: { content: string; itemId: string }): void {
+    if (!event.content.trim()) return;
+    this.commentService.createComment(event.content, { taskId: event.itemId }).subscribe({
+      next: (comment) => {
+        this.storageService.addCommentToTask(comment, event.itemId);
+      },
+      error: (err) => {
+        console.error("[TasksView] Failed to add comment:", err);
+        this.notifyService.showError("Failed to add comment");
+      },
+    });
+  }
+
+  onTaskCommentDelete(commentId: string): void {
+    this.storageService.removeCommentFromAll(commentId);
+    this.requestService.delete("comments", commentId).subscribe();
+  }
+
+  onTaskCommentMarkAsRead(commentIds: string[]): void {
+    const userId = this.authService.getValueByKey("id");
+    if (userId) {
+      this.commentService.markCommentsAsRead(commentIds, userId);
+    }
+  }
+
+  onTaskSubtaskCommentAdd(event: { content: string; subtask_id: string; itemId: string }): void {
+    if (!event.content.trim()) return;
+    this.commentService.createComment(event.content, { subtaskId: event.subtask_id }).subscribe({
+      next: (comment) => {
+        this.storageService.addCommentToSubtask(comment, event.subtask_id);
+      },
+      error: (err) => {
+        console.error("[TasksView] Failed to add subtask comment:", err);
+        this.notifyService.showError("Failed to add comment");
+      },
+    });
   }
 
   async deleteTask(taskId?: string) {

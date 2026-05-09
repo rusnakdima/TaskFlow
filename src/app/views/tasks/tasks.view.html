@@ -52,6 +52,10 @@
         (additiveSelect)="onAdditiveSelect($event)"
         (dropped)="onTaskDrop($event)"
         (actionClick)="onTaskTableAction($event)"
+        (addComment)="onTaskCommentAdd($event)"
+        (deleteComment)="onTaskCommentDelete($event)"
+        (markAsRead)="onTaskCommentMarkAsRead($event)"
+        (addSubtaskComment)="onTaskSubtaskCommentAdd($event)"
       >
         <ng-template #expandTemplate let-item>
           <app-item-expand-details [item]="item" type="task" />
