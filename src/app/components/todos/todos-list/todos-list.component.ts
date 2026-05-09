@@ -72,7 +72,7 @@ export class TodosListComponent {
   @Output() todoUpdated = new EventEmitter<{ todo: Todo; event: { field: string; value: any } }>();
   @Output() todoCardClicked = new EventEmitter<{ event: MouseEvent; id: string }>();
   @Output() selectionChanged = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() selectAll = new EventEmitter<void>();
+  @Output() selectAll = new EventEmitter<boolean>();
   @Output() clearSelection = new EventEmitter<void>();
   @Output() bulkArchive = new EventEmitter<void>();
   @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
