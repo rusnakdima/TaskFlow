@@ -32,6 +32,7 @@ import { Subtask } from "@models/subtask.model";
 import { Task } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
+import { CommentService } from "@services/features/comment.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -95,6 +96,7 @@ export class SubtasksViewComponent extends BaseListView {
   private dragDropService = inject(DragDropOrderService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
+  private commentService = inject(CommentService);
 
   showChat = signal(false);
   showMobileInfo = signal(false);
@@ -162,10 +164,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   subtaskCardConfig = SUBTASK_CARD_CONFIG;
   subtaskTableConfig = SUBTASK_TABLE_CONFIG;
-  subtaskActions: TableFieldActionButton[] = [
-    TABLE_ACTIONS.EDIT,
-    TABLE_ACTIONS.ARCHIVE,
-  ];
+  subtaskActions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
 
   subtaskTableFields: TableField[] = [
     { key: "title", label: "Subtask", type: "text", sortable: true },
@@ -506,6 +505,17 @@ export class SubtasksViewComponent extends BaseListView {
       this.lastSelectedId.set(event.id);
       return;
     }
+
+    this.lastSelectedId.set(event.id);
+    const taskId = this.task()?.id;
+    if (taskId) {
+      this.router.navigate(
+        ["/todos", this.todoId(), "tasks", taskId, "subtasks", event.id, "edit_subtask"],
+        {
+          queryParams: { isPrivate: true },
+        }
+      );
+    }
   }
 
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
@@ -591,7 +601,7 @@ export class SubtasksViewComponent extends BaseListView {
     if (!taskId) return;
 
     this.dragDropService
-      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId)
+      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId, this.isPrivate())
       .subscribe({
         next: () => {},
         error: (err) => {
@@ -716,6 +726,31 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
+  onSubtaskCommentAdd(event: { content: string; itemId: string }): void {
+    if (!event.content.trim()) return;
+    this.commentService.createComment(event.content, { subtaskId: event.itemId }).subscribe({
+      next: (comment) => {
+        this.storageService.addCommentToSubtask(comment, event.itemId);
+      },
+      error: (err) => {
+        console.error("[SubtasksView] Failed to add comment:", err);
+        this.notifyService.showError("Failed to add comment");
+      },
+    });
+  }
+
+  onSubtaskCommentDelete(commentId: string): void {
+    this.storageService.removeCommentFromAll(commentId);
+    this.requestService.delete("comments", commentId).subscribe();
+  }
+
+  onSubtaskCommentMarkAsRead(commentIds: string[]): void {
+    const userId = this.authService.getValueByKey("id");
+    if (userId) {
+      this.commentService.markCommentsAsRead(commentIds, userId);
+    }
+  }
+
   onSubtaskItemAction(event: { action: string; item: Subtask }): void {
     switch (event.action) {
       case "toggle":
@@ -736,11 +771,8 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
-getSubtaskTableActions(): TableFieldActionButton[] {
-    return [
-      TABLE_ACTIONS.EDIT,
-      TABLE_ACTIONS.ARCHIVE,
-    ];
+  getSubtaskTableActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
 
   async archiveSubtask(subtaskId: string): Promise<void> {

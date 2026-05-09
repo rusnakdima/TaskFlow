@@ -70,6 +70,9 @@
           (additiveSelect)="onAdditiveSelect($event)"
           (dropped)="onSubtaskDrop($event)"
           (actionClick)="onSubtaskTableAction($event)"
+          (addComment)="onSubtaskCommentAdd($event)"
+          (deleteComment)="onSubtaskCommentDelete($event)"
+          (markAsRead)="onSubtaskCommentMarkAsRead($event)"
         >
           <ng-template #expandTemplate let-item>
             <app-item-expand-details [item]="item" type="subtask" />
