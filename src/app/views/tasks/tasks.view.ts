@@ -8,7 +8,6 @@ import {
   signal,
   inject,
   computed,
-  HostListener,
   NO_ERRORS_SCHEMA,
 } from "@angular/core";
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
@@ -348,14 +347,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   userId: string = "";
 
-  @HostListener("window:keydown", ["$event"])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "f") {
-      event.preventDefault();
-      this.toggleFilter();
-    }
-  }
-
   filterOptions = [
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
@@ -449,6 +440,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.loading.set(false);
+
+    const filterSub = this.shortcutService.filter$.subscribe(() => {
+      this.toggleFilter();
+    });
+    this.subscriptions.add(filterSub);
   }
 
   toggleTaskCompletion(task: Task) {
