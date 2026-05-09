@@ -8,20 +8,16 @@ import { filter } from "rxjs/operators";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { User } from "@models/user.model";
-import { Profile } from "@models/profile.model";
 
 /* helpers */
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 
-import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { UserValidationService } from "@services/auth/user-validation.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
@@ -57,11 +53,9 @@ export class App implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private profileRequiredService = inject(ProfileRequiredService);
   private appStateService = inject(AppStateService);
-  private userValidationService = inject(UserValidationService);
   private requestService = inject(REQUEST_SERVICE);
   private mongoConnectionService = inject(MongoConnectionService);
 
@@ -107,7 +101,7 @@ export class App implements OnInit, OnDestroy {
       this.mongoConnectionService.checkConnection().subscribe();
     }, 30000);
 
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((_val) => {
       let lastIndex =
         this.router.url.lastIndexOf("?") > -1
           ? this.router.url.lastIndexOf("?")
