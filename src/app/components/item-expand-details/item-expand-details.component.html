@@ -32,45 +32,43 @@
       </div>
     }
 
-    @if (hasChatsCount) {
-      <div class="flex items-center gap-2 text-sm">
-        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="chat" />
-        <span class="text-gray-600 dark:text-gray-400">{{ item.chats_count }} chats</span>
-      </div>
-    }
-
-    @if (hasRepeat) {
-      <div class="flex items-center gap-2 text-sm">
-        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="repeat" />
-        <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
-        <span class="font-medium capitalize">{{ item.repeat }}</span>
-      </div>
-    }
-
-    @if (hasGithubIssue) {
-      <div class="flex items-center gap-2 text-sm">
-        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="bug_report" />
-        <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
-        <a [href]="item.github_issue_url" target="_blank" class="text-blue-500 hover:underline">
-          #{{ item.github_issue_number }}
-        </a>
-      </div>
-    }
-
-    @if (hasDependsOn) {
-      <div class="flex items-center gap-2 text-sm">
-        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="account_tree" />
-        <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
-        <span class="font-medium">{{ item.depends_on.length }} tasks</span>
-      </div>
-    }
-
-    @if (hasCommentsCount) {
-      <div class="flex items-center gap-2 text-sm">
-        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="comment" />
-        <span class="text-gray-600 dark:text-gray-400">{{ item.comments_count }} comments</span>
-      </div>
-    }
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      @if (hasChatsCount) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="chat" />
+          <span class="text-gray-600 dark:text-gray-400">{{ item.chats_count }} chats</span>
+        </div>
+      }
+      @if (hasRepeat) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="repeat" />
+          <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
+          <span class="font-medium capitalize">{{ item.repeat }}</span>
+        </div>
+      }
+      @if (hasGithubIssue) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="bug_report" />
+          <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
+          <a [href]="item.github_issue_url" target="_blank" class="text-blue-500 hover:underline">
+            #{{ item.github_issue_number }}
+          </a>
+        </div>
+      }
+      @if (hasDependsOn) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="account_tree" />
+          <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
+          <span class="font-medium">{{ item.depends_on.length }} tasks</span>
+        </div>
+      }
+      @if (hasCommentsCount) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="comment" />
+          <span class="text-gray-600 dark:text-gray-400">{{ item.comments_count }} comments</span>
+        </div>
+      }
+    </div>
 
     @if (hasContent) {
       <div class="text-sm">
@@ -220,7 +218,7 @@
           <span
             class="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
           >
-            {{ cat.title }}
+            {{ cat.title || "(empty)" }}
           </span>
         }
       </div>
@@ -235,13 +233,6 @@
     }
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-      @if (hasVisibility) {
-        <span
-          class="rounded bg-purple-100 px-2 py-0.5 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-        >
-          {{ item.visibility }}
-        </span>
-      }
       @if (item.created_at) {
         <span>Created: {{ item.created_at | date: "short" }}</span>
       }
@@ -249,55 +240,5 @@
         <span>Updated: {{ item.updated_at | date: "short" }}</span>
       }
     </div>
-
-    @if (hasFields && fields.length > 0) {
-      <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
-        <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
-          @for (field of fields; track field.key) {
-            @if (shouldShowField(field)) {
-              <div class="flex flex-col">
-                <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
-                  {{ field.label }}
-                </span>
-                <span class="textNormal text-sm">
-                  @switch (field.type) {
-                    @case ("priority") {
-                      <mat-chip
-                        class="h-5 text-xs"
-                        [ngClass]="
-                          getFieldChipClass(field) || getPriorityBadgeClassFn(item[field.key])
-                        "
-                      >
-                        {{ getFieldDisplayValue(field) }}
-                      </mat-chip>
-                    }
-                    @case ("status") {
-                      <mat-chip class="h-5 text-xs" [ngClass]="getFieldChipClass(field)">
-                        {{ getFieldDisplayValue(field) }}
-                      </mat-chip>
-                    }
-                    @case ("user") {
-                      {{ getFieldDisplayValue(field) }}
-                    }
-                    @case ("array-count") {
-                      {{ getFieldDisplayValue(field) }}
-                    }
-                    @case ("date") {
-                      {{ getFieldDisplayValue(field) }}
-                    }
-                    @case ("datetime") {
-                      {{ getFieldDisplayValue(field) }}
-                    }
-                    @default {
-                      {{ getFieldDisplayValue(field) }}
-                    }
-                  }
-                </span>
-              </div>
-            }
-          }
-        </div>
-      </div>
-    }
   </div>
 </div>
