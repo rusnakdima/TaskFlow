@@ -30,9 +30,6 @@ import {
 } from "@components/item-info-base/item-info-base.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
-/* constants */
-import { ActionColors } from "@constants/table-field.constants";
-
 /* helpers */
 import { getActionColor } from "@helpers/action-color.helper";
 import { countByStatus } from "@helpers/array.helper";
@@ -69,7 +66,7 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
     this.colorScheme.set(ItemInfoColorScheme.GREEN);
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(_changes: SimpleChanges): void {
     // stats are now computed signals
   }
 
@@ -85,7 +82,7 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
           visibility: this.isPrivate ? "private" : "shared",
         })
         .subscribe({
-          next: (result: Task) => {
+          next: (_result: Task) => {
             this.task.status = TaskStatus.COMPLETED;
             this.notifyService.showSuccess("Task marked as complete!");
           },
@@ -111,7 +108,7 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
     this.requestService
       .delete("tasks", this.task?.id ?? "", { visibility: this.isPrivate ? "private" : "shared" })
       .subscribe({
-        next: (result: any) => {
+        next: (_result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");
           this.router.navigate(["/todos", this.todo_id, "tasks"]);
         },

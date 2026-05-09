@@ -19,19 +19,15 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
 import { BaseListView } from "@views/base-list.view";
-import { AuthService } from "@services/auth/auth.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/storage.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
-import { BulkActionHelper } from "@helpers/bulk-action.helper";
 import { Subtask } from "@models/subtask.model";
 import { Task } from "@models/task.model";
 import { Todo } from "@models/todo.model";
@@ -91,7 +87,6 @@ export class SubtasksViewComponent extends BaseListView {
   private bulkService = inject(BulkActionService);
   private dragDropService = inject(DragDropOrderService);
   private adminService = inject(AdminService);
-  private bulkActionHelper = inject(BulkActionHelper);
   private destroyRef = inject(DestroyRef);
 
   showChat = signal(false);
@@ -113,7 +108,8 @@ export class SubtasksViewComponent extends BaseListView {
 
   private lastTaskIdForEffect: string | null = null;
 
-  private taskEffect = effect(() => {
+  // @ts-ignore
+  private _taskEffect = effect(() => {
     const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
     if (taskId && taskId !== this.lastTaskIdForEffect) {
       this.lastTaskIdForEffect = taskId;
@@ -162,7 +158,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTask(taskId: string): void {
-    const taskReactive = this.storageService.getTaskReactive(taskId);
+    const taskReactive = this.storageService.watch("tasks", taskId);
     const reactiveTask = taskReactive();
     if (reactiveTask) {
       this.task.set(reactiveTask);
@@ -176,7 +172,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTodo(todoId: string): void {
-    const todoReactive = this.storageService.getTodoReactive(todoId);
+    const todoReactive = this.storageService.watch("todos", todoId);
     const reactiveTodo = todoReactive();
     if (reactiveTodo) {
       this.todo.set(reactiveTodo);
@@ -187,7 +183,8 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
-  private loadChats(todoId: string): void {
+  // @ts-ignore
+  private _loadChats(todoId: string): void {
     this.chatSubscription?.unsubscribe();
     const visibility = this.todo()?.visibility || "private";
     const sub = this.requestService
@@ -354,7 +351,7 @@ export class SubtasksViewComponent extends BaseListView {
     } else {
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const taskReactive = this.storageService.getTaskReactive(taskId);
+        const taskReactive = this.storageService.watch("tasks", taskId);
         const reactiveTask = taskReactive();
         if (reactiveTask) {
           this.task.set(reactiveTask);
@@ -568,14 +565,7 @@ export class SubtasksViewComponent extends BaseListView {
     if (!taskId) return;
 
     this.dragDropService
-      .handleDrop(
-        event,
-        this.listSubtasks(),
-        "subtasks",
-        "subtasks",
-        taskId,
-        this.isPrivate() ? "private" : "shared"
-      )
+      .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId)
       .subscribe({
         next: () => {},
         error: (err) => {
@@ -619,7 +609,7 @@ export class SubtasksViewComponent extends BaseListView {
     });
 
     Promise.all(updatePromises)
-      .then((results) => {
+      .then((_results) => {
         this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
         this.clearSelection();
       })
@@ -742,7 +732,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storageService.getTaskById(taskId);
+    const task = this.storageService.taskMap().get(taskId);
     return task?.title || "-";
   }
 
