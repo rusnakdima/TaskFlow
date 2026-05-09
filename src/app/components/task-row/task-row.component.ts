@@ -1,15 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  signal,
-  inject,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-} from "@angular/core";
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -20,6 +11,7 @@ import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-c
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
+import { getActionColor } from "@helpers/action-color.helper";
 
 /* base */
 import { ItemRowBaseComponent } from "@components/item-row-base/item-row-base.component";
@@ -30,9 +22,6 @@ import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 
-/* constants */
-import { ActionColors } from "@constants/table-field.constants";
-
 @Component({
   selector: "app-task-row",
   standalone: true,
@@ -41,6 +30,8 @@ import { ActionColors } from "@constants/table-field.constants";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskRowComponent extends ItemRowBaseComponent {
+  protected readonly BaseItemHelper = BaseItemHelper;
+
   @Input() task: Task | null = null;
   @Input() override todo: Todo | null = null;
   @Input() isExpanded: boolean = false;
@@ -95,16 +86,12 @@ export class TaskRowComponent extends ItemRowBaseComponent {
     return this.itemSubtasks.length;
   }
 
-  override get itemDeleteEvent(): EventEmitter<string> {
-    return new EventEmitter<string>();
+  override get commentsTitle(): string {
+    return "Task Comments";
   }
 
-  override get addCommentEvent(): EventEmitter<{
-    content: string;
-    task_id?: string;
-    subtask_id?: string;
-  }> {
-    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
+  override get deleteItemTitle(): string {
+    return "Delete task";
   }
 
   get subtaskCommentGroups(): SubtaskCommentGroup[] {
@@ -127,9 +114,11 @@ export class TaskRowComponent extends ItemRowBaseComponent {
   }
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "rounded-lg p-1 transition-all duration-200 hover:scale-110";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "rounded-lg p-1 transition-all duration-200 hover:scale-110");
+  }
+
+  deleteTask() {
+    this.deleteItemEvent.emit(this.itemId);
   }
 
   override onAddComment(content: string): void {

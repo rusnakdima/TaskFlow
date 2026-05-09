@@ -6,7 +6,6 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   inject,
 } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
@@ -53,7 +52,7 @@ import { Todo } from "@models/todo.model";
           <div class="flex items-center gap-2">
             <span
               class="rounded-full px-2 py-1 text-xs font-medium"
-              [ngClass]="getPriorityClass(item.priority || 'medium')"
+              [ngClass]="BaseItemHelper.getPriorityBadgeClass(item.priority || 'medium')"
             >
               {{ (item.priority || "medium").toUpperCase() }}
             </span>
@@ -99,7 +98,7 @@ import { Todo } from "@models/todo.model";
             </button>
             <button
               class="rounded-lg p-1 text-red-500 transition-all duration-200 hover:scale-110 hover:bg-red-50 dark:hover:bg-red-900/30"
-              (click)="deleteItem()"
+              (click)="deleteItemEvent.emit(itemId)"
               title="Delete project"
             >
               <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
@@ -112,12 +111,16 @@ import { Todo } from "@models/todo.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoTableRowComponent extends ItemRowBaseComponent {
-  @Input() override todo: Todo | null = null;
+  protected readonly BaseItemHelper = BaseItemHelper;
 
-  private cdr = inject(ChangeDetectorRef);
+  @Input() override todo: Todo | null = null;
 
   override get item(): Todo | null {
     return this.todo;
+  }
+
+  override get type(): "todo" {
+    return "todo";
   }
 
   override get itemId(): string {
@@ -153,15 +156,11 @@ export class TodoTableRowComponent extends ItemRowBaseComponent {
     return 0;
   }
 
-  override get itemDeleteEvent(): EventEmitter<string> {
-    return new EventEmitter<string>();
+  override get commentsTitle(): string {
+    return "Comments";
   }
 
-  override get addCommentEvent(): EventEmitter<{
-    content: string;
-    task_id?: string;
-    subtask_id?: string;
-  }> {
-    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
+  override get deleteItemTitle(): string {
+    return "Delete project";
   }
 }

@@ -33,6 +33,10 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 /* constants */
 import { ActionColors } from "@constants/table-field.constants";
 
+/* helpers */
+import { getActionColor } from "@helpers/action-color.helper";
+import { countByStatus } from "@helpers/array.helper";
+
 @Component({
   selector: "app-task-information",
   standalone: true,
@@ -55,18 +59,10 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   @Input() override isOwner: boolean = true;
   @Input() override isPrivate: boolean = true;
 
-  completedCount = computed(
-    () => this.listSubtasks.filter((s) => s.status === TaskStatus.COMPLETED).length
-  );
-  skippedCount = computed(
-    () => this.listSubtasks.filter((s) => s.status === TaskStatus.SKIPPED).length
-  );
-  failedCount = computed(
-    () => this.listSubtasks.filter((s) => s.status === TaskStatus.FAILED).length
-  );
-  inProgressCount = computed(
-    () => this.listSubtasks.filter((s) => s.status === TaskStatus.PENDING).length
-  );
+  completedCount = computed(() => countByStatus(this.listSubtasks, TaskStatus.COMPLETED));
+  skippedCount = computed(() => countByStatus(this.listSubtasks, TaskStatus.SKIPPED));
+  failedCount = computed(() => countByStatus(this.listSubtasks, TaskStatus.FAILED));
+  inProgressCount = computed(() => countByStatus(this.listSubtasks, TaskStatus.PENDING));
 
   constructor() {
     super();
@@ -126,7 +122,6 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   }
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    return ActionColors[colorKey] || ActionColors.default;
+    return getActionColor(action, "");
   }
 }
