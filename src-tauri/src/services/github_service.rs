@@ -90,10 +90,6 @@ impl GithubService {
     let status = response.status();
     let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let body_str = String::from_utf8_lossy(&body_bytes);
-    eprintln!(
-      "DEBUG github_start_device_flow - status: {}, body: {}",
-      status, body_str
-    );
 
     #[derive(Deserialize)]
     struct DeviceCodeResponse {
@@ -135,10 +131,6 @@ impl GithubService {
     let status = response.status();
     let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let body_str = String::from_utf8_lossy(&body_bytes);
-    eprintln!(
-      "DEBUG github_check_device_code - status: {}, body: {}",
-      status, body_str
-    );
 
     #[derive(Deserialize)]
     struct TokenResponse {

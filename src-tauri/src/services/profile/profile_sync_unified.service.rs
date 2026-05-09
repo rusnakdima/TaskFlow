@@ -19,7 +19,7 @@ use crate::entities::profile_entity::ProfileEntity;
 use crate::entities::response_entity::ResponseModel;
 
 /* helpers */
-use crate::helpers::response_helper::{err_response, log_response};
+use crate::helpers::response_helper::err_response;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileSyncStatus {
@@ -59,8 +59,6 @@ impl ProfileSyncUnifiedService {
     let table_name = "profiles";
     let filter = Filter::Eq("user_id".to_string(), json!(user_id));
 
-    println!("[ProfileSync] get_profile_value user_id: {}", user_id);
-
     // Step 1: Check JSON first (fast, works offline)
     match self
       .json_provider
@@ -68,27 +66,15 @@ impl ProfileSyncUnifiedService {
       .await
     {
       Ok(mut profiles) => {
-        println!(
-          "[ProfileSync] JSON find returned {} profiles",
-          profiles.len()
-        );
         if let Some(profile_val) = profiles.pop() {
-          println!(
-            "[ProfileSync] Profile found in JSON for user_id: {}",
-            user_id
-          );
           return Ok(Some(profile_val));
         }
-        println!("[ProfileSync] No profile in JSON for user_id: {}", user_id);
       }
-      Err(e) => {
-        println!("[ProfileSync] Error checking JSON for profile: {}", e);
-      }
+      Err(_) => {}
     }
 
     // Step 2: If profile not in JSON and MongoDB is available, try with timeout
     if let Some(mongo) = &self.mongodb_provider {
-      println!("[ProfileSync] MongoDB provider exists, querying with timeout...");
       let mongo_result = timeout(
         Duration::from_secs(5),
         mongo.find_many(table_name, Some(&filter), None, None, None, false),
@@ -97,56 +83,33 @@ impl ProfileSyncUnifiedService {
 
       match mongo_result {
         Ok(Ok(mut profiles)) => {
-          println!(
-            "[ProfileSync] MongoDB find returned {} profiles",
-            profiles.len()
-          );
           if let Some(profile_val) = profiles.pop() {
             let profile_id = profile_val
               .get("id")
               .and_then(|v| v.as_str())
               .unwrap_or("unknown");
 
-            println!("[ProfileSync] Profile found in MongoDB, id: {}", profile_id);
             match self.json_provider.find_by_id(table_name, profile_id).await {
-              Ok(Some(_)) => {
-                println!("[ProfileSync] Profile already in JSON");
-              }
+              Ok(Some(_)) => {}
               Ok(None) | Err(_) => {
-                println!("[ProfileSync] Syncing profile from MongoDB to JSON");
-                if let Err(e) = self
+                if let Err(_e) = self
                   .json_provider
                   .insert(table_name, profile_val.clone())
                   .await
                 {
-                  println!("[ProfileSync] Failed to sync profile to JSON: {}", e);
                 } else {
-                  println!(
-                    "[ProfileSync] Profile synced from MongoDB to JSON for user_id: {}",
-                    user_id
-                  );
                 }
               }
             }
             return Ok(Some(profile_val));
           }
-          println!(
-            "[ProfileSync] No profile in MongoDB for user_id: {}",
-            user_id
-          );
         }
-        Ok(Err(e)) => {
-          println!("[ProfileSync] Error checking MongoDB for profile: {}", e);
-        }
-        Err(_) => {
-          println!("[ProfileSync] MongoDB query timed out after 5 seconds (offline)");
-        }
+        Ok(Err(_)) => {}
+        Err(_) => {}
       }
     } else {
-      println!("[ProfileSync] No MongoDB provider (offline mode)");
     }
 
-    println!("[ProfileSync] Profile not found for user_id: {}", user_id);
     Ok(None)
   }
 
@@ -248,10 +211,6 @@ impl ProfileSyncUnifiedService {
         .map_err(|e| err_response(&format!("Failed to insert profile in MongoDB: {}", e)))?;
     }
 
-    log_response(&format!(
-      "Profile synced to MongoDB for user_id: {}",
-      user_id
-    ));
     Ok(())
   }
 
@@ -288,7 +247,6 @@ impl ProfileSyncUnifiedService {
         .map_err(|e| err_response(&format!("Failed to insert profile in JSON: {}", e)))?;
     }
 
-    log_response(&format!("Profile synced to JSON for user_id: {}", user_id));
     Ok(())
   }
 
@@ -309,10 +267,6 @@ impl ProfileSyncUnifiedService {
       .await
       .map_err(|e| err_response(&format!("Failed to create profile in JSON: {}", e)))?;
 
-    log_response(&format!(
-      "Profile created in JSON for user_id: {}",
-      profile.user_id
-    ));
     Ok(())
   }
 
@@ -350,10 +304,6 @@ impl ProfileSyncUnifiedService {
         .map_err(|e| err_response(&format!("Failed to insert profile in MongoDB: {}", e)))?;
     }
 
-    log_response(&format!(
-      "Profile exported to MongoDB for user_id: {}",
-      profile.user_id
-    ));
     Ok(())
   }
 }

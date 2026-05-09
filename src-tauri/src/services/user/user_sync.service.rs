@@ -151,54 +151,30 @@ impl UserSyncService {
 
   pub async fn ensure_user_in_both(&self, user_id: &str) -> Result<UserSyncStatus, ResponseModel> {
     let in_json = self.user_exists_in_json(user_id).await;
-    println!("[UserSync] user_exists_in_json: {}", in_json);
 
     let in_mongo = self.user_exists_in_mongo(user_id).await;
-    println!("[UserSync] user_exists_in_mongo: {}", in_mongo);
 
     match (in_json, in_mongo) {
-      (true, true) => {
-        println!("[UserSync] User in both JSON and MongoDB");
-        Ok(UserSyncStatus::InBoth)
-      }
+      (true, true) => Ok(UserSyncStatus::InBoth),
       (true, false) => {
-        println!("[UserSync] User in JSON only, syncing to MongoDB...");
         match timeout(Duration::from_secs(5), self.sync_user_to_mongo(user_id)).await {
-          Ok(Ok(_)) => {
-            println!("[UserSync] User synced to MongoDB successfully");
-            Ok(UserSyncStatus::SyncedToCloud)
-          }
-          Ok(Err(e)) => {
-            println!("[UserSync] Failed to sync user to MongoDB: {}", e.message);
+          Ok(Ok(_)) => Ok(UserSyncStatus::SyncedToCloud),
+          Ok(Err(_e)) => {
             Ok(UserSyncStatus::SyncedToLocal) // Still count as synced to local
           }
           Err(_) => {
-            println!("[UserSync] MongoDB sync timed out, continuing offline");
             Ok(UserSyncStatus::SyncedToLocal) // Continue with local only
           }
         }
       }
       (false, true) => {
-        println!("[UserSync] User in MongoDB only, syncing to JSON...");
         match timeout(Duration::from_secs(5), self.sync_user_to_json(user_id)).await {
-          Ok(Ok(_)) => {
-            println!("[UserSync] User synced to JSON successfully");
-            Ok(UserSyncStatus::SyncedToLocal)
-          }
-          Ok(Err(e)) => {
-            println!("[UserSync] Failed to sync user to JSON: {}", e.message);
-            Ok(UserSyncStatus::NotFound)
-          }
-          Err(_) => {
-            println!("[UserSync] JSON sync timed out, continuing");
-            Ok(UserSyncStatus::NotFound)
-          }
+          Ok(Ok(_)) => Ok(UserSyncStatus::SyncedToLocal),
+          Ok(Err(_e)) => Ok(UserSyncStatus::NotFound),
+          Err(_) => Ok(UserSyncStatus::NotFound),
         }
       }
-      (false, false) => {
-        println!("[UserSync] User not found in either database");
-        Ok(UserSyncStatus::NotFound)
-      }
+      (false, false) => Ok(UserSyncStatus::NotFound),
     }
   }
 }

@@ -170,8 +170,6 @@ impl AuthTokenService {
       }
       Ok(None) => Err(err_response("User not found")),
       Err(e) => {
-        // MongoDB failed - try JSON as fallback (user might exist locally)
-        println!("[AuthToken] MongoDB error: {}, trying JSON fallback", e);
         if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
           let user: UserEntity = serde_json::from_value(user_val.clone())
             .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;

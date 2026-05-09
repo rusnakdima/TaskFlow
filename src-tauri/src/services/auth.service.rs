@@ -70,10 +70,6 @@ impl AuthService {
     let password_service = AuthPasswordService::new(json_provider.clone(), mongo_provider.clone());
 
     let rp_origin = Url::parse(&format!("https://{}", rp_domain)).unwrap_or_else(|_| {
-      eprintln!(
-        "WARNING: Invalid RP origin URL '{}', using default",
-        rp_domain
-      );
       Url::parse("https://taskflow.tcs.com").expect("Hardcoded fallback URL is valid")
     });
     let webauthn_state = Arc::new(WebAuthnState::new(&rp_domain, &rp_origin));
