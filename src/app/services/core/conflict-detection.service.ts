@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
 
 /* services */
-import { DataService } from "@services/core/data.service";
+import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
@@ -31,7 +31,7 @@ const MAX_CONFLICTS_SIZE = 100;
   providedIn: "root",
 })
 export class ConflictDetectionService {
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
 
   private conflicts = new Map<string, Conflict>();
@@ -62,16 +62,16 @@ export class ConflictDetectionService {
 
     switch (entityType) {
       case "todos":
-        localData = this.dataService.getTodo(entityId);
+        localData = this.storageService.getTodoById(entityId);
         break;
       case "tasks":
-        localData = this.dataService.getTask(entityId);
+        localData = this.storageService.getTaskById(entityId);
         break;
       case "subtasks":
-        localData = this.dataService.getSubtask(entityId);
+        localData = this.storageService.getSubtaskById(entityId);
         break;
       case "categories":
-        localData = this.dataService.getCategory(entityId);
+        localData = this.storageService.getById("categories", entityId);
         break;
       default:
         return false;
@@ -210,16 +210,16 @@ export class ConflictDetectionService {
   private updateEntity(entityType: string, entityId: string, data: any): void {
     switch (entityType) {
       case "todos":
-        this.dataService.updateTodo(entityId, data);
+        this.storageService.updateItem("todos", entityId, data);
         break;
       case "tasks":
-        this.dataService.updateTask(entityId, data);
+        this.storageService.updateItem("tasks", entityId, data);
         break;
       case "subtasks":
-        this.dataService.updateSubtask(entityId, data);
+        this.storageService.updateItem("subtasks", entityId, data);
         break;
       case "categories":
-        this.dataService.updateCategory(entityId, data);
+        this.storageService.updateItem("categories", entityId, data);
         break;
     }
   }

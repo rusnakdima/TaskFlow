@@ -13,7 +13,6 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { DataService } from "@services/data/data.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
@@ -62,7 +61,6 @@ export class UnifiedSyncService implements OnDestroy {
 
   constructor(
     private jwtTokenService: JwtTokenService,
-    private dataService: DataService,
     private notifyService: NotifyService,
     private syncProgressService: SyncProgressService,
     private mongoConnectionService: MongoConnectionService

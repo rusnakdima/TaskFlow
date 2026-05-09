@@ -9,11 +9,9 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { User } from "@models/user.model";
-import { Response } from "@models/response.model";
 import { Profile } from "@models/profile.model";
 
 /* helpers */
-import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";

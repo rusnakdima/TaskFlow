@@ -1,15 +1,15 @@
 import { Injectable, inject } from "@angular/core";
-import { DataService } from "@services/core/data.service";
+import { StorageService } from "@services/storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class ArchiveService {
-  private dataService = inject(DataService);
+  private storageService = inject(StorageService);
 
   archiveTodoWithCascade(todo_id?: string, isTeam: boolean = false): void {
     if (!todo_id) return;
-    const todo = this.dataService.getTodo(todo_id);
+    const todo = this.storageService.getTodoById(todo_id);
     if (!todo) return;
 
     const options = { isPrivate: !isTeam };
@@ -33,7 +33,7 @@ export class ArchiveService {
       });
     });
 
-    this.dataService.batchUpdate(itemsToUpdate, options);
-    this.dataService.clearChatsByTodo(todo_id);
+    this.storageService.batchUpdate("todos", itemsToUpdate, options);
+    this.storageService.clearChatsByTodo(todo_id);
   }
 }
