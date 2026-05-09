@@ -1,8 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -10,14 +9,10 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 
 /* services */
-import { AuthService } from "@services/auth/auth.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { StorageService } from "@services/storage.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -46,9 +41,7 @@ import {
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView extends BaseListView implements OnInit {
-  private destroyRef = inject(DestroyRef);
   private router = inject(Router);
-  private mongoConnectionService = inject(MongoConnectionService);
   private requestService = inject(REQUEST_SERVICE);
 
   protected getItems(): { id: string }[] {
@@ -63,11 +56,6 @@ export class CalendarView extends BaseListView implements OnInit {
     { id: "month", label: "Month", icon: "calendar_view_month" },
     { id: "week", label: "Week", icon: "view_week" },
   ];
-
-  private userId = "";
-  private todos = signal<Todo[]>([]);
-  private tasksByTodo = signal<{ [todoId: string]: Task[] }>({});
-  private tasksLoading = signal(false);
 
   private allEvents = computed<CalendarEvent[]>(() => {
     const tasks = this.storageService.tasks();
@@ -88,7 +76,6 @@ export class CalendarView extends BaseListView implements OnInit {
 
   override ngOnInit(): void {
     super.ngOnInit();
-    this.userId = this.authService.getValueByKey("id");
     this.requestService
       .loadPage("tasks", { visibility: "private", limit: 100, skip: 0 })
       .subscribe({});
@@ -98,13 +85,6 @@ export class CalendarView extends BaseListView implements OnInit {
     this.requestService
       .loadPage("tasks", { visibility: "public", limit: 100, skip: 0 })
       .subscribe({});
-  }
-
-  private getPrivateTasksFromCache(): Task[] {
-    const privateTodoIds = new Set(this.storageService.privateTodos().map((t) => t.id));
-    return this.storageService
-      .tasks()
-      .filter((t) => privateTodoIds.has(t.todo_id) && !t.deleted_at);
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {

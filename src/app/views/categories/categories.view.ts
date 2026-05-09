@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { firstValueFrom } from "rxjs";
@@ -15,9 +15,7 @@ import { Category } from "@models/category.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { AuthService } from "@services/auth/auth.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { StorageService } from "@services/storage.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
@@ -32,7 +30,7 @@ import { CategoryFormComponent } from "@components/category-form/category-form.c
 import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import {
   PageToolbarComponent,
@@ -60,7 +58,6 @@ import {
 })
 export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
-  private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
   private requestService = inject(REQUEST_SERVICE);
 

@@ -31,7 +31,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 
-import { AuthStore } from "@stores/auth.store";
 import { REQUEST_SERVICE } from "@services/api.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -60,7 +59,6 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 })
 export class LoginView implements OnDestroy {
   loginForm!: FormGroup<any>;
-  private authStore = inject(AuthStore);
   private authCapabilityService = inject(AuthCapabilityService);
   private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);

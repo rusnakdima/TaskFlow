@@ -1,13 +1,13 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, inject, computed, DestroyRef, signal, OnDestroy } from "@angular/core";
+import { Component, OnInit, inject, computed, DestroyRef } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task, TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/task.model";
 import { Profile } from "@models/profile.model";
 
 /* services */

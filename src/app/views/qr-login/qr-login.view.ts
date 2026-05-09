@@ -128,11 +128,14 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
     try {
       this.qrLoginService.generateQrCode(this.username() || undefined).subscribe({
         next: (qrData) => {
-          this.passkeyQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(qrData.qrCode));
-          this.qrLoginService.startPolling(qrData.token, 2000);
+          if (qrData.qrCode) {
+            this.passkeyQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(qrData.qrCode));
+          }
+          if (qrData.token) {
+            this.qrLoginService.startPolling(qrData.token, 2000);
+            this.watchQrApproval(qrData.token);
+          }
           this.isQrGenerating.set(false);
-
-          this.watchQrApproval(qrData.token);
 
           this.notifyService.showInfo("Scan the QR code with your mobile device");
         },
@@ -283,7 +286,6 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   private watchQrApproval(token: string): void {
     const checkApproval = () => {
       const status = this.qrLoginService.qrStatus();
-      const statusData = this.qrLoginService.qrStatusData();
 
       if (status === "approved") {
         this.qrLoginService.stopPolling();

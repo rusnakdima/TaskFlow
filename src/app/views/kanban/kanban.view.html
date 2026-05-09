@@ -44,7 +44,7 @@
               cdkDropList
               [cdkDropListData]="getTasksByStatus(column.id)"
               [cdkDropListConnectedTo]="getConnectedDropLists(column.id)"
-              (cdkDropListDropped)="onTaskDrop($event, column.id)"
+              (cdkDropListDropped)="onTaskDrop($event, $any(column.id))"
               [id]="'cdk-drop-list-' + column.id"
             >
               @for (task of getTasksByStatus(column.id); track task.id) {

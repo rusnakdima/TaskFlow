@@ -250,7 +250,7 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     }
   }
 
-  protected isLoading(entity: "todos" | "tasks" | "subtasks" | "comments" | "chats"): boolean {
+  protected isLoading(): boolean {
     return false;
   }
 }

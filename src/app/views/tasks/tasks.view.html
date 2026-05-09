@@ -66,37 +66,29 @@
         (cdkDropListDropped)="onTaskDrop($event)"
       >
         @for (task of listTasks(); track task.id) {
-          <app-task
+          <app-item-display
             cdkDrag
             [cdkDragData]="task"
             cdkDragPreviewContainer="global"
             [id]="'task-' + task.id"
-            [task]="task"
-            [todo_id]="todo()?.id || null"
+            [item]="task"
+            [config]="taskCardConfig"
+            [displayMode]="'card'"
             [index]="$index"
             [isOwner]="isOwner()"
             [isPrivate]="isPrivate()"
             [highlight]="highlightTaskId() === task.id"
             [isSelected]="selectedTasks().has(task.id)"
-            [allTasks]="allTasksForTodo()"
-            [isExpanded]="isTaskExpanded(task.id)"
-            [showExpandButton]="getTaskSubtasks(task.id).length > 0"
-            [highlightCommentId]="highlightCommentId()"
-            [autoOpenComments]="openComments()"
-            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
-            (deleteTaskEvent)="deleteTask($event)"
-            (toggleCompletionEvent)="toggleTaskCompletion($event)"
-            (updateTaskEvent)="updateTaskInline($event)"
-            (toggleSubtasksEvent)="toggleExpandTask($event)"
-            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+            [actions]="getTaskCardActions()"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
+            (itemAction)="onTaskItemAction($event)"
           >
             <div
               *cdkDragPlaceholder
               class="cdk-drag-placeholder h-full min-h-[100px] rounded-xl"
             ></div>
-          </app-task>
+          </app-item-display>
         }
       </div>
     } @else {
@@ -107,31 +99,23 @@
         (cdkDropListDropped)="onTaskDrop($event)"
       >
         @for (task of listTasks(); track task.id) {
-          <app-task
+          <app-item-display
             cdkDrag
             [cdkDragData]="task"
             cdkDragPreviewContainer="global"
             [id]="'task-' + task.id"
-            [task]="task"
-            [todo_id]="todo()?.id || null"
+            [item]="task"
+            [config]="taskCardConfig"
+            [displayMode]="'list'"
             [index]="$index"
             [isOwner]="isOwner()"
             [isPrivate]="isPrivate()"
             [highlight]="highlightTaskId() === task.id"
             [isSelected]="selectedTasks().has(task.id)"
-            [allTasks]="allTasksForTodo()"
-            [isExpanded]="isTaskExpanded(task.id)"
-            [showExpandButton]="getTaskSubtasks(task.id).length > 0"
-            [highlightCommentId]="highlightCommentId()"
-            [autoOpenComments]="openComments()"
-            [unreadCommentsCount]="getTaskUnreadCommentsCount(task)"
-            (deleteTaskEvent)="deleteTask($event)"
-            (toggleCompletionEvent)="toggleTaskCompletion($event)"
-            (updateTaskEvent)="updateTaskInline($event)"
-            (toggleSubtasksEvent)="toggleExpandTask($event)"
-            (toggleSubtaskCompletionEvent)="toggleSubtaskCompletion($event)"
+            [actions]="getTaskCardActions()"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
+            (itemAction)="onTaskItemAction($event)"
           />
         }
       </div>
