@@ -1196,10 +1196,14 @@ export class StorageService {
     return this.subtasksByTaskId().get(task_id) || [];
   }
   getCommentsByTaskId(task_id: string): Comment[] {
-    return this.commentsByTaskId().get(task_id) || [];
+    return (this.commentsByTaskId().get(task_id) || []).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
   }
   getCommentsBySubtaskId(subtask_id: string): Comment[] {
-    return this.commentsBySubtaskId().get(subtask_id) || [];
+    return (this.commentsBySubtaskId().get(subtask_id) || []).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
   }
   getChatsByTodo(todo_id?: string): Chat[] {
     return todo_id ? this._signals.chats().filter((c) => c.todo_id === todo_id) : [];
