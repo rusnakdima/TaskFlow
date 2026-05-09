@@ -165,7 +165,6 @@ export class SubtasksViewComponent extends BaseListView {
   subtaskActions: TableFieldActionButton[] = [
     TABLE_ACTIONS.EDIT,
     TABLE_ACTIONS.ARCHIVE,
-    TABLE_ACTIONS.DELETE,
   ];
 
   subtaskTableFields: TableField[] = [
@@ -737,8 +736,11 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
-  getSubtaskTableActions(): TableFieldActionButton[] {
-    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE, TABLE_ACTIONS.DELETE];
+getSubtaskTableActions(): TableFieldActionButton[] {
+    return [
+      TABLE_ACTIONS.EDIT,
+      TABLE_ACTIONS.ARCHIVE,
+    ];
   }
 
   async archiveSubtask(subtaskId: string): Promise<void> {
