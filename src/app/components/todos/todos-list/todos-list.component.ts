@@ -218,6 +218,9 @@ export class TodosListComponent {
       this.lastSelectedId.set(event.id);
       return;
     }
+
+    this.lastSelectedId.set(event.id);
+    this.router.navigate(["/todos", event.id, "tasks"]);
   }
 
   onRowClick(event: { event: MouseEvent; item: any } | any): void {

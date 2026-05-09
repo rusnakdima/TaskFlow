@@ -72,6 +72,12 @@ export class ChatWindowComponent
     if (changes["todo_id"]) {
       this.isFirstLoad.set(true);
       this.processedIds.set(new Set());
+      this.messages.set([]);
+      this.oldestTimestamp.set(null);
+      this.hasMoreMessages.set(true);
+      if (this.currentTodo()) {
+        this.loadInitialChats(this.currentTodo().id, this.currentTodo().visibility);
+      }
     }
   }
 
@@ -107,10 +113,42 @@ export class ChatWindowComponent
   private loadTodo() {
     this.subscriptions.add(
       this.apiService.get<Todo>("todos", this.todo_id).subscribe({
-        next: (todo) => this.currentTodo.set(todo),
+        next: (todo) => {
+          this.currentTodo.set(todo);
+          this.currentTodoId = todo.id;
+          this.loadInitialChats(todo.id, todo.visibility);
+        },
         error: () => this.currentTodo.set(null),
       })
     );
+  }
+
+  private loadInitialChats(todoId: string, visibility: string) {
+    this.loadingInitial.set(true);
+    this.apiService
+      .loadPage<Chat>("chats", {
+        filter: { todo_id: todoId },
+        visibility: visibility === "shared" ? "shared" : "private",
+        skip: 0,
+        limit: 20,
+        load: ["user"],
+      })
+      .subscribe({
+        next: (chats) => {
+          const nonDeleted = chats.filter((c) => !c.deleted_at);
+          this.cacheUsernames(nonDeleted);
+          this.messages.set(nonDeleted);
+          if (nonDeleted.length > 0) {
+            this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
+          }
+          this.hasMoreMessages.set(nonDeleted.length >= 20);
+          this.loadingInitial.set(false);
+          setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
+        },
+        error: () => {
+          this.loadingInitial.set(false);
+        },
+      });
   }
 
   private cacheUsernames(chats: Chat[]) {
@@ -132,9 +170,12 @@ export class ChatWindowComponent
     this.loadingOlder.set(true);
 
     this.apiService
-      .getAll<Chat>("chats", {
+      .loadPage<Chat>("chats", {
         filter: { todo_id: todoId, before: timestamp },
         visibility: "private",
+        skip: 0,
+        limit: 20,
+        load: ["user"],
       })
       .subscribe({
         next: (olderChats) => {
@@ -211,6 +252,7 @@ export class ChatWindowComponent
     if (!this.newMessage.trim()) return;
 
     const currentUserId = this.authService.getValueByKey("id") || "";
+    const currentUsername = this.authService.getValueByKey("username") || "Unknown";
 
     const chatForBackend: ChatCreate = {
       todo_id: this.todo_id,
@@ -226,7 +268,13 @@ export class ChatWindowComponent
         this.newMessage = "";
         this.shouldScroll.set(true);
         this.forceScrollBottom = true;
-        this.messages.update((current) => [...current, newChat]);
+        const chatWithUser = {
+          ...newChat,
+          author_name: currentUsername,
+          user: { username: currentUsername },
+        };
+        this.cacheUsernames([chatWithUser]);
+        this.messages.update((current) => [...current, chatWithUser]);
         setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
       },
       error: (err) => {

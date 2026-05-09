@@ -17,6 +17,7 @@ export const DEFAULT_ACTIONS = [
 ];
 
 export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
+  { key: "drag-handle", type: "drag-handle", width: "32px" },
   { key: "checkbox", type: "checkbox", width: "40px" },
   {
     key: "title",
@@ -25,17 +26,16 @@ export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
     getClass: () => "flex-1 min-w-0",
   },
   {
-    key: "description",
-    type: "description",
-    getClass: () => "text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1",
+    key: "status-badge",
+    type: "status-badge",
+    getChipColor: () => "",
   },
   {
-    key: "priority",
+    key: "priority-badge",
     type: "priority-badge",
     getChipColor: (item: Todo) =>
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
   },
-  { key: "end_date", type: "date" },
   { key: "expand-toggle", type: "expand-toggle", width: "32px" },
   {
     key: "menu",
@@ -72,6 +72,7 @@ export const TODO_TABLE_CONFIG: ItemDisplayConfig[] = [
 ];
 
 export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
+  { key: "drag-handle", type: "drag-handle", width: "32px" },
   { key: "checkbox", type: "checkbox", width: "40px" },
   {
     key: "title",
@@ -81,48 +82,17 @@ export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
       item.status === TaskStatus.COMPLETED ? "line-through opacity-60" : "flex-1 min-w-0",
   },
   {
-    key: "description",
-    type: "description",
-    getClass: () => "text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1",
+    key: "status-badge",
+    type: "status-badge",
+    getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
   },
   {
-    key: "priority",
+    key: "priority-badge",
     type: "priority-badge",
     getChipColor: (item: Task) =>
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
   },
-  {
-    key: "status",
-    type: "status-toggle",
-    toggleable: true,
-    getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
-  },
-  {
-    key: "blocked",
-    type: "chip",
-    showIf: (item: Task) => !!item.depends_on?.length,
-    getChipColor: () => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    getDisplayValue: () => "Blocked",
-  },
-  {
-    key: "subtasks",
-    type: "subtasks-count",
-    getDisplayValue: (item: Task) => {
-      if (!item.subtasks?.length) return "No subtasks";
-      const completed = item.subtasks.filter(
-        (s: Subtask) => s.status === TaskStatus.COMPLETED
-      ).length;
-      return `${completed}/${item.subtasks.length} subtasks`;
-    },
-  },
-  { key: "end_date", type: "date" },
   { key: "expand-toggle", type: "expand-toggle", width: "32px" },
-  {
-    key: "github-issue",
-    type: "actions",
-    showIf: () => false,
-    getClass: () => ActionColors.github_issue,
-  },
   {
     key: "menu",
     type: "menu",
@@ -170,6 +140,7 @@ export const TASK_TABLE_CONFIG: ItemDisplayConfig[] = [
 ];
 
 export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
+  { key: "drag-handle", type: "drag-handle", width: "32px" },
   { key: "checkbox", type: "checkbox", width: "40px" },
   {
     key: "title",
@@ -181,22 +152,20 @@ export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
         : "flex-1 min-w-0",
   },
   {
-    key: "priority",
+    key: "status-badge",
+    type: "status-badge",
+    getChipColor: (item: Subtask) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
+  },
+  {
+    key: "priority-badge",
     type: "priority-badge",
     getChipColor: (item: Subtask) =>
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
   },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px" },
   {
-    key: "status",
-    type: "status-toggle",
-    toggleable: true,
-    getChipColor: (item: Subtask) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
-  },
-  { key: "start_date", type: "date" },
-  { key: "end_date", type: "date" },
-  {
-    key: "actions",
-    type: "actions",
+    key: "menu",
+    type: "menu",
     getClass: () => ActionColors.default,
   },
 ];
@@ -242,25 +211,19 @@ export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
         : "line-clamp-2 text-sm font-medium",
   },
   {
-    key: "description",
-    type: "description",
-    getClass: () => "text-xs line-clamp-2 mt-1",
-  },
-  {
-    key: "priority",
+    key: "priority-badge",
     type: "priority-badge",
     getChipColor: (item: Task) =>
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
   },
   {
-    key: "due-date",
-    type: "date",
-    getValue: (item: Task) => item.end_date,
-    showIf: (item: Task) => !!item.end_date,
+    key: "status-badge",
+    type: "status-badge",
+    getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
   },
   {
     key: "subtasks-count",
-    type: "subtasks-count",
+    type: "number",
     getDisplayValue: (item: Task) => {
       const total = item.subtasks?.length || 0;
       const completed =
@@ -269,30 +232,20 @@ export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
     },
   },
   {
-    key: "status-toggle",
-    type: "status-toggle",
-    toggleable: true,
-    getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
+    key: "menu",
+    type: "menu",
+    getClass: () => ActionColors.default,
   },
 ];
 
 export const CATEGORY_CARD_CONFIG: ItemDisplayConfig[] = [
+  { key: "drag-handle", type: "drag-handle", width: "32px" },
   { key: "checkbox", type: "checkbox", width: "40px" },
   {
     key: "title",
     type: "title",
     editable: true,
     getClass: () => "flex-1 min-w-0",
-  },
-  {
-    key: "created_at",
-    type: "date",
-    label: "Created",
-  },
-  {
-    key: "updated_at",
-    type: "date",
-    label: "Updated",
   },
   {
     key: "menu",
