@@ -7,7 +7,7 @@ use nosql_orm::Model;
 use nosql_orm::Validate;
 
 /* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
+use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime};
 
 #[derive(Debug, Serialize, Deserialize, Model)]
 #[table_name("todos")]
@@ -68,28 +68,8 @@ pub struct TodoCreateModel {
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
     let now = get_current_datetime();
-    let formatted_start_date = if value.start_date.is_empty() {
-      None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.start_date) {
-      Some(
-        dt.with_timezone(&Utc)
-          .format("%Y-%m-%dT%H:%M:%SZ")
-          .to_string(),
-      )
-    } else {
-      None
-    };
-    let formatted_end_date = if value.end_date.is_empty() {
-      None
-    } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&value.end_date) {
-      Some(
-        dt.with_timezone(&Utc)
-          .format("%Y-%m-%dT%H:%M:%SZ")
-          .to_string(),
-      )
-    } else {
-      None
-    };
+    let formatted_start_date = format_date(&value.start_date);
+    let formatted_end_date = format_date(&value.end_date);
 
     TodoEntity {
       id: None,
