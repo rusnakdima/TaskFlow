@@ -619,8 +619,7 @@ export class SubtasksViewComponent extends BaseListView {
             });
           }
         },
-        error: (err) => {
-          console.error("Reorder subtasks failed:", err);
+        error: () => {
           this.notifyService.showError("Failed to reorder subtasks");
         },
       });
@@ -789,8 +788,7 @@ export class SubtasksViewComponent extends BaseListView {
       next: (comment) => {
         this.storageService.addCommentToSubtask(comment, event.subtask_id);
       },
-      error: (err) => {
-        console.error("[SubtasksView] Failed to add comment:", err);
+      error: () => {
         this.notifyService.showError("Failed to add comment");
       },
     });
