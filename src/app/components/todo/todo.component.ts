@@ -32,6 +32,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
+import { getActionColor } from "@helpers/action-color.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -198,9 +199,7 @@ export class TodoComponent extends BaseItemComponent implements OnInit {
   getPriorityBadgeClass = BaseItemHelper.getPriorityBadgeClass;
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "rounded-lg p-2 transition-all duration-200 hover:scale-110";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "rounded-lg p-2 transition-all duration-200 hover:scale-110");
   }
 
   formatDate = DateHelper.formatDateShort;

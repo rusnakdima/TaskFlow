@@ -1,15 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  signal,
-  inject,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-} from "@angular/core";
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 
@@ -38,8 +29,11 @@ import { Subtask } from "@models/subtask.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskTableRowComponent extends ItemRowBaseComponent {
+  protected readonly BaseItemHelper = BaseItemHelper;
+
   @Input() task: Task | null = null;
   @Input() override todo: Todo | null = null;
+
   @Output() override toggleExpandEvent = new EventEmitter<Task>();
   @Output() override toggleSubtaskCompletionEvent = new EventEmitter<Subtask>();
   @Output() override addSubtaskCommentEvent = new EventEmitter<{
@@ -47,10 +41,12 @@ export class TaskTableRowComponent extends ItemRowBaseComponent {
     subtask_id: string;
   }>();
 
-  private cdr = inject(ChangeDetectorRef);
-
   override get item(): Task | null {
     return this.task;
+  }
+
+  override get type(): "task" {
+    return "task";
   }
 
   override get itemId(): string {
@@ -86,16 +82,12 @@ export class TaskTableRowComponent extends ItemRowBaseComponent {
     return this.itemSubtasks.length;
   }
 
-  override get itemDeleteEvent(): EventEmitter<string> {
-    return new EventEmitter<string>();
+  override get commentsTitle(): string {
+    return "Task Comments";
   }
 
-  override get addCommentEvent(): EventEmitter<{
-    content: string;
-    task_id?: string;
-    subtask_id?: string;
-  }> {
-    return new EventEmitter<{ content: string; task_id?: string; subtask_id?: string }>();
+  override get deleteItemTitle(): string {
+    return "Delete task";
   }
 
   get subtaskCommentGroups(): SubtaskCommentGroup[] {

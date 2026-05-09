@@ -16,7 +16,8 @@ import { StatusToggleComponent } from "@components/status-toggle/status-toggle.c
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
-import { PRIORITY_COLORS, STATUS_COLORS, ActionColors } from "@constants/table-field.constants";
+import { getActionColor } from "@helpers/action-color.helper";
+import { PRIORITY_COLORS, STATUS_COLORS } from "@constants/table-field.constants";
 
 @Component({
   selector: "app-kanban-task-card",
@@ -81,8 +82,6 @@ export class KanbanTaskCardComponent {
   formatDate = DateHelper.formatDateShort;
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "rounded p-1.5 transition-colors";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "rounded p-1.5 transition-colors");
   }
 }
