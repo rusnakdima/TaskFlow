@@ -1,4 +1,12 @@
-import { Component, Input, Output, EventEmitter, inject, signal } from "@angular/core";
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+  signal,
+  NO_ERRORS_SCHEMA,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-drop";
@@ -6,15 +14,16 @@ import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-dro
 import { MatIconModule } from "@angular/material/icon";
 
 import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/task.model";
 import { Comment } from "@models/comment.model";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
-import { TodoComponent } from "@components/todo/todo.component";
+import { TableFieldActionButton, TableField } from "@models/table-field.model";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { EntityListComponent } from "@components/entity-list/entity-list.component";
+
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { TODO_CARD_CONFIG, TODO_TABLE_CONFIG } from "@constants/item-display.constants";
 import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -23,16 +32,16 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
 @Component({
   selector: "app-todos-list",
   standalone: true,
+  schemas: [NO_ERRORS_SCHEMA],
   imports: [
     CommonModule,
     DragDropModule,
     MatIconModule,
-    TodoComponent,
     TableViewComponent,
-    EntityListComponent,
     EmptyStateComponent,
     ItemExpandDetailsComponent,
     BulkActionsComponent,
+    ItemDisplayComponent,
   ],
   templateUrl: "./todos-list.component.html",
 })
@@ -90,6 +99,9 @@ export class TodosListComponent {
     TABLE_ACTIONS.EDIT,
     TABLE_ACTIONS.ARCHIVE,
   ];
+
+  todoCardConfig = TODO_CARD_CONFIG;
+  todoTableConfig = TODO_TABLE_CONFIG;
 
   computeTodoStatus(todo: Todo): string {
     const tasks = this.stateService["storageService"].getTasksByTodoId(todo.id);
@@ -163,8 +175,8 @@ export class TodosListComponent {
     );
   }
 
-  onTodoListDropped(event: CdkDragDrop<Todo[]>): void {
-    this.dragDropHandlerService.onListDropped<Todo>(
+  onTodoListDropped(_event: CdkDragDrop<Todo[]>): void {
+    this.dragDropHandlerService.onListDropped(
       this.todoPlaceholder,
       (prev: number, curr: number) => {
         if (prev !== curr) {
@@ -180,9 +192,7 @@ export class TodosListComponent {
             this.stateService.activeVisibility() === "all"
               ? this.stateService.allTodosFlat()
               : this.stateService.listTodos();
-          this.dragDropService
-            .handleDrop(syntheticEvent, todos, "todos", "todos", undefined, "private")
-            .subscribe();
+          this.dragDropService.handleDrop(syntheticEvent, todos, "todos", "todos").subscribe();
         }
       }
     );
@@ -193,9 +203,7 @@ export class TodosListComponent {
       this.stateService.activeVisibility() === "all"
         ? this.stateService.allTodosFlat()
         : this.stateService.listTodos();
-    this.dragDropService
-      .handleDrop(event, todos, "todos", "todos", undefined, "private")
-      .subscribe();
+    this.dragDropService.handleDrop(event, todos, "todos", "todos").subscribe();
   }
 
   onCardClick(event: { event: MouseEvent; id: string }): void {
@@ -237,5 +245,24 @@ export class TodosListComponent {
       this.lastSelectedId.set(event.id);
     }
     this.selectionChanged.emit(event);
+  }
+
+  onTodoAction(event: { action: string; item: Todo }): void {
+    switch (event.action) {
+      case "archive":
+        this.todoArchived.emit(event.item.id);
+        break;
+      case "restore":
+        this.todoRestored.emit(event.item.id);
+        break;
+      case "blueprint":
+        this.todoSavedAsBlueprint.emit(event.item);
+        break;
+      case "delete":
+        this.todoDeleted.emit({ id: event.item.id, isOwner: event.item.user_id === this.userId });
+        break;
+      default:
+        this.tableAction.emit(event);
+    }
   }
 }
