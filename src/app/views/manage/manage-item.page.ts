@@ -203,7 +203,7 @@ export class ManageItemPage implements OnInit {
     this.initForm();
     this.subscribeToRoute();
     bindSaveShortcut(this.shortcutService, () => this.onSubmit())
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
     this.loadGithubData();
     this.loadCategories();
