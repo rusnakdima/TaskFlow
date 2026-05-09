@@ -19,6 +19,7 @@ export interface Todo extends BaseEntity {
   priority: string;
   order: number;
   user: User;
+  tasks?: import("./task.model").Task[];
   tasks_count: number;
   completed_tasks_count: number;
   chats_count: number;

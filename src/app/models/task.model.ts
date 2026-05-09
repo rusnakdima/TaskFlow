@@ -1,7 +1,4 @@
 import { BaseEntity } from "@models/base-entity.model";
-import { Subtask } from "@models/subtask.model";
-import { Todo } from "@models/todo.model";
-import { Comment } from "@models/comment.model";
 
 export enum PriorityTask {
   LOW = "low",
@@ -42,6 +39,7 @@ export interface Task extends BaseEntity {
   repeat?: RepeatInterval;
   order: number;
   depends_on?: string[];
+  subtasks?: import("./subtask.model").Subtask[];
   subtasks_count: number;
   completed_subtasks_count: number;
   comments_count: number;

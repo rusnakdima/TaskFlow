@@ -1,6 +1,5 @@
 import { BaseEntity } from "@models/base-entity.model";
-import { Task, TaskStatus } from "@models/task.model";
-import { Comment } from "@models/comment.model";
+import { TaskStatus } from "@models/task.model";
 
 export interface Subtask extends BaseEntity {
   id: string;
