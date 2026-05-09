@@ -19,13 +19,10 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 use routes::{
   auth_data_sync_route::initialize_user_data,
   auth_route::{
-    authenticate_android_biometric, check_android_biometric, check_token, complete_biometric_auth,
-    complete_passkey_authentication, complete_passkey_registration, disable_biometric,
-    disable_passkey, disable_totp, enable_biometric, enable_totp, get_user_security_status,
-    init_biometric_auth, init_passkey_authentication, init_passkey_registration,
-    init_totp_qr_login, login, qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete,
-    qr_status, qr_toggle, register, request_password_reset, reset_password, setup_totp,
-    use_recovery_code, verify_code, verify_login_totp,
+    check_token, disable_totp, enable_totp, get_user_security_status, init_totp_qr_login, login,
+    qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete, qr_status, qr_toggle,
+    register, request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
+    verify_login_totp,
   },
   cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
   github_route::{
@@ -46,10 +43,7 @@ use routes::{
 use services::{
   about_service::AboutService,
   activity_monitor_service::ActivityMonitorService,
-  auth::{
-    auth_biometric::AuthBiometricService, auth_data_sync::AuthDataSyncService,
-    auth_passkey::AuthPasskeyService, auth_qr::QrAuthService, auth_totp::AuthTotpService,
-  },
+  auth::{auth_data_sync::AuthDataSyncService, auth_qr::QrAuthService, auth_totp::AuthTotpService},
   auth_service::AuthService,
   cascade::{CascadeService, CountService},
   entity_resolution_service::EntityResolutionService,
@@ -85,8 +79,6 @@ pub struct AppState {
   pub cascade_service: CascadeService,
   pub qr_auth_service: Arc<QrAuthService>,
   pub totp_service: Arc<AuthTotpService>,
-  pub passkey_service: Arc<AuthPasskeyService>,
-  pub biometric_service: Arc<AuthBiometricService>,
   pub auth_data_sync_service: Arc<AuthDataSyncService>,
 }
 
@@ -229,17 +221,6 @@ pub fn run() {
         Some(auth_service.token_service.clone()),
       ));
 
-      let passkey_service = Arc::new(AuthPasskeyService::new(
-        json_provider.clone(),
-        mongodb_provider.clone(),
-        Arc::clone(&auth_service.webauthn_state),
-      ));
-
-      let biometric_service = Arc::new(AuthBiometricService::new(
-        json_provider.clone(),
-        mongodb_provider.clone(),
-      ));
-
       let qr_auth_service = Arc::new(QrAuthService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
@@ -267,8 +248,6 @@ pub fn run() {
         cascade_service,
         qr_auth_service,
         totp_service,
-        passkey_service,
-        biometric_service,
         auth_data_sync_service,
       });
 
@@ -286,15 +265,6 @@ pub fn run() {
       verify_login_totp,
       disable_totp,
       use_recovery_code,
-      init_passkey_registration,
-      complete_passkey_registration,
-      init_passkey_authentication,
-      complete_passkey_authentication,
-      disable_passkey,
-      enable_biometric,
-      init_biometric_auth,
-      complete_biometric_auth,
-      disable_biometric,
       get_user_security_status,
       init_totp_qr_login,
       qr_generate,
@@ -303,8 +273,6 @@ pub fn run() {
       qr_status,
       qr_toggle,
       qr_login_complete,
-      check_android_biometric,
-      authenticate_android_biometric,
       export_to_cloud,
       get_all_data_for_admin,
       get_all_data_for_archive,

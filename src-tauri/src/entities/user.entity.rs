@@ -17,15 +17,10 @@ use nosql_orm::Model;
 #[frontend_exclude(
   "password",
   "totp_secret",
-  "passkey_public_key",
-  "passkey_credential_id",
-  "passkey_device",
   "recovery_codes",
   "reset_token",
   "temporary_code",
   "code_expires_at",
-  "biometric_enabled",
-  "passkey_enabled",
   "totp_enabled",
   "qr_login_enabled"
 )]
@@ -45,16 +40,6 @@ pub struct UserEntity {
   pub totp_enabled: bool,
   #[serde(default)]
   pub totp_secret: String,
-  #[serde(default)]
-  pub passkey_credential_id: String,
-  #[serde(default)]
-  pub passkey_public_key: String,
-  #[serde(default)]
-  pub passkey_device: String,
-  #[serde(default)]
-  pub passkey_enabled: bool,
-  #[serde(default)]
-  pub biometric_enabled: bool,
   #[serde(default)]
   pub qr_login_enabled: bool,
   #[serde(default)]
@@ -105,16 +90,6 @@ pub struct UserCreateModel {
   #[serde(default)]
   pub totp_secret: String,
   #[serde(default)]
-  pub passkey_credential_id: String,
-  #[serde(default)]
-  pub passkey_public_key: String,
-  #[serde(default)]
-  pub passkey_device: String,
-  #[serde(default)]
-  pub passkey_enabled: bool,
-  #[serde(default)]
-  pub biometric_enabled: bool,
-  #[serde(default)]
   pub qr_login_enabled: bool,
   #[serde(default)]
   pub github_access_token: String,
@@ -149,11 +124,6 @@ impl From<UserCreateModel> for UserEntity {
       profile: None,
       totp_enabled: value.totp_enabled,
       totp_secret: value.totp_secret,
-      passkey_credential_id: value.passkey_credential_id,
-      passkey_public_key: value.passkey_public_key,
-      passkey_device: value.passkey_device,
-      passkey_enabled: value.passkey_enabled,
-      biometric_enabled: value.biometric_enabled,
       qr_login_enabled: value.qr_login_enabled,
       github_access_token: value.github_access_token,
       github_refresh_token: value.github_refresh_token,

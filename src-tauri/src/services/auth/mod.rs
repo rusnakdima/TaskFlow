@@ -1,11 +1,7 @@
-#[path = "auth_biometric.auth.service.rs"]
-pub mod auth_biometric;
 #[path = "auth_data_sync.service.rs"]
 pub mod auth_data_sync;
 #[path = "auth_login.auth.service.rs"]
 pub mod auth_login;
-#[path = "auth_passkey.auth.service.rs"]
-pub mod auth_passkey;
 #[path = "auth_password.auth.service.rs"]
 pub mod auth_password;
 #[path = "auth_qr.auth.service.rs"]
@@ -16,9 +12,3 @@ pub mod auth_register;
 pub mod auth_token;
 #[path = "auth_totp.auth.service.rs"]
 pub mod auth_totp;
-#[path = "webauthn_state.auth.service.rs"]
-pub mod webauthn_state;
-
-#[cfg(target_os = "android")]
-#[path = "android_biometric.auth.service.rs"]
-pub mod android_biometric;
