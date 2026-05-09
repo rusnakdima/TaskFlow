@@ -34,6 +34,7 @@ import { StatusToggleComponent } from "@components/status-toggle/status-toggle.c
 import { Common } from "@helpers/common.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
+import { getActionColor } from "@helpers/action-color.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -121,9 +122,7 @@ export class SubtaskComponent extends BaseItemComponent implements OnChanges {
   }
 
   getActionColor(action: string): string {
-    const colorKey = action as keyof typeof ActionColors;
-    const baseClass = "rounded p-1 transition-colors";
-    return `${baseClass} ${ActionColors[colorKey] || ActionColors.default}`;
+    return getActionColor(action, "rounded p-1 transition-colors");
   }
 
   truncateString = Common.truncateString;

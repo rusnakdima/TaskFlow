@@ -691,10 +691,50 @@ export class SubtasksViewComponent extends BaseListView {
       case "delete":
         this.deleteSubtask(event.item.id);
         break;
+      case "archive":
+        this.archiveSubtask(event.item.id);
+        break;
       case "toggle_status":
         this.toggleSubtaskCompletion(event.item);
         break;
     }
+  }
+
+  async archiveSubtask(subtaskId: string): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Archive Subtask",
+      message: "Are you sure you want to archive this subtask?",
+      confirmText: "Archive",
+      confirmClass: "bg-orange-600 hover:bg-orange-700",
+    });
+    if (!confirmed) return;
+
+    const todo = this.todo();
+    const visibility = todo?.visibility || "private";
+
+    if (this.isOffline()) {
+      const response = await this.adminService.toggleDeleteStatusLocal("subtasks", subtaskId);
+      if (response.status === ResponseStatus.SUCCESS) {
+        this.notifyService.showSuccess("Subtask archived successfully");
+        this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
+      } else {
+        this.notifyService.showError(response.message || "Failed to archive subtask");
+      }
+      return;
+    }
+
+    this.requestService
+      .delete("subtasks", subtaskId, { visibility: visibility as Visibility })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Subtask archived successfully");
+          this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
+        },
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to archive subtask";
+          this.notifyService.showError(message);
+        },
+      });
   }
 
   override clearSelection(): void {

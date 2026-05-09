@@ -1,98 +1,21 @@
 @if (subtasks.length === 0) {
   <app-empty-state icon="check_box" title="No subtasks found" />
 } @else {
-  @if (viewMode === "table") {
-    <app-table-view
-      [data]="subtasks"
-      [fields]="tableFields"
-      [selectedIds]="selectedIds"
-      [showSelection]="true"
-      [showStatusToggle]="true"
-      [showCommentToggle]="true"
-      [dragEnabled]="true"
-      [expandable]="true"
-      [expandTemplate]="expandTemplate"
-      [actions]="tableActions"
-      (selectionChange)="onSelectionChange($event)"
-      (selectAll)="onSelectAll()"
-      (rowClick)="onRowClick($event)"
-      (rangeSelect)="onRangeSelect($event)"
-      (additiveSelect)="onAdditiveSelect($event)"
-      (dropped)="onDrop($event)"
-      (actionClick)="onTableAction($event)"
-    >
-      <ng-template #expandTemplate let-item>
-        <app-item-expand-details [item]="item" type="subtask" />
-      </ng-template>
-    </app-table-view>
-  } @else if (viewMode === "grid") {
-    <div
-      class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      cdkDropList
-      cdkDropListOrientation="horizontal"
-      [cdkDropListData]="subtasks"
-      (cdkDropListDropped)="onDrop($event)"
-    >
-      @for (subtask of subtasks; track subtask.id) {
-        <app-subtask
-          cdkDrag
-          [cdkDragData]="subtask"
-          cdkDragPreviewContainer="global"
-          [subtask]="subtask"
-          [todo_id]="todoId"
-          [index]="$index"
-          [isOwner]="isOwner"
-          [isPrivate]="isPrivate"
-          [highlight]="highlightId === subtask.id"
-          [highlightComment]="highlightComment"
-          [openComments]="isCommentsOpen(subtask.id)"
-          [isSelected]="selectedIds.has(subtask.id)"
-          (deleteSubtaskEvent)="onDeleteSubtask($event)"
-          (toggleCompletionEvent)="onToggleCompletion($event)"
-          (updateSubtaskEvent)="onUpdateSubtask($event)"
-          (selectionChangeEvent)="onSelectionChange($event)"
-          (cardClick)="onCardClick($event)"
-        >
-          <div
-            *cdkDragPlaceholder
-            class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-          ></div>
-        </app-subtask>
-      }
-    </div>
-  } @else {
-    <div
-      class="flex w-full flex-col gap-y-3"
-      cdkDropList
-      [cdkDropListData]="subtasks"
-      (cdkDropListDropped)="onDrop($event)"
-    >
-      @for (subtask of subtasks; track subtask.id) {
-        <app-subtask
-          cdkDrag
-          [cdkDragData]="subtask"
-          cdkDragPreviewContainer="global"
-          [subtask]="subtask"
-          [todo_id]="todoId"
-          [index]="$index"
-          [isOwner]="isOwner"
-          [isPrivate]="isPrivate"
-          [highlight]="highlightId === subtask.id"
-          [highlightComment]="highlightComment"
-          [openComments]="isCommentsOpen(subtask.id)"
-          [isSelected]="selectedIds.has(subtask.id)"
-          (deleteSubtaskEvent)="onDeleteSubtask($event)"
-          (toggleCompletionEvent)="onToggleCompletion($event)"
-          (updateSubtaskEvent)="onUpdateSubtask($event)"
-          (selectionChangeEvent)="onSelectionChange($event)"
-          (cardClick)="onCardClick($event)"
-        >
-          <div
-            *cdkDragPlaceholder
-            class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-          ></div>
-        </app-subtask>
-      }
-    </div>
-  }
+  <app-entity-list
+    [itemType]="'subtask'"
+    [items]="subtasks"
+    [viewMode]="viewMode"
+    [tableFields]="tableFields"
+    [actions]="tableActions"
+    [selectedIds]="selectedIds"
+    [showSelection]="true"
+    [dragEnabled]="true"
+    [highlightId]="highlightId"
+    [isOwner]="isOwner"
+    [isPrivate]="isPrivate"
+    (itemAction)="onItemAction($event)"
+    (selectionChange)="selectionChange.emit($event)"
+    (dropped)="dropped.emit($event)"
+    (cardClick)="cardClick.emit($event)"
+  />
 }

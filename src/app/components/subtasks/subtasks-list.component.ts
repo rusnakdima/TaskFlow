@@ -6,22 +6,13 @@ import { Subtask } from "@models/subtask.model";
 import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
-import { SubtaskComponent } from "@components/subtask/subtask.component";
-import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { EntityListComponent } from "@components/entity-list/entity-list.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 
 @Component({
   selector: "app-subtasks-list",
   standalone: true,
-  imports: [
-    CommonModule,
-    DragDropModule,
-    SubtaskComponent,
-    TableViewComponent,
-    ItemExpandDetailsComponent,
-    EmptyStateComponent,
-  ],
+  imports: [CommonModule, DragDropModule, EntityListComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./subtasks-list.component.html",
 })
@@ -60,58 +51,28 @@ export class SubtasksListComponent {
     },
   ];
 
-  tableActions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.DELETE];
-
-  isCommentsOpen(subtaskId: string): boolean {
-    const openFor = this.openCommentsForId;
-    return openFor === "*" || openFor === subtaskId;
-  }
-
-  onRowClick(event: { event: MouseEvent; item: Subtask }): void {
-    this.rowClick.emit(event);
-  }
-
-  onCardClick(event: { event: MouseEvent; id: string }): void {
-    this.cardClick.emit(event);
-  }
-
-  onSelectionChange(event: { id: string; selected: boolean }): void {
-    this.selectionChange.emit(event);
-  }
-
-  onSelectAll(): void {
-    this.selectAll.emit();
-  }
-
-  onRangeSelect(event: { anchorId: string; targetId: string }): void {
-    this.rangeSelect.emit(event);
-  }
-
-  onAdditiveSelect(id: string): void {
-    this.additiveSelect.emit(id);
-  }
-
-  onDrop(event: CdkDragDrop<Subtask[]>): void {
-    this.dropped.emit(event);
-  }
-
-  onDeleteSubtask(id: string): void {
-    this.deleteSubtask.emit(id);
-  }
-
-  onToggleCompletion(subtask: Subtask): void {
-    this.toggleCompletion.emit(subtask);
-  }
-
-  onUpdateSubtask(event: { subtask: Subtask; field: string; value: unknown }): void {
-    this.updateSubtask.emit(event);
-  }
+  tableActions: TableFieldActionButton[] = [
+    TABLE_ACTIONS.EDIT,
+    TABLE_ACTIONS.ARCHIVE,
+    TABLE_ACTIONS.DELETE,
+  ];
 
   onStatusCycle(subtask: Subtask): void {
     this.toggleCompletion.emit(subtask);
   }
 
-  onTableAction(event: { action: string; item: Subtask }): void {
-    this.tableAction.emit(event);
+  onItemAction(event: { action: string; item: Subtask }): void {
+    switch (event.action) {
+      case "delete":
+        this.deleteSubtask.emit(event.item.id);
+        break;
+      case "toggle":
+        this.toggleCompletion.emit(event.item);
+        break;
+      case "update":
+        break;
+      default:
+        this.tableAction.emit(event);
+    }
   }
 }
