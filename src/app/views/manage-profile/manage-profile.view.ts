@@ -114,9 +114,7 @@ export class ManageProfileView implements OnInit {
               this.form.patchValue(profile);
             }
           },
-          error: (err) => {
-            console.error("[ManageProfileView] getProfile error:", err);
-          },
+          error: () => {},
         });
     } else if (profile.user_id === userId) {
       this.isEditMode = true;

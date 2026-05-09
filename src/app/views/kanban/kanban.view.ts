@@ -180,7 +180,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
     this.requestService.getAll("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
       next: () => {},
-      error: (err) => console.error("Failed to load todos:", err),
+      error: () => this.notifyService.showError("Failed to load todos"),
     });
   }
 
@@ -232,8 +232,8 @@ export class KanbanView extends BaseListView implements OnInit {
       })
       .subscribe({
         next: () => {},
-        error: (err) => {
-          console.error("Failed to load subtasks for task", taskId, err);
+        error: () => {
+          this.notifyService.showError("Failed to load subtasks for task");
         },
       });
   }
@@ -309,7 +309,7 @@ export class KanbanView extends BaseListView implements OnInit {
       .getAll("tasks", { filter: { todo_id: todoId }, visibility: "private", limit: 20, skip: 0 })
       .subscribe({
         next: () => {},
-        error: (err) => console.error("Failed to load tasks:", err),
+        error: () => this.notifyService.showError("Failed to load tasks"),
       });
   }
 

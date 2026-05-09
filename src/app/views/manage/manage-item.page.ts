@@ -227,7 +227,6 @@ export class ManageItemPage implements OnInit {
 
   private loadProfiles(): void {
     if (!this.mongoConnectionService.isConnected()) {
-      console.log(`[ManageItem] Profiles require MongoDB, skipping (offline)`);
       this.assignees.set([]);
       return;
     }
@@ -237,8 +236,7 @@ export class ManageItemPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (profiles) => this.assignees.set(profiles as Profile[]),
-        error: (err: Error) => {
-          console.error(`[ManageItem] Failed to load profiles:`, err);
+        error: () => {
           this.assignees.set([]);
         },
       });
