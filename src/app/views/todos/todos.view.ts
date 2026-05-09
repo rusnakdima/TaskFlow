@@ -625,6 +625,18 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     );
   }
 
+  onTableSelectAll(selectAll: boolean): void {
+    this.selectedItems.update((todoIds) => {
+      const newSelected = new Set(todoIds);
+      if (selectAll) {
+        this.stateService.listTodos().forEach((todo) => newSelected.add(todo.id));
+      } else {
+        this.stateService.listTodos().forEach((todo) => newSelected.delete(todo.id));
+      }
+      return newSelected;
+    });
+  }
+
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.stateService.listTodos());
   }
