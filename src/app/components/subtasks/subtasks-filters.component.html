@@ -1,0 +1,10 @@
+<app-filter-bar
+  [filterOptions]="filterOptions"
+  [activeFilter]="activeFilter"
+  [showFilter]="showFilter"
+  filterLabel="Status"
+  filterGroupName="subtask-filter"
+  (filterToggle)="onFilterToggle()"
+  (filterChange)="onFilterChange($event)"
+  (searchChange)="onSearchChange($event)"
+/>

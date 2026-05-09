@@ -1,0 +1,239 @@
+import { Component, Input, Output, EventEmitter, inject, computed, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Router } from "@angular/router";
+import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-drop";
+
+import { MatIconModule } from "@angular/material/icon";
+
+import { Todo } from "@models/todo.model";
+import { Task, TaskStatus } from "@models/task.model";
+import { Comment } from "@models/comment.model";
+import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TodoComponent } from "@components/todo/todo.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { TodosStateService } from "../todos-filters/todos-state.service";
+import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
+
+@Component({
+  selector: "app-todos-list",
+  standalone: true,
+  imports: [
+    CommonModule,
+    DragDropModule,
+    MatIconModule,
+    TodoComponent,
+    TableViewComponent,
+    EmptyStateComponent,
+    ItemExpandDetailsComponent,
+    BulkActionsComponent,
+  ],
+  templateUrl: "./todos-list.component.html",
+})
+export class TodosListComponent {
+  private router = inject(Router);
+  private dragDropService = inject(DragDropOrderService);
+  private dragDropHandlerService = inject(DragDropHandlerService);
+  stateService = inject(TodosStateService);
+
+  @Input() selectedTodos = signal<Set<string>>(new Set());
+  @Input() lastSelectedId = signal<string | null>(null);
+  @Input() viewMode: "card" | "grid" | "table" | "list" = "grid";
+  @Input() highlightTodoId: string | null = null;
+  @Input() userId: string = "";
+  @Input() showBulkActions = true;
+  @Input() todoPlaceholder: any;
+  @Input() dragSource: any;
+  @Input() dragTarget: any;
+  @Input() dragTargetIndex = 0;
+  @Input() dragSourceIndex = 0;
+  @Input() dragRef: any;
+  @Input() isAllSelected = false;
+
+  @Output() todoDeleted = new EventEmitter<{ id: string; isOwner: boolean }>();
+  @Output() todoArchived = new EventEmitter<string>();
+  @Output() todoRestored = new EventEmitter<string>();
+  @Output() todoSavedAsBlueprint = new EventEmitter<Todo>();
+  @Output() todoUpdated = new EventEmitter<{ todo: Todo; event: { field: string; value: any } }>();
+  @Output() todoCardClicked = new EventEmitter<{ event: MouseEvent; id: string }>();
+  @Output() selectionChanged = new EventEmitter<{ id: string; selected: boolean }>();
+  @Output() selectAll = new EventEmitter<void>();
+  @Output() clearSelection = new EventEmitter<void>();
+  @Output() bulkArchive = new EventEmitter<void>();
+  @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
+  @Output() additiveSelect = new EventEmitter<string>();
+  @Output() rowClick = new EventEmitter<any>();
+  @Output() tableAction = new EventEmitter<{ action: string; item: any }>();
+  @Output() todoDropped = new EventEmitter<CdkDragDrop<Todo[]>>();
+  @Output() todoListDropped = new EventEmitter<CdkDragDrop<Todo[]>>();
+
+  todoTableFields: TableField[] = [
+    { key: "title", label: "Project", type: "text", sortable: true },
+    { key: "priority", label: "Priority", type: "priority", sortable: true },
+    {
+      key: "status",
+      label: "Status",
+      type: "status",
+      getValue: (item) => this.computeTodoStatus(item),
+    },
+    { key: "tasks", label: "Tasks", type: "number", getValue: (item) => item.tasks_count || 0 },
+  ];
+
+  tableActions: TableFieldActionButton[] = [
+    TABLE_ACTIONS.BLUEPRINT,
+    TABLE_ACTIONS.EDIT,
+    TABLE_ACTIONS.ARCHIVE,
+  ];
+
+  computeTodoStatus(todo: Todo): string {
+    const tasks = this.stateService["storageService"].getTasksByTodoId(todo.id);
+    if (!tasks || tasks.length === 0) return "Pending";
+    const pending = tasks.filter((t) => t.status === TaskStatus.PENDING).length;
+    const completed = tasks.filter(
+      (t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.SKIPPED
+    ).length;
+    if (completed === tasks.length) return "Completed";
+    if (pending === tasks.length) return "Pending";
+    return "In Progress";
+  }
+
+  getTodoUnreadCommentsCount(todo: Todo): number {
+    const storage = this.stateService["storageService"];
+    const userId = this.userId;
+    const tasks = storage.getTasksByTodoId(todo.id);
+    if (!userId || tasks.length === 0) return 0;
+
+    let count = 0;
+    const comments = storage.comments();
+    for (const task of tasks) {
+      const taskComments = comments.filter((c: Comment) => c.task_id === task.id && !c.deleted_at);
+      if (taskComments.length === 0) continue;
+      count += taskComments.filter((c: Comment) => {
+        if (c.user_id === userId) return false;
+        if (c.read_by && c.read_by.includes(userId)) return false;
+        if (c.subtask_id) return false;
+        return true;
+      }).length;
+    }
+    return count;
+  }
+
+  onTodoListEntered(event: CdkDragEnter): void {
+    const { item, container } = event;
+    if (container === this.todoPlaceholder) return;
+    if (!this.todoPlaceholder?.element?.nativeElement) return;
+
+    const placeholderEl = this.todoPlaceholder.element.nativeElement as HTMLElement;
+    const sourceEl = item.dropContainer.element.nativeElement as HTMLElement;
+    const dropEl = container.element.nativeElement as HTMLElement;
+    const parent = dropEl.parentElement;
+    if (!parent) return;
+
+    const dragIndex = Array.prototype.indexOf.call(
+      parent.children,
+      this.dragSource ? placeholderEl : sourceEl
+    );
+    const dropIndex = Array.prototype.indexOf.call(parent.children, dropEl);
+
+    if (!this.dragSource) {
+      this.dragSourceIndex = dragIndex;
+      this.dragSource = item.dropContainer;
+      placeholderEl.style.width = sourceEl.offsetWidth + "px";
+      placeholderEl.style.minHeight = sourceEl.offsetHeight + "px";
+      sourceEl.parentElement?.removeChild(sourceEl);
+    }
+
+    this.dragTargetIndex = dropIndex;
+    this.dragTarget = container;
+    this.dragRef = item._dragRef;
+
+    placeholderEl.style.display = "";
+    parent.insertBefore(placeholderEl, dropIndex > dragIndex ? dropEl.nextSibling : dropEl);
+
+    this.todoPlaceholder._dropListRef.enter(
+      item._dragRef,
+      item.element.nativeElement.offsetLeft,
+      item.element.nativeElement.offsetTop
+    );
+  }
+
+  onTodoListDropped(event: CdkDragDrop<Todo[]>): void {
+    this.dragDropHandlerService.onListDropped<Todo>(
+      this.todoPlaceholder,
+      (prev: number, curr: number) => {
+        if (prev !== curr) {
+          const syntheticEvent = {
+            previousIndex: prev,
+            currentIndex: curr,
+            item: null,
+            container: null,
+            previousContainer: null,
+            distance: { x: 0, y: 0 },
+          } as unknown as CdkDragDrop<Todo[]>;
+          const todos =
+            this.stateService.activeVisibility() === "all"
+              ? this.stateService.allTodosFlat()
+              : this.stateService.listTodos();
+          this.dragDropService
+            .handleDrop(syntheticEvent, todos, "todos", "todos", undefined, "private")
+            .subscribe();
+        }
+      }
+    );
+  }
+
+  onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    const todos =
+      this.stateService.activeVisibility() === "all"
+        ? this.stateService.allTodosFlat()
+        : this.stateService.listTodos();
+    this.dragDropService
+      .handleDrop(event, todos, "todos", "todos", undefined, "private")
+      .subscribe();
+  }
+
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.rangeSelect.emit({ anchorId, targetId: event.id });
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.selectionChanged.emit({ id: event.id, selected: true });
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+  }
+
+  onRowClick(event: { event: MouseEvent; item: any } | any): void {
+    const item = event.item || event;
+    const mouseEvent = event.event;
+
+    if (mouseEvent?.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.rangeSelect.emit({ anchorId, targetId: item.id });
+        return;
+      }
+    } else if (mouseEvent?.ctrlKey || mouseEvent?.metaKey) {
+      this.selectionChanged.emit({ id: item.id, selected: true });
+      this.lastSelectedId.set(item.id);
+      return;
+    }
+
+    this.lastSelectedId.set(item.id);
+    this.router.navigate(["/todos", item.id, "tasks"]);
+  }
+
+  toggleTodoSelection(event: { id: string; selected: boolean }): void {
+    if (event.selected) {
+      this.lastSelectedId.set(event.id);
+    }
+    this.selectionChanged.emit(event);
+  }
+}

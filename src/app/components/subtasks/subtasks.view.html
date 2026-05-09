@@ -1,0 +1,94 @@
+<div class="flex flex-col gap-6">
+  @if (loading()) {
+    <app-loading-state message="Loading subtasks..." />
+  }
+
+  @if (!loading() && !task()) {
+    <app-empty-state
+      icon="error_outline"
+      title="Unable to load task"
+      message="The requested task could not be found"
+      actionLabel="Back to Todos"
+      actionLink="/todos"
+    />
+  }
+
+  @if (!loading() && task()) {
+    @if (fromKanban()) {
+      <div class="flex items-center">
+        <button
+          class="flex items-center gap-2 rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-800"
+          [routerLink]="['/kanban']"
+          [queryParams]="{ projectId: todoId() }"
+          title="Back to Kanban"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="arrow_back" />
+          <span class="font-medium">Back to Kanban</span>
+        </button>
+      </div>
+    }
+
+    <div class="flex items-center justify-between gap-2">
+      <app-page-toolbar [config]="getToolbarConfig()" />
+    </div>
+
+    @if (showInfoBlock()) {
+      <app-task-information
+        [task]="task()!"
+        [todo_id]="todoId()"
+        [projectTitle]="projectTitle()"
+        [listSubtasks]="listSubtasks()"
+        [isOwner]="isOwner()"
+        [isPrivate]="isPrivate()"
+      />
+    }
+
+    <app-subtasks-list
+      [subtasks]="listSubtasks()"
+      [viewMode]="viewMode()"
+      [selectedIds]="selectedSubtasks()"
+      [highlightId]="highlightSubtask()"
+      [highlightComment]="highlightComment()"
+      [openCommentsForId]="openCommentsForSubtaskId()"
+      [todoId]="todoId()"
+      [isOwner]="isOwner()"
+      [isPrivate]="isPrivate()"
+      (rowClick)="onRowClick($event)"
+      (cardClick)="onCardClick($event)"
+      (selectionChange)="toggleSubtaskSelection($event)"
+      (selectAll)="toggleSelectAll()"
+      (rangeSelect)="onRangeSelect($event)"
+      (additiveSelect)="onAdditiveSelect($event)"
+      (dropped)="onSubtaskDrop($event)"
+      (deleteSubtask)="deleteSubtask($event)"
+      (toggleCompletion)="toggleSubtaskCompletion($event)"
+      (updateSubtask)="updateSubtaskInline($event)"
+      (tableAction)="onSubtaskTableAction($event)"
+    />
+
+    <app-chat-fab [isOpen]="showChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
+
+    @if (showChat() && todoId()) {
+      <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
+    }
+
+    <app-subtasks-filters
+      [activeFilter]="activeFilter()"
+      [showFilter]="showFilter()"
+      [searchQuery]="searchQuery()"
+      (filterToggle)="toggleFilter()"
+      (filterChange)="changeFilter($any($event))"
+      (searchChange)="onSearchChange($any($event))"
+    />
+
+    <app-bulk-actions
+      [selectedCount]="selectedSubtasks().size"
+      [isAllSelected]="isAllSelected()"
+      mode="subtasks"
+      (selectAllEvent)="toggleSelectAll()"
+      (setStatusEvent)="bulkUpdateStatus($event)"
+      (softDeleteEvent)="bulkArchive()"
+      (cancelEvent)="clearSelection()"
+    />
+  }
+</div>
