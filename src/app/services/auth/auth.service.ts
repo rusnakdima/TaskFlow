@@ -72,9 +72,10 @@ export class AuthService {
   }> {
     return new Promise((resolve, reject) => {
       this.performOnlineLogin(loginData).subscribe({
-        next: (authResponse: AuthResponse) => {
+        next: (response: any) => {
+          const data = response?.data;
           resolve({
-            token: authResponse.token,
+            token: data?.token,
             requiresDataSync: true,
             isOffline: false,
           });
