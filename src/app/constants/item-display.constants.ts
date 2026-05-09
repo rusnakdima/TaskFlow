@@ -275,3 +275,55 @@ export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
     getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
   },
 ];
+
+export const CATEGORY_CARD_CONFIG: ItemDisplayConfig[] = [
+  { key: "checkbox", type: "checkbox", width: "40px" },
+  {
+    key: "title",
+    type: "title",
+    editable: true,
+    getClass: () => "flex-1 min-w-0",
+  },
+  {
+    key: "created_at",
+    type: "date",
+    label: "Created",
+  },
+  {
+    key: "updated_at",
+    type: "date",
+    label: "Updated",
+  },
+  {
+    key: "menu",
+    type: "menu",
+    getClass: () => ActionColors.default,
+  },
+];
+
+export const CATEGORY_TABLE_CONFIG: ItemDisplayConfig[] = [
+  { key: "checkbox", type: "checkbox", width: "40px" },
+  {
+    key: "title",
+    type: "title",
+    sortable: true,
+    getClass: () => "flex-1 min-w-0",
+  },
+  {
+    key: "created_at",
+    type: "date",
+    label: "Created",
+    sortable: true,
+  },
+  {
+    key: "updated_at",
+    type: "date",
+    label: "Updated",
+    sortable: true,
+  },
+  {
+    key: "actions",
+    type: "actions",
+    getClass: () => ActionColors.default,
+  },
+];
