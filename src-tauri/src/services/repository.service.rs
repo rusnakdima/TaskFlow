@@ -251,10 +251,10 @@ impl RepositoryService {
           .await
         {
           Ok(loaded) => result_docs = loaded,
-          Err(e) => {
+          Err(_e) => {
             return Err(err_response_formatted(
               "Relation loading failed",
-              &e.to_string(),
+              "unknown error",
             ));
           }
         }
@@ -410,17 +410,49 @@ impl RepositoryService {
     let filter_opt = self.build_filter(&filter_val);
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+
+    tracing::debug!(
+      "[Repo] getAll filter debugging - table={} filter_val={} filter_opt={:?} visibility_str={}",
+      table,
+      filter_val,
+      filter_opt,
+      visibility_str
+    );
+
     let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
+    tracing::debug!(
+      "[Repo] getAll provider info - table={} use_json={}",
+      table,
+      use_json
+    );
+
     let load_paths = Self::parse_load_param(load);
 
     let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
-      Ok(docs) => (docs, false),
-      Err(_) => {
+      Ok(docs) => {
+        tracing::debug!(
+          "[Repo] getAll find_many SUCCESS - table={} count={} used_json_fallback={}",
+          table,
+          docs.len(),
+          false
+        );
+        (docs, false)
+      }
+      Err(e) => {
+        tracing::debug!(
+          "[Repo] getAll find_many FAILED - table={} trying_json=true",
+          table
+        );
         let json_provider = DataProvider::Json(&self.json_provider);
         let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
+        tracing::debug!(
+          "[Repo] getAll json_fallback result - table={} count={}",
+          table,
+          docs.len()
+        );
         (docs, true)
       }
     };
