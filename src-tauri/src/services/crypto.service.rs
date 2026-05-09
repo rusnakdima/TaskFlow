@@ -1,29 +1,32 @@
 /* sys lib */
 use data_encoding::BASE64URL;
-use keyring::{Entry, Result as KeyringResult};
 use rand::Rng;
-
-const SERVICE_NAME: &str = "TaskFlow";
-const AUTH_KEY_ACCOUNT: &str = "auth-key";
+use std::fs;
+use std::path::PathBuf;
 
 pub struct CryptoService;
 
 impl CryptoService {
-  fn get_entry(account: &str) -> KeyringResult<Entry> {
-    Entry::new(SERVICE_NAME, account)
+  fn get_key_path() -> PathBuf {
+    let document_dir = dirs::document_dir().unwrap_or_else(|| PathBuf::from("."));
+    let app_dir = document_dir.join("taskflow");
+    fs::create_dir_all(&app_dir).ok();
+    app_dir.join(".auth_key")
   }
 
-  pub fn get_or_create_key() -> KeyringResult<String> {
-    let entry = Self::get_entry(AUTH_KEY_ACCOUNT)?;
-    match entry.get_password() {
-      Ok(key) => Ok(key),
-      Err(_) => {
-        let key_bytes: [u8; 32] = rand::thread_rng().gen();
-        let key_base64 = BASE64URL.encode(&key_bytes);
-        entry.set_password(&key_base64)?;
-        Ok(key_base64)
+  pub fn get_or_create_key() -> Result<String, Box<dyn std::error::Error>> {
+    let key_path = Self::get_key_path();
+
+    if let Ok(key) = fs::read_to_string(&key_path) {
+      if !key.is_empty() {
+        return Ok(key.trim().to_string());
       }
     }
+
+    let key_bytes: [u8; 32] = rand::thread_rng().gen();
+    let key_base64 = BASE64URL.encode(&key_bytes);
+    fs::write(&key_path, &key_base64)?;
+    Ok(key_base64)
   }
 
   pub fn encrypt(data: &str) -> Result<String, Box<dyn std::error::Error>> {

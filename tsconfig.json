@@ -37,7 +37,8 @@
       "@bases/*": ["./src/app/bases/*"],
       "@stores/*": ["./src/app/stores/*"],
       "@mixins/*": ["./src/app/mixins/*"],
-      "@constants/*": ["./src/app/constants/*"]
+      "@constants/*": ["./src/app/constants/*"],
+      "@validators/*": ["./src/app/validators/*"]
     }
   },
   "angularCompilerOptions": {

@@ -44,17 +44,15 @@ rand = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
-webauthn-rs = { version = "0.6.1-dev", features = ["danger-allow-state-serialisation"] }
 totp-rs = { version = "1", default-features = false, features = ["otpauth"] }
 base32 = "0.5"
 base64 = "0.13"
 qrcode = "0.14"
 image = { version = "0.25", default-features = false, features = ["png"] }
 data-encoding = "2"
-# Use vendored OpenSSL for all platforms including Android
+dirs = "6"
 rustls = "0.21"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
-keyring = { version = "3", features = [] }
 tauri-plugin-mcp-bridge = "0.11"
 
 nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
