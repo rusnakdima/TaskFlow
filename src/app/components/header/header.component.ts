@@ -9,7 +9,6 @@ import {
   signal,
   inject,
   ChangeDetectorRef,
-  Input,
   DestroyRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
@@ -32,7 +31,7 @@ import { User } from "@models/user.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
-import { NotificationAction } from "@services/notifications/notify.service";
+import { NotificationAction } from "@models/notification.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -335,7 +334,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onNotificationClick(notif: NotificationAction): void {
-    this.markAsRead(notif.id);
+    if (notif.id) {
+      this.markAsRead(notif.id);
+    }
 
     if (notif.type === "chat") {
       if (notif.todo_id) {

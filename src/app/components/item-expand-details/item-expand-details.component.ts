@@ -1,7 +1,7 @@
 import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
+import { ItemType } from "@models/base.model";
 
 @Component({
   selector: "app-item-expand-details",

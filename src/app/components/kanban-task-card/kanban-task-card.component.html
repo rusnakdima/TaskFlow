@@ -5,25 +5,13 @@
   <div class="cursor-pointer p-4" (click)="toggleExpandTask()">
     <div class="mb-3 flex items-start justify-between">
       <div class="flex min-w-0 flex-1 items-start gap-2">
-        <div class="min-w-0 flex-1">
-          <h4
-            class="textNormal line-clamp-2 text-sm font-medium"
-            [ngClass]="
-              task.status === TaskStatus.COMPLETED ||
-              task.status === TaskStatus.SKIPPED ||
-              task.status === TaskStatus.FAILED
-                ? 'text-gray-500 line-through dark:text-gray-400'
-                : ''
-            "
-          >
-            {{ task.title }}
-          </h4>
-          @if (task.description) {
-            <p class="textMuted mt-1 line-clamp-2 text-xs">
-              {{ task.description }}
-            </p>
-          }
-        </div>
+        <app-item-display
+          [item]="task"
+          [config]="kanbanConfig"
+          [isSelected]="false"
+          [actions]="[]"
+          (itemAction)="onItemAction($event)"
+        />
       </div>
       <div class="ml-2 flex items-center gap-2">
         <span

@@ -282,7 +282,7 @@
                 @if (!notif.read) {
                   <button
                     class="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100"
-                    (click)="markAsRead(notif.id); $event.stopPropagation()"
+                    (click)="markAsRead(notif.id || ''); $event.stopPropagation()"
                     title="Mark as read"
                   >
                     <mat-icon
