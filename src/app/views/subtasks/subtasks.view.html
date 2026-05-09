@@ -147,7 +147,8 @@
   <app-bulk-actions
     [selectedCount]="selectedSubtasks().size"
     [isAllSelected]="isAllSelected()"
-    mode="subtasks"
+    [mode]="'subtasks'"
+    [allSelectedArchived]="isAllSelectedArchivedSubtasks()"
     (selectAllEvent)="toggleSelectAll()"
     (setStatusEvent)="bulkUpdateStatus($event)"
     (softDeleteEvent)="bulkArchive()"

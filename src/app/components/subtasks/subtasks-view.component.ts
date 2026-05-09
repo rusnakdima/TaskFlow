@@ -229,12 +229,12 @@ export class SubtasksViewComponent extends BaseListView {
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
-  loadInitialSubtasks() {
+  loadInitialSubtasks(forceRefresh = false) {
     const taskId = this.task()?.id;
     const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
 
-    if (this.isLoadingSubtasks && this.lastLoadedTaskId === taskId) return;
+    if (!forceRefresh && this.isLoadingSubtasks && this.lastLoadedTaskId === taskId) return;
 
     this.isLoadingSubtasks = true;
     this.lastLoadedTaskId = taskId;
@@ -683,7 +683,15 @@ export class SubtasksViewComponent extends BaseListView {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
-    const visibility = this.isPrivate() ? "private" : "shared";
+    const allSubtasks = this.listSubtasks();
+    const selectedIds = Array.from(selected);
+    const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
+    const allArchived = allSelected.every((s) => s.deleted_at);
+
+    if (allArchived) {
+      await this.bulkRestoreSubtasks(selectedIds);
+      return;
+    }
 
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Subtasks",
@@ -693,42 +701,63 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    if (this.isOffline()) {
-      let successCount = 0;
-      let errorCount = 0;
-      for (const id of selected) {
-        const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
-        if (response.status === ResponseStatus.SUCCESS) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
-      }
-      if (errorCount > 0) {
-        this.notifyService.showWarning(
-          `Archived ${successCount} subtask(s), ${errorCount} failed.`
-        );
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const id of selected) {
+      const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
+      if (response.status === ResponseStatus.SUCCESS) {
+        successCount++;
       } else {
-        this.notifyService.showSuccess(`${successCount} subtask(s) archived successfully`);
+        errorCount++;
       }
-      this.clearSelection();
-      return;
     }
 
-    const deletePromises = Array.from(selected).map((id) => {
-      return firstValueFrom(
-        this.requestService.delete("subtasks", id, { visibility: visibility as Visibility })
-      );
-    });
+    if (errorCount > 0) {
+      this.notifyService.showWarning(`Archived ${successCount} subtask(s), ${errorCount} failed.`);
+    } else {
+      this.notifyService.showSuccess(`${successCount} subtask(s) archived successfully`);
+    }
+    this.clearSelection();
+    this.loadInitialSubtasks(true);
+  }
 
-    Promise.all(deletePromises)
-      .then(() => {
-        this.notifyService.showSuccess(`${selected.size} subtask(s) archived successfully`);
-        this.clearSelection();
-      })
-      .catch((err) => {
-        this.notifyService.showError(err.message || "Failed to archive subtasks");
-      });
+  async bulkRestoreSubtasks(selectedIds: string[]): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: "Restore Subtasks",
+      message: `Are you sure you want to restore ${selectedIds.length} subtask(s)?`,
+      confirmText: "Restore All",
+      confirmClass: "bg-green-600 hover:bg-green-700",
+    });
+    if (!confirmed) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const id of selectedIds) {
+      const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
+      if (response.status === ResponseStatus.SUCCESS) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    }
+
+    if (errorCount > 0) {
+      this.notifyService.showWarning(`Restored ${successCount} subtask(s), ${errorCount} failed.`);
+    } else {
+      this.notifyService.showSuccess(`${successCount} subtask(s) restored successfully`);
+    }
+    this.clearSelection();
+    this.loadInitialSubtasks(true);
+  }
+
+  isAllSelectedArchivedSubtasks(): boolean {
+    const selectedIds = Array.from(this.selectedSubtasks());
+    if (selectedIds.length === 0) return false;
+    const allSubtasks = this.listSubtasks();
+    const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
+    return allSelected.length > 0 && allSelected.every((s) => s.deleted_at);
   }
 
   onSubtaskTableAction(event: { action: string; item: Subtask }): void {
