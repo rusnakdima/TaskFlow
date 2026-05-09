@@ -22,6 +22,12 @@ export class ShortcutService implements OnDestroy {
   private refreshSubject = new Subject<void>();
   refresh$ = this.refreshSubject.asObservable();
 
+  private filterSubject = new Subject<void>();
+  filter$ = this.filterSubject.asObservable();
+
+  private submitFormSubject = new Subject<void>();
+  submitForm$ = this.submitFormSubject.asObservable();
+
   private createCategorySubject = new Subject<void>();
   createCategory$ = this.createCategorySubject.asObservable();
 
@@ -97,6 +103,12 @@ export class ShortcutService implements OnDestroy {
       if ((event.ctrlKey || event.metaKey) && event.key === "r") {
         event.preventDefault();
         this.zone.run(() => this.refreshSubject.next());
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === "f") {
+        event.preventDefault();
+        this.zone.run(() => this.filterSubject.next());
         return;
       }
 
