@@ -1,20 +1,20 @@
-import { Component, signal, computed, effect, inject, DestroyRef } from "@angular/core";
+import { Component, signal, computed, effect, inject, DestroyRef, ViewChild } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterModule, NavigationEnd } from "@angular/router";
-import { CdkDragDrop } from "@angular/cdk/drag-drop";
+import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
 import { firstValueFrom, Subscription } from "rxjs";
 import { filter, map } from "rxjs/operators";
 
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { DragDropModule } from "@angular/cdk/drag-drop";
 
 import { BaseListView } from "@views/base-list.view";
 import { AppStateService } from "@services/core/app-state.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
+import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
@@ -75,6 +75,9 @@ interface QueryParams {
   templateUrl: "./subtasks.view.html",
 })
 export class SubtasksViewComponent extends BaseListView {
+  @ViewChild("subtaskPlaceholder", { read: CdkDropList })
+  protected subtaskPlaceholder!: CdkDropList;
+
   protected getItems(): { id: string }[] {
     return this.listSubtasks();
   }
@@ -86,6 +89,7 @@ export class SubtasksViewComponent extends BaseListView {
   private confirmDialogService = inject(ConfirmDialogService);
   private bulkService = inject(BulkActionService);
   private dragDropService = inject(DragDropOrderService);
+  private dragDropHandlerService = inject(DragDropHandlerService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private commentService = inject(CommentService);
@@ -623,6 +627,54 @@ export class SubtasksViewComponent extends BaseListView {
           this.notifyService.showError("Failed to reorder subtasks");
         },
       });
+  }
+
+  onSubtaskListEntered(event: CdkDragEnter): void {
+    this.dragDropHandlerService.onListEntered(event, this.subtaskPlaceholder);
+  }
+
+  onSubtaskListDropped(_event: CdkDragDrop<Subtask[]>): void {
+    this.dragDropHandlerService.onListDropped(
+      this.subtaskPlaceholder,
+      (prev: number, curr: number) => {
+        if (prev === curr) return;
+
+        const taskId = this.task()?.id;
+        if (!taskId) return;
+
+        const syntheticEvent = {
+          previousIndex: prev,
+          currentIndex: curr,
+          item: null,
+          container: null,
+          previousContainer: null,
+          distance: { x: 0, y: 0 },
+        } as unknown as CdkDragDrop<Subtask[]>;
+
+        this.dragDropService
+          .handleDrop(
+            syntheticEvent,
+            this.listSubtasks(),
+            "subtasks",
+            "subtasks",
+            taskId,
+            this.isPrivate()
+          )
+          .subscribe({
+            next: (updatedSubtasks) => {
+              if (updatedSubtasks && Array.isArray(updatedSubtasks)) {
+                this.taskSubtasks.update((current) => {
+                  const updatedMap = new Map(updatedSubtasks.map((s) => [s.id, s]));
+                  return current.map((subtask) => updatedMap.get(subtask.id) || subtask);
+                });
+              }
+            },
+            error: () => {
+              this.notifyService.showError("Failed to reorder subtasks");
+            },
+          });
+      }
+    );
   }
 
   toggleSubtaskSelection(event: { id: string; selected: boolean }): void {
