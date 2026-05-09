@@ -35,14 +35,6 @@ pub async fn manage_data(
     data = items;
   }
 
-  tracing::debug!(
-    "[Route] >>> manage_data request_id={} op={} table={} offline={}",
-    req_id,
-    operation,
-    table,
-    is_offline
-  );
-
   if is_offline {
     let read_operations = ["getAll", "get"];
     if !read_operations.contains(&operation.as_str()) {
@@ -81,11 +73,6 @@ pub async fn manage_data(
     .await;
 
   let elapsed = start.elapsed();
-  match &result {
-    Ok(_) => tracing::debug!("[Route] <<< manage_data COMPLETE request_id={} op={} table={} elapsed={:?} status=success", req_id, op_for_log, table, elapsed),
-    Err(e) => tracing::debug!("[Route] <<< manage_data COMPLETE request_id={} op={} table={} elapsed={:?} status=error message={}", req_id, op_for_log, table, elapsed, e.message),
-  }
-
   result
 }
 
