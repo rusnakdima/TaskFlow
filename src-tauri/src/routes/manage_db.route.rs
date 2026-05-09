@@ -18,16 +18,22 @@ pub async fn manage_data(
   operation: String,
   table: String,
   id: Option<String>,
-  data: Option<Value>,
+  mut data: Option<Value>,
   filter: Option<Value>,
   load: Option<String>,
   visibility: Option<String>,
   offline: Option<bool>,
   request_id: Option<String>,
+  items: Option<Value>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
   let req_id = request_id.unwrap_or_else(|| "no-req-id".to_string());
   let start = std::time::Instant::now();
+
+  // If updateAll with items but no data, use items as data
+  if operation == "updateAll" && data.is_none() && items.is_some() {
+    data = items;
+  }
 
   tracing::debug!(
     "[Route] >>> manage_data request_id={} op={} table={} offline={}",
