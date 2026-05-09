@@ -23,13 +23,7 @@ pub async fn batch_soft_delete_cascade(
         all_failed = false;
         results.push(result);
       }
-      Err(e) => {
-        tracing::warn!(
-          "batch_soft_delete_cascade failed for id {}: {}",
-          id,
-          e.message
-        );
-      }
+      Err(_) => {}
     }
   }
 
@@ -62,13 +56,7 @@ pub async fn batch_hard_delete_cascade(
         all_failed = false;
         results.push(result);
       }
-      Err(e) => {
-        tracing::warn!(
-          "batch_hard_delete_cascade failed for id {}: {}",
-          id,
-          e.message
-        );
-      }
+      Err(_) => {}
     }
   }
 
@@ -97,9 +85,7 @@ pub async fn batch_restore_cascade(
         all_failed = false;
         results.push(result);
       }
-      Err(e) => {
-        tracing::warn!("batch_restore_cascade failed for id {}: {}", id, e.message);
-      }
+      Err(_) => {}
     }
   }
 

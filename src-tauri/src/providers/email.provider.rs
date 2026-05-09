@@ -94,10 +94,10 @@ impl EmailProvider {
 
     let mailer = match SmtpTransport::relay(&self.config.smtp_server) {
       Ok(builder) => builder.credentials(creds).build(),
-      Err(e) => {
+      Err(_e) => {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
-          message: format!("Failed to create SMTP transport: {}", e),
+          message: format!("Failed to create SMTP transport: {}", _e),
           data: DataValue::String("".to_string()),
         })
       }
