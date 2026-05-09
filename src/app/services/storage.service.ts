@@ -946,7 +946,7 @@ export class StorageService {
     }
   }
 
-  private setArraySignal<T>(
+  private setArraySignal<T extends { id: string }>(
     signal: WritableSignal<T[]>,
     items: T[],
     options?: { append?: boolean }

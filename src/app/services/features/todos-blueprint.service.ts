@@ -47,7 +47,7 @@ export class TodosBlueprintService {
     if (!name.trim()) return;
 
     const todos = this.storageService.todos();
-    const allTodos = todos;
+    const allTodos: Todo[] = todos;
     const foundTodo = allTodos.find(
       (t) => t.title === name && t.description === (description || "")
     );

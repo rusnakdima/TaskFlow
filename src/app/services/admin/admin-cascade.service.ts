@@ -25,9 +25,9 @@ export class AdminCascadeService {
     const todo = todos.find((t) => t.id === todo_id);
     if (!todo) return;
 
-    const taskIds = todo.tasks?.map((t: Task) => t.id) || [];
+    const taskIds = (todo as Todo).tasks?.map((t: Task) => t.id) || [];
     const subtaskIds =
-      todo.tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
+      (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
 
     this.dataStore.updateSignal("subtasks", (items) =>
       items.filter((s) => !subtaskIds.includes(s.id))
@@ -138,7 +138,7 @@ export class AdminCascadeService {
       const todos = this.dataStore.todos();
       const todo = todos.find((t) => t.id === id);
       if (todo) {
-        const taskIds = todo.tasks?.map((t: Task) => t.id) || [];
+        const taskIds = (todo as Todo).tasks?.map((t: Task) => t.id) || [];
 
         this.dataStore.updateSignal("tasks", (tasks) =>
           tasks.map((task) =>
@@ -149,7 +149,7 @@ export class AdminCascadeService {
         );
 
         const subtaskIds =
-          todo.tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
+          (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
         this.dataStore.updateSignal("subtasks", (subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
