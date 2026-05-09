@@ -28,6 +28,7 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
 /* services */
+import { StorageService } from "@services/storage.service";
 
 /* components */
 
@@ -59,6 +60,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
 })
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
+  private storageService = inject(StorageService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -307,10 +309,16 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   getCommentsForItem(item: any): any[] {
+    if (this.itemType === "subtask") {
+      return this.storageService.getCommentsBySubtaskId(item.id);
+    }
     return item.comments || [];
   }
 
   getSubtaskCommentGroupsForItem(item: any): SubtaskCommentGroup[] {
+    if (this.itemType === "subtask") {
+      return [];
+    }
     if (!item.subtasks) return [];
     return item.subtasks.map((s: any) => ({
       subtask_id: s.id,
