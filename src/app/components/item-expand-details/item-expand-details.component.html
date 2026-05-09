@@ -249,5 +249,55 @@
         <span>Updated: {{ item.updated_at | date: "short" }}</span>
       }
     </div>
+
+    @if (hasFields && fields.length > 0) {
+      <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+          @for (field of fields; track field.key) {
+            @if (shouldShowField(field)) {
+              <div class="flex flex-col">
+                <span class="textMuted mb-1 text-xs font-medium tracking-wide uppercase">
+                  {{ field.label }}
+                </span>
+                <span class="textNormal text-sm">
+                  @switch (field.type) {
+                    @case ("priority") {
+                      <mat-chip
+                        class="h-5 text-xs"
+                        [ngClass]="
+                          getFieldChipClass(field) || getPriorityBadgeClassFn(item[field.key])
+                        "
+                      >
+                        {{ getFieldDisplayValue(field) }}
+                      </mat-chip>
+                    }
+                    @case ("status") {
+                      <mat-chip class="h-5 text-xs" [ngClass]="getFieldChipClass(field)">
+                        {{ getFieldDisplayValue(field) }}
+                      </mat-chip>
+                    }
+                    @case ("user") {
+                      {{ getFieldDisplayValue(field) }}
+                    }
+                    @case ("array-count") {
+                      {{ getFieldDisplayValue(field) }}
+                    }
+                    @case ("date") {
+                      {{ getFieldDisplayValue(field) }}
+                    }
+                    @case ("datetime") {
+                      {{ getFieldDisplayValue(field) }}
+                    }
+                    @default {
+                      {{ getFieldDisplayValue(field) }}
+                    }
+                  }
+                </span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
   </div>
 </div>
