@@ -11,7 +11,7 @@ import {
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import { CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
+import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
 import { filter } from "rxjs/operators";
 
 import { MatIconModule } from "@angular/material/icon";
@@ -22,11 +22,13 @@ import { Todo } from "@models/todo.model";
 
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
+import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
+import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 
 import { DEFAULT_CACHE_TTL_MS, VisibilityHelper } from "@helpers/index";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
@@ -89,6 +91,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
+  private dragDropService = inject(DragDropOrderService);
+  private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -692,5 +696,50 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
+  }
+
+  onTodoDrop(event: CdkDragDrop<Todo[]>): void {
+    this.dragDropService
+      .handleDrop(event, this.stateService.listTodos(), "todos", "todos")
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Project reordered successfully");
+        },
+        error: () => {
+          this.notifyService.showError("Failed to reorder projects");
+        },
+      });
+  }
+
+  onTodoListEntered(event: CdkDragEnter): void {
+    this.dragDropHandlerService.onListEntered(event, this.todoPlaceholder);
+  }
+
+  onTodoListDropped(_event: CdkDragDrop<Todo[]>): void {
+    this.dragDropHandlerService.onListDropped(
+      this.todoPlaceholder,
+      (prev: number, curr: number) => {
+        if (prev === curr) return;
+
+        const todos = this.stateService.listTodos();
+        const syntheticEvent = {
+          previousIndex: prev,
+          currentIndex: curr,
+          item: null,
+          container: null,
+          previousContainer: null,
+          distance: { x: 0, y: 0 },
+        } as unknown as CdkDragDrop<Todo[]>;
+
+        this.dragDropService.handleDrop(syntheticEvent, todos, "todos", "todos").subscribe({
+          next: () => {
+            this.notifyService.showSuccess("Project reordered successfully");
+          },
+          error: () => {
+            this.notifyService.showError("Failed to reorder projects");
+          },
+        });
+      }
+    );
   }
 }

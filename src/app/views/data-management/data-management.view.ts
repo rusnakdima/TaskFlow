@@ -54,7 +54,6 @@ import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ViewMode } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import {
@@ -66,6 +65,9 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
+import { ADMIN_CARD_CONFIG } from "@constants/item-display.constants";
 
 @Component({
   selector: "app-data-management-view",
@@ -86,11 +88,11 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
     FormsModule,
     TableViewComponent,
     BulkActionsComponent,
-    CheckboxComponent,
     FilterSidebarComponent,
     SegmentSelectorComponent,
     PageToolbarComponent,
     ItemExpandDetailsComponent,
+    ItemDisplayComponent,
   ],
   templateUrl: "./data-management.view.html",
 })
@@ -136,6 +138,15 @@ export class DataManagementView implements OnInit {
   getAdminActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
   }
+
+  adminCardConfig: ItemDisplayConfig[] = ADMIN_CARD_CONFIG;
+
+  adminCardActions: ItemDisplayAction[] = [
+    { key: "edit", icon: "edit", label: "Edit" },
+    { key: "archive", icon: "archive", label: "Archive" },
+    { key: "restore", icon: "restore", label: "Restore" },
+    { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
+  ];
 
   // Filter state
   titleFilter = signal<string>("");
@@ -497,6 +508,40 @@ export class DataManagementView implements OnInit {
       else newRecords.delete(id);
       return newRecords;
     });
+  }
+
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    this.toggleSelectById(event.id);
+  }
+
+  onItemAction(event: { action: string; item: any }): void {
+    const { action, item } = event;
+    switch (action) {
+      case "edit":
+        break;
+      case "archive":
+      case "restore":
+        this.toggleDeleteStatus(item);
+        break;
+      case "delete":
+        this.deleteRecord(item.id);
+        break;
+      default:
+        break;
+    }
+  }
+
+  getItemType(): any {
+    const typeMap: { [key: string]: string } = {
+      todos: "todo",
+      tasks: "task",
+      subtasks: "subtask",
+      comments: "comment",
+      chats: "chat",
+      categories: "category",
+      daily_activities: "daily_activity",
+    };
+    return typeMap[this.selectedType()] || "todo";
   }
 
   toggleSelectById(id: string): void {
