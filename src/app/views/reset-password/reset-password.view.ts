@@ -32,12 +32,11 @@ export class ResetPasswordView {
   userEmail = signal("");
 
   constructor(
-    private fb: FormBuilder,
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService
   ) {
-    this.resetForm = fb.group({
+    this.resetForm = new FormBuilder().group({
       email: ["", [Validators.required, Validators.email, this.emailValidator()]],
       code: ["", [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });

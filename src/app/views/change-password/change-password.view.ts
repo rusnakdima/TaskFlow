@@ -3,13 +3,13 @@ import { CommonModule, Location } from "@angular/common";
 import { CUSTOM_ELEMENTS_SCHEMA, Component } from "@angular/core";
 import {
   AbstractControl,
-  FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
   ValidationErrors,
   ValidatorFn,
   Validators,
+  FormBuilder,
 } from "@angular/forms";
 
 /* materials */
@@ -35,12 +35,11 @@ export class ChangePasswordView {
   private userEmail: string = "";
 
   constructor(
-    private fb: FormBuilder,
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService
   ) {
-    this.resetForm = fb.group({
+    this.resetForm = new FormBuilder().group({
       password: ["", [Validators.required, Validators.minLength(6)]],
       confirmPassword: ["", [Validators.required, this.matchPasswords()]],
     });

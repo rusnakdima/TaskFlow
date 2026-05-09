@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, OnDestroy, inject, DestroyRef } from "@angular/core";
-import { ActivatedRoute, RouterModule } from "@angular/router";
+import { RouterModule } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -38,7 +38,6 @@ export class ProfileView implements OnInit, OnDestroy {
   private profileLoaded = false;
 
   constructor(
-    private route: ActivatedRoute,
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService,

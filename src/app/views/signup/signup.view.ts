@@ -3,15 +3,15 @@ import { CommonModule } from "@angular/common";
 import { Component, OnDestroy, signal } from "@angular/core";
 import {
   AbstractControl,
-  FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
   ValidationErrors,
   ValidatorFn,
   Validators,
+  FormBuilder,
 } from "@angular/forms";
-import { Router, RouterModule } from "@angular/router";
+import { RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -21,7 +21,6 @@ import { Common } from "@helpers/common.helper";
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 /* models */
-import { ResponseStatus } from "@models/response.model";
 import { SignupForm, AuthResponse } from "@models/auth-forms.model";
 
 /* services */
@@ -41,12 +40,10 @@ export class SignupView implements OnDestroy {
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(
-    private fb: FormBuilder,
-    private router: Router,
     private authService: AuthService,
     private notifyService: NotifyService
   ) {
-    this.regForm = fb.group({
+    this.regForm = new FormBuilder().group({
       email: ["", [Validators.required, Validators.email, this.emailValidator()]],
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
       password: ["", [Validators.required, Validators.minLength(6)]],

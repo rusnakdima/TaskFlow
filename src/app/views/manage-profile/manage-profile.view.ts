@@ -69,25 +69,25 @@ export class ManageProfileView implements OnInit {
       label: "Name",
       name: "name",
       type: TypeField.text,
-      isShow: (param) => true,
+      isShow: () => true,
     },
     {
       label: "Last Name",
       name: "last_name",
       type: TypeField.text,
-      isShow: (param) => true,
+      isShow: () => true,
     },
     {
       label: "Biography",
       name: "bio",
       type: TypeField.text,
-      isShow: (param) => true,
+      isShow: () => true,
     },
     {
       label: "Image Profile",
       name: "image_url",
       type: TypeField.image,
-      isShow: (param) => true,
+      isShow: () => true,
     },
   ];
 
@@ -142,7 +142,7 @@ export class ManageProfileView implements OnInit {
           const sub = this.requestService
             .update<Profile>("profiles", profile.id, updateData)
             .subscribe({
-              next: (updated) => {
+              next: () => {
                 this.notifyService.showSuccess("Profile updated successfully");
                 this.profileRequiredService.setProfileRequiredMode(false);
                 this.router.navigate(["/profile"]);
@@ -156,7 +156,7 @@ export class ManageProfileView implements OnInit {
         }
       } else {
         const sub = this.requestService.create<Profile>("profiles", body).subscribe({
-          next: (created) => {
+          next: () => {
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
             window.location.href = "/";

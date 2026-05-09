@@ -20,7 +20,6 @@ import { SecurityService } from "@services/auth/security.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
 import { GithubService } from "@services/github/github.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 
 @Component({
   selector: "app-settings",
@@ -36,7 +35,6 @@ export class SettingsView implements OnInit, OnDestroy {
   private webAuthnService = inject(WebAuthnService);
   private githubService = inject(GithubService);
   private sanitizer = inject(DomSanitizer);
-  private requestService = inject(REQUEST_SERVICE);
 
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);
@@ -83,10 +81,10 @@ export class SettingsView implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const settings = this.notifyService.getSettings();
-    this.chatNotificationVolume.set(settings.chatVolume);
-    this.commentNotificationVolume.set(settings.commentVolume);
-    this.generalNotificationVolume.set(settings.generalVolume);
-    this.enableNotificationSounds.set(settings.enableSounds);
+    this.chatNotificationVolume.set(settings.chatVolume ?? 50);
+    this.commentNotificationVolume.set(settings.commentVolume ?? 50);
+    this.generalNotificationVolume.set(settings.generalVolume ?? 50);
+    this.enableNotificationSounds.set(settings.enableSounds ?? true);
 
     this.platformName.set(this.capabilities().platformName);
 
@@ -173,7 +171,7 @@ export class SettingsView implements OnInit, OnDestroy {
     }
   }
 
-  private completeGithubConnection(result: any): void {
+  private completeGithubConnection(_result: any): void {
     this.stopGithubPolling();
 
     this.githubService.getConnectionStatus().subscribe({
@@ -260,7 +258,7 @@ export class SettingsView implements OnInit, OnDestroy {
         next: (result) => {
           this.totpQrCode.set(this.sanitizer.bypassSecurityTrustResourceUrl(result.qrCode));
           this.totpSecret.set(result.secret);
-          this.totpRecoveryCodes.set(result.recoveryCodes);
+          this.totpRecoveryCodes.set(result.recoveryCodes ?? []);
           this.totpSetupInProgress.set(false);
         },
         error: (err) => {

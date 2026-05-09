@@ -22,7 +22,7 @@ import { REQUEST_SERVICE } from "@services/api.service";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField } from "@components/table-view/table-field.model";
+import { TableField } from "@models/table-field.model";
 import {
   SegmentSelectorComponent,
   SegmentOption,

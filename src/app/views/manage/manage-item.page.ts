@@ -1,13 +1,5 @@
 import { CommonModule, Location } from "@angular/common";
-import {
-  Component,
-  OnInit,
-  signal,
-  inject,
-  computed,
-  ChangeDetectorRef,
-  DestroyRef,
-} from "@angular/core";
+import { Component, OnInit, signal, inject, computed, DestroyRef } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -15,7 +7,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute } from "@angular/router";
 import { Subscription, firstValueFrom } from "rxjs";
 
 import { MatIconModule } from "@angular/material/icon";
@@ -39,15 +31,13 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/storage.service";
-import { RelationLoadingService } from "@services/core/relation-loading.service";
-import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
-import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 type ItemType = "todo" | "task" | "subtask";
 
@@ -89,16 +79,12 @@ interface FormConfig {
 export class ManageItemPage implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
-  private cdr = inject(ChangeDetectorRef);
-  private relationLoader = inject(RelationLoadingService);
-  private visibilitySyncService = inject(VisibilitySyncService);
   private githubService = inject(GithubService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);

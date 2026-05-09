@@ -6,24 +6,16 @@ import {
   AfterViewInit,
   ViewChild,
   signal,
-  effect,
   inject,
   computed,
   HostListener,
-  DestroyRef,
+  NO_ERRORS_SCHEMA,
 } from "@angular/core";
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import {
-  CdkDragDrop,
-  CdkDragEnter,
-  CdkDropList,
-  DragDropModule,
-  DragRef,
-} from "@angular/cdk/drag-drop";
-import { Subscription, firstValueFrom } from "rxjs";
-import { filter, map } from "rxjs/operators";
-import { toSignal } from "@angular/core/rxjs-interop";
+import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
+import { firstValueFrom } from "rxjs";
+import { filter } from "rxjs/operators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -37,27 +29,19 @@ import { Subtask } from "@models/subtask.model";
 import { Chat } from "@models/chat.model";
 
 /* services */
-import { AuthService } from "@services/auth/auth.service";
-import { AuthorizationService } from "@services/features/authorization.service";
-import { NotifyService } from "@services/notifications/notify.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { StorageService } from "@services/storage.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
-import { ShortcutService } from "@services/ui/shortcut.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { PromptDialogService } from "@services/core/prompt-dialog.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { FilterHelper } from "@helpers/filter.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
-import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
@@ -65,12 +49,11 @@ import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 import { BaseListView } from "@views/base-list.view";
 
 /* components */
-import { TaskComponent } from "@components/task/task.component";
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { GithubService } from "@services/github/github.service";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
@@ -82,10 +65,13 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
 
 @Component({
   selector: "app-tasks",
   standalone: true,
+  schemas: [NO_ERRORS_SCHEMA],
   imports: [
     CommonModule,
     FormsModule,
@@ -93,7 +79,6 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     MatExpansionModule,
     MatProgressSpinnerModule,
     RouterModule,
-    TaskComponent,
     TodoInformationComponent,
     ChatWindowComponent,
     DragDropModule,
@@ -104,34 +89,26 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     ItemExpandDetailsComponent,
     LoadingStateComponent,
     ChatFabComponent,
+    ItemDisplayComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
 export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   @ViewChild("taskPlaceholder", { read: CdkDropList }) private taskPlaceholder!: CdkDropList;
 
-  private dragTarget: CdkDropList | null = null;
-  private dragTargetIndex = 0;
-  private dragSource: CdkDropList | null = null;
-  private dragSourceIndex = 0;
-  private dragRef: DragRef | null = null;
-
   private requestService = inject(REQUEST_SERVICE);
-  private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
   private dragDropHandlerService = inject(DragDropHandlerService);
   private bulkActionHelper = inject(BulkActionHelper);
   public bulkService = inject(BulkActionService);
-
-  private appStateService = inject(AppStateService);
-  private authorizationService = inject(AuthorizationService);
-  private githubService = inject(GithubService);
-  private mongoConnectionService = inject(MongoConnectionService);
+  private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
   private promptDialogService = inject(PromptDialogService);
-  private adminService = inject(AdminService);
+
+  private appStateService = inject(AppStateService);
+  private githubService = inject(GithubService);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -148,91 +125,24 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   openComments = signal(false);
   openChat = signal(false);
   chats = signal<Chat[]>([]);
-  private routeSub?: Subscription;
-  private loadingRelations = signal<Set<string>>(new Set());
 
-  private chatLoadingGuard = new Set<string>();
-  private loadedChatTodoIds = new Set<string>();
-  private loadedTaskTodoIds = new Set<string>();
+  taskCardConfig = TASK_CARD_CONFIG;
+  taskActions = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
 
   todo = signal<Todo | null>(null);
   todoId = signal<string | null>(null);
 
-  private todoSubscription?: Subscription;
+  isOwner(): boolean {
+    return true;
+  }
 
-  private lastLoadedTaskTodoId: string | null = null;
-
-  private chatEffect = effect(() => {
-    const tid = this.todoId();
+  isPrivate(): boolean {
     const todo = this.todo();
-    if (tid && todo) {
-      const cachedChats = this.storageService.getChatsByTodo(tid);
-      const isCacheValid = this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS);
-
-      if (cachedChats.length > 0 && isCacheValid) {
-        this.chats.set(cachedChats);
-        return;
-      }
-
-      if (cachedChats.length > 0 && !isCacheValid) {
-        this.chats.set(cachedChats);
-      }
-
-      if (!this.loadedChatTodoIds.has(tid)) {
-        const visibility = this.isPrivate() ? "private" : "shared";
-        if (!this.chatLoadingGuard.has(tid)) {
-          this.chatLoadingGuard.add(tid);
-          this.requestService
-            .loadPage("chats", {
-              filter: { todo_id: tid },
-              visibility,
-              skip: 0,
-              limit: 10,
-              load: ["user"],
-            })
-            .subscribe({
-              next: (chats) => {},
-              complete: () => {
-                this.loadedChatTodoIds.add(tid);
-                this.chatLoadingGuard.delete(tid);
-              },
-            });
-        }
-      }
-    }
-  });
-
-  private taskLoadEffect = effect(() => {
-    const todoId = this.todoId();
-    if (todoId && todoId !== this.lastLoadedTaskTodoId && !this.loadedTaskTodoIds.has(todoId)) {
-      this.lastLoadedTaskTodoId = todoId;
-      this.loadedTaskTodoIds.add(todoId);
-      this.loadInitialTasks();
-    }
-  });
-
-  isOwner = computed(() => this.todo()?.user_id === this.userId);
-  isPrivate = computed(() => this.todo()?.visibility === "private");
+    return todo?.visibility !== "shared";
+  }
 
   todoTasks = signal<Task[]>([]);
   allTasksForTodo = computed(() => this.todoTasks());
-
-  private tasksSubscription?: Subscription;
-
-  private readonly routeTodoId = toSignal(
-    this.route.paramMap.pipe(map((params) => params.get("todoId") ?? null)),
-    { initialValue: this.route.snapshot.paramMap.get("todoId") ?? null }
-  );
-
-  private todoEffect = effect(() => {
-    const tid = this.routeTodoId() || this.route.snapshot.data["todo"]?.id;
-    if (tid && tid !== this.lastLoadedTodoId) {
-      this.lastLoadedTodoId = tid;
-      this.loadedChatTodoIds.delete(tid);
-      this.todoId.set(tid);
-      this.loadInitialTodo(tid);
-    }
-  });
 
   private loadInitialTodo(todoId: string): void {
     this.requestService
@@ -262,14 +172,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
-  private isLoadingTasks = false;
-  private lastLoadedTodoId: string | null = null;
-
   loadInitialTasks(forceRefresh = false) {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+    const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
     const isCacheValid = this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS);
 
     if (cachedTasks.length > 0 && isCacheValid && !forceRefresh) {
@@ -283,9 +190,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       }));
       return;
     }
-
-    this.isLoadingTasks = true;
-    this.lastLoadedTodoId = todoId;
 
     this.requestService
       .loadPage<Task>("tasks", {
@@ -310,9 +214,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
             loading: false,
           }));
         },
-        complete: () => {
-          this.isLoadingTasks = false;
-        },
       });
   }
 
@@ -320,7 +221,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
 
     const todoId = this.todoId();
-    const visibility = this.todo()?.visibility || "private";
     if (!todoId) return;
 
     this.requestService.loadMore<Task>("tasks").subscribe({
@@ -360,7 +260,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     let count = 0;
     const taskSubtasks = this.getTaskSubtasks(task.id);
-    for (const subtask of taskSubtasks) {
+    for (const _subtask of taskSubtasks) {
       const subtaskComments = currentChats.filter((c) => !c.deleted_at);
       if (subtaskComments.length === 0) continue;
       count += subtaskComments.filter((c: Chat) => {
@@ -373,7 +273,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskSubtasks(taskId: string): Subtask[] {
-    return this.storageService.getSubtasksByTaskId(taskId);
+    return this.storageService.subtasksByTaskId().get(taskId) || [];
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -509,6 +409,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const routeData = this.route.snapshot.data;
     if (!routeData?.["todo"] && !this.route.snapshot.paramMap.get("todoId")) {
       this.notifyService.showError("Invalid todo ID.");
+    } else {
+      const todoId = this.route.snapshot.paramMap.get("todoId") || routeData?.["todo"]?.id;
+      if (todoId) {
+        this.todoId.set(todoId);
+        this.loadInitialTodo(todoId);
+      }
     }
 
     this.loading.set(false);
@@ -608,7 +514,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     const todo = this.todo();
-    const isPrivate = todo?.visibility !== "shared";
 
     const nextTask = { ...task };
     delete (nextTask as any)._id;
@@ -643,7 +548,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         visibility: (todo?.visibility || "private") as Visibility,
       })
       .subscribe({
-        next: (result: Task) => {
+        next: () => {
           this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
         },
         error: () => {
@@ -742,6 +647,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return actions;
   }
 
+  getTaskCardActions() {
+    return this.taskActions;
+  }
+
   onTaskTableAction(event: { action: string; item: Task }): void {
     switch (event.action) {
       case "edit":
@@ -756,6 +665,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       case "archive":
         this.archiveTask(event.item.id);
         break;
+      case "toggle":
       case "toggle_status":
         this.toggleTaskCompletion(event.item);
         break;
@@ -763,6 +673,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         this.createOrUpdateGithubIssueFromTask(event.item);
         break;
     }
+  }
+
+  onTaskItemAction(event: { action: string; item: Task }): void {
+    this.onTaskTableAction(event);
   }
 
   private createOrUpdateGithubIssueFromTask(task: Task): void {
@@ -823,7 +737,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
   }
 
-  onCommentToggle(taskId: string): void {
+  onCommentToggle(): void {
     this.highlightCommentId.set(null);
   }
 
@@ -886,46 +800,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskListEntered(event: CdkDragEnter): void {
-    const { item, container } = event;
-    if (container === this.taskPlaceholder) return;
-    if (!this.taskPlaceholder?.element?.nativeElement) return;
-
-    const placeholderEl = this.taskPlaceholder.element.nativeElement as HTMLElement;
-    const sourceEl = item.dropContainer.element.nativeElement as HTMLElement;
-    const dropEl = container.element.nativeElement as HTMLElement;
-    const parent = dropEl.parentElement;
-    if (!parent) return;
-
-    const dragIndex = Array.prototype.indexOf.call(
-      parent.children,
-      this.dragSource ? placeholderEl : sourceEl
-    );
-    const dropIndex = Array.prototype.indexOf.call(parent.children, dropEl);
-
-    if (!this.dragSource) {
-      this.dragSourceIndex = dragIndex;
-      this.dragSource = item.dropContainer;
-      placeholderEl.style.width = sourceEl.offsetWidth + "px";
-      placeholderEl.style.minHeight = sourceEl.offsetHeight + "px";
-      sourceEl.parentElement?.removeChild(sourceEl);
-    }
-
-    this.dragTargetIndex = dropIndex;
-    this.dragTarget = container;
-    this.dragRef = item._dragRef;
-
-    placeholderEl.style.display = "";
-    parent.insertBefore(placeholderEl, dropIndex > dragIndex ? dropEl.nextSibling : dropEl);
-
-    this.taskPlaceholder._dropListRef.enter(
-      item._dragRef,
-      item.element.nativeElement.offsetLeft,
-      item.element.nativeElement.offsetTop
-    );
+    this.dragDropHandlerService.onListEntered(event, this.taskPlaceholder);
   }
 
   onTaskListDropped(): void {
-    this.dragDropHandlerService.onListDropped<Task>(
+    this.dragDropHandlerService.onListDropped(
       this.taskPlaceholder,
       (prev: number, curr: number) => {
         const todoId = this.todoId();
@@ -941,14 +820,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         } as unknown as CdkDragDrop<Task[]>;
 
         this.dragDropService
-          .handleDrop(
-            syntheticEvent,
-            this.listTasks(),
-            "tasks",
-            "tasks",
-            todoId,
-            this.isPrivate() ? "private" : "shared"
-          )
+          .handleDrop(syntheticEvent, this.listTasks(), "tasks", "tasks", todoId)
           .subscribe({
             next: () => {},
             error: (err) => {
@@ -964,22 +836,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    this.dragDropService
-      .handleDrop(
-        event,
-        this.listTasks(),
-        "tasks",
-        "tasks",
-        todoId,
-        this.isPrivate() ? "private" : "shared"
-      )
-      .subscribe({
-        next: () => {},
-        error: (err) => {
-          console.error("Task drop failed:", err);
-          this.notifyService.showError("Failed to drop task");
-        },
-      });
+    this.dragDropService.handleDrop(event, this.listTasks(), "tasks", "tasks", todoId).subscribe({
+      next: () => {},
+      error: (err) => {
+        console.error("Task drop failed:", err);
+        this.notifyService.showError("Failed to drop task");
+      },
+    });
   }
 
   toggleTaskSelection(event: { id: string; selected: boolean }) {
@@ -1044,7 +907,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const updatePromises = Array.from(selectedIds).map((id) => {
       return firstValueFrom(
-        this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (id, data) => {
+        this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (_id, _data) => {
           return this.requestService.update<Task>(
             "tasks",
             id,
@@ -1060,7 +923,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         this.clearSelection();
         this.notifyService.showSuccess(`${selectedIds.length} task(s) updated`);
       })
-      .catch((err) => {
+      .catch(() => {
         this.notifyService.showError("Failed to update tasks");
       });
   }
@@ -1169,7 +1032,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storageService.getTodoById(todoId);
+    const todo = this.storageService.todoMap().get(todoId);
     return todo?.title || "-";
   }
 }

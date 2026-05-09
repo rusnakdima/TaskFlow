@@ -2,13 +2,11 @@
 import {
   Component,
   OnInit,
-  OnDestroy,
   signal,
   effect,
   computed,
   inject,
   ChangeDetectorRef,
-  DestroyRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -24,20 +22,16 @@ import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 
 /* models */
-import { Todo } from "@models/todo.model";
 import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* services */
-import { AuthService } from "@services/auth/auth.service";
-import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { STATUS_ICONS, STATUS_BG_COLORS } from "@constants/table-field.constants";
 
 /* views */
@@ -84,8 +78,6 @@ export class KanbanView extends BaseListView implements OnInit {
   private requestService = inject(REQUEST_SERVICE);
   private dragDropService = inject(KanbanDragDropService);
   private cdr = inject(ChangeDetectorRef);
-  private destroyRef = inject(DestroyRef);
-  private mongoConnectionService = inject(MongoConnectionService);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -102,19 +94,8 @@ export class KanbanView extends BaseListView implements OnInit {
     return this.todos().find((t) => t.id === todoId) ?? null;
   });
 
-  private selectedTodoMeta = computed(() => {
-    const todo = this.selectedTodo();
-    const currentUserId = this.authService.getValueByKey("id");
-    return {
-      isPrivate: todo?.visibility === "private",
-      isOwner: todo?.user_id === currentUserId,
-    };
-  });
-
   selectedTodoId = signal<string>("");
   expandedTasks = signal<Set<string>>(new Set());
-
-  userId = signal<string>("");
 
   private isUpdatingOrder = signal<boolean>(false);
   showStats = signal(false);
@@ -129,10 +110,10 @@ export class KanbanView extends BaseListView implements OnInit {
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
     if (!todoId) return [];
-    return this.storageService.getTasksByTodoId(todoId);
+    return this.storageService.tasksByTodoId().get(todoId) || [];
   });
 
-  columns = [
+  columns: { id: string; label: string; icon: string; iconBgClass: string }[] = [
     {
       id: TaskStatus.PENDING,
       label: "To Do",
@@ -196,41 +177,9 @@ export class KanbanView extends BaseListView implements OnInit {
 
   override ngOnInit(): void {
     super.ngOnInit();
-    this.userId.set(this.authService.getValueByKey("id"));
-
-    const cachedTodos = this.storageService.todos();
-    if (cachedTodos.length > 0 && !this.mongoConnectionService.isConnected()) {
-      const queryProjectId = this.route.snapshot.queryParams["projectId"];
-      if (queryProjectId) {
-        this.selectedTodoId.set(queryProjectId);
-      } else if (cachedTodos.length > 0) {
-        this.selectedTodoId.set(cachedTodos[0].id);
-      }
-      this.loadTasksForTodo(this.selectedTodoId(), true);
-      return;
-    }
-
-    this.routeSub = this.route.queryParams.subscribe((params) => {
-      if (params["projectId"]) {
-        this.selectedTodoId.set(params["projectId"]);
-        this.loadTasksForTodo(params["projectId"]);
-      }
-    });
 
     this.requestService.getAll("todos", { visibility: "all", limit: 20, skip: 0 }).subscribe({
-      next: () => {
-        let todoId = this.selectedTodoId();
-        if (!todoId) {
-          const firstTodo = this.todos()[0];
-          if (firstTodo) {
-            todoId = firstTodo.id;
-            this.selectedTodoId.set(todoId);
-          }
-        }
-        if (todoId) {
-          this.loadTasksForTodo(todoId);
-        }
-      },
+      next: () => {},
       error: (err) => console.error("Failed to load todos:", err),
     });
   }
@@ -271,7 +220,7 @@ export class KanbanView extends BaseListView implements OnInit {
   }
 
   private loadSubtasksIfNeeded(taskId: string): void {
-    const existingSubtasks = this.storageService.getSubtasksByTaskId(taskId);
+    const existingSubtasks = this.storageService.subtasksByTaskId().get(taskId) || [];
     if (existingSubtasks.length > 0) return;
 
     this.requestService
@@ -306,7 +255,6 @@ export class KanbanView extends BaseListView implements OnInit {
     const todoId = this.selectedTodoId();
     if (!todoId) return;
 
-    const { isPrivate, isOwner } = this.selectedTodoMeta();
     const visibility = (this.selectedTodo()?.visibility ?? "private") as
       | "private"
       | "shared"
@@ -324,7 +272,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
   getSubtasksForTask(taskId?: string): Subtask[] {
     if (!taskId) return [];
-    return this.storageService.getSubtasksByTaskId(taskId);
+    return this.storageService.subtasksByTaskId().get(taskId) || [];
   }
 
   getCompletedSubtasksCount(taskId?: string): number {
@@ -342,7 +290,7 @@ export class KanbanView extends BaseListView implements OnInit {
     if (todoId) {
       this.selectedTodoId.set(todoId);
       this.expandedTasks.set(new Set());
-      const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+      const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
       if (cachedTasks.length === 0 || !this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
         this.loadTasksForTodo(todoId);
       }
@@ -351,7 +299,7 @@ export class KanbanView extends BaseListView implements OnInit {
 
   private loadTasksForTodo(todoId: string, forceRefresh = false): void {
     if (!forceRefresh) {
-      const cachedTasks = this.storageService.getTasksByTodoId(todoId);
+      const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
       if (cachedTasks.length > 0 && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
         return;
       }
@@ -402,7 +350,7 @@ export class KanbanView extends BaseListView implements OnInit {
   getTaskProgressPercentage = BaseItemHelper.getTaskProgressPercentage;
   getProgressSegments = BaseItemHelper.getProgressSegments;
   getConnectedDropLists = (currentColumnId: string) =>
-    this.dragDropService.getConnectedDropLists(currentColumnId, this.columns);
+    this.dragDropService.getConnectedDropLists(currentColumnId, this.columns as any);
 
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {
     const result = this.dragDropService.handleTaskDrop(
@@ -431,7 +379,6 @@ export class KanbanView extends BaseListView implements OnInit {
 
     this.isUpdatingOrder.set(true);
 
-    const { isPrivate, isOwner } = this.selectedTodoMeta();
     const task = this.projectTasks().find((t) => t.id === taskId);
     const visibility = (this.selectedTodo()?.visibility ?? "private") as
       | "private"
@@ -443,7 +390,7 @@ export class KanbanView extends BaseListView implements OnInit {
     }
 
     this.requestService.update("tasks", taskId, { status: newStatus }, { visibility }).subscribe({
-      next: (updatedTask) => {
+      next: () => {
         this.isUpdatingOrder.set(false);
         setTimeout(() => {
           this.cdr.detectChanges();

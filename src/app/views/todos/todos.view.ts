@@ -2,7 +2,6 @@ import { CommonModule } from "@angular/common";
 import {
   Component,
   OnInit,
-  OnDestroy,
   AfterViewInit,
   ViewChild,
   signal,
@@ -13,7 +12,7 @@ import {
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
-import { CdkDropList, DragDropModule, DragRef } from "@angular/cdk/drag-drop";
+import { CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
 import { filter } from "rxjs/operators";
 
 import { MatIconModule } from "@angular/material/icon";
@@ -21,17 +20,10 @@ import { MatSelectModule } from "@angular/material/select";
 import { MatMenuModule } from "@angular/material/menu";
 
 import { Todo } from "@models/todo.model";
-import { TaskStatus } from "@models/task.model";
 
-import { AuthService } from "@services/auth/auth.service";
-import { NotifyService } from "@services/notifications/notify.service";
-import { StorageService } from "@services/storage.service";
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
-import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
-import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { ShortcutService } from "@services/ui/shortcut.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
@@ -52,6 +44,7 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { FilterField } from "@models/filter-config.model";
+import { ViewMode } from "@models/view-mode.model";
 import { BlueprintCreateDialogComponent } from "@components/blueprint-dialogs/blueprint-create-dialog.component";
 import { BlueprintSelectionDialogComponent } from "@components/blueprint-dialogs/blueprint-selection-dialog.component";
 import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blueprint-apply-dialog.component";
@@ -97,8 +90,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
-  private dragDropService = inject(DragDropOrderService);
-  private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -195,11 +186,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       viewMode: {
         mode: this.viewMode(),
         pageKey: this.isSharedMode() ? "shared-tasks" : "todos",
-        onModeChange: (mode) => this.setViewMode(mode),
+        onModeChange: (mode: ViewMode) => this.setViewMode(mode),
       },
       filterFields: this.filterFields,
       showFilter: this.showFilter(),
-      onFiltersChange: (filters) => this.onFiltersChange(filters),
+      onFiltersChange: (filters: Record<string, string | string[] | any>) =>
+        this.onFiltersChange(filters),
     };
   }
 
@@ -392,7 +384,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return this.stateService.getFilteredCount(filter);
   }
 
-  async deleteTodoById(todoId?: string, isOwner: boolean = true): Promise<void> {
+  async deleteTodoById(todoId?: string, _isOwner: boolean = true): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Delete Project",
       message: "Are you sure you want to delete this project?",
@@ -673,7 +665,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       const selectedArray = Array.from(selected).map((id) => ({ id }));
       const sub = this.bulkActionHelper
         .bulkDelete(selectedArray, (id) => {
-          const todo = this.storageService.getTodoById(id);
+          const todo = this.storageService.todoMap().get(id);
           const visibility = VisibilityHelper.getVisibility(todo?.visibility);
           return this.requestService.delete("todos", id, { visibility });
         })

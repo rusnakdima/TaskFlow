@@ -11,7 +11,6 @@ import {
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
-import { Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -31,6 +30,7 @@ import { StorageService } from "@services/storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
+import { AdminCascadeService } from "@services/admin/admin-cascade.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
@@ -41,7 +41,7 @@ import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 /* models */
-import { AdminFieldConfig, AdminFilterState } from "@models/admin-table.model";
+import { AdminFilterState } from "@models/admin-table.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* constants */
@@ -50,7 +50,7 @@ import { FILTER_CONFIGS } from "@constants/filter.constants";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
@@ -105,6 +105,7 @@ export class DataManagementView implements OnInit {
   protected storageService = inject(StorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
+  protected adminCascadeService = inject(AdminCascadeService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
   protected requestService = inject(REQUEST_SERVICE);
@@ -195,7 +196,7 @@ export class DataManagementView implements OnInit {
 
   private loadAdminData(force: boolean) {
     const sub = this.adminStorageService.loadAdminData(force).subscribe({
-      next: (data) => {
+      next: () => {
         this.paginationState.set({
           skip: 0,
           limit: 0,
@@ -232,7 +233,7 @@ export class DataManagementView implements OnInit {
     }
 
     const sub = this.archiveStorageService.loadArchiveData(force).subscribe({
-      next: (data) => {
+      next: () => {
         this.archiveLoadedSignal.update((s) => ({ ...s, [type]: true }));
         this.paginationState.set({
           skip: 0,
@@ -597,25 +598,15 @@ export class DataManagementView implements OnInit {
   }
 
   async onBulkSoftDelete(): Promise<void> {
-    const table = this.selectedType();
-    const selected = Array.from(this.selectedRecords());
-
-    const promises = selected.map((id) =>
-      this.mode === "admin"
-        ? this.adminService.toggleDeleteStatus(table, id)
-        : this.adminService.toggleDeleteStatusLocal(table, id)
+    await this.adminCascadeService.softDeleteBatch(
+      this.selectedType(),
+      Array.from(this.selectedRecords())
     );
-    await Promise.all(promises);
-
-    this.notifyService.showSuccess("Bulk update successful");
-    this.clearSelection();
+    this.selectedRecords.set(new Set());
     this.loadData(true);
   }
 
   async onBulkHardDelete(): Promise<void> {
-    const table = this.selectedType();
-    const selected = Array.from(this.selectedRecords());
-
     const confirmed = await this.confirmDialogService.confirm({
       title: "Permanently Delete",
       message:
@@ -624,15 +615,11 @@ export class DataManagementView implements OnInit {
     });
     if (!confirmed) return;
 
-    const promises = selected.map((id) =>
-      this.mode === "admin"
-        ? this.adminService.permanentlyDeleteRecord(table, id)
-        : this.adminService.permanentlyDeleteRecordLocal(table, id)
+    await this.adminCascadeService.hardDeleteBatch(
+      this.selectedType(),
+      Array.from(this.selectedRecords())
     );
-    await Promise.all(promises);
-
-    this.notifyService.showSuccess("Bulk delete successful");
-    this.clearSelection();
+    this.selectedRecords.set(new Set());
     this.loadData(true);
   }
 
@@ -703,17 +690,17 @@ export class DataManagementView implements OnInit {
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storageService.getTodoById(todoId);
+    const todo = this.storageService.todoMap().get(todoId);
     return todo?.title || "-";
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storageService.getTaskById(taskId);
+    const task = this.storageService.taskMap().get(taskId);
     return task?.title || "-";
   }
 
   resolveSubtaskTitle(subtaskId: string): string {
-    const subtask = this.storageService.getSubtaskById(subtaskId);
+    const subtask = this.storageService.subtaskMap().get(subtaskId);
     return subtask?.title || "-";
   }
 
@@ -861,7 +848,7 @@ export class DataManagementView implements OnInit {
     };
   }
 
-  getDynamicOptionsFn = (key: string, filter: any): any[] => {
+  getDynamicOptionsFn = (key: string): any[] => {
     return this.getFilterOptions(key);
   };
 
