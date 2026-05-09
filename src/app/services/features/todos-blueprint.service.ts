@@ -1,8 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
-import { ProjectTemplate, TemplateService } from "./template.service";
+import { ProjectTemplate, TemplateService, TemplateTask } from "./template.service";
 import { StorageService } from "@services/storage.service";
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
 import { Observable, of } from "rxjs";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
@@ -26,7 +25,7 @@ export class TodosBlueprintService {
     const todos: Todo[] = [];
 
     if (template.tasks && template.tasks.length > 0) {
-      template.tasks.forEach((taskTemplate, index) => {
+      template.tasks.forEach((taskTemplate: TemplateTask, index: number) => {
         const todo = this.createTodoFromTemplate(taskTemplate, userId);
         todo.order = index;
         todos.push(todo);
@@ -100,7 +99,7 @@ export class TodosBlueprintService {
               const currentTodos = this.storageService.todos();
               this.storageService.setCollection("privateTodos", [...currentTodos, createdTodo]);
 
-              const tasks = this.templateService.applyTemplate(template, userId, createdTodo.id);
+              const tasks = this.templateService.applyTemplate(template, createdTodo.id);
               const currentTasks = this.storageService.tasks();
               this.storageService.setCollection("tasks", [...currentTasks, ...tasks], {
                 append: true,
@@ -135,11 +134,11 @@ export class TodosBlueprintService {
     return template.tasks?.length || 0;
   }
 
-  private createTodoFromTemplate(template: any, userId: string): Todo {
+  private createTodoFromTemplate(template: TemplateTask, userId: string): Todo {
     return {
       id: `todo-${Date.now()}`,
       title: template.title,
-      description: template.description,
+      description: template.description || "",
       deleted_at: null,
       user_id: userId,
       user: { id: userId } as any,

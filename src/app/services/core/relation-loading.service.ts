@@ -4,11 +4,7 @@ import { tap, catchError } from "rxjs/operators";
 
 /* services */
 import { REQUEST_SERVICE, HasId } from "@services/api.service";
-
-export interface RelationLoadingStats {
-  totalQueries: number;
-  loadTimeMs: number;
-}
+import { RelationLoadingStats } from "@models/relation.model";
 
 @Injectable({
   providedIn: "root",
@@ -34,8 +30,8 @@ export class RelationLoadingService {
     return this.requestService.get<T>(table, id, { load, visibility: visibility as any }).pipe(
       tap(() => {
         const elapsed = Date.now() - startTime;
-        this.stats.totalQueries++;
-        this.stats.loadTimeMs += elapsed;
+        this.stats.totalQueries = (this.stats.totalQueries ?? 0) + 1;
+        this.stats.loadTimeMs = (this.stats.loadTimeMs ?? 0) + elapsed;
       })
     );
   }
@@ -51,12 +47,12 @@ export class RelationLoadingService {
     return this.requestService
       .getAll<T>(table, { filter, load, visibility: visibility as any })
       .pipe(
-        tap((result) => {
+        tap(() => {
           const elapsed = Date.now() - startTime;
-          this.stats.totalQueries++;
-          this.stats.loadTimeMs += elapsed;
+          this.stats.totalQueries = (this.stats.totalQueries ?? 0) + 1;
+          this.stats.loadTimeMs = (this.stats.loadTimeMs ?? 0) + elapsed;
         }),
-        catchError((err: unknown) => {
+        catchError(() => {
           return of(null as unknown as T[]);
         })
       );
@@ -75,8 +71,8 @@ export class RelationLoadingService {
       .pipe(
         tap(() => {
           const elapsed = Date.now() - startTime;
-          this.stats.totalQueries++;
-          this.stats.loadTimeMs += elapsed;
+          this.stats.totalQueries = (this.stats.totalQueries ?? 0) + 1;
+          this.stats.loadTimeMs = (this.stats.loadTimeMs ?? 0) + elapsed;
         })
       );
   }

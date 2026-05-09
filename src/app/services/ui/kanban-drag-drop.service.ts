@@ -1,15 +1,10 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
-import { CdkDragDrop, moveItemInArray, transferArrayItem } from "@angular/cdk/drag-drop";
+import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* models */
 import { Task, TaskStatus } from "@models/task.model";
-
-export interface KanbanColumn {
-  id: string;
-  title?: string;
-  status?: TaskStatus;
-}
+import { KanbanColumn } from "@models/drag-drop.model";
 
 /**
  * KanbanDragDropService - Handles drag-drop operations for Kanban board

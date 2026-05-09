@@ -2,22 +2,8 @@ import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { Observable, map } from "rxjs";
-import { Comment } from "@models/comment.model";
+import { Comment, CommentPayload, MarkCommentsResult } from "@models/comment.model";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-
-export interface CommentPayload {
-  user_id: string;
-  content: string;
-  task_id?: string;
-  subtask_id?: string;
-  read_by: string[];
-  deleted_at: string | null;
-}
-
-export interface MarkCommentsResult {
-  updatedComments: Comment[];
-  hasChanges: boolean;
-}
 
 @Injectable({ providedIn: "root" })
 export class CommentService {
@@ -27,13 +13,11 @@ export class CommentService {
 
   createComment(
     content: string,
-    parentTodoId: string,
     options: { taskId?: string; subtaskId?: string; visibility?: "private" | "shared" }
   ): Observable<Comment> {
     const userId = this.authService.getValueByKey("id");
     console.log("[CommentService] createComment called", {
       content,
-      parentTodoId,
       options,
       userId,
     });
@@ -43,7 +27,7 @@ export class CommentService {
       task_id: options.taskId,
       subtask_id: options.subtaskId,
       read_by: [userId],
-      deleted_at: null,
+      deleted_at: undefined,
     };
 
     return this.requestService
@@ -64,11 +48,7 @@ export class CommentService {
       );
   }
 
-  markCommentsAsRead(
-    commentIds: string[],
-    userId: string,
-    parentTodoId: string
-  ): MarkCommentsResult {
+  markCommentsAsRead(commentIds: string[], userId: string): MarkCommentsResult {
     const allComments = this.storageService.comments();
     const comments = allComments.filter((c) => commentIds.includes(c.id));
     const toUpdate = comments.filter((c) => !c.read_by?.includes(userId));
@@ -79,7 +59,7 @@ export class CommentService {
     toUpdate.forEach((c) => {
       const updatedReadBy = [...(c.read_by || []), userId];
       updatedComments.push({ ...c, read_by: updatedReadBy });
-      this.storageService.updateItem("comments", c.id, { read_by: updatedReadBy });
+      this.storageService.modify("comments", "update", { id: c.id, read_by: updatedReadBy });
     });
 
     this.requestService
@@ -89,15 +69,15 @@ export class CommentService {
       )
       .subscribe();
 
-    return { updatedComments, hasChanges: true };
+    return { updatedComments: updatedComments.map((c) => c.id), hasChanges: true };
   }
 
-  markAsRead(commentId: string, userId: string, parentTodoId: string): MarkCommentsResult {
-    return this.markCommentsAsRead([commentId], userId, parentTodoId);
+  markAsRead(commentId: string, userId: string): MarkCommentsResult {
+    return this.markCommentsAsRead([commentId], userId);
   }
 
   getUnreadCountForTask(taskId: string, userId: string): number {
-    const subtasks = this.storageService.getSubtasksByTaskId(taskId);
+    const subtasks = this.storageService.subtasksByTaskId().get(taskId) || [];
     let count = 0;
     for (const subtask of subtasks) {
       const allComments = this.storageService.comments();

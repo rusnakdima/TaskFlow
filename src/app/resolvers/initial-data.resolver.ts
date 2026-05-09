@@ -4,7 +4,6 @@ import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@a
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
-import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/storage.service";
@@ -29,7 +28,6 @@ import { UserValidationService } from "@services/auth/user-validation.service";
   providedIn: "root",
 })
 export class InitialDataResolver implements Resolve<unknown> {
-  private profileRequiredService = inject(ProfileRequiredService);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
   private storageService = inject(StorageService);
@@ -78,7 +76,7 @@ export class InitialDataResolver implements Resolve<unknown> {
       });
   }
 
-  async resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
+  async resolve(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
     const targetUrl = state.url || this.router.url;
 
     if (targetUrl.startsWith("/profile")) {
@@ -93,8 +91,6 @@ export class InitialDataResolver implements Resolve<unknown> {
     }
 
     this.loadProfileInBackground();
-
-    const userId = this.authService.getValueByKey("id") ?? "";
 
     return {
       loaded: true,

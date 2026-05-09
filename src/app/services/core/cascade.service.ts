@@ -1,17 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-
-export interface CascadeResult {
-  taskIds: string[];
-  subtaskIds: string[];
-  timestamp: string;
-}
-
-export interface CascadeUpdate {
-  id: string;
-  updates: { deleted_at: string | null; updated_at: string };
-}
+import { CascadeResult, CascadeUpdate } from "@models/cascade.model";
 
 // ARCHITECTURAL NOTE: CascadeService handles cascade operations for task/subtask deletion.
 // This is a focused utility service, not a god service - kept minimal.
@@ -49,7 +39,9 @@ export class CascadeService {
   }
 
   buildCascadeUpdates(cascade: CascadeResult, deletedAt: boolean): CascadeUpdate[] {
-    const { taskIds, subtaskIds, timestamp } = cascade;
+    const taskIds = cascade.taskIds ?? [];
+    const subtaskIds = cascade.subtaskIds ?? [];
+    const timestamp = cascade.timestamp;
     const deletedValue = deletedAt ? timestamp : null;
 
     const updates: CascadeUpdate[] = [];

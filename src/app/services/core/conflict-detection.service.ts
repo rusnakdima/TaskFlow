@@ -7,22 +7,10 @@ import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
+import { Conflict, ConflictResolution, ConflictDetectionStats } from "@models/conflict.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
-
-export interface Conflict {
-  entityType: string;
-  entityId: string;
-  localVersion: number;
-  remoteVersion: number;
-  localData: any;
-  remoteData: any;
-  timestamp: string;
-  resolved: boolean;
-}
-
-export type ConflictResolution = "local" | "remote" | "merge";
 
 const CONFLICT_TTL_MS = 10 * 60 * 1000;
 const MAX_CONFLICTS_SIZE = 100;
@@ -62,16 +50,16 @@ export class ConflictDetectionService {
 
     switch (entityType) {
       case "todos":
-        localData = this.storageService.getTodoById(entityId);
+        localData = this.storageService.todoMap().get(entityId);
         break;
       case "tasks":
-        localData = this.storageService.getTaskById(entityId);
+        localData = this.storageService.taskMap().get(entityId);
         break;
       case "subtasks":
-        localData = this.storageService.getSubtaskById(entityId);
+        localData = this.storageService.subtaskMap().get(entityId);
         break;
       case "categories":
-        localData = this.storageService.getById("categories", entityId);
+        localData = this.storageService.get("categories", entityId);
         break;
       default:
         return false;
@@ -208,20 +196,7 @@ export class ConflictDetectionService {
   }
 
   private updateEntity(entityType: string, entityId: string, data: any): void {
-    switch (entityType) {
-      case "todos":
-        this.storageService.updateItem("todos", entityId, data);
-        break;
-      case "tasks":
-        this.storageService.updateItem("tasks", entityId, data);
-        break;
-      case "subtasks":
-        this.storageService.updateItem("subtasks", entityId, data);
-        break;
-      case "categories":
-        this.storageService.updateItem("categories", entityId, data);
-        break;
-    }
+    this.storageService.modify(entityType as any, "update", { id: entityId, ...data });
   }
 
   private notifyUserOfConflict(conflict: Conflict): void {

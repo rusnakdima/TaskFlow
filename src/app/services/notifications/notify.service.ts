@@ -1,14 +1,6 @@
 /* sys lib */
-import {
-  Injectable,
-  inject,
-  signal,
-  computed,
-  OnDestroy,
-  DestroyRef,
-  Injector,
-} from "@angular/core";
-import { interval, Subject, filter, take, takeUntil } from "rxjs";
+import { Injectable, inject, signal, OnDestroy, DestroyRef, Injector } from "@angular/core";
+import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
 
 /* services */
@@ -17,28 +9,7 @@ import { REQUEST_SERVICE } from "@services/api.service";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
-
-export interface NotificationAction {
-  id: string;
-  type: "todo" | "task" | "subtask" | "chat" | "comment";
-  action: "created" | "updated" | "deleted";
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  todo_id?: string;
-  task_id?: string;
-  subtask_id?: string;
-  comment_id?: string;
-  chat_id?: string;
-}
-
-export interface NotificationSettings {
-  chatVolume: number;
-  commentVolume: number;
-  generalVolume: number;
-  enableSounds: boolean;
-}
+import { NotificationAction, NotificationSettings } from "@models/notification.model";
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   chatVolume: 50,
@@ -212,18 +183,17 @@ export class NotifyService implements OnDestroy {
 
     switch (type) {
       case "chat":
-        return settings.chatVolume / 100;
+        return (settings.chatVolume ?? 0) / 100;
       case "comment":
-        return settings.commentVolume / 100;
+        return (settings.commentVolume ?? 0) / 100;
       default:
-        return settings.generalVolume / 100;
+        return (settings.generalVolume ?? 0) / 100;
     }
   }
 
   // ==================== SOUND METHODS ====================
 
   playSound(type: "general" | "chat" | "comment", action?: NotificationAction["action"]) {
-    const settings = this.settingsSignal();
     const volume = this.getVolumeForType(type);
     this.playSoundInternal(type, volume, action);
   }
@@ -422,12 +392,14 @@ export class NotifyService implements OnDestroy {
     }
 
     // Play sound for all actions, show notification for others' actions OR local actions
-    this.handleOtherNotification(type, action, data, !isOwnAction || isLocalAction);
+    if (type) {
+      this.handleOtherNotification(type, action, data, !isOwnAction || isLocalAction);
+    }
   }
 
   private handleCommentOrChatNotification(
     type: "comment" | "chat",
-    action: string,
+    action: NotificationAction["action"],
     data: any,
     shouldNotify: boolean
   ): void {
@@ -474,7 +446,7 @@ export class NotifyService implements OnDestroy {
           message = todoTitle ? `Chat in "${todoTitle}" was cleared` : "Chat was cleared";
         } else {
           // For other chat actions (update, delete), still play sound but don't create notification
-          this.playSound(type, action === "cleared" ? "updated" : (action as any));
+          this.playSound(type, action as any);
           return;
         }
       } else if (type === "comment") {

@@ -7,7 +7,6 @@ import {
   WebAuthnAuthOptions,
   PasskeyResult,
 } from "@models/webauthn.model";
-import { AuthResponse } from "@models/auth-forms.model";
 import { EncodingHelper } from "@helpers/encoding.helper";
 import { REQUEST_SERVICE } from "@services/api.service";
 
@@ -228,11 +227,10 @@ export class WebAuthnService {
     });
   }
 
-  async registerPasskey(username: string): Promise<PasskeyResult> {
+  async registerPasskey(): Promise<PasskeyResult> {
     try {
       const options = await firstValueFrom(this.initPasskeyRegistration());
 
-      const isAndroid = this.isAndroidDevice();
       let responseJson: string;
 
       const credential = await this.createCredential(options.options);
@@ -252,10 +250,10 @@ export class WebAuthnService {
     try {
       const options = await firstValueFrom(this.initPasskeyAuthentication(username));
 
-      const isAndroid = this.isAndroidDevice();
+      const _isAndroid = this.isAndroidDevice();
       let responseJson: string;
 
-      if (isAndroid) {
+      if (_isAndroid) {
         const result = await this.getPasskeyAndroid(JSON.stringify(options.options));
         responseJson = result.responseJson;
       } else {

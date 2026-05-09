@@ -10,35 +10,28 @@ import { computed, Signal } from "@angular/core";
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
  */
-export function deduplicateById<T extends { id: string; updated_at?: string }>(entities: T[]): T[] {
-  const entityMap = new Map<string, T>();
+export function deduplicateById<T extends { id: string; updated_at?: string; deleted_at?: string }>(
+  entities: T[],
+  options?: { filterDeleted?: boolean }
+): T[] {
+  const map = new Map<string, T>();
 
   for (const entity of entities) {
-    if (!entityMap.has(entity.id)) {
-      entityMap.set(entity.id, entity);
-    } else {
-      const existing = entityMap.get(entity.id)!;
-      if (entity.updated_at && existing.updated_at) {
-        if (new Date(entity.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-          entityMap.set(entity.id, entity);
-        }
+    if (options?.filterDeleted && entity.deleted_at) continue;
+
+    const existing = map.get(entity.id);
+    if (!existing) {
+      map.set(entity.id, entity);
+    } else if (entity.updated_at && existing.updated_at) {
+      if (new Date(entity.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
+        map.set(entity.id, entity);
       }
     }
   }
 
-  return Array.from(entityMap.values());
+  return Array.from(map.values());
 }
 
-/**
- * Filter out deleted entities
- */
-export function filterDeleted<T extends { deleted_at?: string | null }>(entities: T[]): T[] {
-  return entities.filter((entity) => !entity.deleted_at);
-}
-
-/**
- * Deduplicate and filter deleted entities (common combination)
- */
 export function deduplicateAndFilterDeleted<
   T extends {
     id: string;
@@ -46,7 +39,7 @@ export function deduplicateAndFilterDeleted<
     updated_at?: string;
   },
 >(entities: T[]): T[] {
-  return filterDeleted(deduplicateById(entities));
+  return deduplicateById(entities, { filterDeleted: true });
 }
 
 /**

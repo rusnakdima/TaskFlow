@@ -7,57 +7,26 @@ import { Response, ResponseStatus } from "@models/response.model";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import {
+  Visibility,
+  CrudOptions,
+  PaginatedOptions,
+  PaginatedResult,
+  HasVisibility,
+  HasId,
+  ApiError,
+  PaginationState,
+  Operation,
+} from "@models/api.model";
 
-export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
-export type Visibility = "private" | "shared" | "public" | "all";
+export { ApiError, Visibility, HasId } from "@models/api.model";
 
-export interface CrudOptions {
-  visibility: Visibility;
-  offline?: boolean;
-  filter?: Record<string, any>;
-  skip?: number;
-  limit?: number;
-  load?: string[];
-  sort?: { [key: string]: number };
-}
-
-export interface PaginatedOptions extends CrudOptions {
-  limit?: number;
-  skip?: number;
-}
-
-interface PaginationState {
-  skip: number;
-  limit: number;
-  hasMore: boolean;
-  visibility?: Visibility;
-  filter?: Record<string, unknown>;
-}
-
-export interface PaginatedResult<T> {
-  items: T[];
-  hasMore: boolean;
-}
-
-interface HasVisibility {
-  visibility?: string;
-  user_id?: string;
-  assignees?: string[];
-}
-
-export interface HasId {
-  id?: string;
-}
-
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: "network" | "server" | "validation" | "offline",
-    public code?: string
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
+export interface CascadeResult {
+  todo_count: number;
+  task_count: number;
+  subtask_count: number;
+  comment_count: number;
+  chat_count: number;
 }
 
 function generateRequestId(): string {
@@ -124,7 +93,7 @@ export class ApiService {
     this.pendingRequests.delete(key);
   }
 
-  private determineOfflineFlag(visibility: Visibility): boolean {
+  private determineOfflineFlag(): boolean {
     const isMongoConnected = this.mongoConnectionService.isConnected();
     const isBrowserOffline = !navigator.onLine;
 
@@ -174,17 +143,17 @@ export class ApiService {
     switch (operation) {
       case "add":
         if (data && (data as HasId).id) {
-          this.storageService.addItem(table as any, data as any, { isPrivate: extra?.isPrivate });
+          this.storageService.modify(table as any, "create", data as any);
         }
         break;
       case "update":
         if (data && (data as HasId).id) {
-          this.storageService.updateItem(table as any, (data as HasId).id!, data as any);
+          this.storageService.modify(table as any, "update", data as any);
         }
         break;
       case "remove":
         if (data && (data as HasId).id) {
-          this.storageService.removeItem(table as any, (data as HasId).id!);
+          this.storageService.modify(table as any, "delete", { id: (data as HasId).id });
         }
         break;
       case "set":
@@ -208,7 +177,7 @@ export class ApiService {
         ? this.getRequestDeduplicationKey(operation, table, extras?.id, options.filter)
         : generateRequestId();
 
-    const offline = options.offline ?? this.determineOfflineFlag(options.visibility);
+    const offline = options.offline ?? this.determineOfflineFlag();
     const requestId = generateRequestId();
 
     const payload: Record<string, unknown> = {
@@ -500,6 +469,18 @@ export class ApiService {
 
   invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
     return from(invoke<T>(command, args) as Promise<T>);
+  }
+
+  async batchSoftDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_soft_delete_cascade", { table, ids });
+  }
+
+  async batchHardDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_hard_delete_cascade", { table, ids });
+  }
+
+  async batchRestore(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_restore_cascade", { table, ids });
   }
 }
 

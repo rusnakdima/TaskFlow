@@ -2,27 +2,7 @@ import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-
-export type QrStatus = "pending" | "approved" | "expired";
-
-export interface QrCodeData {
-  token: string;
-  qrCode: string;
-  expiresAt: number;
-  username?: string;
-}
-
-export interface QrGenerationResult {
-  token: string;
-  qrCode: string;
-  expiresAt: number;
-}
-
-export interface QrStatusResult {
-  status: QrStatus;
-  username?: string;
-  approvedBy?: string;
-}
+import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@models/security.model";
 
 @Injectable({
   providedIn: "root",

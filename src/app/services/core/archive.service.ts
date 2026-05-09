@@ -9,10 +9,9 @@ export class ArchiveService {
 
   archiveTodoWithCascade(todo_id?: string, isTeam: boolean = false): void {
     if (!todo_id) return;
-    const todo = this.storageService.getTodoById(todo_id);
+    const todo = this.storageService.todoMap().get(todo_id);
     if (!todo) return;
 
-    const options = { isPrivate: !isTeam };
     const deletedAt = new Date().toISOString();
     const itemsToUpdate: { id: string; updates: Partial<any> }[] = [
       { id: todo_id, updates: { deleted_at: deletedAt } },
@@ -33,7 +32,9 @@ export class ArchiveService {
       });
     });
 
-    this.storageService.batchUpdate("todos", itemsToUpdate, options);
+    itemsToUpdate.forEach((item) =>
+      this.storageService.modify("todos", "update", { id: item.id, ...item.updates })
+    );
     this.storageService.clearChatsByTodo(todo_id);
   }
 }

@@ -6,15 +6,6 @@ import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 import { OrderCalculationService, Orderable } from "./order-calculation.service";
 
-export type EntityType =
-  | "todos"
-  | "tasks"
-  | "subtasks"
-  | "categories"
-  | "profiles"
-  | "chats"
-  | "comments";
-
 @Injectable({
   providedIn: "root",
 })
@@ -31,10 +22,9 @@ export class DragDropOrderService {
   handleDrop<T extends Orderable>(
     event: CdkDragDrop<T[]>,
     currentList: T[],
-    entityType: EntityType,
+    entityType: string,
     table: string,
-    parentTodoId?: string,
-    visibility?: string
+    parentTodoId?: string
   ): Observable<any> {
     const operationKey = `${entityType}-${parentTodoId || "root"}`;
 
@@ -63,7 +53,7 @@ export class DragDropOrderService {
       event.currentIndex
     );
 
-    if (result.itemsToUpdate.length === 0) {
+    if (!result.itemsToUpdate || result.itemsToUpdate.length === 0) {
       return of(null);
     }
 

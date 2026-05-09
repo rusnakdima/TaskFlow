@@ -1,4 +1,4 @@
-import { Injectable, Injector, inject } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { Todo } from "@models/todo.model";
@@ -7,7 +7,6 @@ import { Todo } from "@models/todo.model";
   providedIn: "root",
 })
 export class VisibilitySyncService {
-  private injector = inject(Injector);
   private requestService = inject(REQUEST_SERVICE);
 
   async syncSingleTodoVisibilityChange(

@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, signal, inject } from "@angular/core";
 import { Observable, of, throwError } from "rxjs";
-import { tap, catchError, map, switchMap } from "rxjs/operators";
+import { switchMap, catchError } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 /* services */
@@ -64,7 +64,7 @@ export class MongoConnectionService {
           subscriber.next(isConnected);
           subscriber.complete();
         })
-        .catch((error) => {
+        .catch((_error) => {
           this.connectionState.set({
             isConnected: false,
             lastChecked: new Date(),

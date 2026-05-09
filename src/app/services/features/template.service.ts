@@ -1,23 +1,9 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/todo.model";
 import { StorageService } from "@services/storage.service";
-import { take } from "rxjs/operators";
+import { ProjectTemplate, TemplateTask } from "@models/template.model";
 
-export interface ProjectTemplate {
-  id: string;
-  name: string;
-  description: string;
-  tasks: TemplateTask[];
-  categories: string[];
-  createdAt: string;
-}
-
-export interface TemplateTask {
-  title: string;
-  description: string;
-  priority: string;
-  subtasks: { title: string }[];
-}
+export { ProjectTemplate, TemplateTask } from "@models/template.model";
 
 @Injectable({
   providedIn: "root",
@@ -46,9 +32,9 @@ export class TemplateService {
   }
 
   createTemplate(name: string, description: string, todo: Todo): ProjectTemplate {
-    const tasks = this.storageService.getTasksByTodoId(todo.id);
+    const tasks = this.storageService.tasksByTodoId().get(todo.id) || [];
     const templateTasks: TemplateTask[] = tasks.map((task) => {
-      const subtasks = this.storageService.getSubtasksByTaskId(task.id);
+      const subtasks = this.storageService.subtasksByTaskId().get(task.id) || [];
       return {
         title: task.title,
         description: task.description,
@@ -72,13 +58,13 @@ export class TemplateService {
     return template;
   }
 
-  applyTemplate(template: ProjectTemplate, userId: string, todo_id?: string): any[] {
+  applyTemplate(template: ProjectTemplate, todo_id?: string): any[] {
     return template.tasks.map((templateTask, index) => ({
       id: `${todo_id}-task-${Date.now()}-${index}`,
       todo_id,
       title: templateTask.title,
       description: templateTask.description,
-      subtasks: templateTask.subtasks.map((st, stIndex) => ({
+      subtasks: (templateTask.subtasks ?? []).map((st, stIndex) => ({
         id: `${todo_id}-task-${Date.now()}-${index}-subtask-${stIndex}`,
         task_id: `${todo_id}-task-${Date.now()}-${index}`,
         title: st.title,

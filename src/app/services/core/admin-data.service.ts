@@ -1,19 +1,11 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { map } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
+import { AdminDataWithRelations, LoadDataOptions } from "@models/admin.model";
 
-export interface AdminDataWithRelations {
-  [key: string]: any[];
-}
-
-export interface LoadDataOptions {
-  showDeleted?: boolean;
-  isOwner?: boolean;
-  isPrivate?: boolean;
-}
+export { AdminDataWithRelations } from "@models/admin.model";
 
 @Injectable({
   providedIn: "root",
@@ -21,8 +13,8 @@ export interface LoadDataOptions {
 export class AdminDataService {
   private adminService = inject(AdminService);
 
-  loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
-    return of({});
+  loadAllData(_options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
+    return of({} as AdminDataWithRelations);
   }
 
   loadAllAdminData(): Observable<AdminDataWithRelations> {
@@ -30,7 +22,7 @@ export class AdminDataService {
       this.adminService.getAllDataForAdmin<AdminDataWithRelations>().subscribe({
         next: (response) => {
           if (response.status === ResponseStatus.SUCCESS && response.data) {
-            subscriber.next(response.data);
+            subscriber.next(response.data as AdminDataWithRelations);
             subscriber.complete();
           } else {
             subscriber.error(new Error(response.message || "Failed to load admin data"));

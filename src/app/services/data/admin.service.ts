@@ -6,14 +6,11 @@ import { Observable, from } from "rxjs";
 /* models */
 import { Response } from "@models/response.model";
 
-/* services */
-import { AuthService } from "@services/auth/auth.service";
-
 @Injectable({
   providedIn: "root",
 })
 export class AdminService {
-  constructor(private authService: AuthService) {}
+  constructor() {}
 
   getAllDataForAdmin<R>(): Observable<Response<R>> {
     return from(invoke<Response<R>>("get_all_data_for_admin"));

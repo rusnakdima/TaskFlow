@@ -1,9 +1,5 @@
-import { Injectable, Signal, signal } from "@angular/core";
-import { CdkDragEnter, CdkDragDrop, CdkDropList, DragRef } from "@angular/cdk/drag-drop";
-
-export interface DragDropHandlers<T> {
-  onDrop: (event: CdkDragDrop<T[]>) => void;
-}
+import { Injectable } from "@angular/core";
+import { CdkDragEnter, CdkDropList, DragRef } from "@angular/cdk/drag-drop";
 
 @Injectable({
   providedIn: "root",
@@ -31,7 +27,7 @@ export class DragDropHandlerService {
     return this._dragRef;
   }
 
-  onListEntered<T>(event: CdkDragEnter, placeholder: CdkDropList): void {
+  onListEntered(event: CdkDragEnter, placeholder: CdkDropList): void {
     const { item, container } = event;
     if (container === placeholder) return;
     if (!placeholder?.element?.nativeElement) return;
@@ -70,10 +66,7 @@ export class DragDropHandlerService {
     );
   }
 
-  onListDropped<T>(
-    placeholder: CdkDropList,
-    onReorder: (prev: number, curr: number) => void
-  ): void {
+  onListDropped(placeholder: CdkDropList, onReorder: (prev: number, curr: number) => void): void {
     if (!this._dragTarget || !placeholder?.element?.nativeElement) return;
 
     const placeholderEl = placeholder.element.nativeElement as HTMLElement;
