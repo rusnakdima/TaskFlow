@@ -20,7 +20,7 @@ import { MatButtonModule } from "@angular/material/button";
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { CommentsComponent } from "@components/comments/comments.component";
-import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
+import { SubtaskCommentGroup } from "@models/comment.model";
 import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
 
 /* helpers */
@@ -28,14 +28,14 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 
 /* services */
-import { StorageService } from "@services/storage.service";
 
 /* components */
-import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 
 /* models */
-import { TableField, TableFieldActionButton } from "./table-field.model";
+import { TableFieldActionButton, TableField } from "@models/table-field.model";
+import { ItemDisplayConfig } from "@models/item-display.model";
 import { Comment } from "@models/comment.model";
 import { TaskStatus } from "@models/task.model";
 
@@ -52,7 +52,6 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
     CheckboxComponent,
     DragDropModule,
     CommentsComponent,
-    ItemExpandDetailsComponent,
     StatusToggleComponent,
   ],
   templateUrl: "./table-view.component.html",
@@ -60,10 +59,9 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
 })
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
-  private storageService = inject(StorageService);
 
   @Input() data: any[] = [];
-  @Input() fields: TableField[] = [];
+  @Input() fields: (TableField | ItemDisplayConfig)[] = [];
   @Input() selectedIds = new Set<string>();
   @Input() showSelection = true;
   @Input() showActionsColumn = true;
@@ -202,7 +200,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
     this.currentItem.set(item);
   }
 
-  toggleSort(field: TableField): void {
+  toggleSort(field: TableField | ItemDisplayConfig): void {
     if (!field.sortable) return;
 
     if (this.sortField() === field.key) {
@@ -269,7 +267,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
     this.selectAll.emit();
   }
 
-  formatValue(item: any, field: TableField): any {
+  formatValue(item: any, field: TableField | ItemDisplayConfig): any {
     if (field.getValue) {
       return field.getValue(item);
     }
@@ -279,7 +277,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   formatDate = DateHelper.formatDateShort;
   formatDateTime = DateHelper.formatDateTime;
 
-  getFieldClass(field: TableField): string {
+  getFieldClass(field: TableField | ItemDisplayConfig): string {
     return field.width ? `w-${field.width}` : "";
   }
 
@@ -324,8 +322,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
   getPriorityClass = BaseItemHelper.getPriorityBadgeClass;
   getStatusClass = BaseItemHelper.getStatusBadgeClass;
 
-  getIconColor(field: TableField, value: any): string {
-    if (field.iconConfig?.default) return field.iconConfig.default;
+  getIconColor(field: TableField | ItemDisplayConfig, value: any): string {
+    const iconDefault = this.getIconDefault(field);
+    if (iconDefault) return iconDefault;
     if (field.type === "boolean") {
       return value ? TableFieldIcons.boolean.true : TableFieldIcons.boolean.false;
     }
@@ -337,8 +336,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
     return "";
   }
 
-  getChipOrBadgeColor(field: TableField, value: any): string {
-    if (field.colorConfig?.default) return field.colorConfig.default;
+  getChipOrBadgeColor(field: TableField | ItemDisplayConfig, value: any): string {
+    const colorDefault = this.getColorConfigDefault(field);
+    if (colorDefault) return colorDefault;
     if (field.type === "change") {
       if (value > 0) return TableFieldColors.change.positive;
       if (value < 0) return TableFieldColors.change.negative;
@@ -419,4 +419,26 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   lastSelectedId = signal<string | null>(null);
+
+  private isTableField(field: TableField | ItemDisplayConfig): field is TableField {
+    return "getChipText" in field || "colorConfig" in field;
+  }
+
+  hasGetChipText(field: TableField | ItemDisplayConfig): boolean {
+    return this.isTableField(field) && !!field.getChipText;
+  }
+
+  getIconDefault(field: TableField | ItemDisplayConfig): string | undefined {
+    if (this.isTableField(field) && field.iconConfig?.default) {
+      return field.iconConfig.default;
+    }
+    return undefined;
+  }
+
+  private getColorConfigDefault(field: TableField | ItemDisplayConfig): string | undefined {
+    if (this.isTableField(field) && field.colorConfig?.default) {
+      return field.colorConfig.default;
+    }
+    return undefined;
+  }
 }

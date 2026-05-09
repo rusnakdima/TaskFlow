@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 
 import { Subtask } from "@models/subtask.model";
-import { TableField, TableFieldActionButton } from "@components/table-view/table-field.model";
+import { TableFieldActionButton, TableField } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 import { EntityListComponent } from "@components/entity-list/entity-list.component";

@@ -7,7 +7,7 @@ import { DragDropModule } from "@angular/cdk/drag-drop";
 /* components */
 import { CommentsComponent } from "@components/comments/comments.component";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-import { SubtaskCommentGroup } from "@components/subtask-comments-list/subtask-comments-list.component";
+import { SubtaskCommentGroup } from "@models/comment.model";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";

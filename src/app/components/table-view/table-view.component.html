@@ -132,7 +132,11 @@
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       "
                     >
-                      {{ field.getChipText ? field.getChipText(item) : formatValue(item, field) }}
+                      {{
+                        hasGetChipText(field)
+                          ? $any(field).getChipText(item)
+                          : formatValue(item, field)
+                      }}
                     </span>
                   }
                   @case ("priority") {
@@ -147,7 +151,7 @@
                     <span
                       class="inline-flex cursor-pointer items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all hover:scale-105"
                       [class]="getStatusClass(formatValue(item, field))"
-                      (click)="field.onClick ? field.onClick(item, formatValue(item, field)) : null"
+                      (click)="field.onClick ? field.onClick(item) : null"
                       title="Click to change status"
                     >
                       {{ formatValue(item, field) }}
@@ -248,7 +252,7 @@
                   @if (hasActionTemplate(action)) {
                     <ng-container
                       *ngTemplateOutlet="
-                        action.template;
+                        $any(action.template);
                         context: { $implicit: item, action: action }
                       "
                     />
@@ -257,10 +261,10 @@
                       mat-icon-button
                       class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                       [class]="getActionColor(action)"
-                      (click)="onActionClickHandler(action.key, item)"
+                      (click)="onActionClickHandler(action.key || '', item)"
                       [title]="action.label"
                     >
-                      <mat-icon class="text-2xl!" [fontIcon]="action.icon" />
+                      <mat-icon class="text-2xl!" [fontIcon]="action.icon || ''" />
                     </button>
                   }
                 }

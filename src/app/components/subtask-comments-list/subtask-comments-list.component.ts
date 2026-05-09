@@ -18,17 +18,11 @@ import { MatIconModule } from "@angular/material/icon";
 import { CommentsComponent } from "@components/comments/comments.component";
 
 /* models */
-import { Comment } from "@models/comment.model";
+import { SubtaskCommentGroup } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 
 /* services */
 import { Router } from "@angular/router";
-
-export interface SubtaskCommentGroup {
-  subtask_id: string;
-  title: string;
-  comments: Comment[];
-}
 
 @Component({
   selector: "app-subtask-comments-list",
