@@ -5,7 +5,6 @@ import {
   signal,
   inject,
   ChangeDetectionStrategy,
-  computed,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -17,8 +16,6 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService } from "@services/auth/security.service";
-import { AuthCapabilityService } from "@services/auth/auth-capability.service";
-import { WebAuthnService } from "@services/auth/webauthn.service";
 import { GithubService } from "@services/github/github.service";
 
 @Component({
@@ -31,8 +28,6 @@ import { GithubService } from "@services/github/github.service";
 export class SettingsView implements OnInit, OnDestroy {
   private notifyService = inject(NotifyService);
   private securityService = inject(SecurityService);
-  private authCapabilityService = inject(AuthCapabilityService);
-  private webAuthnService = inject(WebAuthnService);
   private githubService = inject(GithubService);
   private sanitizer = inject(DomSanitizer);
 
@@ -51,16 +46,6 @@ export class SettingsView implements OnInit, OnDestroy {
   totpVerifyCode = signal("");
   showRecoveryCodes = signal(false);
 
-  passkeyEnabled = signal(false);
-  passkeySetupInProgress = signal(false);
-  passkeyRegistered = signal(false);
-
-  biometricEnabled = signal(false);
-  biometricSetupInProgress = signal(false);
-  biometricRegistered = signal(false);
-
-  platformName = signal("");
-
   githubConnected = signal(false);
   githubUsername = signal("");
   githubUserId = signal("");
@@ -74,19 +59,12 @@ export class SettingsView implements OnInit, OnDestroy {
   githubDeviceCode = signal("");
   githubPollingInterval: any = null;
 
-  readonly capabilities = this.authCapabilityService.capabilities;
-
-  readonly showPasskeySection = computed(() => this.capabilities().passkeyAvailable);
-  readonly showBiometricSection = computed(() => this.capabilities().biometricAvailable);
-
   ngOnInit(): void {
     const settings = this.notifyService.getSettings();
     this.chatNotificationVolume.set(settings.chatVolume ?? 50);
     this.commentNotificationVolume.set(settings.commentVolume ?? 50);
     this.generalNotificationVolume.set(settings.generalVolume ?? 50);
     this.enableNotificationSounds.set(settings.enableSounds ?? true);
-
-    this.platformName.set(this.capabilities().platformName);
 
     this.loadGithubStatus();
   }
@@ -312,172 +290,6 @@ export class SettingsView implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.notifyService.showError("Failed to disable TOTP: " + (err.message || err));
-      },
-    });
-  }
-
-  async registerPasskey(): Promise<void> {
-    if (this.passkeySetupInProgress()) return;
-    this.passkeySetupInProgress.set(true);
-
-    try {
-      const isWebAuthN = await this.webAuthnService.isWebAuthnSupported();
-
-      if (!isWebAuthN) {
-        this.notifyService.showError("Passkey registration requires WebAuthn support.");
-        this.passkeySetupInProgress.set(false);
-        return;
-      }
-
-      this.webAuthnService.initPasskeyRegistration().subscribe({
-        next: async (regOptions) => {
-          try {
-            const credential = await this.webAuthnService.createCredential(regOptions.options);
-            if (!credential) {
-              throw new Error("Failed to create credential");
-            }
-
-            const responseJson = JSON.stringify({
-              id: credential.credentialId,
-              rawId: credential.rawId,
-              response: {
-                attestationObject: credential.response.attestationObject,
-                clientDataJSON: credential.response.clientDataJSON,
-              },
-              type: credential.type,
-            });
-
-            this.webAuthnService.completePasskeyRegistration(responseJson).subscribe({
-              next: () => {
-                this.notifyService.showSuccess("Passkey registered successfully!");
-                this.passkeyEnabled.set(true);
-                this.passkeyRegistered.set(true);
-                this.passkeySetupInProgress.set(false);
-              },
-              error: (err) => {
-                this.notifyService.showError(
-                  "Failed to complete registration: " + (err.message || err)
-                );
-                this.passkeySetupInProgress.set(false);
-              },
-            });
-          } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            this.notifyService.showError("Failed to create passkey: " + message);
-            this.passkeySetupInProgress.set(false);
-          }
-        },
-        error: (err) => {
-          this.notifyService.showError(
-            "Failed to start passkey registration: " + (err.message || err)
-          );
-          this.passkeySetupInProgress.set(false);
-        },
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.notifyService.showError("Failed to setup passkey: " + message);
-      this.passkeySetupInProgress.set(false);
-    }
-  }
-
-  async removePasskey(): Promise<void> {
-    this.securityService.disablePasskey().subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Passkey removed");
-        this.passkeyEnabled.set(false);
-        this.passkeyRegistered.set(false);
-      },
-      error: (err) => {
-        this.notifyService.showError("Failed to remove passkey: " + (err.message || err));
-      },
-    });
-  }
-
-  async enableBiometric(): Promise<void> {
-    if (this.biometricSetupInProgress()) return;
-    this.biometricSetupInProgress.set(true);
-
-    try {
-      const isAndroidBiometric = await this.webAuthnService.isAndroidBiometricAvailable();
-
-      if (isAndroidBiometric) {
-        const success = await this.webAuthnService.authenticateAndroidBiometric(
-          "Enable Biometric",
-          "Authenticate to enable biometric login"
-        );
-
-        if (success) {
-          this.securityService
-            .registerBiometric()
-            .then((result) => {
-              if (result.success) {
-                this.notifyService.showSuccess(this.platformName() + " enabled successfully!");
-                this.biometricEnabled.set(true);
-                this.biometricRegistered.set(true);
-              } else {
-                this.notifyService.showError(result.error || "Failed to setup biometric");
-              }
-              this.biometricSetupInProgress.set(false);
-            })
-            .catch((err: any) => {
-              this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
-              this.biometricSetupInProgress.set(false);
-            });
-        } else {
-          this.notifyService.showError("Biometric authentication failed");
-          this.biometricSetupInProgress.set(false);
-        }
-        return;
-      }
-
-      const isWebAuthN = await this.webAuthnService.isWebAuthnSupported();
-      const isUVPAA = await this.webAuthnService.isUserVerifyingPlatformAuthenticatorAvailable();
-
-      if (!isWebAuthN) {
-        this.notifyService.showError("Biometric authentication requires WebAuthn support.");
-        this.biometricSetupInProgress.set(false);
-        return;
-      }
-
-      if (!isUVPAA) {
-        this.notifyService.showWarning(
-          "No user-verifying platform authenticator found. Biometric may not work properly."
-        );
-      }
-
-      this.securityService
-        .registerBiometric()
-        .then((result) => {
-          if (result.success) {
-            this.notifyService.showSuccess(this.platformName() + " enabled successfully!");
-            this.biometricEnabled.set(true);
-            this.biometricRegistered.set(true);
-          } else {
-            this.notifyService.showError(result.error || "Failed to setup biometric");
-          }
-          this.biometricSetupInProgress.set(false);
-        })
-        .catch((err: any) => {
-          this.notifyService.showError("Failed to setup biometric: " + (err.message || err));
-          this.biometricSetupInProgress.set(false);
-        });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.notifyService.showError("Failed to setup biometric: " + message);
-      this.biometricSetupInProgress.set(false);
-    }
-  }
-
-  async disableBiometric(): Promise<void> {
-    this.securityService.disableBiometric().subscribe({
-      next: () => {
-        this.notifyService.showSuccess(this.platformName() + " disabled");
-        this.biometricEnabled.set(false);
-        this.biometricRegistered.set(false);
-      },
-      error: (err) => {
-        this.notifyService.showError("Failed to disable biometric: " + (err.message || err));
       },
     });
   }
