@@ -251,8 +251,17 @@ export class CategoriesView extends BaseListView implements OnInit {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
 
-  onTableSelectAll(): void {
-    this.toggleSelectAll();
+  onTableSelectAll(selectAll: boolean): void {
+    this.selectedItems.update((categoryIds) => {
+      const newSelected = new Set(categoryIds);
+      const items = this.getItems();
+      if (selectAll) {
+        items.forEach((category) => newSelected.add(category.id));
+      } else {
+        items.forEach((category) => newSelected.delete(category.id));
+      }
+      return newSelected;
+    });
   }
 
   getToolbarConfig(): PageToolbarConfig {

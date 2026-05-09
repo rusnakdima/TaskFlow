@@ -31,7 +31,7 @@
         [expandTemplate]="expandTemplate"
         [actions]="getCategoryTableActions()"
         (selectionChange)="toggleCategorySelection($event.id)"
-        (selectAll)="onTableSelectAll()"
+        (selectAll)="onTableSelectAll($event)"
         (rowClick)="onRowClick($event)"
         (actionClick)="onTableAction($event)"
       >
