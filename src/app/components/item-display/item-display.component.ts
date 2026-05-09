@@ -87,6 +87,23 @@ export class ItemDisplayComponent {
     return this.config.filter((c) => !c.showIf || c.showIf(this.item));
   }
 
+  get line1Config(): ItemDisplayConfig[] {
+    return this.visibleConfig.filter((c) => c.line === 1 || !c.line);
+  }
+
+  get line2Config(): ItemDisplayConfig[] {
+    return this.visibleConfig.filter((c) => c.line === 2);
+  }
+
+  getBadgeGroupItems(): ItemDisplayConfig[] {
+    const badgeTypes = ["priority-badge", "status-badge", "deleted-badge"];
+    return this.visibleConfig.filter((c) => badgeTypes.includes(c.type));
+  }
+
+  get hasBadgeGroup(): boolean {
+    return this.visibleConfig.some((c) => c.type === "badge-group");
+  }
+
   getValue(config: ItemDisplayConfig): any {
     if (config.getValue) {
       return config.getValue(this.item);

@@ -22,7 +22,11 @@ export type ItemDisplayType =
   | "chip"
   | "number"
   | "boolean"
-  | "select";
+  | "select"
+  | "deleted-badge"
+  | "badge-group";
+
+import { TableField } from "./table-field.model";
 
 export interface ItemDisplayConfig {
   key: string;
@@ -42,6 +46,8 @@ export interface ItemDisplayConfig {
   toggleable?: boolean;
   showIf?: (item: any) => boolean;
   options?: Array<{ value: string; label: string }>;
+  line?: 1 | 2;
+  expandFields?: TableField[];
   iconConfig?:
     | ((item: any) => { icon?: string; position?: "left" | "right" })
     | {
