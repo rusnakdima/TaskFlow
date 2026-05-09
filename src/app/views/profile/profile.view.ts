@@ -292,9 +292,10 @@ export class ProfileView implements OnInit, OnDestroy {
           expiresAt: number;
         }>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
-          next: (data) => {
-            this.myQrCode.set(data.qrCode);
-            this.myQrToken.set(data.token);
+          next: (response: any) => {
+            const data = response?.data;
+            this.myQrCode.set(data?.qrCode);
+            this.myQrToken.set(data?.token);
             this.showMyQr.set(true);
             this.notifyService.showInfo("Show this QR code to login from desktop");
           },
