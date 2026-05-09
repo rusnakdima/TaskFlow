@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, OnDestroy, inject, DestroyRef } from "@angular/core";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -34,6 +34,7 @@ import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   private profileLoaded = false;
 
@@ -181,7 +182,7 @@ export class ProfileView implements OnInit, OnDestroy {
           );
           this.importError.set(null);
           setTimeout(() => {
-            window.location.href = "/login";
+            this.router.navigate(["/login"]);
           }, 1000);
         } else {
           this.importError.set(importResult.error || "Import failed");
@@ -265,7 +266,7 @@ export class ProfileView implements OnInit, OnDestroy {
           TokenStorageHelper.setToken(jwtToken, true);
           this.notifyService.showSuccess("Login successful on desktop!");
           setTimeout(() => {
-            window.location.href = "/dashboard";
+            this.router.navigate(["/dashboard"]);
           }, 500);
         }
       },

@@ -318,10 +318,13 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
       );
 
       if (authResponse && authResponse.token) {
-        LoginCompletionHelper.completeLogin({
-          token: authResponse.token,
-          remember: true,
-        });
+        LoginCompletionHelper.completeLogin(
+          {
+            token: authResponse.token,
+            remember: true,
+          },
+          this.router
+        );
         this.authStore.setAuthenticated(authResponse.token);
       } else {
         this.notifyService.showError("Authentication failed - no token received");

@@ -2,15 +2,15 @@
 import { CommonModule, Location } from "@angular/common";
 import { CUSTOM_ELEMENTS_SCHEMA, Component } from "@angular/core";
 import {
-  AbstractControl,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
   Validators,
   FormBuilder,
 } from "@angular/forms";
+
+/* validators */
+import { minLengthValidator, passwordMismatchValidator } from "@validators/auth.validators";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -40,8 +40,8 @@ export class ChangePasswordView {
     private notifyService: NotifyService
   ) {
     this.resetForm = new FormBuilder().group({
-      password: ["", [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ["", [Validators.required, this.matchPasswords()]],
+      password: ["", [Validators.required, minLengthValidator(6)]],
+      confirmPassword: ["", [Validators.required, passwordMismatchValidator()]],
     });
   }
 
@@ -72,20 +72,6 @@ export class ChangePasswordView {
 
   isInvalid(attr: string) {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
-  }
-
-  matchPasswords(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      if (this.resetForm) {
-        const password = this.resetForm.controls["password"].value;
-        const confirmPassword = control.value;
-
-        if (password != confirmPassword) {
-          return { passwordMismatch: true };
-        }
-      }
-      return null;
-    };
   }
 
   onSubmit() {

@@ -1,19 +1,18 @@
 /* sys lib */
-import { CommonModule, Location } from "@angular/common";
-import { Component, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Router } from "@angular/router";
+import { Component, signal, inject } from "@angular/core";
 import {
-  AbstractControl,
   FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
   Validators,
 } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 
 /* helpers */
-import { Common } from "@helpers/common.helper";
+import { emailValidator } from "@validators/auth.validators";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -23,21 +22,21 @@ import { NotifyService } from "@services/notifications/notify.service";
   selector: "app-reset-password",
   standalone: true,
   providers: [AuthService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: "./reset-password.view.html",
 })
 export class ResetPasswordView {
   resetForm: FormGroup;
   step = signal<"email" | "code">("email");
   userEmail = signal("");
+  private router = inject(Router);
 
   constructor(
-    private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService
   ) {
     this.resetForm = new FormBuilder().group({
-      email: ["", [Validators.required, Validators.email, this.emailValidator()]],
+      email: ["", [Validators.required, Validators.email, emailValidator()]],
       code: ["", [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
   }
@@ -45,7 +44,7 @@ export class ResetPasswordView {
   ngOnInit() {}
 
   back() {
-    this.location.back();
+    this.router.navigate(["/login"]);
   }
 
   get f() {
@@ -54,16 +53,6 @@ export class ResetPasswordView {
 
   isInvalid(attr: string) {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
-  }
-
-  emailValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const email = control.value;
-      if (email && !Common.isValidEmail(email)) {
-        return { invalidEmail: true };
-      }
-      return null;
-    };
   }
 
   onEmailSubmit() {
@@ -110,7 +99,7 @@ export class ResetPasswordView {
         sessionStorage.setItem("resetPasswordEmail", email());
         sessionStorage.setItem("resetPasswordCode", code);
 
-        window.location.href = "/change-password";
+        this.router.navigate(["/change-password"]);
       },
       error: (err: unknown) => {
         const message = err instanceof Error ? err.message : "Failed to verify code";

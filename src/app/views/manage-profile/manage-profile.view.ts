@@ -95,7 +95,7 @@ export class ManageProfileView implements OnInit {
     const userId = this.authService.getValueByKey("id");
     if (!userId) {
       this.notifyService.showError("You are not logged in");
-      window.location.href = "/login";
+      this.router.navigate(["/login"]);
       return;
     }
 
@@ -157,7 +157,7 @@ export class ManageProfileView implements OnInit {
           next: () => {
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
-            window.location.href = "/";
+            this.router.navigate(["/"]);
           },
           error: (err: unknown) => {
             const message = err instanceof Error ? err.message : "Failed to create profile";
