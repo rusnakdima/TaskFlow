@@ -221,7 +221,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   loadInitialTodos() {
     const hasTodos = this.storageService.todos().length > 0;
     if (hasTodos && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
-      console.log("[TodosView] Using cached todos, skipping API call");
       this.todoPagination.update((p) => ({
         ...p,
         skip: this.storageService.todos().length,
@@ -241,7 +240,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       })
       .subscribe({
         next: (todos: Todo[]) => {
-          console.log("[TodosView] Loaded todos:", todos.length);
           this.todoPagination.update((p) => ({
             ...p,
             skip: todos.length,
@@ -250,8 +248,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             loading: false,
           }));
         },
-        error: (err) => {
-          console.error("[TodosView] Failed to load todos:", err);
+        error: () => {
           this.todoPagination.update((p) => ({
             ...p,
             loading: false,
@@ -296,7 +293,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.stateService.activeVisibility.set(visibility as any);
     const cachedTodos = this.getTodosForVisibility(visibility);
     if (cachedTodos.length > 0 && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
-      console.log("[TodosView] Using cached todos for visibility:", visibility);
       return;
     }
     this.requestService

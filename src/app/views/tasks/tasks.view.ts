@@ -474,8 +474,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
             tasks.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
           );
         },
-        error: (err) => {
-          console.error("Update task status failed:", err);
+        error: () => {
           this.notifyService.showError("Failed to update task status");
         },
       });
@@ -517,8 +516,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: () => {},
-        error: (err) => {
-          console.error("Update subtask status failed:", err);
+        error: () => {
           this.notifyService.showError("Failed to update subtask status");
         },
       });
@@ -613,8 +611,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: () => {},
-        error: (err) => {
-          console.error("Update task failed:", err);
+        error: () => {
           this.notifyService.showError("Failed to update task");
         },
       });
@@ -777,8 +774,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       next: (comment) => {
         this.storageService.addCommentToTask(comment, event.itemId);
       },
-      error: (err) => {
-        console.error("[TasksView] Failed to add comment:", err);
+      error: () => {
         this.notifyService.showError("Failed to add comment");
       },
     });
@@ -899,8 +895,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
                 });
               }
             },
-            error: (err) => {
-              console.error("Reorder tasks failed:", err);
+            error: () => {
               this.notifyService.showError("Failed to reorder tasks");
             },
           });
@@ -923,8 +918,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
             });
           }
         },
-        error: (err) => {
-          console.error("Task drop failed:", err);
+        error: () => {
           this.notifyService.showError("Failed to drop task");
         },
       });
