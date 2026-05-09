@@ -3,8 +3,6 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { map } from "rxjs/operators";
 import { AdminService } from "@services/data/admin.service";
-import { REQUEST_SERVICE } from "@services/api.service";
-import { StorageService } from "@services/storage.service";
 import { ResponseStatus } from "@models/response.model";
 
 export interface AdminDataWithRelations {
@@ -22,25 +20,9 @@ export interface LoadDataOptions {
 })
 export class AdminDataService {
   private adminService = inject(AdminService);
-  private requestService = inject(REQUEST_SERVICE);
-  private storageService = inject(StorageService);
 
   loadAllData(options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
-    const { showDeleted = false } = options;
-
-    const privateTodos = this.storageService.privateTodos();
-    const categories = this.storageService.categories();
-
-    const dataMap: AdminDataWithRelations = {
-      todos: privateTodos,
-      categories: categories,
-    };
-
-    if (showDeleted) {
-      dataMap["todos"] = dataMap["todos"].filter((t: any) => t.deleted_at != null);
-    }
-
-    return of(dataMap);
+    return of({});
   }
 
   loadAllAdminData(): Observable<AdminDataWithRelations> {
