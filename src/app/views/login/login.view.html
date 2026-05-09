@@ -115,51 +115,25 @@
           }
         </button>
 
-        @if (hasAlternativeLoginMethods()) {
-          <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
-            <p class="textMuted mb-3 text-center text-sm">Or sign in with</p>
-            <div class="flex justify-center gap-3">
-              @if (showPasskeyButton()) {
-                <button
-                  class="flex h-12 w-12 flex-col items-center justify-center rounded-full border-2 border-blue-200 bg-blue-50 transition-colors hover:border-blue-400 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:hover:border-blue-600"
-                  (click)="loginWithPasskey()"
-                  [disabled]="submitted()"
-                  [title]="'Sign in with Passkey'"
+        <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+          <p class="textMuted mb-3 text-center text-sm">Or sign in with</p>
+          <div class="flex justify-center gap-3">
+            @if (showQrLoginButton()) {
+              <button
+                class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-green-50 px-6 transition-colors hover:border-green-400 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:hover:border-green-600"
+                (click)="goToQrLogin()"
+                [disabled]="submitted()"
+              >
+                <mat-icon class="mr-1 text-xl! text-green-600 dark:text-green-400"
+                  >qr_code_scanner</mat-icon
                 >
-                  <mat-icon class="text-xl! text-blue-600 dark:text-blue-400">key</mat-icon>
-                </button>
-              }
-
-              @if (showBiometricButton()) {
-                <button
-                  class="flex h-12 w-12 flex-col items-center justify-center rounded-full border-2 border-purple-200 bg-purple-50 transition-colors hover:border-purple-400 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:hover:border-purple-600"
-                  (click)="loginWithBiometric()"
-                  [disabled]="submitted()"
-                  [title]="'Sign in with ' + platformName()"
+                <span class="text-sm font-medium text-green-600 dark:text-green-400"
+                  >Login via QR</span
                 >
-                  <mat-icon class="text-xl! text-purple-600 dark:text-purple-400"
-                    >fingerprint</mat-icon
-                  >
-                </button>
-              }
-
-              @if (showQrLoginButton()) {
-                <button
-                  class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-green-50 px-6 transition-colors hover:border-green-400 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:hover:border-green-600"
-                  (click)="goToQrLogin()"
-                  [disabled]="submitted()"
-                >
-                  <mat-icon class="mr-1 text-xl! text-green-600 dark:text-green-400"
-                    >qr_code_scanner</mat-icon
-                  >
-                  <span class="text-sm font-medium text-green-600 dark:text-green-400">{{
-                    isMobileDevice() ? "Scan QR" : "Login via QR"
-                  }}</span>
-                </button>
-              }
-            </div>
+              </button>
+            }
           </div>
-        }
+        </div>
 
         <div class="flex flex-row gap-x-2">
           <span>Is this your first time here?</span>

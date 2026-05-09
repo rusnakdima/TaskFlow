@@ -1,24 +1,25 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnDestroy, signal } from "@angular/core";
+import { Component, OnDestroy, signal, inject } from "@angular/core";
 import {
-  AbstractControl,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
   Validators,
   FormBuilder,
 } from "@angular/forms";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
 /* helpers */
-import { Common } from "@helpers/common.helper";
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
+import {
+  minLengthValidator,
+  passwordMismatchValidator,
+  emailValidator,
+} from "@validators/auth.validators";
 
 /* models */
 import { SignupForm, AuthResponse } from "@models/auth-forms.model";
@@ -38,16 +39,20 @@ export class SignupView implements OnDestroy {
   regForm: FormGroup<any>;
 
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private router = inject(Router);
 
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService
   ) {
     this.regForm = new FormBuilder().group({
-      email: ["", [Validators.required, Validators.email, this.emailValidator()]],
+      email: ["", [Validators.required, Validators.email, emailValidator()]],
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
-      password: ["", [Validators.required, Validators.minLength(6)]],
-      confirm_password: ["", [Validators.required, Validators.minLength(6), this.checkPasswords()]],
+      password: ["", [Validators.required, minLengthValidator(6)]],
+      confirm_password: [
+        "",
+        [Validators.required, minLengthValidator(6), passwordMismatchValidator()],
+      ],
     });
   }
 
@@ -78,29 +83,6 @@ export class SignupView implements OnDestroy {
     return (this.submitted() || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
 
-  checkPasswords(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      if (this.regForm) {
-        const password = this.regForm.controls["password"].value;
-        const confirmPassword = control.value;
-        if (password != confirmPassword) {
-          return { passwordMismatch: true };
-        }
-      }
-      return null;
-    };
-  }
-
-  emailValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const email = control.value;
-      if (email && !Common.isValidEmail(email)) {
-        return { invalidEmail: true };
-      }
-      return null;
-    };
-  }
-
   async send() {
     this.submitted.set(true);
 
@@ -124,10 +106,10 @@ export class SignupView implements OnDestroy {
 
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");
-          window.location.href = "/profile/manage";
+          this.router.navigate(["/profile/manage"]);
         } else {
           this.notifyService.showSuccess("Registration successful");
-          window.location.href = "/login";
+          this.router.navigate(["/login"]);
         }
         this.submitted.set(false);
       },
