@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnChanges, SimpleChanges, computed } from "@angular/core";
+import { Component, Input, computed } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -23,7 +23,7 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
   imports: [CommonModule, MatIconModule, RouterModule, ProgressBarComponent],
   templateUrl: "./todo-information.component.html",
 })
-export class TodoInformationComponent extends ItemInfoBaseComponent implements OnChanges {
+export class TodoInformationComponent extends ItemInfoBaseComponent {
   @Input() override isOwner: boolean = true;
   @Input() override isPrivate: boolean = true;
 
@@ -39,10 +39,6 @@ export class TodoInformationComponent extends ItemInfoBaseComponent implements O
   constructor() {
     super();
     this.colorScheme.set(ItemInfoColorScheme.BLUE);
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    // stats are now computed signals
   }
 
   getCategories(): Category[] {

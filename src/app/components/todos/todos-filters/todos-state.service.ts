@@ -94,7 +94,7 @@ export class TodosStateService {
   });
 
   isCompleted(todo: Todo): boolean {
-    const listTasks = this.storageService.getTasksByTodoId(todo.id);
+    const listTasks = this.storageService.tasksByTodoId().get(todo.id) || [];
     if (listTasks.length === 0) return false;
     const listCompletedTasks = listTasks.filter(
       (task) => task.status === "completed" || task.status === "skipped"
