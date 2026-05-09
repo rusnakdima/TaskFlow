@@ -114,101 +114,6 @@ pub async fn init_totp_qr_login(
 }
 
 #[tauri::command]
-pub async fn init_passkey_registration(
-  state: State<'_, AppState>,
-  username: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.passkey_service.init_registration(&username).await
-}
-
-#[tauri::command]
-pub async fn complete_passkey_registration(
-  state: State<'_, AppState>,
-  username: String,
-  response_json: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .passkey_service
-    .complete_registration(&username, &response_json)
-    .await
-}
-
-#[tauri::command]
-pub async fn init_passkey_authentication(
-  state: State<'_, AppState>,
-  username: Option<String>,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .passkey_service
-    .init_authentication(username.as_deref())
-    .await
-}
-
-#[tauri::command]
-pub async fn complete_passkey_authentication(
-  state: State<'_, AppState>,
-  username: String,
-  response_json: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .passkey_service
-    .complete_authentication(&username, &response_json)
-    .await
-}
-
-#[tauri::command]
-pub async fn disable_passkey(
-  state: State<'_, AppState>,
-  username: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.passkey_service.disable_passkey(&username).await
-}
-
-#[tauri::command]
-pub async fn enable_biometric(
-  state: State<'_, AppState>,
-  username: String,
-  credential_id: String,
-  public_key: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .biometric_service
-    .enable_biometric(&username, &credential_id, &public_key)
-    .await
-}
-
-#[tauri::command]
-pub async fn init_biometric_auth(
-  state: State<'_, AppState>,
-  username: Option<String>,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .biometric_service
-    .init_biometric_auth(username.as_deref())
-    .await
-}
-
-#[tauri::command]
-pub async fn complete_biometric_auth(
-  state: State<'_, AppState>,
-  username: String,
-  signature: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .biometric_service
-    .complete_biometric_auth(&username, &signature)
-    .await
-}
-
-#[tauri::command]
-pub async fn disable_biometric(
-  state: State<'_, AppState>,
-  username: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state.biometric_service.disable_biometric(&username).await
-}
-
-#[tauri::command]
 pub async fn get_user_security_status(
   state: State<'_, AppState>,
   username: String,
@@ -227,8 +132,6 @@ pub async fn get_user_security_status(
     message: "Security status retrieved".to_string(),
     data: DataValue::Object(json!({
       "totp_enabled": user.totp_enabled,
-      "passkey_enabled": user.passkey_enabled,
-      "biometric_enabled": user.biometric_enabled,
       "qr_login_enabled": user.qr_login_enabled,
     })),
   })
@@ -295,74 +198,4 @@ pub async fn qr_login_complete(
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state.qr_auth_service.complete_qr_login(&token).await
-}
-
-#[cfg(target_os = "android")]
-#[tauri::command]
-pub fn check_android_biometric() -> Result<ResponseModel, ResponseModel> {
-  match crate::services::auth::android_biometric::check_biometric_available() {
-    Ok(available) => Ok(ResponseModel {
-      status: crate::entities::response_entity::ResponseStatus::Success,
-      message: if available {
-        "Biometric available"
-      } else {
-        "Biometric not available"
-      }
-      .to_string(),
-      data: crate::entities::response_entity::DataValue::Bool(available),
-    }),
-    Err(e) => Err(ResponseModel {
-      status: crate::entities::response_entity::ResponseStatus::Error,
-      message: e,
-      data: crate::entities::response_entity::DataValue::Bool(false),
-    }),
-  }
-}
-
-#[cfg(target_os = "android")]
-#[tauri::command]
-pub fn authenticate_android_biometric(
-  title: String,
-  subtitle: String,
-) -> Result<ResponseModel, ResponseModel> {
-  match crate::services::auth::android_biometric::authenticate_biometric(&title, &subtitle) {
-    Ok(success) => Ok(ResponseModel {
-      status: crate::entities::response_entity::ResponseStatus::Success,
-      message: if success {
-        "Authentication successful"
-      } else {
-        "Authentication failed"
-      }
-      .to_string(),
-      data: crate::entities::response_entity::DataValue::Bool(success),
-    }),
-    Err(e) => Err(ResponseModel {
-      status: crate::entities::response_entity::ResponseStatus::Error,
-      message: e,
-      data: crate::entities::response_entity::DataValue::Bool(false),
-    }),
-  }
-}
-
-#[cfg(not(target_os = "android"))]
-#[tauri::command]
-pub fn check_android_biometric() -> Result<ResponseModel, ResponseModel> {
-  Ok(ResponseModel {
-    status: crate::entities::response_entity::ResponseStatus::Success,
-    message: "Not Android".to_string(),
-    data: crate::entities::response_entity::DataValue::Bool(false),
-  })
-}
-
-#[cfg(not(target_os = "android"))]
-#[tauri::command]
-pub fn authenticate_android_biometric(
-  _title: String,
-  _subtitle: String,
-) -> Result<ResponseModel, ResponseModel> {
-  Ok(ResponseModel {
-    status: crate::entities::response_entity::ResponseStatus::Error,
-    message: "Not Android".to_string(),
-    data: crate::entities::response_entity::DataValue::Bool(false),
-  })
 }
