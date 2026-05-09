@@ -955,6 +955,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     super.clearSelection();
   }
 
+  onTableSelectAll(selectAll: boolean): void {
+    this.selectedTasks.update((taskIds) => {
+      const newSelected = new Set(taskIds);
+      if (selectAll) {
+        this.listTasks().forEach((task) => newSelected.add(task.id));
+      } else {
+        this.listTasks().forEach((task) => newSelected.delete(task.id));
+      }
+      return newSelected;
+    });
+  }
+
   bulkUpdatePriority(priority: string) {
     const todoId = this.todoId();
     if (!todoId) return;
