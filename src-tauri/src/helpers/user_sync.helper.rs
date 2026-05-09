@@ -55,13 +55,10 @@ pub async fn update_user_profile_id_both(
       data: DataValue::String("".to_string()),
     })?;
 
-  // Step 2: MongoDB is optional - if not available, log and return
   let Some(mongo) = mongo_provider else {
-    println!("[WARN] MongoDB not available, skipping profile_id sync in MongoDB");
     return Ok(());
   };
 
-  // Step 3: Update MongoDB with last-write-wins
   let now_str = timestamp_helper::get_current_timestamp();
 
   match mongo.find_by_id("users", user_id).await {
@@ -133,10 +130,10 @@ pub async fn update_user_profile_id_both(
           data: DataValue::String("".to_string()),
         })?;
     }
-    Err(e) => {
+    Err(_e) => {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
-        message: format!("Failed to check user in MongoDB: {}", e),
+        message: format!("Failed to check user in MongoDB: {}", _e),
         data: DataValue::String("".to_string()),
       });
     }
