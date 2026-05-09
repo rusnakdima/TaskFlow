@@ -1,0 +1,516 @@
+<div class="flex flex-col gap-4">
+  @if (stateService.activeVisibility() === "all") {
+    @if (
+      stateService.groupedTodos().private.length === 0 &&
+      stateService.groupedTodos().shared.length === 0 &&
+      stateService.groupedTodos().public.length === 0
+    ) {
+      <app-empty-state
+        icon="folder_open"
+        title="No projects found"
+        message="No projects match the current filter"
+      />
+    } @else {
+      @if (viewMode === "table") {
+        @if (stateService.groupedTodos().private.length > 0) {
+          <div class="mb-6">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
+              <mat-icon class="text-base">lock</mat-icon>
+              Private
+            </h3>
+            <app-table-view
+              [data]="stateService.groupedTodos().private"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [showCommentToggle]="false"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [expandTemplate]="expandTemplate"
+              [actions]="tableActions"
+              [itemType]="'todo'"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="selectAll.emit()"
+              (rowClick)="onRowClick($event)"
+              (rangeSelect)="rangeSelect.emit($event)"
+              (additiveSelect)="additiveSelect.emit($event)"
+              (actionClick)="tableAction.emit($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+            </app-table-view>
+          </div>
+        }
+        @if (stateService.groupedTodos().shared.length > 0) {
+          <div class="mb-6">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
+              <mat-icon class="text-base">group</mat-icon>
+              Shared
+            </h3>
+            <app-table-view
+              [data]="stateService.groupedTodos().shared"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [showCommentToggle]="false"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [expandTemplate]="expandTemplate"
+              [actions]="tableActions"
+              [itemType]="'todo'"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="selectAll.emit()"
+              (rowClick)="onRowClick($event)"
+              (rangeSelect)="rangeSelect.emit($event)"
+              (additiveSelect)="additiveSelect.emit($event)"
+              (actionClick)="tableAction.emit($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+            </app-table-view>
+          </div>
+        }
+        @if (stateService.groupedTodos().public.length > 0) {
+          <div class="mb-6">
+            <h3
+              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+            >
+              <mat-icon class="text-base">public</mat-icon>
+              Public
+            </h3>
+            <app-table-view
+              [data]="stateService.groupedTodos().public"
+              [fields]="todoTableFields"
+              [selectedIds]="selectedTodos()"
+              [showSelection]="true"
+              [showCommentToggle]="false"
+              [dragEnabled]="true"
+              [expandable]="true"
+              [expandTemplate]="expandTemplate"
+              [actions]="tableActions"
+              [itemType]="'todo'"
+              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+              (selectAll)="selectAll.emit()"
+              (rowClick)="onRowClick($event)"
+              (rangeSelect)="rangeSelect.emit($event)"
+              (additiveSelect)="additiveSelect.emit($event)"
+              (actionClick)="tableAction.emit($event)"
+              (dropped)="onTodoDrop($event)"
+            >
+            </app-table-view>
+          </div>
+        }
+      } @else if (viewMode === "grid") {
+        <div
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          [cdkDropListData]="
+            stateService.activeVisibility() === 'all'
+              ? stateService.groupedTodos().private
+              : stateService.listTodos()
+          "
+          (cdkDropListDropped)="onTodoListDropped($event)"
+        >
+          @if (stateService.groupedTodos().private.length > 0) {
+            <div class="col-span-full">
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().private; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="true"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+          @if (stateService.groupedTodos().shared.length > 0) {
+            @if (stateService.groupedTodos().private.length > 0) {
+              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+            <div class="col-span-full">
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().shared; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+          @if (stateService.groupedTodos().public.length > 0) {
+            @if (
+              stateService.groupedTodos().private.length > 0 ||
+              stateService.groupedTodos().shared.length > 0
+            ) {
+              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+            <div class="col-span-full">
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().public; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+        </div>
+      } @else {
+        <div
+          class="flex w-full flex-col gap-y-3"
+          cdkDropList
+          [cdkDropListData]="
+            stateService.activeVisibility() === 'all'
+              ? stateService.groupedTodos().private
+              : stateService.listTodos()
+          "
+          (cdkDropListDropped)="onTodoListDropped($event)"
+        >
+          @if (stateService.groupedTodos().private.length > 0) {
+            <div>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().private; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="true"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+          @if (stateService.groupedTodos().shared.length > 0) {
+            @if (stateService.groupedTodos().private.length > 0) {
+              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+            }
+            <div>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().shared; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+          @if (stateService.groupedTodos().public.length > 0) {
+            @if (
+              stateService.groupedTodos().private.length > 0 ||
+              stateService.groupedTodos().shared.length > 0
+            ) {
+              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+            }
+            <div>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
+            </div>
+            @for (todo of stateService.groupedTodos().public; track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="false"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          }
+        </div>
+      }
+    }
+  } @else {
+    @if (stateService.listTodos().length === 0) {
+      <app-empty-state
+        icon="folder_open"
+        title="No projects found"
+        message="No projects match the current filter"
+      />
+    } @else {
+      @if (viewMode === "table") {
+        <div>
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              stateService.activeVisibility() === "private"
+                ? "Private"
+                : stateService.activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
+          </h3>
+          <app-table-view
+            [data]="stateService.listTodos()"
+            [fields]="todoTableFields"
+            [selectedIds]="selectedTodos()"
+            [showSelection]="true"
+            [showCommentToggle]="false"
+            [dragEnabled]="true"
+            [expandable]="true"
+            [expandTemplate]="expandTemplate"
+            [actions]="tableActions"
+            [itemType]="'todo'"
+            (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+            (selectAll)="selectAll.emit()"
+            (rowClick)="onRowClick($event)"
+            (actionClick)="tableAction.emit($event)"
+            (dropped)="onTodoDrop($event)"
+          >
+          </app-table-view>
+        </div>
+      } @else if (viewMode === "grid") {
+        <div>
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              stateService.activeVisibility() === "private"
+                ? "Private"
+                : stateService.activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
+          </h3>
+          <div
+            class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            [cdkDropListData]="stateService.listTodos()"
+            (cdkDropListDropped)="onTodoListDropped($event)"
+          >
+            @for (todo of stateService.listTodos(); track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="stateService.activeVisibility() === 'private'"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          </div>
+        </div>
+      } @else {
+        <div>
+          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+            {{
+              stateService.activeVisibility() === "private"
+                ? "Private"
+                : stateService.activeVisibility() === "shared"
+                  ? "Shared"
+                  : "Public"
+            }}
+          </h3>
+          <div
+            class="flex w-full flex-col gap-y-3"
+            cdkDropList
+            [cdkDropListData]="stateService.listTodos()"
+            (cdkDropListDropped)="onTodoListDropped($event)"
+          >
+            @for (todo of stateService.listTodos(); track todo.id) {
+              <app-todo
+                cdkDrag
+                [cdkDragData]="todo"
+                cdkDragPreviewContainer="global"
+                [todo]="todo"
+                [index]="$index"
+                [isOwner]="todo.user_id === userId"
+                [isPrivate]="stateService.activeVisibility() === 'private'"
+                [highlight]="highlightTodoId === todo.id"
+                [isSelected]="selectedTodos().has(todo.id)"
+                [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                (deleteTodoEvent)="
+                  todoDeleted.emit({ id: $event, isOwner: todo.user_id === userId })
+                "
+                (archiveTodoEvent)="todoArchived.emit($event)"
+                (restoreTodoEvent)="todoRestored.emit($event)"
+                (saveAsBlueprintEvent)="todoSavedAsBlueprint.emit($event)"
+                (selectionChangeEvent)="toggleTodoSelection($event)"
+                (updateTodoEvent)="todoUpdated.emit({ todo, event: $event })"
+                (cardClick)="onCardClick($event)"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+                ></div>
+              </app-todo>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+
+  @if (showBulkActions) {
+    <app-bulk-actions
+      [selectedCount]="selectedTodos().size"
+      [isAllSelected]="isAllSelected"
+      mode="todos"
+      (selectAllEvent)="selectAll.emit()"
+      (softDeleteEvent)="bulkArchive.emit()"
+      (cancelEvent)="clearSelection.emit()"
+    />
+  }
+
+  <ng-template #expandTemplate let-item>
+    <app-item-expand-details [item]="item" type="todo" />
+  </ng-template>
+</div>
+
+<style>
+  .cdk-drag-preview {
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 1000 !important;
+  }
+
+  .cdk-drag-placeholder {
+    visibility: hidden;
+  }
+
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+</style>
