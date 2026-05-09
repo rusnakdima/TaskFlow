@@ -10,10 +10,9 @@ import { computed, Signal } from "@angular/core";
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
  */
-export function deduplicateById<T extends { id: string; updated_at?: string; deleted_at?: string | null }>(
-  entities: T[],
-  options?: { filterDeleted?: boolean }
-): T[] {
+export function deduplicateById<
+  T extends { id: string; updated_at?: string; deleted_at?: string | null },
+>(entities: T[], options?: { filterDeleted?: boolean }): T[] {
   const map = new Map<string, T>();
 
   for (const entity of entities) {

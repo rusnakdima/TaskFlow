@@ -149,7 +149,8 @@ export class AdminCascadeService {
         );
 
         const subtaskIds =
-          (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
+          (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) ||
+          [];
         this.dataStore.updateSignal("subtasks", (subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
