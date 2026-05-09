@@ -1,0 +1,68 @@
+import { TaskStatus } from "@models/task.model";
+
+export function filterBySearch<T>(items: T[], query: string, fields: (keyof T)[]): T[] {
+  if (!query) return items;
+  const lowerQuery = query.toLowerCase();
+  return items.filter((item) =>
+    fields.some((field) => {
+      const value = item[field];
+      return typeof value === "string" && value.toLowerCase().includes(lowerQuery);
+    })
+  );
+}
+
+export function countByStatus<T extends { status: string }>(items: T[], status: string): number {
+  return items.filter((item) => item.status === status).length;
+}
+
+export function compareByTimestamp(a: { created_at?: string }, b: { created_at?: string }): number {
+  return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+}
+
+export function getLatestTimestamp(entity: { created_at?: string; updated_at?: string }): number {
+  return Math.max(
+    new Date(entity.created_at || 0).getTime(),
+    new Date(entity.updated_at || 0).getTime()
+  );
+}
+
+export function groupByField<T, K extends keyof T>(items: T[], field: K): Map<T[K], T[]> {
+  const map = new Map<T[K], T[]>();
+  for (const item of items) {
+    const key = item[field];
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(item);
+  }
+  return map;
+}
+
+export function sortByField<T>(items: T[], field: keyof T, direction: "asc" | "desc" = "asc"): T[] {
+  return [...items].sort((a, b) => {
+    const aVal = a[field];
+    const bVal = b[field];
+    if (aVal === bVal) return 0;
+    if (aVal == null) return 1;
+    if (bVal == null) return -1;
+    const comparison = aVal < bVal ? -1 : 1;
+    return direction === "asc" ? comparison : -comparison;
+  });
+}
+
+export function deduplicateById<T extends { id: string; updated_at?: string; deleted_at?: string }>(
+  entities: T[]
+): T[] {
+  const map = new Map<string, T>();
+  for (const entity of entities) {
+    if (entity.deleted_at) continue;
+    const existing = map.get(entity.id);
+    if (
+      !existing ||
+      (entity.updated_at && existing.updated_at && entity.updated_at > existing.updated_at)
+    ) {
+      map.set(entity.id, entity);
+    }
+  }
+  return Array.from(map.values());
+}
