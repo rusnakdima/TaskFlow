@@ -4,12 +4,6 @@ pub mod manage_db_route;
 #[path = "auth.route.rs"]
 pub mod auth_route;
 
-#[path = "profile.route.rs"]
-pub mod profile_route;
-
-#[path = "about.route.rs"]
-pub mod about_route;
-
 #[path = "auth_data_sync.route.rs"]
 pub mod auth_data_sync_route;
 

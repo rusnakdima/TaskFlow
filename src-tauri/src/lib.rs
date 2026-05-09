@@ -1,6 +1,5 @@
 /* imports */
 mod entities;
-mod errors;
 mod helpers;
 mod providers;
 mod routes;
@@ -12,8 +11,6 @@ use tauri::Manager;
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Layer};
 
 /* global re-export for nosql_orm Entity trait */
-#[allow(unused_imports)]
-use nosql_orm::Entity;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
@@ -64,6 +61,7 @@ use services::{
 };
 
 #[tauri::command]
+#[allow(unused)]
 async fn process_queued_operation(
   _operation: String,
   _table: String,
@@ -91,6 +89,7 @@ pub struct AppState {
 }
 
 #[tauri::command]
+#[allow(unused)]
 async fn sync_data(_user_id: String) -> Result<(), String> {
   Ok(())
 }
@@ -253,8 +252,6 @@ pub fn run() {
         json_provider.clone(),
         mongodb_provider.clone(),
         cascade_service.clone(),
-        config_helper.mongo_db_uri.clone(),
-        config_helper.mongo_db_name.clone(),
       ));
 
       app.manage(AppState {
