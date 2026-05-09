@@ -550,6 +550,23 @@ export class DataManagementView implements OnInit {
     }
   }
 
+  onBulkSelectAllRecords(selectAll: boolean): void {
+    const currentData = this.getCurrentData();
+    if (selectAll) {
+      this.selectedRecords.update((records) => {
+        const newRecords = new Set(records);
+        currentData.forEach((item) => newRecords.add(item.id));
+        return newRecords;
+      });
+    } else {
+      this.selectedRecords.update((records) => {
+        const newRecords = new Set(records);
+        currentData.forEach((item) => newRecords.delete(item.id));
+        return newRecords;
+      });
+    }
+  }
+
   isAllSelected(): boolean {
     const currentData = this.getCurrentData();
     return currentData.length > 0 && currentData.every((item) => this.isSelected(item.id));
