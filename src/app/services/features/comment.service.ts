@@ -16,11 +16,6 @@ export class CommentService {
     options: { taskId?: string; subtaskId?: string; visibility?: "private" | "shared" }
   ): Observable<Comment> {
     const userId = this.authService.getValueByKey("id");
-    console.log("[CommentService] createComment called", {
-      content,
-      options,
-      userId,
-    });
     const payload: CommentPayload = {
       user_id: userId,
       content,
@@ -36,7 +31,6 @@ export class CommentService {
       >("comments", payload, { visibility: (options.visibility || "private") as Visibility })
       .pipe(
         map((response) => {
-          console.log("[CommentService] createComment: API response:", response);
           return {
             ...response,
             id: response.id || crypto.randomUUID(),

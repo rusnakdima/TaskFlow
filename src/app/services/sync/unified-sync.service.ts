@@ -154,7 +154,6 @@ export class UnifiedSyncService implements OnDestroy {
     visibility?: string
   ): string {
     if (visibility !== "private" && !this.mongoConnectionService.isConnected()) {
-      console.warn("Cannot queue non-private operation: MongoDB is not connected");
       return "";
     }
 
@@ -210,9 +209,7 @@ export class UnifiedSyncService implements OnDestroy {
   private saveQueueToStorage(): void {
     try {
       localStorage.setItem(this.QUEUE_STORAGE_KEY, JSON.stringify(this.offlineQueue));
-    } catch (error) {
-      console.error("Failed to save offline queue:", error);
-    }
+    } catch (error) {}
   }
 
   private loadQueueFromStorage(): void {
@@ -222,7 +219,6 @@ export class UnifiedSyncService implements OnDestroy {
         this.offlineQueue = JSON.parse(stored);
       }
     } catch (error) {
-      console.error("Failed to load offline queue:", error);
       this.offlineQueue = [];
     }
   }
@@ -245,9 +241,7 @@ export class UnifiedSyncService implements OnDestroy {
       if (this.isOnline() && userId) {
         try {
           await invoke("sync_data", { userId });
-        } catch (error) {
-          console.error("Periodic sync failed:", error);
-        }
+        } catch (error) {}
       }
     }, this.DEFAULT_SYNC_INTERVAL);
   }
