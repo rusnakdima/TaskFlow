@@ -13,6 +13,8 @@ import { MatButtonModule } from "@angular/material/button";
 /* models */
 import { Category } from "@models/category.model";
 import { ResponseStatus } from "@models/response.model";
+import { TableField, TableFieldActionButton } from "@models/table-field.model";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
@@ -27,15 +29,15 @@ import { compareByTimestamp } from "@helpers/array.helper";
 
 /* components */
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
-import { CategoryCardComponent } from "@components/category-card/category-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { TableField, TableFieldActionButton } from "@models/table-field.model";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
+import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-display.constants";
 
 @Component({
   selector: "app-categories",
@@ -49,9 +51,10 @@ import {
     MatMenuModule,
     MatButtonModule,
     CategoryFormComponent,
-    CategoryCardComponent,
     BulkActionsComponent,
     TableViewComponent,
+    ItemDisplayComponent,
+    ItemExpandDetailsComponent,
     PageToolbarComponent,
   ],
   templateUrl: "./categories.view.html",
@@ -95,6 +98,10 @@ export class CategoriesView extends BaseListView implements OnInit {
   editingCategory = signal<Category | null>(null);
   sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
+
+  categoryCardConfig = CATEGORY_CARD_CONFIG;
+  categoryTableConfig = CATEGORY_TABLE_CONFIG;
+  categoryActions = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
 
   categoryTableFields: TableField[] = [
     {
@@ -287,5 +294,33 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   onSearch(query: string): void {
     this.searchQuery.set(query);
+  }
+
+  onCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.selectRange(anchorId, event.id, this.searchResults());
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.toggleItemSelection(event.id);
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+  }
+
+  onCategoryAction(event: { action: string; item: Category }): void {
+    switch (event.action) {
+      case "edit":
+        this.editCategory(event.item);
+        break;
+      case "archive":
+        this.archiveCategory(event.item.id);
+        break;
+      case "delete":
+        this.deleteCategory(event.item.id);
+        break;
+    }
   }
 }

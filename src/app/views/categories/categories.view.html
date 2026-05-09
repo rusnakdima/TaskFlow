@@ -27,33 +27,51 @@
         [fields]="categoryTableFields"
         [selectedIds]="selectedCategories()"
         [showSelection]="true"
+        [expandable]="true"
+        [expandTemplate]="expandTemplate"
         [actions]="getCategoryTableActions()"
         (selectionChange)="toggleCategorySelection($event.id)"
         (selectAll)="onTableSelectAll()"
         (rowClick)="onRowClick($event)"
         (actionClick)="onTableAction($event)"
-      />
+      >
+        <ng-template #expandTemplate let-item>
+          <app-item-expand-details [item]="item" type="category" />
+        </ng-template>
+      </app-table-view>
     } @else if (viewMode() === "grid") {
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         @for (category of searchResults(); track category.id) {
-          <app-category-card
-            [category]="category"
+          <app-item-display
+            [item]="category"
+            [config]="categoryCardConfig"
+            [displayMode]="'card'"
+            [index]="$index"
+            [isOwner]="true"
+            [isPrivate]="true"
             [isSelected]="selectedCategories().has(category.id)"
-            (edit)="editCategory($event)"
-            (archive)="archiveCategory($event)"
-            (selectionChangeEvent)="toggleCategorySelection($event)"
+            [actions]="categoryActions"
+            (selectionChangeEvent)="toggleCategorySelection($event.id)"
+            (cardClick)="onCardClick($event)"
+            (itemAction)="onCategoryAction($event)"
           />
         }
       </div>
-    } @else if (viewMode() === "card") {
+    } @else {
       <div class="flex w-full flex-col gap-y-3">
         @for (category of searchResults(); track category.id) {
-          <app-category-card
-            [category]="category"
+          <app-item-display
+            [item]="category"
+            [config]="categoryCardConfig"
+            [displayMode]="'list'"
+            [index]="$index"
+            [isOwner]="true"
+            [isPrivate]="true"
             [isSelected]="selectedCategories().has(category.id)"
-            (edit)="editCategory($event)"
-            (archive)="archiveCategory($event)"
-            (selectionChangeEvent)="toggleCategorySelection($event)"
+            [actions]="categoryActions"
+            (selectionChangeEvent)="toggleCategorySelection($event.id)"
+            (cardClick)="onCardClick($event)"
+            (itemAction)="onCategoryAction($event)"
           />
         }
       </div>
@@ -71,3 +89,7 @@
     (cancelEvent)="clearSelection()"
   />
 }
+
+<ng-template #expandTemplate let-item>
+  <app-item-expand-details [item]="item" type="category" />
+</ng-template>
