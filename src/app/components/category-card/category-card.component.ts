@@ -9,7 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 /* constants */
-import { ActionColors } from "@constants/table-field.constants";
+/* helpers */
 
 /* helpers */
 import { getActionColor } from "@helpers/action-color.helper";

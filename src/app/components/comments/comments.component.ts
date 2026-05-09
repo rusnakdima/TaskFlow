@@ -23,19 +23,15 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { MatIconModule } from "@angular/material/icon";
 
 /* components */
-import {
-  SubtaskCommentsListComponent,
-  SubtaskCommentGroup,
-} from "@components/subtask-comments-list/subtask-comments-list.component";
+import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 /* models */
-import { Comment } from "@models/comment.model";
+import { Comment, SubtaskCommentGroup } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
 import { Profile } from "@models/profile.model";
 import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
-import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 import { AuthService } from "@services/auth/auth.service";
 

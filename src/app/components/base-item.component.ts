@@ -1,13 +1,12 @@
 /* sys lib */
-import { Directive, signal, inject, EventEmitter, HostListener } from "@angular/core";
-import { ChangeDetectorRef } from "@angular/core";
-
-export interface ItemUpdateEvent {
-  field: string;
-  value: any;
-  task?: any;
-  subtask?: any;
-}
+import {
+  Directive,
+  signal,
+  inject,
+  EventEmitter,
+  HostListener,
+  ChangeDetectorRef,
+} from "@angular/core";
 
 /**
  * Abstract base for item components (Task, Subtask, Todo).
@@ -47,8 +46,8 @@ export abstract class BaseItemComponent {
   saveInlineEdit(): void {
     if (this.editingValue().trim() && this.editingField() && this.item) {
       const field = this.editingField()!;
-      const originalValue = field === "title" ? this.item.title : this.item.description;
-      if (this.editingValue().trim() !== (originalValue ?? "").trim()) {
+      const _originalValue = field === "title" ? this.item.title : this.item.description;
+      if (this.editingValue().trim() !== (_originalValue ?? "").trim()) {
         this.updateEvent.emit({
           field,
           value: this.editingValue().trim(),
@@ -68,7 +67,7 @@ export abstract class BaseItemComponent {
 
   toggleMenu(event: any) {
     event.stopPropagation();
-    this.isMenuOpen.update((v) => !v);
+    this.isMenuOpen.update((_v) => !this.isMenuOpen());
     this.cdr.markForCheck();
   }
 

@@ -6,7 +6,6 @@ import {
   Input,
   Output,
   OnInit,
-  OnDestroy,
   OnChanges,
   SimpleChanges,
   inject,
@@ -105,7 +104,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     this.requestService
       .create<Category>("categories", categoryData, { visibility: "private" })
       .subscribe({
-        next: (createdCategory: Category) => {
+        next: (_createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
           this.closeModal();
           this.saved.emit();
