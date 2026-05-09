@@ -163,9 +163,7 @@ export class CommentsComponent
   }
 
   addComment() {
-    console.log("[Comments] addComment called, content:", this.newCommentContent());
     if (!this.newCommentContent().trim()) {
-      console.log("[Comments] Empty comment, skipping");
       return;
     }
     this.addCommentEvent.emit(this.newCommentContent().trim());

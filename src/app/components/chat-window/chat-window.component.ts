@@ -283,9 +283,7 @@ export class ChatWindowComponent
         this.messages.update((current) => [...current, chatWithUser]);
         setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
       },
-      error: (err) => {
-        console.error("Failed to send message:", err);
-      },
+      error: () => {},
     });
   }
 
@@ -296,9 +294,7 @@ export class ChatWindowComponent
       next: () => {
         this.messages.update((current) => current.filter((c) => c.id !== chatId));
       },
-      error: (err) => {
-        console.error("Failed to delete message:", err);
-      },
+      error: () => {},
     });
   }
 
