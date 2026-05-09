@@ -19,7 +19,8 @@
     "build:smart": "./scripts/build-optimized.sh build desktop release",
     "build:smart:debug": "./scripts/build-optimized.sh build desktop debug",
     "build:smart:android": "./scripts/build-optimized.sh build android release",
-    "build:clean": "./scripts/build-optimized.sh clean"
+    "build:clean": "./scripts/build-optimized.sh clean",
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
@@ -51,12 +52,16 @@
     "@auth0/angular-jwt": "^5.2.0",
     "@tauri-apps/cli": "^2.11.0",
     "@types/progressbar.js": "^1.1.7",
+    "angular-eslint": "21.0.1",
     "autoprefixer": "^10.4.23",
+    "eslint": "^9.39.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "flowbite": "^4.0.1",
     "postcss": "^8.5.6",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.46.4"
   }
 }
