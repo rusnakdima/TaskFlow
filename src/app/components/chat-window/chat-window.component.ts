@@ -268,11 +268,12 @@ export class ChatWindowComponent
         this.newMessage = "";
         this.shouldScroll.set(true);
         this.forceScrollBottom = true;
-        const chatWithUser = {
+        const chatWithUser: Chat = {
           ...newChat,
+          user_id: currentUserId,
           author_name: currentUsername,
           user: { username: currentUsername },
-        };
+        } as Chat;
         this.cacheUsernames([chatWithUser]);
         this.messages.update((current) => [...current, chatWithUser]);
         setTimeout(() => this.updateObservedElements(".unread-chat", "data-chat-id"), 500);
