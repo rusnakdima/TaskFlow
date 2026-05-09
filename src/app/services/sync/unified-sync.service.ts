@@ -1,6 +1,7 @@
 /* sys lib */
 import { Injectable, OnDestroy } from "@angular/core";
 import { Observable, of, Subject, BehaviorSubject, from } from "rxjs";
+import { firstValueFrom } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
@@ -277,6 +278,19 @@ export class UnifiedSyncService implements OnDestroy {
     });
 
     try {
+      const isConnected = await firstValueFrom(this.mongoConnectionService.checkConnection());
+      if (!isConnected) {
+        this.notifyService.showWarning(
+          "Unable to sync - MongoDB is not connected. Working offline."
+        );
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "MongoDB is not connected. Working offline.",
+          data: null as unknown as R,
+        };
+      }
+
       const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
@@ -325,6 +339,19 @@ export class UnifiedSyncService implements OnDestroy {
     this.updateProgress({ currentStep: "export", progress: 10, message: "Exporting to cloud..." });
 
     try {
+      const isConnected = await firstValueFrom(this.mongoConnectionService.checkConnection());
+      if (!isConnected) {
+        this.notifyService.showWarning(
+          "Unable to sync - MongoDB is not connected. Working offline."
+        );
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "MongoDB is not connected. Working offline.",
+          data: null as unknown as R,
+        };
+      }
+
       const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
@@ -379,6 +406,25 @@ export class UnifiedSyncService implements OnDestroy {
 
     return (async () => {
       try {
+        const isConnected = await firstValueFrom(this.mongoConnectionService.checkConnection());
+        if (!isConnected) {
+          this.notifyService.showWarning(
+            "Unable to sync - MongoDB is not connected. Working offline."
+          );
+          this.updateProgress({
+            currentStep: "error",
+            progress: 0,
+            message: "Sync aborted - MongoDB offline",
+          });
+          this.syncProgressService.reset();
+          this.setSyncing(false);
+          return {
+            status: ResponseStatus.ERROR,
+            message: "MongoDB is not connected. Working offline.",
+            data: null as unknown as R,
+          };
+        }
+
         this.updateProgress({
           currentStep: "export",
           progress: 10,
