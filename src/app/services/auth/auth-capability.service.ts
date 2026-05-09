@@ -1,18 +1,12 @@
-import { Injectable, signal, computed, inject } from "@angular/core";
-import { WebAuthnService } from "@services/auth/webauthn.service";
+import { Injectable, signal, computed } from "@angular/core";
 
 export interface AuthCapabilities {
-  passkeyAvailable: boolean;
-  biometricAvailable: boolean;
   qrLoginAvailable: boolean;
   isTauri: boolean;
   isMobile: boolean;
-  platformName: string;
 }
 
 export interface AuthMethods {
-  passkey: boolean;
-  biometric: boolean;
   qrLogin: boolean;
 }
 
@@ -21,23 +15,16 @@ export interface AuthMethods {
 })
 export class AuthCapabilityService {
   private readonly _capabilities = signal<AuthCapabilities>({
-    passkeyAvailable: false,
-    biometricAvailable: false,
-    qrLoginAvailable: false,
+    qrLoginAvailable: true,
     isTauri: false,
     isMobile: false,
-    platformName: "Unknown",
   });
 
   readonly capabilities = this._capabilities.asReadonly();
 
-  readonly passkeyAvailable = computed(() => this._capabilities().passkeyAvailable);
-  readonly biometricAvailable = computed(() => this._capabilities().biometricAvailable);
   readonly qrLoginAvailable = computed(() => this._capabilities().qrLoginAvailable);
   readonly isTauri = computed(() => this._capabilities().isTauri);
   readonly isMobile = computed(() => this._capabilities().isMobile);
-
-  private webauthnService = inject(WebAuthnService);
 
   constructor() {
     this.detectCapabilities();
@@ -46,21 +33,11 @@ export class AuthCapabilityService {
   async detectCapabilities(): Promise<void> {
     const isTauri = this.checkIsTauri();
     const isMobile = this.checkIsMobile();
-    const platformName = this.webauthnService.getPlatformName();
-
-    const webAuthnSupported = await this.webauthnService.isWebAuthnSupported();
-    const platformAuthenticatorAvailable =
-      await this.webauthnService.isUserVerifyingPlatformAuthenticatorAvailable();
-
-    const biometricAvailable = isMobile || (webAuthnSupported && platformAuthenticatorAvailable);
 
     this._capabilities.set({
-      passkeyAvailable: webAuthnSupported,
-      biometricAvailable,
       qrLoginAvailable: true,
       isTauri,
       isMobile,
-      platformName,
     });
   }
 
@@ -76,22 +53,16 @@ export class AuthCapabilityService {
   }
 
   isMethodAvailableForUser(
-    method: keyof AuthMethods,
-    userSecurityStatus: {
-      passkeyEnabled?: boolean;
-      biometricEnabled?: boolean;
+    _method: keyof AuthMethods,
+    _userSecurityStatus: {
       qrLoginEnabled?: boolean;
     } | null
   ): boolean {
     const caps = this._capabilities();
 
-    if (!userSecurityStatus) return false;
+    if (!_userSecurityStatus) return false;
 
-    switch (method) {
-      case "passkey":
-        return caps.passkeyAvailable && !!userSecurityStatus.passkeyEnabled;
-      case "biometric":
-        return caps.biometricAvailable && !!userSecurityStatus.biometricEnabled;
+    switch (_method) {
       case "qrLogin":
         return caps.qrLoginAvailable;
       default:
@@ -100,16 +71,12 @@ export class AuthCapabilityService {
   }
 
   getAvailableMethods(
-    userSecurityStatus: {
-      passkeyEnabled?: boolean;
-      biometricEnabled?: boolean;
+    _userSecurityStatus: {
       qrLoginEnabled?: boolean;
     } | null
   ): AuthMethods {
     return {
-      passkey: this.isMethodAvailableForUser("passkey", userSecurityStatus),
-      biometric: this.isMethodAvailableForUser("biometric", userSecurityStatus),
-      qrLogin: this.isMethodAvailableForUser("qrLogin", userSecurityStatus),
+      qrLogin: true,
     };
   }
 }
