@@ -55,7 +55,7 @@ export class BottomNavComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((val) => {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((_val) => {
       let lastIndex =
         this.router.url.lastIndexOf("?") > -1
           ? this.router.url.lastIndexOf("?")

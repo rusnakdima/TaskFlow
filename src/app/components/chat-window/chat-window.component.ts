@@ -13,8 +13,6 @@ import {
   OnChanges,
   SimpleChanges,
   signal,
-  effect,
-  DestroyRef,
 } from "@angular/core";
 import { CommonModule, DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -48,12 +46,10 @@ export class ChatWindowComponent
   @Input({ required: true }) todo_id!: string;
   @Output() close = new EventEmitter<void>();
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
-  @ViewChild("messageInput") private messageInput!: ElementRef<HTMLTextAreaElement>;
 
   authService = inject(AuthService);
   storageService = inject(StorageService);
   apiService = inject(REQUEST_SERVICE);
-  private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
 
   chats = signal<Chat[]>([]);
@@ -64,27 +60,16 @@ export class ChatWindowComponent
   loadingInitial = signal(false);
   oldestTimestamp = signal<string | null>(null);
   currentTodoId = "";
-  private initialized = false;
 
   private subscriptions = new Subscription();
   private currentTodo = signal<any>(null);
   private usernameCache = new Map<string, string>();
-
-  private loadChatsEffect = effect(() => {
-    const todoId = this.todo_id;
-    if (!todoId || this.initialized) return;
-    const todo = this.currentTodo();
-    const visibility = todo?.visibility === "shared" ? "shared" : "private";
-    this.initialized = true;
-    this.loadInitialChats(todoId, visibility);
-  });
 
   newMessage = "";
   private forceScrollBottom = false;
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["todo_id"]) {
-      this.initialized = false;
       this.isFirstLoad.set(true);
       this.processedIds.set(new Set());
     }
@@ -126,46 +111,6 @@ export class ChatWindowComponent
         error: () => this.currentTodo.set(null),
       })
     );
-  }
-
-  private loadInitialChats(todoId: string, visibility: string = "private") {
-    if (this.loadingInitial()) return;
-    this.loadingInitial.set(true);
-
-    const cachedChats = this.storageService.getChatsByTodoId(todoId);
-    if (cachedChats && cachedChats.length > 0) {
-      const nonDeleted = cachedChats.filter((c) => !c.deleted_at);
-      const reversed = [...nonDeleted].reverse();
-      this.messages.set(reversed);
-      this.cacheUsernames(nonDeleted);
-      if (nonDeleted.length > 0) {
-        this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
-        this.hasMoreMessages.set(nonDeleted.length >= 10);
-      }
-      this.loadingInitial.set(false);
-      return;
-    }
-
-    this.apiService
-      .getAll<Chat>("chats", {
-        filter: { todo_id: todoId },
-        load: ["user"],
-        visibility: visibility as any,
-      })
-      .subscribe({
-        next: (chats) => {
-          const nonDeleted = chats.filter((c) => !c.deleted_at);
-          const reversed = [...nonDeleted].reverse();
-          this.messages.set(reversed);
-          this.cacheUsernames(nonDeleted);
-          if (nonDeleted.length > 0) {
-            this.oldestTimestamp.set(nonDeleted[nonDeleted.length - 1].created_at);
-            this.hasMoreMessages.set(nonDeleted.length >= 10);
-          }
-        },
-        complete: () => this.loadingInitial.set(false),
-        error: () => this.loadingInitial.set(false),
-      });
   }
 
   private cacheUsernames(chats: Chat[]) {

@@ -1,12 +1,11 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
-import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { FormsModule, ReactiveFormsModule, FormGroup } from "@angular/forms";
 
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatSelectModule } from "@angular/material/select";
 
-import { SelectField } from "@models/form-field.model";
 import { BaseFieldComponent } from "../base-field.component";
 
 @Component({
