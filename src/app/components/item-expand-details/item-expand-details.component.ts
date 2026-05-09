@@ -4,6 +4,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatChipsModule } from "@angular/material/chips";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { ItemType } from "@models/base.model";
+import { TableField } from "@models/table-field.model";
 
 @Component({
   selector: "app-item-expand-details",
@@ -15,6 +16,13 @@ import { ItemType } from "@models/base.model";
 export class ItemExpandDetailsComponent {
   @Input() item: any = null;
   @Input() type: ItemType = "todo";
+  @Input() fields: TableField[] = [];
+  @Input() formatDateFn: (date: string) => string = (dateStr: string) => this.formatFieldDate(dateStr);
+  @Input() getPriorityBadgeClassFn: (priority: string) => string = () => "";
+
+  get hasFields(): boolean {
+    return this.fields.length > 0;
+  }
 
   get completedCount(): number {
     if (this.type === "todo") return this.item?.completed_tasks_count || 0;
