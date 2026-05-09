@@ -11,17 +11,7 @@ import { MongoConnectionService } from "@services/core/mongo-connection.service"
   selector: "app-connection-status",
   standalone: true,
   imports: [CommonModule, MatIconModule, MatTooltipModule],
-  template: `
-    <div
-      class="connection-status"
-      [class]="'status-' + connectionStatus()"
-      [matTooltip]="statusTooltip()"
-      (click)="refreshConnection()"
-    >
-      <span class="status-dot"></span>
-      <span class="status-label">{{ statusLabel() }}</span>
-    </div>
-  `,
+  templateUrl: "./connection-status.component.html",
   styles: [
     `
       .connection-status {
