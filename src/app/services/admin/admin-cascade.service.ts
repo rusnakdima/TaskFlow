@@ -10,12 +10,14 @@ import { Chat } from "@models/chat.model";
 
 /* services */
 import { StorageService } from "@services/storage.service";
+import { REQUEST_SERVICE, CascadeResult } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminCascadeService {
   private dataStore = inject(StorageService);
+  private requestService = inject(REQUEST_SERVICE);
 
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
@@ -23,8 +25,9 @@ export class AdminCascadeService {
     const todo = todos.find((t) => t.id === todo_id);
     if (!todo) return;
 
-    const taskIds = todo.tasks?.map((t) => t.id) || [];
-    const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+    const taskIds = todo.tasks?.map((t: Task) => t.id) || [];
+    const subtaskIds =
+      todo.tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
 
     this.dataStore.updateSignal("subtasks", (items) =>
       items.filter((s) => !subtaskIds.includes(s.id))
@@ -104,6 +107,28 @@ export class AdminCascadeService {
     }
   }
 
+  async softDeleteBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchSoftDelete(table, ids);
+    this.updateSignalsFromCascadeResults();
+    return results;
+  }
+
+  async hardDeleteBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchHardDelete(table, ids);
+    this.updateSignalsFromCascadeResults();
+    return results;
+  }
+
+  async restoreBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchRestore(table, ids);
+    this.updateSignalsFromCascadeResults();
+    return results;
+  }
+
+  private updateSignalsFromCascadeResults(): void {
+    this.dataStore.loadAdminData(true).subscribe();
+  }
+
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
     const timestamp = new Date().toISOString();
 
@@ -113,7 +138,7 @@ export class AdminCascadeService {
       const todos = this.dataStore.todos();
       const todo = todos.find((t) => t.id === id);
       if (todo) {
-        const taskIds = todo.tasks?.map((t) => t.id) || [];
+        const taskIds = todo.tasks?.map((t: Task) => t.id) || [];
 
         this.dataStore.updateSignal("tasks", (tasks) =>
           tasks.map((task) =>
@@ -123,7 +148,8 @@ export class AdminCascadeService {
           )
         );
 
-        const subtaskIds = todo.tasks?.flatMap((t) => t.subtasks?.map((s) => s.id) || []) || [];
+        const subtaskIds =
+          todo.tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
         this.dataStore.updateSignal("subtasks", (subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)

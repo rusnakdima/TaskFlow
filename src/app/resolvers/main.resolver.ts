@@ -22,7 +22,7 @@ export class MainResolver implements Resolve<any> {
 
   async resolve(
     route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
+    _state: RouterStateSnapshot
   ): Promise<Object | string> {
     const paramsMap = route.paramMap;
 

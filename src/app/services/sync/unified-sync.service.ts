@@ -1,12 +1,12 @@
 /* sys lib */
 import { Injectable, OnDestroy } from "@angular/core";
 import { Observable, of, Subject, BehaviorSubject, from } from "rxjs";
-import { switchMap, take } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* models */
 import { Response, ResponseStatus } from "@models/response.model";
+import { QueuedOperation, SyncProgress } from "@models/sync.model";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
@@ -16,24 +16,6 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-
-export interface QueuedOperation {
-  id: string;
-  operation: "create" | "update" | "delete";
-  table: string;
-  data?: any;
-  timestamp: number;
-  retries: number;
-  visibility?: string;
-}
-
-export interface SyncProgress {
-  isSyncing: boolean;
-  currentStep: "export" | "import" | "complete" | "error";
-  progress: number;
-  message: string;
-  error?: string;
-}
 
 @Injectable({
   providedIn: "root",
@@ -53,9 +35,10 @@ export class UnifiedSyncService implements OnDestroy {
 
   private isSyncingSubject = new BehaviorSubject<boolean>(false);
   private progressSubject = new BehaviorSubject<SyncProgress>({
-    isSyncing: false,
+    stage: "idle",
+    processed: 0,
+    total: 0,
     currentStep: "complete",
-    progress: 0,
     message: "Ready to sync",
   });
 

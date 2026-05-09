@@ -1,47 +1,26 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, from, of } from "rxjs";
-import { map, tap } from "rxjs/operators";
-import { invoke } from "@tauri-apps/api/core";
+import { Observable } from "rxjs";
 
 /* models */
+
+import {
+  TotpSetupResult,
+  PasskeyRegistrationOptions,
+  PasskeyAuthOptions,
+} from "@models/security.model";
+export {
+  TotpSetupResult,
+  PasskeyRegistrationOptions,
+  PasskeyAuthOptions,
+  UserSecurityStatus,
+} from "@models/security.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { PasskeyService } from "@services/auth/passkey.service";
 import { WebAuthnService } from "@services/auth/webauthn.service";
-import { EncodingHelper } from "@helpers/encoding.helper";
 import { AuthResponse } from "@models/auth-forms.model";
 import { REQUEST_SERVICE } from "@services/api.service";
-
-export interface TotpSetupResult {
-  qrCode: string;
-  secret: string;
-  recoveryCodes: string[];
-}
-
-export interface PasskeyRegistrationOptions {
-  options: any;
-  challenge: string;
-}
-
-export interface PasskeyAuthOptions {
-  options: any;
-  qrCode: string;
-  challenge: string;
-  username: string;
-}
-
-export interface UserSecurityStatus {
-  totpEnabled: boolean;
-  passkeyEnabled: boolean;
-  biometricEnabled: boolean;
-  qrLoginEnabled?: boolean;
-}
-
-export interface BiometricInfo {
-  enabled: boolean;
-  platform: string;
-}
 
 @Injectable({
   providedIn: "root",

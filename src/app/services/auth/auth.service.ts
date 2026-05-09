@@ -1,19 +1,17 @@
 /* sys lib */
 import { Injectable, inject, Injector } from "@angular/core";
-import { Observable, of } from "rxjs";
-import { tap, take, catchError } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { tap, take } from "rxjs/operators";
 
 /* models */
 import { LoginForm, SignupForm, AuthResponse } from "@models/auth-forms.model";
 import { PasswordReset } from "@models/password-reset.model";
-import { OfflineAuthResult } from "@models/local-user.model";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { ProfileRequiredService } from "@services/core/profile-required.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
@@ -97,7 +95,7 @@ export class AuthService {
    */
   private performOnlineLogin(loginData: LoginForm): Observable<AuthResponse> {
     return this.requestService.invokeCommand<AuthResponse>("login", { loginForm: loginData }).pipe(
-      tap((authResponse: AuthResponse) => {
+      tap(() => {
         this.loadUserData();
       })
     );
@@ -109,15 +107,7 @@ export class AuthService {
 
   signup<R>(signupData: SignupForm): Observable<R> {
     return this.requestService.invokeCommand<R>("register", { signupForm: signupData }).pipe(
-      tap((authResponse: R) => {
-        const authData = authResponse as unknown as AuthResponse;
-        const tokenStr = authData.token;
-        const userId = this.jwtTokenService.getUserId(tokenStr);
-        const username = this.jwtTokenService.getValueByKey(tokenStr, "username");
-        const email = this.jwtTokenService.getValueByKey(tokenStr, "email");
-        const role = this.jwtTokenService.getRole(tokenStr);
-
-        // No longer storing user data for offline auth
+      tap(() => {
         this.loadUserData();
       })
     );
@@ -179,8 +169,8 @@ export class AuthService {
     return null;
   }
 
-  importUserData(userData: string): { success: boolean; error?: string } {
-    return { success: false, error: "Offline authentication disabled" };
+  importUserData(_userData: string): { success: boolean; error?: string } {
+    return { success: false };
   }
 
   /**
@@ -217,12 +207,8 @@ export class AuthService {
     this.checkToken<any>(token)
       .pipe(take(1))
       .subscribe({
-        next: (response: any) => {
-          // Token valid and user exists - session init complete
-          // Data loading is handled by DataLoaderService on app init
-        },
-        error: (err: Error) => {
-          // Token invalid or user not found - clear session and redirect
+        next: () => {},
+        error: () => {
           this.userValidationService.invalidateUserSession();
         },
       });
@@ -231,8 +217,5 @@ export class AuthService {
   /**
    * Load current user data from backend or cache
    */
-  loadUserData(): void {
-    const userId = this.getValueByKey("id");
-    if (!userId) return;
-  }
+  loadUserData(): void {}
 }

@@ -1,21 +1,9 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable, of } from "rxjs";
-import { tap } from "rxjs/operators";
+import { Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { EncodingHelper } from "@helpers/encoding.helper";
 import { REQUEST_SERVICE } from "@services/api.service";
-
-export interface PasskeyRegistrationOptions {
-  options: any;
-  challenge: string;
-}
-
-export interface PasskeyAuthOptions {
-  options: any;
-  qrCode: string;
-  challenge: string;
-  username: string;
-}
+import { PasskeyRegistrationOptions, PasskeyAuthOptions } from "@models/security.model";
 
 @Injectable({
   providedIn: "root",
@@ -113,29 +101,6 @@ export class PasskeyService {
     return this.requestService.invokeCommand<string>("disableBiometric", {
       username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
     });
-  }
-
-  private async createPasskeyCredential(options: any): Promise<any> {
-    try {
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge: EncodingHelper.base64ToArrayBuffer(options.challenge),
-          rp: options.rp,
-          user: {
-            id: EncodingHelper.base64ToArrayBuffer(options.user.id),
-            name: options.user.name,
-            displayName: options.user.displayName,
-          },
-          pubKeyCredParams: options.pubKeyCredParams,
-          timeout: options.timeout,
-          attestation: options.attestation,
-          authenticatorSelection: options.authenticatorSelection,
-        },
-      });
-      return credential;
-    } catch (err) {
-      return null;
-    }
   }
 
   async authenticateWithPasskey(): Promise<{

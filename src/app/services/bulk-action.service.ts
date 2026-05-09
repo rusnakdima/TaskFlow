@@ -1,15 +1,7 @@
 /* sys lib */
 import { Injectable, signal, computed } from "@angular/core";
 
-export type BulkActionMode = "admin" | "archive" | "todos" | "tasks" | "subtasks" | "shared";
-
-export interface BulkActionState {
-  selectedIds: Set<string>;
-  isAllSelected: boolean;
-  totalCount: number;
-  mode: BulkActionMode;
-  show: boolean;
-}
+import { BulkActionMode, BulkActionState } from "@models/bulk-action.model";
 
 @Injectable({
   providedIn: "root",

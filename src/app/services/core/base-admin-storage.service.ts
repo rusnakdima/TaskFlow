@@ -1,5 +1,5 @@
 /* sys lib */
-import { signal, WritableSignal } from "@angular/core";
+import { signal } from "@angular/core";
 
 /* models */
 import { Todo } from "@models/todo.model";

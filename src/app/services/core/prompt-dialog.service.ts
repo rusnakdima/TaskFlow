@@ -1,15 +1,5 @@
 import { Injectable, signal, computed } from "@angular/core";
-
-export interface PromptDialogConfig {
-  title: string;
-  message: string;
-  defaultValue?: string;
-  confirmText?: string;
-  cancelText?: string;
-  confirmClass?: string;
-  required?: boolean;
-  validateFn?: (value: string) => string | null;
-}
+import { PromptDialogConfig } from "@models/dialog.model";
 
 @Injectable({
   providedIn: "root",

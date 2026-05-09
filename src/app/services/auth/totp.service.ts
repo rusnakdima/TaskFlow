@@ -3,12 +3,7 @@ import { Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@models/auth-forms.model";
 import { REQUEST_SERVICE } from "@services/api.service";
-
-export interface TotpSetupResult {
-  qrCode: string;
-  secret: string;
-  recoveryCodes: string[];
-}
+import { TotpSetupResult } from "@models/security.model";
 
 @Injectable({
   providedIn: "root",

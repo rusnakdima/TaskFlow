@@ -2,7 +2,7 @@
  * Auth Store - Manages authentication and security feature state using Angular signals
  */
 
-import { Injectable, signal, computed, Signal, WritableSignal, effect } from "@angular/core";
+import { Injectable, signal, computed, Signal, WritableSignal } from "@angular/core";
 import { UserSecurityStatus } from "@services/auth/security.service";
 
 interface AuthState {

@@ -1,18 +1,8 @@
 import { Injectable } from "@angular/core";
 import { moveItemInArray } from "@angular/cdk/drag-drop";
+import { Orderable, ReorderResult } from "@models/drag-drop.model";
 
-export interface Orderable {
-  id: string;
-  order: number;
-  [key: string]: any;
-}
-
-export interface ReorderResult<T extends Orderable> {
-  itemsToUpdate: T[];
-  movedItemId: string;
-  oldIndex: number;
-  newIndex: number;
-}
+export { Orderable, ReorderResult } from "@models/drag-drop.model";
 
 @Injectable({
   providedIn: "root",

@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap, map, catchError } from "rxjs/operators";
+import { tap, catchError, map } from "rxjs/operators";
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
@@ -59,15 +59,15 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    */
   getArchiveDataWithRelations(): AdminDataWithRelations {
     return {
-      todos: this.todosSignal(),
-      tasks: this.tasksSignal(),
-      subtasks: this.subtasksSignal(),
-      comments: this.commentsSignal(),
-      chats: this.chatsSignal(),
-      categories: this.categoriesSignal(),
-      daily_activities: this.dailyActivitiesSignal(),
-      users: this.usersSignal(),
-      profiles: this.profilesSignal(),
+      todos: this.todosSignal() || [],
+      tasks: this.tasksSignal() || [],
+      subtasks: this.subtasksSignal() || [],
+      comments: this.commentsSignal() || [],
+      chats: this.chatsSignal() || [],
+      categories: this.categoriesSignal() || [],
+      daily_activities: this.dailyActivitiesSignal() || [],
+      users: this.usersSignal() || [],
+      profiles: this.profilesSignal() || [],
     };
   }
 
@@ -111,7 +111,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.loadedSignal.set(true);
         this.lastLoadedSignal.set(new Date());
       }),
-      catchError((err) => {
+      catchError(() => {
         this.loadingSignal.set(false);
         return of(this.getArchiveDataWithRelations());
       }),

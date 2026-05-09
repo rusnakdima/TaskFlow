@@ -1,7 +1,6 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
-import { Observable, from, of } from "rxjs";
+import { Observable, of } from "rxjs";
 import { catchError, map, tap } from "rxjs/operators";
-import { invoke } from "@tauri-apps/api/core";
 
 import { GithubRepo, GithubConnection } from "@models/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
