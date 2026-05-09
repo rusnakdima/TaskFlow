@@ -37,6 +37,7 @@
       [actions]="getAdminActions()"
       [emptyMessage]="'No ' + getSelectedTypeLabel().toLowerCase() + ' data available'"
       (selectionChange)="onRecordSelect($event)"
+      (selectAll)="onBulkSelectAllRecords($event)"
       (actionClick)="onAdminAction($event)"
     />
   } @else if (viewMode() === "grid") {
