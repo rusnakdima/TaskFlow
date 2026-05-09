@@ -159,7 +159,6 @@ pub fn validate_model(
     }
     TableModelType::Category => {
       if is_create {
-        eprintln!("Validating category data: {:?}", data);
         let create_model: CategoryCreateModel = serde_json::from_value(data.clone())
           .map_err(|e| format!("Invalid category data: {}", e))?;
         create_model.validate().map_err(|e| e.to_string())?;
