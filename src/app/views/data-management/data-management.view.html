@@ -43,9 +43,8 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       @for (item of getCurrentData(); track item.id) {
         <div
-          class="rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-800"
+          class="flex cursor-pointer flex-col rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
           [ngClass]="{
-            'border-gray-200 dark:border-zinc-700': !item.deleted_at,
             'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
             'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item.deleted_at,
             'opacity-60': item.deleted_at,
@@ -138,9 +137,8 @@
     <div class="flex w-full flex-col gap-y-3">
       @for (item of getCurrentData(); track item.id) {
         <div
-          class="rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-800"
+          class="flex cursor-pointer flex-col rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
           [ngClass]="{
-            'border-gray-200 dark:border-zinc-700': !item.deleted_at,
             'ring-2 ring-blue-500 dark:ring-blue-400': selectedRecords().has(item.id),
             'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item.deleted_at,
             'opacity-60': item.deleted_at,
