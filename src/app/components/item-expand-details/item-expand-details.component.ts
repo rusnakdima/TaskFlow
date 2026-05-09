@@ -17,7 +17,8 @@ export class ItemExpandDetailsComponent {
   @Input() item: any = null;
   @Input() type: ItemType = "todo";
   @Input() fields: TableField[] = [];
-  @Input() formatDateFn: (date: string) => string = (dateStr: string) => this.formatFieldDate(dateStr);
+  @Input() formatDateFn: (date: string) => string = (dateStr: string) =>
+    this.formatFieldDate(dateStr);
   @Input() getPriorityBadgeClassFn: (priority: string) => string = () => "";
 
   get hasFields(): boolean {
@@ -162,5 +163,52 @@ export class ItemExpandDetailsComponent {
     if (percent === 100) return "bg-green-500";
     if (percent >= 50) return "bg-blue-500";
     return "bg-gray-400";
+  }
+
+  getFieldDisplayValue(field: TableField): string {
+    if (!this.item) return "-";
+    const value = this.item[field.key];
+    if (!value && value !== 0) return "-";
+
+    switch (field.type) {
+      case "date":
+        return this.formatDateFn(value) || "-";
+      case "datetime":
+        return this.formatFieldDate(value) || "-";
+      case "user":
+        if (value && value.profile) {
+          return `${value.profile.name || ""} ${value.profile.last_name || ""}`.trim() || "-";
+        }
+        return "-";
+      case "array-count":
+        return String(value?.length || 0);
+      case "priority":
+        return value || "-";
+      case "status":
+        return value || "-";
+      default:
+        return String(value);
+    }
+  }
+
+  getFieldChipClass(field: TableField): string {
+    if (!this.item) return "";
+    const value = this.item[field.key];
+
+    if (field.type === "priority" && value && field.getChipColor) {
+      return field.getChipColor(this.item);
+    }
+    if (field.type === "status" && field.getChipColor) {
+      return field.getChipColor(this.item);
+    }
+    return "";
+  }
+
+  shouldShowField(field: TableField): boolean {
+    if (!this.item) return false;
+    if (field.key === "expand") return false;
+    const value = this.item[field.key];
+    if (!value && value !== 0) return false;
+    return true;
   }
 }
