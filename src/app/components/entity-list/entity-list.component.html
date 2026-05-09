@@ -43,9 +43,13 @@
           [isPrivate]="isPrivate"
           [highlight]="highlightId === item.id"
           [isSelected]="selectedIds.has(item.id)"
+          [expandable]="getExpandable()"
+          [itemType]="itemType"
+          [actions]="actions"
           (selectionChangeEvent)="selectionChange.emit($event)"
           (cardClick)="cardClick.emit($event)"
           (itemAction)="itemAction.emit($event)"
+          (dropped)="dropped.emit($event)"
         >
           <div
             *cdkDragPlaceholder
@@ -74,9 +78,13 @@
           [isPrivate]="isPrivate"
           [highlight]="highlightId === item.id"
           [isSelected]="selectedIds.has(item.id)"
+          [expandable]="getExpandable()"
+          [itemType]="itemType"
+          [actions]="actions"
           (selectionChangeEvent)="selectionChange.emit($event)"
           (cardClick)="cardClick.emit($event)"
           (itemAction)="itemAction.emit($event)"
+          (dropped)="dropped.emit($event)"
         >
           <div
             *cdkDragPlaceholder

@@ -11,15 +11,17 @@ import { MatCheckboxModule } from "@angular/material/checkbox";
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
-import { DragDropModule } from "@angular/cdk/drag-drop";
+import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
+import { ItemType } from "@models/base.model";
 
 @Component({
   selector: "app-item-display",
@@ -32,6 +34,7 @@ import { Category } from "@models/category.model";
     MatButtonModule,
     DragDropModule,
     CheckboxComponent,
+    ItemExpandDetailsComponent,
   ],
   templateUrl: "./item-display.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,15 +49,38 @@ export class ItemDisplayComponent {
   @Input() highlight: boolean = false;
   @Input() isSelected: boolean = false;
   @Input() actions: ItemDisplayAction[] = [];
+  @Input() expandable: boolean = true;
+  @Input() itemType: ItemType = "task";
+  @Input() order: number = 0;
+  @Input() currentIndex: number = 0;
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
   @Output() itemAction = new EventEmitter<{ action: string; item: any }>();
+  @Output() dropped = new EventEmitter<CdkDragDrop<any>>();
 
   showMenu = signal(false);
+  expanded = signal(false);
 
   get itemId(): string {
     return this.item?.id || "";
+  }
+
+  get isCategory(): boolean {
+    return this.itemType === "category";
+  }
+
+  get canExpand(): boolean {
+    return this.expandable && !this.isCategory;
+  }
+
+  toggleExpanded(event: MouseEvent): void {
+    event.stopPropagation();
+    this.expanded.update((v) => !v);
+  }
+
+  get isExpanded(): boolean {
+    return this.expanded();
   }
 
   get visibleConfig(): ItemDisplayConfig[] {
@@ -123,6 +149,10 @@ export class ItemDisplayComponent {
 
   onAction(action: string): void {
     this.itemAction.emit({ action, item: this.item });
+  }
+
+  onDragDrop(event: CdkDragDrop<any>): void {
+    this.dropped.emit(event);
   }
 
   trackByConfig(_index: number, config: ItemDisplayConfig): string {
