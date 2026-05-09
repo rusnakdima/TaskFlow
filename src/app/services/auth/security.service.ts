@@ -3,22 +3,10 @@ import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-
-import {
-  TotpSetupResult,
-  PasskeyRegistrationOptions,
-  PasskeyAuthOptions,
-} from "@models/security.model";
-export {
-  TotpSetupResult,
-  PasskeyRegistrationOptions,
-  PasskeyAuthOptions,
-  UserSecurityStatus,
-} from "@models/security.model";
+import { TotpSetupResult } from "@models/security.model";
+export { TotpSetupResult, UserSecurityStatus } from "@models/security.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { PasskeyService } from "@services/auth/passkey.service";
-import { WebAuthnService } from "@services/auth/webauthn.service";
 import { AuthResponse } from "@models/auth-forms.model";
 import { REQUEST_SERVICE } from "@services/api.service";
 
@@ -28,70 +16,11 @@ import { REQUEST_SERVICE } from "@services/api.service";
 export class SecurityService {
   private requestService = inject(REQUEST_SERVICE);
   private jwtTokenService = inject(JwtTokenService);
-  private passkeyService = inject(PasskeyService);
-  private webauthnService = inject(WebAuthnService);
 
   getUsername(): string {
     return this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) ?? "";
   }
 
-  /**
-   * Check if we're running in Tauri (desktop app)
-   */
-  isTauriApp(): boolean {
-    return typeof window !== "undefined" && !!(window as any).__TAURI_INTERNALS__;
-  }
-
-  /**
-   * Check if running on mobile platform
-   */
-  isMobilePlatform(): boolean {
-    const userAgent = navigator.userAgent.toLowerCase();
-    return /android/.test(userAgent) || /iphone|ipad/.test(userAgent);
-  }
-
-  /**
-   * Check if device has platform biometric capability
-   */
-  async hasPlatformBiometric(): Promise<boolean> {
-    return this.webauthnService.isUserVerifyingPlatformAuthenticatorAvailable();
-  }
-
-  /**
-   * Determine which authentication methods to show based on platform and settings
-   * Returns: 'webauthn' | 'totp-qr' | 'both'
-   */
-  getAuthMethodForPlatform(): "webauthn" | "totp-qr" {
-    if (this.isTauriApp()) {
-      return "totp-qr";
-    }
-    if (this.isMobilePlatform()) {
-      return "webauthn";
-    }
-    return "webauthn";
-  }
-
-  /**
-   * Check if current logged-in user has passkey enabled
-   */
-  isPasskeyEnabledForCurrentUser(): boolean {
-    const token = this.jwtTokenService.getToken();
-    if (!token) return false;
-    return this.jwtTokenService.getValueByKey(token, "passkeyEnabled") === "true";
-  }
-
-  /**
-   * Check if current logged-in user has biometric enabled
-   */
-  isBiometricEnabledForCurrentUser(): boolean {
-    const token = this.jwtTokenService.getToken();
-    if (!token) return false;
-    return this.jwtTokenService.getValueByKey(token, "biometricEnabled") === "true";
-  }
-
-  /**
-   * Check if current logged-in user has TOTP enabled
-   */
   isTotpEnabledForCurrentUser(): boolean {
     const token = this.jwtTokenService.getToken();
     if (!token) return false;
@@ -137,110 +66,5 @@ export class SecurityService {
       "initTotpQrLogin",
       { username }
     );
-  }
-
-  initPasskeyRegistration(): Observable<PasskeyRegistrationOptions> {
-    return this.requestService.invokeCommand<PasskeyRegistrationOptions>(
-      "initPasskeyRegistration",
-      { username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "" }
-    );
-  }
-
-  completePasskeyRegistration(
-    credentialId: string,
-    attestationObject: string,
-    device: string
-  ): Observable<string> {
-    return this.requestService.invokeCommand<string>("completePasskeyRegistration", {
-      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
-      credentialId,
-      attestationObject,
-      device,
-    });
-  }
-
-  initPasskeyAuthentication(username?: string): Observable<PasskeyAuthOptions> {
-    return this.requestService.invokeCommand<PasskeyAuthOptions>("initPasskeyAuthentication", {
-      username: username || null,
-    });
-  }
-
-  completePasskeyAuthentication(
-    signature: string,
-    authenticatorData: string,
-    clientData: string,
-    username?: string
-  ): Observable<{ verified: boolean; username: string; method: string }> {
-    return this.requestService.invokeCommand<{
-      verified: boolean;
-      username: string;
-      method: string;
-    }>("completePasskeyAuthentication", {
-      username: username || null,
-      signature,
-      authenticatorData,
-      clientData,
-    });
-  }
-
-  disablePasskey(): Observable<string> {
-    return this.requestService.invokeCommand<string>("disablePasskey", {
-      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
-    });
-  }
-
-  enableBiometric(credentialId: string, publicKey: string): Observable<string> {
-    return this.requestService.invokeCommand<string>("enableBiometric", {
-      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
-      credentialId,
-      publicKey,
-    });
-  }
-
-  initBiometricAuth(
-    username?: string
-  ): Observable<{ options: any; challenge: string; platform: string }> {
-    return this.requestService.invokeCommand<any>("initBiometricAuth", {
-      username: username || null,
-    });
-  }
-
-  completeBiometricAuth(signature: string, username?: string): Observable<string> {
-    return this.requestService.invokeCommand<string>("completeBiometricAuth", {
-      username: username || this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
-      signature,
-    });
-  }
-
-  disableBiometric(): Observable<string> {
-    return this.requestService.invokeCommand<string>("disableBiometric", {
-      username: this.jwtTokenService.getUsername(this.jwtTokenService.getToken()) || "",
-    });
-  }
-
-  async registerPasskey(): Promise<{ success: boolean; error?: string }> {
-    return this.passkeyService.registerBiometric();
-  }
-
-  async authenticateWithPasskey(): Promise<{
-    success: boolean;
-    username?: string;
-    requiresTotp?: boolean;
-    error?: string;
-  }> {
-    return this.passkeyService.authenticateWithPasskey();
-  }
-
-  async authenticateWithBiometric(): Promise<{
-    success: boolean;
-    username?: string;
-    requiresTotp?: boolean;
-    error?: string;
-  }> {
-    return this.passkeyService.authenticateWithBiometric();
-  }
-
-  async registerBiometric(): Promise<{ success: boolean; error?: string }> {
-    return this.passkeyService.registerBiometric();
   }
 }

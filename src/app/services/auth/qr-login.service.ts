@@ -22,23 +22,27 @@ export class QrLoginService implements OnDestroy {
     this.stopPolling();
   }
 
-  generateQrCode(username?: string): Observable<QrGenerationResult> {
+  generateQrCode(_username?: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
-      this.requestService
-        .invokeCommand<QrGenerationResult>("qr_generate", { username: username || null })
-        .subscribe({
-          next: (data) => {
-            this.currentQrData.set({
-              token: data.token,
-              qrCode: data.qrCode,
-              expiresAt: data.expiresAt,
-            });
-            this.qrStatus.set("pending");
-            observer.next(data);
-            observer.complete();
-          },
-          error: (err) => observer.error(err),
-        });
+      this.requestService.invokeCommand<any>("qr_generate", {}).subscribe({
+        next: (response) => {
+          const data = response?.data;
+          this.currentQrData.set({
+            token: data?.token,
+            qrCode: data?.qrCode,
+            expiresAt: data?.expiresAt,
+          });
+          this.qrStatus.set("pending");
+          observer.next({
+            success: true,
+            token: data?.token,
+            qrCode: data?.qrCode,
+            expiresAt: data?.expiresAt,
+          });
+          observer.complete();
+        },
+        error: (err) => observer.error(err),
+      });
     });
   }
 
@@ -46,17 +50,23 @@ export class QrLoginService implements OnDestroy {
     const userId = this.jwtTokenService.getCurrentUserId() || "";
     return new Observable((observer) => {
       this.requestService
-        .invokeCommand<QrGenerationResult>("qr_generate_for_desktop", { username, user_id: userId })
+        .invokeCommand<any>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
-          next: (data) => {
+          next: (response) => {
+            const data = response?.data;
             this.currentQrData.set({
-              token: data.token,
-              qrCode: data.qrCode,
-              expiresAt: data.expiresAt,
+              token: data?.token,
+              qrCode: data?.qrCode,
+              expiresAt: data?.expiresAt,
               username,
             });
             this.qrStatus.set("approved");
-            observer.next(data);
+            observer.next({
+              success: true,
+              token: data?.token,
+              qrCode: data?.qrCode,
+              expiresAt: data?.expiresAt,
+            });
             observer.complete();
           },
           error: (err) => observer.error(err),

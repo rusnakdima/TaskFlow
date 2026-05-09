@@ -1,3 +1,4 @@
+import { Router } from "@angular/router";
 import { TokenStorageHelper } from "./token-storage.helper";
 
 export interface LoginCompletionOptions {
@@ -6,24 +7,32 @@ export interface LoginCompletionOptions {
 }
 
 export class LoginCompletionHelper {
-  static completeLogin(options: LoginCompletionOptions): void {
+  static completeLogin(options: LoginCompletionOptions, router?: Router): void {
     const { token, remember } = options;
 
     TokenStorageHelper.setToken(token, remember);
 
-    window.location.href = "/";
+    if (router) {
+      router.navigate(["/"]);
+    } else {
+      window.location.href = "/";
+    }
   }
 
   static completePasswordlessLogin(
     _username: string,
     remember: boolean,
-    authResponse?: { token: string }
+    authResponse?: { token: string },
+    router?: Router
   ): void {
     if (authResponse?.token) {
-      this.completeLogin({
-        token: authResponse.token,
-        remember,
-      });
+      this.completeLogin(
+        {
+          token: authResponse.token,
+          remember,
+        },
+        router
+      );
     }
   }
 }
