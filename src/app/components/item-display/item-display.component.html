@@ -228,7 +228,7 @@
 
     @if (expandable && isExpanded) {
       <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
-        <app-item-expand-details [item]="$any(item)" [type]="itemType" />
+        <app-item-expand-details [item]="$any(item)" [type]="itemType" [fields]="expandFields" />
       </div>
     }
   </div>
