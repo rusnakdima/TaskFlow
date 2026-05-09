@@ -7,7 +7,6 @@ import {
   signal,
   inject,
   computed,
-  HostListener,
   DestroyRef,
 } from "@angular/core";
 import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/router";
@@ -364,20 +363,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
 
+    const filterSub = this.shortcutService.filter$.subscribe(() => {
+      this.toggleFilter();
+    });
+    this.destroyRef.onDestroy(() => filterSub.unsubscribe());
+
     this.loadInitialTodos();
   }
 
   override ngOnDestroy(): void {
     document.removeEventListener("keydown", this.keydownHandler);
     super.ngOnDestroy();
-  }
-
-  @HostListener("window:keydown", ["$event"])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "f") {
-      event.preventDefault();
-      this.toggleFilter();
-    }
   }
 
   getFilteredCount(filter: string): number {

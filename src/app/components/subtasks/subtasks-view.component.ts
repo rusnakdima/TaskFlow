@@ -1,12 +1,4 @@
-import {
-  Component,
-  signal,
-  computed,
-  effect,
-  inject,
-  DestroyRef,
-  HostListener,
-} from "@angular/core";
+import { Component, signal, computed, effect, inject, DestroyRef } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterModule, NavigationEnd } from "@angular/router";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
@@ -319,14 +311,6 @@ export class SubtasksViewComponent extends BaseListView {
     super();
   }
 
-  @HostListener("window:keydown", ["$event"])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "f") {
-      event.preventDefault();
-      this.toggleFilter();
-    }
-  }
-
   override ngOnInit(): void {
     super.ngOnInit();
 
@@ -409,6 +393,12 @@ export class SubtasksViewComponent extends BaseListView {
         this.loading.set(false);
       }
     }
+
+    this.subscriptions.add(
+      this.shortcutService.filter$.subscribe(() => {
+        this.toggleFilter();
+      })
+    );
   }
 
   getToolbarConfig(): PageToolbarConfig {
