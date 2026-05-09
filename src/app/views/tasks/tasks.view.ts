@@ -154,6 +154,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         next: (todo) => {
           if (todo) {
             this.todo.set(todo);
+            const tasks = todo.tasks || [];
+            if (tasks.length > 0) {
+              this.todoTasks.set(tasks);
+              this.taskPagination.update((p) => ({
+                ...p,
+                skip: tasks.length,
+                total: tasks.length,
+                hasMore: false,
+                loading: false,
+              }));
+            } else {
+              this.loadInitialTasks();
+            }
           } else {
             this.notifyService.showError("Todo not found.");
           }

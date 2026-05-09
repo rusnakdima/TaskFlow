@@ -19,6 +19,7 @@ import { DisplayMode } from "@models/item-display.types";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
+import { Category } from "@models/category.model";
 
 @Component({
   selector: "app-item-display",
@@ -36,7 +37,7 @@ import { Subtask } from "@models/subtask.model";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemDisplayComponent {
-  @Input() item: Todo | Task | Subtask | null = null;
+  @Input() item: Todo | Task | Subtask | Category | null = null;
   @Input() config: ItemDisplayConfig[] = [];
   @Input() displayMode: DisplayMode = "card";
   @Input() index: number = 0;
