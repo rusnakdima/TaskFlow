@@ -104,6 +104,10 @@ export class EntityListComponent<T extends Todo | Task | Subtask> {
     }
   }
 
+  getExpandable(): boolean {
+    return this.itemType !== "category";
+  }
+
   getComponentInputs(item: T): Record<string, any> {
     return {
       index: this.index,
