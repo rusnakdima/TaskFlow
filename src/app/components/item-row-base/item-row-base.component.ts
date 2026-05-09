@@ -6,14 +6,8 @@ import {
   Output,
   signal,
   inject,
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from "@angular/core";
-
-import { MatIconModule } from "@angular/material/icon";
-
-import { CommentsComponent } from "@components/comments/comments.component";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
@@ -21,15 +15,9 @@ import { Task } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Comment } from "@models/comment.model";
 import { Todo } from "@models/todo.model";
+import { ItemType } from "@models/base.model";
 
-export type ItemType =
-  | "todo"
-  | "task"
-  | "subtask"
-  | "comment"
-  | "chat"
-  | "category"
-  | "daily_activity";
+export { ItemType } from "@models/base.model";
 
 @Component({
   selector: "app-item-row-base",

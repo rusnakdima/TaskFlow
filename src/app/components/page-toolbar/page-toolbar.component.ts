@@ -6,97 +6,11 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
-import { ViewMode } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
+import { PageToolbarConfig } from "@models/ui.model";
 
-export interface SelectAllConfig {
-  onToggle: () => void;
-  isAllSelected: boolean;
-  count: number;
-  highlight: boolean;
-}
-
-export interface StatsConfig {
-  onToggle: () => void;
-  isActive: boolean;
-}
-
-export interface ToolbarFilterConfig {
-  onToggle: () => void;
-  isActive: boolean;
-}
-
-export interface NewButtonConfig {
-  onClick: () => void;
-  label?: string;
-  icon?: string;
-}
-
-export interface NewButtonWithMenuConfig {
-  label: string;
-  icon?: string;
-  menuItems: {
-    label: string;
-    icon?: string;
-    action: () => void;
-  }[];
-}
-
-export interface InfoToggleConfig {
-  onToggle: () => void;
-  isActive: boolean;
-  label?: string;
-}
-
-export interface RefreshConfig {
-  onClick: () => void;
-  loading: boolean;
-}
-
-export interface SortMenuConfig {
-  sortBy: string;
-  sortOrder: "asc" | "desc";
-  sortOptions: {
-    key: string;
-    label: string;
-    icon?: string;
-  }[];
-  onSort: (key: string) => void;
-}
-
-export interface SortOrderConfig {
-  onToggle: () => void;
-  currentOrder: "asc" | "desc";
-}
-
-export interface SearchConfig {
-  query: string;
-  placeholder?: string;
-  onSearch: (query: string) => void;
-}
-
-export interface PageToolbarConfig {
-  selectAll?: SelectAllConfig;
-  stats?: StatsConfig;
-  filter?: ToolbarFilterConfig;
-  newButton?: NewButtonConfig;
-  newButtonWithMenu?: NewButtonWithMenuConfig;
-  infoToggle?: InfoToggleConfig;
-  refresh?: RefreshConfig;
-  sortMenu?: SortMenuConfig;
-  sortOrder?: SortOrderConfig;
-  search?: SearchConfig;
-  viewMode?: {
-    mode: ViewMode;
-    pageKey: string;
-    onModeChange: (mode: ViewMode) => void;
-  };
-  filterFields?: FilterField[];
-  showFilter?: boolean;
-  activeFilters?: Record<string, string | string[] | any>;
-  onFiltersChange?: (filters: Record<string, string | string[] | any>) => void;
-}
+export { PageToolbarConfig } from "@models/ui.model";
 
 @Component({
   selector: "app-page-toolbar",
@@ -125,9 +39,7 @@ export class PageToolbarComponent {
 
   onToggleFilter(): void {
     this.showFilter.update((v) => !v);
-    if (this.config?.filter) {
-      this.config.filter.onToggle();
-    }
+    this.config?.filter?.onToggle?.();
     this.filterToggle.emit();
   }
 
@@ -185,8 +97,8 @@ export class PageToolbarComponent {
     return values;
   }
 
-  getDynamicOptionsFn = (key: string, filter: any): FilterOption[] => {
-    const field = this.filterFields.find((f) => f.key === key);
+  getDynamicOptionsFn = (_key: string, _filter: any): FilterOption[] => {
+    const field = this.filterFields.find((f) => f.key === _key);
     if (field?.options) {
       return field.options.map((opt) => ({
         value: opt.key,
@@ -204,9 +116,7 @@ export class PageToolbarComponent {
     this.searchChange.emit(query);
   }
 
-  onFilterChange(filter: string): void {
-    if (this.config?.filter) {
-      this.config.filter.onToggle();
-    }
+  onFilterChange(_filter: string): void {
+    this.config?.filter?.onToggle?.();
   }
 }

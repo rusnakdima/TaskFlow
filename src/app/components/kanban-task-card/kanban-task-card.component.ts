@@ -1,5 +1,5 @@
 /* sys lib */
-import { Component, Input, Output, EventEmitter, signal, inject } from "@angular/core";
+import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { DragDropModule } from "@angular/cdk/drag-drop";
@@ -12,6 +12,8 @@ import { Subtask } from "@models/subtask.model";
 /* components */
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { KANBAN_TASK_CONFIG } from "@constants/item-display.constants";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -29,6 +31,7 @@ import { PRIORITY_COLORS, STATUS_COLORS } from "@constants/table-field.constants
     MatIconModule,
     ProgressBarComponent,
     StatusToggleComponent,
+    ItemDisplayComponent,
   ],
   templateUrl: "./kanban-task-card.component.html",
 })
@@ -46,6 +49,7 @@ export class KanbanTaskCardComponent {
   @Output() toggleSubtaskCompletion = new EventEmitter<Subtask>();
 
   TaskStatus = TaskStatus;
+  kanbanConfig = KANBAN_TASK_CONFIG;
 
   getPriorityBgColor(priority: string): string {
     return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.medium;
@@ -59,7 +63,7 @@ export class KanbanTaskCardComponent {
     this.moveTaskEvent.emit({ taskId: this.task.id, newStatus: targetColId as TaskStatus });
   }
 
-  onStatusToggle(newStatus: TaskStatus): void {
+  onStatusToggle(_newStatus: TaskStatus): void {
     this.toggleStatus.emit(this.task);
   }
 
@@ -83,5 +87,11 @@ export class KanbanTaskCardComponent {
 
   getActionColor(action: string): string {
     return getActionColor(action, "rounded p-1.5 transition-colors");
+  }
+
+  onItemAction(event: { action: string; item: any }): void {
+    if (event.action === "toggle") {
+      this.toggleStatus.emit(this.task);
+    }
   }
 }
