@@ -34,6 +34,8 @@ import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
 
 import { FilterField } from "@models/filter-config.model";
+import { TableField, TableFieldActionButton } from "@models/table-field.model";
+import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
@@ -45,7 +47,10 @@ import {
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { SubtasksListComponent } from "./subtasks-list.component";
+import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { TableViewComponent } from "@components/table-view/table-view.component";
+import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
 
 interface QueryParams {
   fromKanban?: string;
@@ -70,7 +75,9 @@ interface QueryParams {
     LoadingStateComponent,
     EmptyStateComponent,
     BulkActionsComponent,
-    SubtasksListComponent,
+    ItemDisplayComponent,
+    ItemExpandDetailsComponent,
+    TableViewComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -152,6 +159,26 @@ export class SubtasksViewComponent extends BaseListView {
   });
 
   selectedSubtasks = () => this.selectedItems();
+
+  subtaskCardConfig = SUBTASK_CARD_CONFIG;
+  subtaskTableConfig = SUBTASK_TABLE_CONFIG;
+  subtaskActions: TableFieldActionButton[] = [
+    TABLE_ACTIONS.EDIT,
+    TABLE_ACTIONS.ARCHIVE,
+    TABLE_ACTIONS.DELETE,
+  ];
+
+  subtaskTableFields: TableField[] = [
+    { key: "title", label: "Subtask", type: "text", sortable: true },
+    { key: "priority", label: "Priority", type: "priority", sortable: true },
+    { key: "status", label: "Status", type: "status" },
+    {
+      key: "comments",
+      label: "Comments",
+      type: "number",
+      getValue: (item: Subtask) => String(item.comments_count || 0),
+    },
+  ];
 
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.listSubtasks());
@@ -688,6 +715,30 @@ export class SubtasksViewComponent extends BaseListView {
         this.toggleSubtaskCompletion(event.item);
         break;
     }
+  }
+
+  onSubtaskItemAction(event: { action: string; item: Subtask }): void {
+    switch (event.action) {
+      case "toggle":
+        this.toggleSubtaskCompletion(event.item);
+        break;
+      case "delete":
+        this.deleteSubtask(event.item.id);
+        break;
+      case "edit":
+        this.router.navigate([event.item.id, "edit_subtask"], {
+          relativeTo: this.route,
+          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
+        });
+        break;
+      case "archive":
+        this.archiveSubtask(event.item.id);
+        break;
+    }
+  }
+
+  getSubtaskTableActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE, TABLE_ACTIONS.DELETE];
   }
 
   async archiveSubtask(subtaskId: string): Promise<void> {

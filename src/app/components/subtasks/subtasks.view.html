@@ -48,43 +48,106 @@
       />
     }
 
-    <app-subtasks-list
-      [subtasks]="listSubtasks()"
-      [viewMode]="viewMode()"
-      [selectedIds]="selectedSubtasks()"
-      [highlightId]="highlightSubtask()"
-      [highlightComment]="highlightComment()"
-      [openCommentsForId]="openCommentsForSubtaskId()"
-      [todoId]="todoId()"
-      [isOwner]="isOwner()"
-      [isPrivate]="isPrivate()"
-      (rowClick)="onRowClick($event)"
-      (cardClick)="onCardClick($event)"
-      (selectionChange)="toggleSubtaskSelection($event)"
-      (selectAll)="toggleSelectAll()"
-      (rangeSelect)="onRangeSelect($event)"
-      (additiveSelect)="onAdditiveSelect($event)"
-      (dropped)="onSubtaskDrop($event)"
-      (deleteSubtask)="deleteSubtask($event)"
-      (toggleCompletion)="toggleSubtaskCompletion($event)"
-      (updateSubtask)="updateSubtaskInline($event)"
-      (tableAction)="onSubtaskTableAction($event)"
-    />
-
-    <app-chat-fab [isOpen]="showChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
-
-    @if (showChat() && todoId()) {
-      <app-chat-window [todo_id]="todoId()" (close)="toggleChat()" />
+    @if (listSubtasks().length === 0) {
+      <app-empty-state icon="check_box" title="No subtasks found" />
+    } @else {
+      @if (viewMode() === "table") {
+        <app-table-view
+          [data]="listSubtasks()"
+          [fields]="subtaskTableFields"
+          [selectedIds]="selectedSubtasks()"
+          [showSelection]="true"
+          [showStatusToggle]="true"
+          [showCommentToggle]="true"
+          [dragEnabled]="true"
+          [expandable]="true"
+          [expandTemplate]="expandTemplate"
+          [actions]="getSubtaskTableActions()"
+          (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
+          (selectAll)="toggleSelectAll()"
+          (rowClick)="onRowClick($event)"
+          (rangeSelect)="onRangeSelect($event)"
+          (additiveSelect)="onAdditiveSelect($event)"
+          (dropped)="onSubtaskDrop($event)"
+          (actionClick)="onSubtaskTableAction($event)"
+        >
+          <ng-template #expandTemplate let-item>
+            <app-item-expand-details [item]="item" type="subtask" />
+          </ng-template>
+        </app-table-view>
+      } @else if (viewMode() === "grid") {
+        <div
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          [cdkDropListData]="listSubtasks()"
+          (cdkDropListDropped)="onSubtaskDrop($event)"
+        >
+          @for (subtask of listSubtasks(); track subtask.id) {
+            <app-item-display
+              cdkDrag
+              [cdkDragData]="subtask"
+              cdkDragPreviewContainer="global"
+              [item]="subtask"
+              [config]="subtaskCardConfig"
+              [displayMode]="'card'"
+              [index]="$index"
+              [isOwner]="isOwner()"
+              [isPrivate]="isPrivate()"
+              [highlight]="highlightSubtask() === subtask.id"
+              [isSelected]="selectedSubtasks().has(subtask.id)"
+              [actions]="subtaskActions"
+              (selectionChangeEvent)="toggleSubtaskSelection($event)"
+              (cardClick)="onCardClick($event)"
+              (itemAction)="onSubtaskItemAction($event)"
+            >
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
+            </app-item-display>
+          }
+        </div>
+      } @else {
+        <div
+          class="flex w-full flex-col gap-y-3"
+          cdkDropList
+          [cdkDropListData]="listSubtasks()"
+          (cdkDropListDropped)="onSubtaskDrop($event)"
+        >
+          @for (subtask of listSubtasks(); track subtask.id) {
+            <app-item-display
+              cdkDrag
+              [cdkDragData]="subtask"
+              cdkDragPreviewContainer="global"
+              [item]="subtask"
+              [config]="subtaskCardConfig"
+              [displayMode]="'list'"
+              [index]="$index"
+              [isOwner]="isOwner()"
+              [isPrivate]="isPrivate()"
+              [highlight]="highlightSubtask() === subtask.id"
+              [isSelected]="selectedSubtasks().has(subtask.id)"
+              [actions]="subtaskActions"
+              (selectionChangeEvent)="toggleSubtaskSelection($event)"
+              (cardClick)="onCardClick($event)"
+              (itemAction)="onSubtaskItemAction($event)"
+            />
+          }
+        </div>
+      }
     }
-
-    <app-bulk-actions
-      [selectedCount]="selectedSubtasks().size"
-      [isAllSelected]="isAllSelected()"
-      mode="subtasks"
-      (selectAllEvent)="toggleSelectAll()"
-      (setStatusEvent)="bulkUpdateStatus($event)"
-      (softDeleteEvent)="bulkArchive()"
-      (cancelEvent)="clearSelection()"
-    />
   }
+
+  <app-chat-fab [isOpen]="showChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
+
+  <app-bulk-actions
+    [selectedCount]="selectedSubtasks().size"
+    [isAllSelected]="isAllSelected()"
+    mode="subtasks"
+    (selectAllEvent)="toggleSelectAll()"
+    (setStatusEvent)="bulkUpdateStatus($event)"
+    (softDeleteEvent)="bulkArchive()"
+    (cancelEvent)="clearSelection()"
+  />
 </div>
