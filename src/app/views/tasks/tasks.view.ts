@@ -222,6 +222,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
             total: tasks.length,
             hasMore: tasks.length === p.limit,
           }));
+          if (tasks.length > 0) {
+            const taskIds = tasks.map((t) => t.id);
+            this.loadCommentsForTasks(taskIds);
+          }
         },
         error: () => {
           this.taskPagination.update((p) => ({
@@ -265,6 +269,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       filterType: "status",
     });
   });
+
+  private loadCommentsForTasks(taskIds: string[]): void {
+    if (taskIds.length === 0) return;
+    this.requestService
+      .loadPage("comments", {
+        filter: { task_id: { $in: taskIds } },
+        visibility: (this.todo()?.visibility || "private") as Visibility,
+        skip: 0,
+        limit: 100,
+      })
+      .subscribe();
+  }
 
   getTaskUnreadCommentsCount(task: Task): number {
     const userId = this.authService.getValueByKey("id");
@@ -640,6 +656,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.lastSelectedId.set(event.id);
       return;
     }
+
+    this.lastSelectedId.set(event.id);
+    this.router.navigate([event.id, "subtasks"], { relativeTo: this.route });
   }
 
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
@@ -874,9 +893,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         } as unknown as CdkDragDrop<Task[]>;
 
         this.dragDropService
-          .handleDrop(syntheticEvent, this.listTasks(), "tasks", "tasks", todoId)
+          .handleDrop(syntheticEvent, this.listTasks(), "tasks", "tasks", todoId, this.isPrivate())
           .subscribe({
-            next: () => {},
+            next: (updatedTasks) => {
+              if (updatedTasks && Array.isArray(updatedTasks)) {
+                this.todoTasks.update((current) => {
+                  const updatedMap = new Map(updatedTasks.map((t) => [t.id, t]));
+                  return current.map((task) => updatedMap.get(task.id) || task);
+                });
+              }
+            },
             error: (err) => {
               console.error("Reorder tasks failed:", err);
               this.notifyService.showError("Failed to reorder tasks");
@@ -890,13 +916,22 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    this.dragDropService.handleDrop(event, this.listTasks(), "tasks", "tasks", todoId).subscribe({
-      next: () => {},
-      error: (err) => {
-        console.error("Task drop failed:", err);
-        this.notifyService.showError("Failed to drop task");
-      },
-    });
+    this.dragDropService
+      .handleDrop(event, this.listTasks(), "tasks", "tasks", todoId, this.isPrivate())
+      .subscribe({
+        next: (updatedTasks) => {
+          if (updatedTasks && Array.isArray(updatedTasks)) {
+            this.todoTasks.update((current) => {
+              const updatedMap = new Map(updatedTasks.map((t) => [t.id, t]));
+              return current.map((task) => updatedMap.get(task.id) || task);
+            });
+          }
+        },
+        error: (err) => {
+          console.error("Task drop failed:", err);
+          this.notifyService.showError("Failed to drop task");
+        },
+      });
   }
 
   toggleTaskSelection(event: { id: string; selected: boolean }) {

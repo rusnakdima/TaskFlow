@@ -63,6 +63,7 @@
           [expandable]="true"
           [expandTemplate]="expandTemplate"
           [actions]="getSubtaskTableActions()"
+          [itemType]="'subtask'"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="toggleSelectAll()"
           (rowClick)="onRowClick($event)"

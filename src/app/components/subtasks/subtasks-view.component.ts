@@ -257,6 +257,10 @@ export class SubtasksViewComponent extends BaseListView {
             loading: false,
             hasMore: subtasks.length === p.limit,
           }));
+          if (subtasks.length > 0) {
+            const subtaskIds = subtasks.map((s) => s.id);
+            this.loadCommentsForSubtasks(subtaskIds);
+          }
         },
         error: () => {
           this.subtaskPagination.update((p) => ({ ...p, loading: false }));
@@ -265,6 +269,19 @@ export class SubtasksViewComponent extends BaseListView {
           this.isLoadingSubtasks = false;
         },
       });
+  }
+
+  private loadCommentsForSubtasks(subtaskIds: string[]): void {
+    if (subtaskIds.length === 0) return;
+    const visibility = this.todo()?.visibility || "private";
+    this.requestService
+      .loadPage("comments", {
+        filter: { subtask_id: { $in: subtaskIds } },
+        visibility: visibility as Visibility,
+        skip: 0,
+        limit: 100,
+      })
+      .subscribe();
   }
 
   loadMoreSubtasks() {
@@ -362,15 +379,16 @@ export class SubtasksViewComponent extends BaseListView {
 
     const routeData = this.route.snapshot.data;
     if (routeData?.["task"]) {
-      const dataResolve = routeData["task"];
-      if (dataResolve?.["todo"]) {
-        const todoData = dataResolve["todo"];
+      const taskData = routeData["task"];
+      const todoData = routeData["todo"];
+      if (todoData) {
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
-        if (dataResolve["task"]) {
-          this.task.set(dataResolve["task"]);
-          this.loadInitialSubtasks();
-        }
+        this.todo.set(todoData);
+      }
+      if (taskData) {
+        this.task.set(taskData);
+        this.loadInitialSubtasks();
       }
       this.loading.set(false);
     } else {
@@ -603,7 +621,14 @@ export class SubtasksViewComponent extends BaseListView {
     this.dragDropService
       .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId, this.isPrivate())
       .subscribe({
-        next: () => {},
+        next: (updatedSubtasks) => {
+          if (updatedSubtasks && Array.isArray(updatedSubtasks)) {
+            this.taskSubtasks.update((current) => {
+              const updatedMap = new Map(updatedSubtasks.map((s) => [s.id, s]));
+              return current.map((subtask) => updatedMap.get(subtask.id) || subtask);
+            });
+          }
+        },
         error: (err) => {
           console.error("Reorder subtasks failed:", err);
           this.notifyService.showError("Failed to reorder subtasks");
@@ -726,11 +751,11 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
-  onSubtaskCommentAdd(event: { content: string; itemId: string }): void {
+  onSubtaskCommentAdd(event: { content: string; subtask_id: string; itemId: string }): void {
     if (!event.content.trim()) return;
-    this.commentService.createComment(event.content, { subtaskId: event.itemId }).subscribe({
+    this.commentService.createComment(event.content, { subtaskId: event.subtask_id }).subscribe({
       next: (comment) => {
-        this.storageService.addCommentToSubtask(comment, event.itemId);
+        this.storageService.addCommentToSubtask(comment, event.subtask_id);
       },
       error: (err) => {
         console.error("[SubtasksView] Failed to add comment:", err);
