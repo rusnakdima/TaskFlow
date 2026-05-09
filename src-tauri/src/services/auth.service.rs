@@ -11,7 +11,6 @@ use super::auth::auth_login::AuthLoginService;
 use super::auth::auth_password::AuthPasswordService;
 use super::auth::auth_register::AuthRegisterService;
 use super::auth::auth_token::AuthTokenService;
-use super::auth::webauthn_state::WebAuthnState;
 use super::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
@@ -22,7 +21,6 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
-use webauthn_rs::prelude::Url;
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -30,7 +28,6 @@ pub struct AuthService {
   pub login_service: AuthLoginService,
   pub register_service: AuthRegisterService,
   pub password_service: AuthPasswordService,
-  pub webauthn_state: Arc<WebAuthnState>,
   pub auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
 }
 
@@ -39,7 +36,7 @@ impl AuthService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     jwt_secret: String,
-    rp_domain: String,
+    _rp_domain: String,
     auth_data_sync_service: Option<Arc<AuthDataSyncService>>,
     profile_sync_service: ProfileSyncUnifiedService,
   ) -> Self {
@@ -69,17 +66,11 @@ impl AuthService {
     );
     let password_service = AuthPasswordService::new(json_provider.clone(), mongo_provider.clone());
 
-    let rp_origin = Url::parse(&format!("https://{}", rp_domain)).unwrap_or_else(|_| {
-      Url::parse("https://taskflow.tcs.com").expect("Hardcoded fallback URL is valid")
-    });
-    let webauthn_state = Arc::new(WebAuthnState::new(&rp_domain, &rp_origin));
-
     Self {
       token_service,
       login_service,
       register_service,
       password_service,
-      webauthn_state,
       auth_data_sync_service,
     }
   }
