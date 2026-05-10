@@ -8,184 +8,77 @@
   }"
   (click)="onCardClick($event)"
 >
-  <div class="flex grow flex-col">
-    <div class="mb-2 flex flex-row flex-wrap items-center justify-between gap-2">
-      @for (config of line1Config; track trackByConfig($index, config)) {
-        @switch (config.type) {
-          @case ("drag-handle") {
-            <button
-              cdkDragHandle
-              [class]="getFieldClass(config)"
-              title="Drag to reorder"
-              class="cursor-grab touch-none text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-              (click)="$event.stopPropagation()"
-            >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
-            </button>
-          }
-          @case ("checkbox") {
-            <label
-              class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
-              (click)="$event.stopPropagation()"
-            >
-              <app-checkbox [checked]="isChecked()" (checkedChange)="onCheckboxChange($event)" />
-            </label>
-          }
-          @case ("title") {
-            <div class="flex min-w-0 flex-1 items-center">
-              <h3
-                class="flex cursor-pointer items-center gap-2 truncate text-lg font-semibold transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-              >
-                {{ getDisplayValue(config) }}
-              </h3>
-            </div>
-          }
-          @case ("status-badge") {
-            <span
-              class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-              [ngClass]="getChipColor(config)"
-            >
-              {{ getDisplayValue(config) }}
-            </span>
-          }
-          @case ("priority-badge") {
-            <span
-              class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-              [ngClass]="getChipColor(config)"
-            >
-              {{ getDisplayValue(config) }}
-            </span>
-          }
-          @case ("category-pills") {
-            <div class="flex flex-row flex-wrap gap-1">
-              <span
-                class="flex items-center gap-1 rounded-full bg-gray-300 px-2 py-0.5 text-xs font-medium text-black dark:bg-zinc-600 dark:text-white"
-              >
-                {{ getDisplayValue(config) }}
-              </span>
-            </div>
-          }
-          @case ("deleted-badge") {
-            @if (item?.deleted_at) {
-              <span
-                class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
-              >
-                Deleted
-              </span>
-            }
-          }
-          @case ("expand-toggle") {
-            @if (canExpand) {
-              <button
-                class="cursor-pointer transition-all duration-200 hover:scale-110"
-                (click)="toggleExpanded($event)"
-                title="Toggle details"
-              >
-                <mat-icon
-                  class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                  [class.rotate-180]="isExpanded"
-                  fontIcon="keyboard_arrow_down"
-                />
-              </button>
-            }
-          }
-          @case ("menu") {
-            <div class="relative" [class]="getFieldClass(config)">
-              <button
-                (click)="onFieldClick(config, $event)"
-                class="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                title="More options"
-              >
-                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
-              </button>
-              @if (showMenu()) {
-                <div
-                  class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
-                  (click)="$event.stopPropagation()"
-                >
-                  @for (action of actions; track action.key) {
-                    <button
-                      class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-                      (click)="onAction(action.key || action.label)"
-                    >
-                      <mat-icon
-                        class="h-4! w-4! min-w-4 text-base!"
-                        [fontIcon]="action.icon || 'circle'"
-                      />
-                      {{ action.label }}
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          }
-        }
-      }
-    </div>
-
-    @if (line2Config.length > 0) {
-      <div class="flex flex-row flex-wrap items-center gap-2">
-        @for (config of line2Config; track trackByConfig($index, config)) {
+  @if (config.length === 1 && config[0]?.type === "todo-card") {
+    <app-todo-card
+      [todo]="$any(item)"
+      [isExpanded]="isExpanded"
+      [actions]="actions"
+      [itemType]="itemType"
+      [isOwner]="isOwner"
+      [isPrivate]="isPrivate"
+      (dropped)="onDragDrop($event)"
+      (todoAction)="onTodoCardAction($event)"
+    />
+  } @else {
+    <div class="flex grow flex-col">
+      <div class="mb-2 flex flex-row flex-wrap items-center justify-between gap-2">
+        @for (config of line1Config; track trackByConfig($index, config)) {
           @switch (config.type) {
-            @case ("badge-group") {
-              <div class="flex flex-row flex-wrap items-center gap-2">
-                @for (badge of getBadgeGroupItems(); track trackByConfig($index, badge)) {
-                  @switch (badge.type) {
-                    @case ("priority-badge") {
-                      @if (getDisplayValue(badge)) {
-                        <span
-                          class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                          [ngClass]="getChipColor(badge)"
-                        >
-                          {{ getDisplayValue(badge) }}
-                        </span>
-                      }
-                    }
-                    @case ("status-badge") {
-                      @if (getDisplayValue(badge)) {
-                        <span
-                          class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                          [ngClass]="getChipColor(badge)"
-                        >
-                          {{ getDisplayValue(badge) }}
-                        </span>
-                      }
-                    }
-                    @case ("deleted-badge") {
-                      @if (item?.deleted_at) {
-                        <span
-                          class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
-                        >
-                          Deleted
-                        </span>
-                      }
-                    }
-                  }
-                }
+            @case ("drag-handle") {
+              <button
+                cdkDragHandle
+                [class]="getFieldClass(config)"
+                title="Drag to reorder"
+                class="cursor-grab touch-none text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="drag_indicator" />
+              </button>
+            }
+            @case ("checkbox") {
+              <label
+                class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
+                (click)="$event.stopPropagation()"
+              >
+                <app-checkbox [checked]="isChecked()" (checkedChange)="onCheckboxChange($event)" />
+              </label>
+            }
+            @case ("title") {
+              <div class="flex min-w-0 flex-1 items-center">
+                <h3
+                  class="flex cursor-pointer items-center gap-2 truncate text-lg font-semibold transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  {{ getDisplayValue(config) }}
+                </h3>
               </div>
             }
-            @case ("priority-badge") {
-              @if (!hasBadgeGroup && getDisplayValue(config)) {
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                  [ngClass]="getChipColor(config)"
-                >
-                  {{ getDisplayValue(config) }}
-                </span>
-              }
-            }
             @case ("status-badge") {
-              @if (!hasBadgeGroup && getDisplayValue(config)) {
+              <span
+                class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                [ngClass]="getChipColor(config)"
+              >
+                {{ getDisplayValue(config) }}
+              </span>
+            }
+            @case ("priority-badge") {
+              <span
+                class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                [ngClass]="getChipColor(config)"
+              >
+                {{ getDisplayValue(config) }}
+              </span>
+            }
+            @case ("category-pills") {
+              <div class="flex flex-row flex-wrap gap-1">
                 <span
-                  class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                  [ngClass]="getChipColor(config)"
+                  class="flex items-center gap-1 rounded-full bg-gray-300 px-2 py-0.5 text-xs font-medium text-black dark:bg-zinc-600 dark:text-white"
                 >
                   {{ getDisplayValue(config) }}
                 </span>
-              }
+              </div>
             }
             @case ("deleted-badge") {
-              @if (!hasBadgeGroup && item?.deleted_at) {
+              @if (item?.deleted_at) {
                 <span
                   class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
                 >
@@ -194,20 +87,7 @@
               }
             }
             @case ("expand-toggle") {
-              @if (canExpand && !hasBadgeGroup) {
-                <button
-                  class="ml-auto cursor-pointer transition-all duration-200 hover:scale-110"
-                  (click)="toggleExpanded($event)"
-                  title="Toggle details"
-                >
-                  <mat-icon
-                    class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                    [class.rotate-180]="isExpanded"
-                    fontIcon="keyboard_arrow_down"
-                  />
-                </button>
-              }
-              @if (canExpand && hasBadgeGroup) {
+              @if (canExpand) {
                 <button
                   class="cursor-pointer transition-all duration-200 hover:scale-110"
                   (click)="toggleExpanded($event)"
@@ -221,15 +101,148 @@
                 </button>
               }
             }
+            @case ("menu") {
+              <div class="relative" [class]="getFieldClass(config)">
+                <button
+                  (click)="onFieldClick(config, $event)"
+                  class="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  title="More options"
+                >
+                  <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
+                </button>
+                @if (showMenu()) {
+                  <div
+                    class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+                    (click)="$event.stopPropagation()"
+                  >
+                    @for (action of actions; track action.key) {
+                      <button
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                        (click)="onAction(action.key || action.label)"
+                      >
+                        <mat-icon
+                          class="h-4! w-4! min-w-4 text-base!"
+                          [fontIcon]="action.icon || 'circle'"
+                        />
+                        {{ action.label }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
         }
       </div>
-    }
 
-    @if (expandable && isExpanded) {
-      <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
-        <app-item-expand-details [item]="$any(item)" [type]="itemType" [fields]="expandFields" />
-      </div>
-    }
-  </div>
+      @if (line2Config.length > 0) {
+        <div class="flex flex-row flex-wrap items-center gap-2">
+          @for (config of line2Config; track trackByConfig($index, config)) {
+            @switch (config.type) {
+              @case ("badge-group") {
+                <div class="flex flex-row flex-wrap items-center gap-2">
+                  @for (badge of getBadgeGroupItems(); track trackByConfig($index, badge)) {
+                    @switch (badge.type) {
+                      @case ("priority-badge") {
+                        @if (getDisplayValue(badge)) {
+                          <span
+                            class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                            [ngClass]="getChipColor(badge)"
+                          >
+                            {{ getDisplayValue(badge) }}
+                          </span>
+                        }
+                      }
+                      @case ("status-badge") {
+                        @if (getDisplayValue(badge)) {
+                          <span
+                            class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                            [ngClass]="getChipColor(badge)"
+                          >
+                            {{ getDisplayValue(badge) }}
+                          </span>
+                        }
+                      }
+                      @case ("deleted-badge") {
+                        @if (item?.deleted_at) {
+                          <span
+                            class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
+                          >
+                            Deleted
+                          </span>
+                        }
+                      }
+                    }
+                  }
+                </div>
+              }
+              @case ("priority-badge") {
+                @if (!hasBadgeGroup && getDisplayValue(config)) {
+                  <span
+                    class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                    [ngClass]="getChipColor(config)"
+                  >
+                    {{ getDisplayValue(config) }}
+                  </span>
+                }
+              }
+              @case ("status-badge") {
+                @if (!hasBadgeGroup && getDisplayValue(config)) {
+                  <span
+                    class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+                    [ngClass]="getChipColor(config)"
+                  >
+                    {{ getDisplayValue(config) }}
+                  </span>
+                }
+              }
+              @case ("deleted-badge") {
+                @if (!hasBadgeGroup && item?.deleted_at) {
+                  <span
+                    class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
+                  >
+                    Deleted
+                  </span>
+                }
+              }
+              @case ("expand-toggle") {
+                @if (canExpand && !hasBadgeGroup) {
+                  <button
+                    class="ml-auto cursor-pointer transition-all duration-200 hover:scale-110"
+                    (click)="toggleExpanded($event)"
+                    title="Toggle details"
+                  >
+                    <mat-icon
+                      class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
+                      [class.rotate-180]="isExpanded"
+                      fontIcon="keyboard_arrow_down"
+                    />
+                  </button>
+                }
+                @if (canExpand && hasBadgeGroup) {
+                  <button
+                    class="cursor-pointer transition-all duration-200 hover:scale-110"
+                    (click)="toggleExpanded($event)"
+                    title="Toggle details"
+                  >
+                    <mat-icon
+                      class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
+                      [class.rotate-180]="isExpanded"
+                      fontIcon="keyboard_arrow_down"
+                    />
+                  </button>
+                }
+              }
+            }
+          }
+        </div>
+      }
+
+      @if (expandable && isExpanded) {
+        <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
+          <app-item-expand-details [item]="$any(item)" [type]="itemType" [fields]="expandFields" />
+        </div>
+      }
+    </div>
+  }
 </div>

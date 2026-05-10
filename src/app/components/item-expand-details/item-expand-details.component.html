@@ -232,6 +232,39 @@
       </div>
     }
 
+    @if (hasVisibility) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon
+          class="h-4! w-4! text-base! text-gray-500"
+          fontIcon="{{
+            item.visibility === 'public'
+              ? 'public'
+              : item.visibility === 'shared'
+                ? 'group'
+                : 'lock'
+          }}"
+        />
+        <span class="text-gray-600 dark:text-gray-400">Visibility:</span>
+        <span class="font-medium capitalize">{{ item.visibility }}</span>
+      </div>
+    }
+
+    @if (hasPriority) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="flag" />
+        <span class="text-gray-600 dark:text-gray-400">Priority:</span>
+        <span class="font-medium capitalize">{{ item.priority }}</span>
+      </div>
+    }
+
+    @if (hasOrder) {
+      <div class="flex items-center gap-2 text-sm">
+        <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="drag_indicator" />
+        <span class="text-gray-600 dark:text-gray-400">Order:</span>
+        <span class="font-medium">{{ item.order }}</span>
+      </div>
+    }
+
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
       @if (item.created_at) {
         <span>Created: {{ item.created_at | date: "short" }}</span>

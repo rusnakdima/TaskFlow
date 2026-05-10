@@ -124,6 +124,21 @@ export class ItemExpandDetailsComponent {
     );
   }
 
+  get hasPriority(): boolean {
+    return this.type === "todo" && !!this.item?.priority;
+  }
+
+  get hasOrder(): boolean {
+    return (
+      (this.type === "todo" || this.type === "task" || this.type === "subtask") &&
+      this.item?.order !== undefined
+    );
+  }
+
+  get hasGithubRepoName(): boolean {
+    return this.type === "todo" && !!this.item?.github_repo_name;
+  }
+
   get isDeleted(): boolean {
     return !!this.item?.deleted_at;
   }

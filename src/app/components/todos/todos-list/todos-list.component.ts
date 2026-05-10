@@ -22,8 +22,8 @@ import { TableViewComponent } from "@components/table-view/table-view.component"
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
-import { TODO_CARD_CONFIG, TODO_TABLE_CONFIG } from "@constants/item-display.constants";
+import { TodoCardComponent } from "@components/todos/todo-card/todo-card.component";
+import { TODO_TABLE_CONFIG } from "@constants/item-display.constants";
 import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -41,7 +41,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     EmptyStateComponent,
     ItemExpandDetailsComponent,
     BulkActionsComponent,
-    ItemDisplayComponent,
+    TodoCardComponent,
   ],
   templateUrl: "./todos-list.component.html",
 })
@@ -51,9 +51,11 @@ export class TodosListComponent {
   private dragDropHandlerService = inject(DragDropHandlerService);
   stateService = inject(TodosStateService);
 
+  expandedTodoIds = signal<Set<string>>(new Set());
+
   @Input() selectedTodos = signal<Set<string>>(new Set());
   @Input() lastSelectedId = signal<string | null>(null);
-  @Input() viewMode: "card" | "grid" | "table" | "list" = "grid";
+  @Input() viewMode: "card" | "grid" | "table" | "list" | "kanban" = "grid";
   @Input() highlightTodoId: string | null = null;
   @Input() userId: string = "";
   @Input() showBulkActions = true;
@@ -100,7 +102,6 @@ export class TodosListComponent {
     TABLE_ACTIONS.ARCHIVE,
   ];
 
-  todoCardConfig = TODO_CARD_CONFIG;
   todoTableConfig = TODO_TABLE_CONFIG;
 
   computeTodoStatus(todo: Todo): string {
@@ -267,5 +268,57 @@ export class TodosListComponent {
       default:
         this.tableAction.emit(event);
     }
+  }
+
+  onTodoCardClick(event: { event: MouseEvent; id: string }): void {
+    if (event.event.shiftKey) {
+      const anchorId = this.lastSelectedId();
+      if (anchorId) {
+        this.rangeSelect.emit({ anchorId, targetId: event.id });
+        return;
+      }
+    } else if (event.event.ctrlKey || event.event.metaKey) {
+      this.selectionChanged.emit({ id: event.id, selected: true });
+      this.lastSelectedId.set(event.id);
+      return;
+    }
+
+    this.lastSelectedId.set(event.id);
+    this.router.navigate(["/todos", event.id, "tasks"]);
+  }
+
+  onTodoCardAction(event: { action: string; todo: Todo }): void {
+    switch (event.action) {
+      case "archive":
+        this.todoArchived.emit(event.todo.id);
+        break;
+      case "restore":
+        this.todoRestored.emit(event.todo.id);
+        break;
+      case "blueprint":
+        this.todoSavedAsBlueprint.emit(event.todo);
+        break;
+      case "delete":
+        this.todoDeleted.emit({ id: event.todo.id, isOwner: event.todo.user_id === this.userId });
+        break;
+      default:
+        this.tableAction.emit({ action: event.action, item: event.todo });
+    }
+  }
+
+  toggleTodoExpand(todo: Todo): void {
+    this.expandedTodoIds.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(todo.id)) {
+        newSet.delete(todo.id);
+      } else {
+        newSet.add(todo.id);
+      }
+      return newSet;
+    });
+  }
+
+  isTodoExpanded(todoId: string): boolean {
+    return this.expandedTodoIds().has(todoId);
   }
 }
