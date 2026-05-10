@@ -1,5 +1,5 @@
 <div
-  class="task-card flex cursor-pointer flex-col rounded-xl bg-white/70 p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-950/50"
+  class="task-card flex cursor-pointer flex-col rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-zinc-950/50"
   [ngClass]="[getPriorityBorderColor(task.priority), getStatusBorderColor(task.status)]"
   (click)="onCardClick($event)"
 >
