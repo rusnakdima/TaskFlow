@@ -147,7 +147,7 @@
     } @else if (viewMode() === "kanban") {
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
         @for (column of getKanbanColumns(); track column.id) {
-          <div class="flex flex-col overflow-hidden rounded-xl bg-gray-800/50 dark:bg-zinc-700/50">
+          <div class="flex flex-col overflow-hidden rounded-xl bg-gray-300/50 dark:bg-zinc-700/50">
             <div
               class="column-header rounded-t-xl p-4 text-white"
               [ngClass]="getColumnColorClass(column.id)"
@@ -173,7 +173,7 @@
             >
               @for (task of getTasksByStatus(column.id); track task.id) {
                 <div cdkDrag [cdkDragData]="task" class="block">
-                  <app-kanban-task-card-simple
+                  <app-kanban-task-card
                     [task]="task"
                     [todo_id]="todoId() || ''"
                     [subtasks]="getTaskSubtasks(task.id)"
