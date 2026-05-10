@@ -61,7 +61,7 @@
           cdkDrag
           [cdkDragDisabled]="!dragEnabled"
           cdkDragLockAxis="y"
-          [style.cursor]="dragEnabled ? 'default' : 'pointer'"
+          [style.cursor]="dragEnabled ? 'default' : 'default'"
           class="hover:bg-gray-50 dark:hover:bg-zinc-800"
           [class.bg-blue-50]="isItemSelected(item.id)"
           [class.dark:bg-blue-900/20]="isItemSelected(item.id)"

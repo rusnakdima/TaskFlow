@@ -17,7 +17,7 @@ import { filter, Subscription } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { FloatingNavItem } from "./floating-bottom-nav.model";
+import { FloatingNavItem, NavRouteConfig } from "./floating-bottom-nav.model";
 
 /* services */
 import { StorageService } from "@services/storage.service";
@@ -51,11 +51,57 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
   get listNavs(): Array<FloatingNavItem> {
     return [
       { url: "/dashboard", icon: "home", label: "Home", query: {} },
-      { url: "/todos", icon: "list_alt", label: "Projects", query: {} },
+      {
+        url: "/todos",
+        icon: "list_alt",
+        label: "Projects",
+        query: {},
+        routeType: "todos",
+        childRoutes: [
+          { pattern: /^\/todos$/, icon: "list_alt", label: "Projects" },
+          { pattern: /^\/todos\/[^/]+\/tasks$/, icon: "checklist", label: "Tasks" },
+          {
+            pattern: /^\/todos\/[^/]+\/tasks\/[^/]+\/subtasks$/,
+            icon: "subdirectory_arrow_right",
+            label: "Subtasks",
+          },
+          { pattern: /^\/todos\/create_todo$/, icon: "add", label: "Create" },
+          { pattern: /^\/todos\/[^/]+\/edit_todo$/, icon: "edit", label: "Edit" },
+          { pattern: /^\/todos\/[^/]+\/tasks\/create_task$/, icon: "add", label: "Create" },
+          { pattern: /^\/todos\/[^/]+\/tasks\/[^/]+\/edit_task$/, icon: "edit", label: "Edit" },
+          {
+            pattern: /^\/todos\/[^/]+\/tasks\/[^/]+\/subtasks\/create_subtask$/,
+            icon: "add",
+            label: "Create",
+          },
+          {
+            pattern: /^\/todos\/[^/]+\/tasks\/[^/]+\/subtasks\/[^/]+\/edit_subtask$/,
+            icon: "edit",
+            label: "Edit",
+          },
+        ],
+      },
       { url: "/calendar", icon: "calendar_month", label: "Calendar", query: {} },
       { url: "/stats", icon: "bar_chart", label: "Stats", query: {} },
       // { url: "/chat", icon: "chat", label: "Chat", query: {} },
-      { url: "/profile", icon: "person", label: "Profile", query: {} },
+      {
+        url: "/profile",
+        icon: "person",
+        label: "Profile",
+        query: {},
+        routeType: "profile",
+        childRoutes: [
+          { pattern: /^\/profile$/, icon: "person", label: "Profile" },
+          { pattern: /^\/profile\/manage$/, icon: "manage_accounts", label: "Manage" },
+          { pattern: /^\/settings$/, icon: "settings", label: "Settings" },
+          { pattern: /^\/change-password$/, icon: "lock", label: "Password" },
+          { pattern: /^\/categories$/, icon: "category", label: "Categories" },
+          { pattern: /^\/sync$/, icon: "sync", label: "Sync" },
+          { pattern: /^\/archive$/, icon: "archive", label: "Archive" },
+          { pattern: /^\/admin$/, icon: "admin_panel_settings", label: "Admin" },
+          { pattern: /^\/about$/, icon: "info", label: "About" },
+        ],
+      },
     ];
   }
 
@@ -73,8 +119,55 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
     return !!img && img.length > 0;
   }
 
+  getLabel(nav: FloatingNavItem): string {
+    if (nav.childRoutes) {
+      const match = this.findRouteMatch(nav.childRoutes);
+      return match?.label ?? nav.label;
+    }
+    return nav.label;
+  }
+
+  getIcon(nav: FloatingNavItem): string {
+    if (nav.childRoutes) {
+      const match = this.findRouteMatch(nav.childRoutes);
+      return match?.icon ?? nav.icon;
+    }
+    return nav.icon;
+  }
+
+  private findRouteMatch(routes: NavRouteConfig[]): NavRouteConfig | undefined {
+    return routes.find((r) => r.pattern.test(this.url()));
+  }
+
   isProfileRoute(url: string): boolean {
     return url === "/profile";
+  }
+
+  isProfileImageRoute(): boolean {
+    const currentUrl = this.url();
+    return currentUrl === "/profile" || currentUrl === "/profile/manage";
+  }
+
+  isChildProfileRoute(): boolean {
+    const currentUrl = this.url();
+    return (
+      /^\/profile\/manage$/.test(currentUrl) ||
+      /^\/settings$/.test(currentUrl) ||
+      /^\/change-password$/.test(currentUrl) ||
+      /^\/categories$/.test(currentUrl) ||
+      /^\/sync$/.test(currentUrl) ||
+      /^\/archive$/.test(currentUrl) ||
+      /^\/admin$/.test(currentUrl) ||
+      /^\/about$/.test(currentUrl)
+    );
+  }
+
+  isActiveRoute(nav: FloatingNavItem): boolean {
+    if (this.url() === nav.url) return true;
+    if (nav.childRoutes) {
+      return this.findRouteMatch(nav.childRoutes) !== undefined;
+    }
+    return false;
   }
 
   @HostListener("window:scroll")

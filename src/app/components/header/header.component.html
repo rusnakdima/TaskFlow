@@ -34,20 +34,20 @@
     <div class="flex flex-shrink-0 items-center gap-2">
       <app-connection-status />
 
-      <button
-        class="relative h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
-        title="Notifications"
-        [matMenuTriggerFor]="notificationMenu"
-      >
-        <mat-icon class="textMuted h-6! w-6! min-w-6 text-2xl!" fontIcon="notifications_none" />
-        @if (unreadCount() > 0) {
+      @if (unreadCount() > 0) {
+        <button
+          class="relative h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+          title="Notifications"
+          [matMenuTriggerFor]="notificationMenu"
+        >
+          <mat-icon class="textMuted h-6! w-6! min-w-6 text-2xl!" fontIcon="notifications_none" />
           <div
             class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
           >
             {{ unreadCount() > 9 ? "9+" : unreadCount() }}
           </div>
-        }
-      </button>
+        </button>
+      }
 
       <button
         class="h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
