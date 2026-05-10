@@ -7,7 +7,6 @@ export { BulkActionHelper } from "./bulk-action.helper";
 export { BaseItemHelper } from "./base-item.helper";
 export { bindSaveShortcut } from "./keyboard.helper";
 export { NetworkErrorHelper } from "./network-error.helper";
-export { EncodingHelper } from "./encoding.helper";
 export { TokenStorageHelper } from "./token-storage.helper";
 export { LoginCompletionHelper } from "./login-completion.helper";
 export { LoginErrorHelper } from "./login-error.helper";
