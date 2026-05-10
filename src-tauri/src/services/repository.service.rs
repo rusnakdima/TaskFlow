@@ -489,17 +489,24 @@ impl RepositoryService {
       }
 
       let loader = RelationLoader::new(provider.clone());
+      tracing::debug!(
+        "  Calling load_nested for path: {:?}, doc_count: {}",
+        segments,
+        current_docs.len()
+      );
       match loader
         .load_nested(current_docs, &segments, table, true)
         .await
       {
         Ok(loaded) => {
+          tracing::debug!("  load_nested success, result doc_count: {}", loaded.len());
           current_docs = loaded;
         }
-        Err(_e) => {
+        Err(e) => {
+          tracing::error!("  load_nested FAILED: {:?}", e);
           return Err(err_response_formatted(
             "Relation loading failed",
-            &_e.to_string(),
+            &e.to_string(),
           ));
         }
       }
