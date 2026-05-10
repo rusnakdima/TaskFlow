@@ -260,20 +260,26 @@ export class ProfileView implements OnInit, OnDestroy {
       return;
     }
 
-    this.requestService.invokeCommand<string>("qr_login_complete", { token }).subscribe({
-      next: (jwtToken) => {
-        if (jwtToken) {
-          TokenStorageHelper.setToken(jwtToken, true);
-          this.notifyService.showSuccess("Login successful on desktop!");
-          setTimeout(() => {
-            this.router.navigate(["/dashboard"]);
-          }, 500);
-        }
-      },
-      error: (err: any) => {
-        this.notifyService.showError("Failed to complete desktop login: " + (err.message || err));
-      },
-    });
+    this.requestService
+      .invokeCommand<{
+        status: string;
+        message: string;
+        data: { token: string; needsProfile: boolean; profile: any; userId: string };
+      }>("qr_login_complete", { token })
+      .subscribe({
+        next: (response) => {
+          if (response?.data?.token) {
+            TokenStorageHelper.setToken(response.data.token, true);
+            this.notifyService.showSuccess("Login successful on desktop!");
+            setTimeout(() => {
+              this.router.navigate(["/dashboard"]);
+            }, 500);
+          }
+        },
+        error: (err: any) => {
+          this.notifyService.showError("Failed to complete desktop login: " + (err.message || err));
+        },
+      });
   }
 
   async showMyQrCode(): Promise<void> {
