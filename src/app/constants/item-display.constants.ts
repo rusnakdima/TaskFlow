@@ -96,6 +96,7 @@ export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
+  { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 2 },
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 2 },
   {
     key: "menu",
