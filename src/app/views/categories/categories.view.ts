@@ -241,9 +241,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     }
   }
 
-  onRowClick(category: Category): void {
-    this.editCategory(category);
-  }
+  onRowClick(_category: Category): void {}
 
   onTableAction(event: { action: string; item: Category }): void {
     const { action, item } = event;

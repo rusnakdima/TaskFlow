@@ -6,6 +6,11 @@ import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { Task, TaskStatus } from "@models/task.model";
 import { KanbanColumn } from "@models/drag-drop.model";
 
+export interface KanbanItem {
+  id: string;
+  status: TaskStatus;
+}
+
 /**
  * KanbanDragDropService - Handles drag-drop operations for Kanban board
  * Extracted from KanbanView to reduce component complexity
@@ -32,22 +37,39 @@ export class KanbanDragDropService {
     task?: Task;
     newStatus?: TaskStatus;
   } {
+    return this.handleKanbanDrop<Task>(
+      event as any,
+      targetStatus,
+      isUpdatingOrder,
+      onMoveTask
+    ) as any;
+  }
+
+  /**
+   * Generic kanban drop handler for any item type with id and status
+   */
+  handleKanbanDrop<T extends KanbanItem>(
+    event: CdkDragDrop<T[]>,
+    targetStatus: TaskStatus,
+    isUpdatingOrder: boolean,
+    onMoveItem: (newStatus: TaskStatus, item_id?: string) => void
+  ): {
+    moved: boolean;
+    item?: T;
+    newStatus?: TaskStatus;
+  } {
     if (isUpdatingOrder) {
       return { moved: false };
     }
 
-    const task = event.item.data as Task;
+    const item = event.item.data as T;
 
     if (event.previousContainer === event.container) {
-      // Reordering within the same column - just visual reordering
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return { moved: false };
     } else {
-      // Moving to a different column
-      // Don't use transferArrayItem here because the data comes from a computed signal
-      // The UI will update automatically when the API response updates the storage
-      onMoveTask(targetStatus, task.id);
-      return { moved: true, task, newStatus: targetStatus };
+      onMoveItem(targetStatus, item.id);
+      return { moved: true, item, newStatus: targetStatus };
     }
   }
 
