@@ -291,6 +291,24 @@ impl JsonRepoService {
       return Ok(docs);
     }
 
+    tracing::debug!(
+      "load_relations: table={}, load_paths={:?}, docs_count={}",
+      table,
+      load_paths,
+      docs.len()
+    );
+
+    for (i, doc) in docs.iter().enumerate() {
+      if let Some(obj) = doc.as_object() {
+        tracing::debug!("  doc[{}]: id={:?}, categories={:?}, assignees={:?}",
+          i,
+          obj.get("id"),
+          obj.get("categories"),
+          obj.get("assignees")
+        );
+      }
+    }
+
     use nosql_orm::relations::RelationLoader;
 
     let loader = RelationLoader::new(self.json_provider.clone());
@@ -301,6 +319,8 @@ impl JsonRepoService {
       if segments.is_empty() {
         continue;
       }
+
+      tracing::debug!("  Loading relation path: {:?} for {} docs", segments, result_docs.len());
 
       for doc in &mut result_docs {
         if let Some(obj) = doc.as_object_mut() {
@@ -314,8 +334,21 @@ impl JsonRepoService {
         .load_nested(result_docs, &segments, table, true)
         .await
       {
-        Ok(loaded) => result_docs = loaded,
+        Ok(loaded) => {
+          tracing::debug!("  Relation {:?} loaded successfully, docs now: {}", path, loaded.len());
+          for (i, doc) in loaded.iter().enumerate() {
+            if let Some(obj) = doc.as_object() {
+              tracing::debug!("    loaded_doc[{}]: id={:?}, categories={:?}",
+                i,
+                obj.get("id"),
+                obj.get("categories")
+              );
+            }
+          }
+          result_docs = loaded;
+        },
         Err(e) => {
+          tracing::error!("  Relation {:?} loading failed: {}", path, e);
           return Err(err_response_formatted("Relation loading failed", &e.to_string()));
         }
       }
