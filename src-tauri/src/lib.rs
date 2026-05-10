@@ -50,7 +50,7 @@ use services::{
   manage_db_service::ManageDbService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
-  repository_service::RepositoryService,
+  repository::service::RepositoryService,
   statistics_service::StatisticsService,
   user::user_sync::UserSyncService,
 };
@@ -117,6 +117,8 @@ pub fn run() {
   register_relations_for_entity::<UserEntity>();
 
   let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("debug"));
+
+  env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
 
   let stdout_layer = fmt::layer()
     .with_target(true)
