@@ -78,7 +78,7 @@ export class ItemCardComponent {
   @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
   @Output() deleteComment = new EventEmitter<string>();
   @Output() markAsRead = new EventEmitter<string[]>();
-  @Output() statusToggle = new EventEmitter<TaskStatus>();
+  @Output() statusToggle = new EventEmitter<{ item: any; status: TaskStatus }>();
 
   showMenu = signal(false);
   expanded = signal(false);
@@ -245,6 +245,6 @@ export class ItemCardComponent {
   }
 
   onStatusToggle(status: TaskStatus): void {
-    this.statusToggle.emit(status);
+    this.statusToggle.emit({ item: this.item, status });
   }
 }

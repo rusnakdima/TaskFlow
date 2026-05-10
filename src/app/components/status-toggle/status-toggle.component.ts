@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { TaskStatus } from "@models/task.model";
+import { BaseItemHelper } from "@helpers/base-item.helper";
 
 @Component({
   selector: "app-status-toggle",
@@ -68,10 +69,7 @@ export class StatusToggleComponent {
 
   onToggle(): void {
     const currentStatus = this.status as TaskStatus;
-    if (currentStatus === TaskStatus.PENDING || this.status === "pending") {
-      this.toggle.emit(TaskStatus.COMPLETED);
-    } else {
-      this.toggle.emit(TaskStatus.PENDING);
-    }
+    const nextStatus = BaseItemHelper.getNextStatus(currentStatus);
+    this.toggle.emit(nextStatus);
   }
 }
