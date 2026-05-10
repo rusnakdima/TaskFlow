@@ -2,7 +2,7 @@ import { BaseEntity } from "@models/base-entity.model";
 
 export interface Chat extends BaseEntity {
   id: string;
-  todo_id: string;
+  todo_id?: string;
   user_id: string;
   author_name?: string;
   content: string;
@@ -16,7 +16,7 @@ export interface Chat extends BaseEntity {
 }
 
 export interface ChatCreate {
-  todo_id: string;
+  todo_id?: string;
   user_id: string;
   content: string;
 }
