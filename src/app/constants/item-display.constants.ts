@@ -34,7 +34,7 @@ export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
-  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 2 },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
     key: "menu",
     type: "menu",
