@@ -46,7 +46,6 @@ import { TableViewComponent } from "@components/table-view/table-view.component"
 import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
 
 interface QueryParams {
-  fromKanban?: string;
   highlightSubtask?: string;
   openComments?: string;
   highlightComment?: string;
@@ -344,9 +343,6 @@ export class SubtasksViewComponent extends BaseListView {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: QueryParams) => {
-        if (queryParams.fromKanban !== undefined) {
-          this.fromKanban.set(queryParams.fromKanban === "true");
-        }
         if (queryParams.highlightSubtask) {
           const id = queryParams.highlightSubtask;
           this.highlightSubtask.set(id);
