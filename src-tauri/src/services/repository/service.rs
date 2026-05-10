@@ -152,73 +152,6 @@ impl RepositoryService {
       })
   }
 
-  async fn load_relations_via_nosql_orm(
-    &self,
-    docs: Vec<Value>,
-    table: &str,
-    load_paths: &[String],
-    use_mongo: bool,
-  ) -> Result<Vec<Value>, ResponseModel> {
-    if load_paths.is_empty() || docs.is_empty() {
-      return Ok(docs);
-    }
-
-    async fn load<P: DatabaseProvider + Clone>(
-      _repo: &RepositoryService,
-      provider: P,
-      docs: Vec<Value>,
-      load_paths: &[String],
-      table: &str,
-      collection_adder: impl Fn(Vec<Value>, &str) -> Vec<Value>,
-    ) -> Result<Vec<Value>, ResponseModel> {
-      let loader = RelationLoader::new(provider);
-      let mut result_docs = docs;
-      for path in load_paths {
-        result_docs = collection_adder(result_docs, table);
-        let segments: Vec<&str> = path.split('.').collect();
-        match loader
-          .load_nested(result_docs, &segments, table, true)
-          .await
-        {
-          Ok(loaded) => result_docs = loaded,
-          Err(_e) => {
-            return Err(err_response_formatted(
-              "Relation loading failed",
-              "unknown error",
-            ));
-          }
-        }
-      }
-      Ok(result_docs)
-    }
-
-    if use_mongo {
-      let mongo = self
-        .mongodb_provider
-        .as_ref()
-        .ok_or_else(|| err_response("No MongoDB provider available"))?;
-      load(
-        self,
-        mongo.as_ref().clone(),
-        docs,
-        load_paths,
-        table,
-        |docs, collection| add_collection_metadata(docs, collection),
-      )
-      .await
-    } else {
-      load(
-        self,
-        self.json_provider.clone(),
-        docs,
-        load_paths,
-        table,
-        |docs, collection| add_collection_metadata(docs, collection),
-      )
-      .await
-    }
-  }
-
   async fn load_relations_unified<P: DatabaseProvider + Clone>(
     &self,
     docs: Vec<Value>,
@@ -407,63 +340,6 @@ impl RepositoryService {
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
     )))
-  }
-
-  async fn load_relations_for_get_all<P: DatabaseProvider + Clone>(
-    &self,
-    docs: Vec<Value>,
-    table: &str,
-    load_paths: &[String],
-    provider: P,
-  ) -> Result<Vec<Value>, ResponseModel> {
-    if load_paths.is_empty() || docs.is_empty() {
-      return Ok(docs);
-    }
-
-    let mut current_docs = docs;
-    tracing::debug!(
-      "load_relations_for_get_all: table={}, load_paths={:?}, doc_count={}",
-      table,
-      load_paths,
-      current_docs.len()
-    );
-    for path in load_paths {
-      let segments: Vec<&str> = path.split('.').collect();
-      if segments.is_empty() {
-        continue;
-      }
-
-      for doc in &mut current_docs {
-        if let Some(obj) = doc.as_object_mut() {
-          obj.insert("_collection".to_string(), Value::String(table.to_string()));
-        }
-      }
-
-      let loader = RelationLoader::new(provider.clone());
-      tracing::debug!(
-        "  Calling load_nested for path: {:?}, doc_count: {}",
-        segments,
-        current_docs.len()
-      );
-      match loader
-        .load_nested(current_docs, &segments, table, true)
-        .await
-      {
-        Ok(loaded) => {
-          tracing::debug!("  load_nested success, result doc_count: {}", loaded.len());
-          current_docs = loaded;
-        }
-        Err(e) => {
-          tracing::error!("  load_nested FAILED: {:?}", e);
-          return Err(err_response_formatted(
-            "Relation loading failed",
-            &e.to_string(),
-          ));
-        }
-      }
-    }
-
-    Ok(current_docs)
   }
 
   async fn handle_get(
