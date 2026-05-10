@@ -67,7 +67,7 @@ import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 import { TABLE_ACTIONS, STATUS_ICONS } from "@constants/table-field.constants";
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
-import { KanbanTaskCardSimpleComponent } from "@components/kanban-task-card-simple/kanban-task-card-simple.component";
+import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 
 @Component({
@@ -92,7 +92,7 @@ import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
     LoadingStateComponent,
     ChatFabComponent,
     ItemCardComponent,
-    KanbanTaskCardSimpleComponent,
+    KanbanTaskCardComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
