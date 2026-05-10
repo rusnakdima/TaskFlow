@@ -1,4 +1,5 @@
 import { BaseEntity } from "@models/base-entity.model";
+import { User } from "./user.model";
 
 export interface Comment extends BaseEntity {
   id: string;
@@ -9,6 +10,7 @@ export interface Comment extends BaseEntity {
   read_by?: string[];
   github_comment_id?: string;
   github_issue_id?: string;
+  user?: User;
 }
 
 export interface CommentPayload {
