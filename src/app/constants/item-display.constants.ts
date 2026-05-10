@@ -159,6 +159,7 @@ export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
         : "flex-1 min-w-0",
     line: 1,
   },
+  { key: "status-toggle", type: "status-toggle", width: "32px", line: 1 },
   {
     key: "status-badge",
     type: "status-badge",
