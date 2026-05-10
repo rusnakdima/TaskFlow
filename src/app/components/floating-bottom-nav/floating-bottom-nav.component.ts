@@ -8,6 +8,7 @@ import {
   HostListener,
   ChangeDetectionStrategy,
   inject,
+  output,
 } from "@angular/core";
 import { NavigationEnd, Router, RouterModule } from "@angular/router";
 import { filter, Subscription } from "rxjs";
@@ -40,6 +41,8 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
   isShowing = signal(false);
   isHiding = signal(false);
   profile = this.storageService.profile;
+
+  visibilityChange = output<boolean>();
 
   private lastScrollY = 0;
   private scrollThreshold = 50;
@@ -87,19 +90,27 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
       setTimeout(() => {
         this.isHidden.set(true);
         this.isHiding.set(false);
+        this.visibilityChange.emit(false);
       }, 300);
     } else if (scrollDelta < -10 && this.isHidden()) {
       this.isShowing.set(true);
       this.isHidden.set(false);
       setTimeout(() => {
         this.isShowing.set(false);
+        this.visibilityChange.emit(true);
       }, 400);
     }
 
     this.lastScrollY = currentScrollY;
   }
 
+  get isNavVisible(): boolean {
+    return this.isVisible();
+  }
+
   ngOnInit(): void {
+    this.visibilityChange.emit(true);
+
     this.routerSub = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((_val) => {
