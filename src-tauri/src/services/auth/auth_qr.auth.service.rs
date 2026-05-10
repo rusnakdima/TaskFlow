@@ -32,6 +32,7 @@ pub struct QrToken {
   pub approved: bool,
   pub approved_at: Option<i64>,
   pub approved_by: Option<String>,
+  pub completed: bool,
 }
 
 pub struct QrAuthService {
@@ -79,6 +80,7 @@ impl QrAuthService {
       approved: false,
       approved_at: None,
       approved_by: None,
+      completed: false,
     };
 
     let qr_token_json = serde_json::to_value(&qr_token)
@@ -239,6 +241,7 @@ impl QrAuthService {
       approved: true,
       approved_at: Some(now),
       approved_by: Some(username.to_string()),
+      completed: false,
     };
 
     let qr_token_json = serde_json::to_value(&qr_token)
@@ -346,6 +349,10 @@ impl QrAuthService {
     // Verify QR token is approved
     let qr_token = self.find_qr_token(token).await?;
 
+    if qr_token.completed {
+      return Err(err_response("QR code already used"));
+    }
+
     if !qr_token.approved {
       return Err(err_response("QR code not yet approved"));
     }
@@ -356,6 +363,7 @@ impl QrAuthService {
 
     let user_id = qr_token
       .user_id
+      .clone()
       .ok_or_else(|| err_response("QR token has no user_id"))?;
 
     // Try local JSON database first - find by user_id
@@ -395,7 +403,12 @@ impl QrAuthService {
     let _username = user.username.clone();
 
     // Generate JWT token
-    let token = self.token_service.generate_token(&user_id, "", "")?;
+    let jwt_token = self.token_service.generate_token(&user_id, "", "")?;
+
+    // Mark token as completed
+    let mut updated_token = qr_token.clone();
+    updated_token.completed = true;
+    self.save_qr_token(&updated_token).await?;
 
     // Cache user locally if from MongoDB
     if self.mongodb_provider.is_some() {
@@ -417,7 +430,7 @@ impl QrAuthService {
       status: ResponseStatus::Success,
       message: "QR login successful".to_string(),
       data: DataValue::Object(serde_json::json!({
-        "token": token,
+        "token": jwt_token,
         "needsProfile": needs_profile,
         "profile": profile,
         "userId": user_id
