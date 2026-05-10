@@ -74,14 +74,6 @@ export class CommandPaletteComponent implements OnInit {
       route: "/calendar",
     },
     {
-      id: "kanban",
-      label: "Kanban Board",
-      description: "View Kanban Board",
-      icon: "view_kanban",
-      category: "page",
-      route: "/kanban",
-    },
-    {
       id: "stats",
       label: "Statistics",
       description: "View Statistics",

@@ -162,10 +162,6 @@ export class ShortcutService implements OnDestroy {
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/categories"]));
               break;
-            case "k":
-              event.preventDefault();
-              this.zone.run(() => this.router.navigate(["/kanban"]));
-              break;
             case "s":
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/stats"]));
