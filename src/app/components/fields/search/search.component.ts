@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, OnInit, OnDestroy, Output } from "@angular/core";
-import { FormsModule, ReactiveFormsModule } from "@angular/forms';
+import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
