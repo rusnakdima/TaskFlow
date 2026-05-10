@@ -140,7 +140,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     );
 
     this.requestService
-      .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
+      .loadPage("categories", { visibility: "private", limit: 50, skip: 0, load: ["user"] })
       .subscribe();
   }
 

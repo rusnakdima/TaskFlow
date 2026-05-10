@@ -13,7 +13,6 @@ import {
 import { ActivatedRoute, RouterModule, NavigationEnd, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
-import { firstValueFrom } from "rxjs";
 import { filter } from "rxjs/operators";
 
 /* materials */
@@ -31,18 +30,21 @@ import { Chat } from "@models/chat.model";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { AdminService } from "@services/data/admin.service";
-import { ResponseStatus } from "@models/response.model";
+
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { PromptDialogService } from "@services/core/prompt-dialog.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { FilteredListHelper } from "@helpers/filtered-list.helper";
-import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
+
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
+
+/* helpers - tasks view */
+import { TasksKanbanHelper } from "./tasks-kanban.helper";
+import { TasksFiltersHelper } from "./tasks-filters.helper";
+import { TasksActionsHelper } from "./tasks-actions.helper";
+import { TasksCommentsHelper } from "./tasks-comments.helper";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -53,22 +55,17 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
-import { GithubService } from "@services/github/github.service";
-import { CommentService } from "@services/features/comment.service";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
-import { FilterField } from "@models/filter-config.model";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
-import { TABLE_ACTIONS, STATUS_ICONS } from "@constants/table-field.constants";
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
-import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 
 @Component({
   selector: "app-tasks",
@@ -104,37 +101,43 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
   private dragDropHandlerService = inject(DragDropHandlerService);
-  private bulkActionHelper = inject(BulkActionHelper);
-  public bulkService = inject(BulkActionService);
-  private adminService = inject(AdminService);
-  private confirmDialogService = inject(ConfirmDialogService);
   private promptDialogService = inject(PromptDialogService);
 
+  public bulkService = inject(BulkActionService);
+
   private appStateService = inject(AppStateService);
-  private githubService = inject(GithubService);
-  private commentService = inject(CommentService);
-  private kanbanDragDropService = inject(KanbanDragDropService);
 
-  private isUpdatingKanban = signal(false);
-
-  protected getItems(): { id: string }[] {
-    return this.listTasks();
-  }
+  kanbanHelper = inject(TasksKanbanHelper);
+  filtersHelper = inject(TasksFiltersHelper);
+  actionsHelper = inject(TasksActionsHelper);
+  commentsHelper = inject(TasksCommentsHelper);
 
   protected get selectedTasks() {
     return this.selectedItems;
   }
 
+  protected getItems(): { id: string }[] {
+    return this.listTasks();
+  }
+
+  userId: string = "";
+
+  get filterFields() {
+    return this.filtersHelper.filterFields;
+  }
+
+  onFiltersChange(filters: Record<string, string | string[] | any>): void {
+    this.filtersHelper.onFiltersChange(filters);
+  }
+
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
   showMobileInfo = signal(false);
   highlightTaskId = signal<string | null>(null);
-  highlightCommentId = signal<string | null>(null);
   openComments = signal(false);
   openChat = signal(false);
   chats = signal<Chat[]>([]);
 
   taskCardConfig = TASK_CARD_CONFIG;
-  taskActions = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
 
   todo = signal<Todo | null>(null);
   todoId = signal<string | null>(null);
@@ -161,6 +164,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         next: (todo) => {
           if (todo) {
             this.todo.set(todo);
+            this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
             const tasks = todo.tasks || [];
             if (tasks.length > 0) {
               this.todoTasks.set(tasks);
@@ -227,10 +231,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
             total: tasks.length,
             hasMore: tasks.length === p.limit,
           }));
-          if (tasks.length > 0) {
-            const taskIds = tasks.map((t) => t.id);
-            this.loadCommentsForTasks(taskIds);
-          }
         },
         error: () => {
           this.taskPagination.update((p) => ({
@@ -268,24 +268,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   listTasks = computed(() => {
-    return FilteredListHelper.filterAndSort(this.todoTasks(), {
-      filter: this.activeFilter(),
-      query: this.searchQuery(),
-      filterType: "status",
-    });
+    return this.filtersHelper.listTasks(this.todoTasks(), this.searchQuery());
   });
-
-  private loadCommentsForTasks(taskIds: string[]): void {
-    if (taskIds.length === 0) return;
-    this.requestService
-      .loadPage("comments", {
-        filter: { task_id: { $in: taskIds } },
-        visibility: (this.todo()?.visibility || "private") as Visibility,
-        skip: 0,
-        limit: 100,
-      })
-      .subscribe();
-  }
 
   getTaskUnreadCommentsCount(task: Task): number {
     const userId = this.authService.getValueByKey("id");
@@ -340,55 +324,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         onModeChange: (mode) => this.setViewMode(mode),
         modes: ["card", "grid", "table", "kanban"],
       },
-      filterFields: this.filterFields,
+      filterFields: this.filtersHelper.filterFields,
       showFilter: this.showFilter(),
-      onFiltersChange: (filters) => this.onFiltersChange(filters),
+      onFiltersChange: (filters) => this.filtersHelper.onFiltersChange(filters),
     };
   }
-
-  onFiltersChange(filters: Record<string, string | string[] | any>): void {
-    this._activeFilters.set(filters);
-  }
-
-  private _activeFilters = signal<Record<string, string | string[] | any>>({});
-
-  userId: string = "";
-
-  filterOptions = [
-    { key: "all", label: "All" },
-    { key: "active", label: "Active" },
-    { key: "completed", label: "Completed" },
-    { key: "skipped", label: "Skipped" },
-    { key: "failed", label: "Failed" },
-    { key: "done", label: "Done" },
-    { key: "high", label: "High Priority" },
-  ];
-
-  filterFields: FilterField[] = [
-    {
-      key: "status",
-      label: "Status",
-      type: "checkbox",
-      options: [
-        { key: "all", label: "All" },
-        { key: "pending", label: "Pending" },
-        { key: "completed", label: "Completed" },
-        { key: "skipped", label: "Skipped" },
-        { key: "failed", label: "Failed" },
-      ],
-    },
-    {
-      key: "priority",
-      label: "Priority",
-      type: "checkbox",
-      options: [
-        { key: "all", label: "All" },
-        { key: "low", label: "Low" },
-        { key: "medium", label: "Medium" },
-        { key: "high", label: "High" },
-      ],
-    },
-  ];
 
   taskTableFields: TableField[] = [
     { key: "title", label: "Task", type: "text", sortable: true },
@@ -423,7 +363,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.route.queryParams.subscribe((queryParams: any) => {
         super.handleHighlightQueryParams(queryParams, "highlightTaskId", "task-", "ring-green-500");
         if (queryParams.highlightCommentId) {
-          this.highlightCommentId.set(queryParams.highlightCommentId);
+          this.commentsHelper["_highlightCommentId"].set(queryParams.highlightCommentId);
           this.openComments.set(true);
         }
         if (queryParams.openComments) {
@@ -454,37 +394,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.subscriptions.add(filterSub);
   }
 
-  toggleTaskCompletion(task: Task) {
-    const todo = this.todo();
-    if (!todo) return;
-
-    if (
-      task.status === TaskStatus.PENDING &&
-      !this.checkDependenciesCompleted(task.depends_on || [])
-    ) {
-      this.notifyService.showError("Cannot complete task: waiting for dependencies");
-      return;
-    }
-
-    const newStatus = BaseItemHelper.getNextStatus(task.status);
-
-    this.requestService
-      .update<Task>(
-        "tasks",
-        task.id,
-        { ...task, status: newStatus },
-        { visibility: (todo.visibility || "private") as Visibility, offline: true }
-      )
-      .subscribe({
-        next: () => {
-          this.todoTasks.update((tasks) =>
-            tasks.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
-          );
-        },
-        error: () => {
-          this.notifyService.showError("Failed to update task status");
-        },
-      });
+  toggleTaskCompletion(task: Task): void {
+    this.actionsHelper.toggleTaskCompletion(
+      task,
+      this.todo(),
+      (fn) => this.todoTasks.update(fn),
+      (dependsOn) => this.checkDependenciesCompleted(dependsOn)
+    );
   }
 
   cycleStatus(task: Task) {
@@ -671,42 +587,27 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskTableActions(): TableFieldActionButton[] {
-    const actions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
-
-    const currentTodo = this.todo();
-    if (currentTodo?.github_repo_name) {
-      actions.unshift(TABLE_ACTIONS.GITHUB_ISSUE);
-    }
-
-    return actions;
+    return this.actionsHelper.getTaskTableActions(this.todo());
   }
 
   getTaskCardActions() {
-    return this.taskActions;
+    return this.actionsHelper.getTaskCardActions();
   }
 
   onTaskTableAction(event: { action: string; item: Task }): void {
-    switch (event.action) {
-      case "edit":
-        this.router.navigate([event.item.id, "edit_task"], {
-          relativeTo: this.route,
-          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
-        });
-        break;
-      case "delete":
-        this.deleteTask(event.item.id);
-        break;
-      case "archive":
-        this.archiveTask(event.item.id);
-        break;
-      case "toggle":
-      case "toggle_status":
-        this.toggleTaskCompletion(event.item);
-        break;
-      case "github_issue":
-        this.createOrUpdateGithubIssueFromTask(event.item);
-        break;
-    }
+    this.actionsHelper.onTaskTableAction(
+      event,
+      this.todo(),
+      (fn) => this.todoTasks.update(fn),
+      (dependsOn) => this.checkDependenciesCompleted(dependsOn),
+      this.router,
+      this.route,
+      () => this.isOwner(),
+      () => this.isPrivate(),
+      (taskId) => this.deleteTask(taskId),
+      (taskId) => this.archiveTask(taskId),
+      (task) => this.createOrUpdateGithubIssueFromTask(task)
+    );
   }
 
   onTaskItemAction(event: { action: string; item: Task }): void {
@@ -714,154 +615,42 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private createOrUpdateGithubIssueFromTask(task: Task): void {
-    const currentTodo = this.todo();
-    if (!currentTodo?.github_repo_name) {
-      this.notifyService.showError("Project is not linked to a GitHub repository");
-      return;
-    }
-
-    const [owner, repo] = currentTodo.github_repo_name.split("/");
-    if (!owner || !repo) {
-      this.notifyService.showError("Invalid GitHub repository configuration");
-      return;
-    }
-
-    const issueBody = `**Task Details**
-
-**Description:** ${task.description || "N/A"}
-**Priority:** ${task.priority || "medium"}
-**Due Date:** ${task.end_date || "N/A"}
-**Created in:** TaskFlow
-
----
-[View in TaskFlow](taskflow://tasks/${task.id})`;
-
-    if (task.github_issue_id) {
-      this.githubService
-        .updateIssue(owner, repo, task.github_issue_number!, task.title, issueBody)
-        .subscribe({
-          next: (result) => {
-            this.notifyService.showSuccess("GitHub issue updated");
-            this.requestService
-              .update<Task>("tasks", task.id, {
-                github_issue_url: result.html_url,
-              })
-              .subscribe();
-          },
-          error: (err) => {
-            this.notifyService.showError("Failed to update GitHub issue: " + (err.message || err));
-          },
-        });
-    } else if (task.publish_to_github) {
-      this.githubService.createIssue(owner, repo, task.title, issueBody).subscribe({
-        next: (result) => {
-          this.notifyService.showSuccess(`GitHub issue created: ${result.html_url}`);
-          this.requestService
-            .update<Task>("tasks", task.id, {
-              github_issue_id: String(result.id),
-              github_issue_number: result.number,
-              github_issue_url: result.html_url,
-            })
-            .subscribe();
-        },
-        error: (err) => {
-          this.notifyService.showError("Failed to create GitHub issue: " + (err.message || err));
-        },
-      });
-    }
+    this.actionsHelper.createOrUpdateGithubIssueFromTask(task, this.todo());
   }
 
-  onCommentToggle(): void {
-    this.highlightCommentId.set(null);
+  onCommentToggle(taskId?: string): void {
+    this.commentsHelper.onCommentToggle(taskId);
   }
 
   onTaskCommentAdd(event: { content: string; itemId: string }): void {
-    if (!event.content.trim()) return;
-    this.commentService.createComment(event.content, { taskId: event.itemId }).subscribe({
-      next: (comment) => {
-        this.storageService.addCommentToTask(comment, event.itemId);
-      },
-      error: () => {
-        this.notifyService.showError("Failed to add comment");
-      },
-    });
+    this.commentsHelper.onTaskCommentAdd(event);
   }
 
   onTaskCommentDelete(commentId: string): void {
-    this.storageService.removeCommentFromAll(commentId);
+    this.commentsHelper.onTaskCommentDelete(commentId);
     this.requestService.delete("comments", commentId).subscribe();
   }
 
   onTaskCommentMarkAsRead(commentIds: string[]): void {
-    const userId = this.authService.getValueByKey("id");
-    if (userId) {
-      this.commentService.markCommentsAsRead(commentIds, userId);
-    }
+    this.commentsHelper.onTaskCommentMarkAsRead(commentIds);
   }
 
   onTaskSubtaskCommentAdd(event: { content: string; subtask_id: string; itemId: string }): void {
-    if (!event.content.trim()) return;
-    this.commentService.createComment(event.content, { subtaskId: event.subtask_id }).subscribe({
-      next: (comment) => {
-        this.storageService.addCommentToSubtask(comment, event.subtask_id);
-      },
-      error: (err) => {
-        console.error("[TasksView] Failed to add subtask comment:", err);
-        this.notifyService.showError("Failed to add comment");
-      },
-    });
+    this.commentsHelper.onTaskSubtaskCommentAdd(event);
   }
 
   async deleteTask(taskId?: string) {
-    const todoId = this.todoId();
-    if (!todoId || !taskId) return;
-
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Delete Task",
-      message: "Are you sure you want to delete this task?",
-      confirmText: "Delete",
-      confirmClass: "bg-red-600 hover:bg-red-700",
-    });
-    if (!confirmed) return;
-
-    this.requestService.delete("tasks", taskId).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Task deleted successfully");
-        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
-      },
-    });
+    await this.actionsHelper.deleteTask(taskId!, this.todoId(), (fn) => this.todoTasks.update(fn));
   }
 
   async archiveTask(taskId?: string) {
-    const todoId = this.todoId();
-    if (!todoId || !taskId) return;
-
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Archive Task",
-      message: "Are you sure you want to archive this task?",
-      confirmText: "Archive",
-      confirmClass: "bg-orange-600 hover:bg-orange-700",
-    });
-    if (!confirmed) return;
-
-    if (this.isOffline()) {
-      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-      if (response.status === ResponseStatus.SUCCESS) {
-        this.notifyService.showSuccess("Task archived successfully");
-        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
-      } else {
-        this.notifyService.showError(response.message || "Failed to archive task");
-      }
-      return;
-    }
-
-    const visibility = (this.todo()?.visibility || "private") as Visibility;
-    this.requestService.delete("tasks", taskId, { visibility }).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Task archived successfully");
-        this.todoTasks.update((tasks) => tasks.filter((t) => t.id !== taskId));
-      },
-    });
+    await this.actionsHelper.archiveTask(
+      taskId!,
+      this.todoId(),
+      this.todo(),
+      (fn) => this.todoTasks.update(fn),
+      () => this.isOffline()
+    );
   }
 
   ngAfterViewInit(): void {
@@ -965,207 +754,100 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   bulkUpdatePriority(priority: string) {
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    const selectedIds: string[] = Array.from(this.selectedTasks());
-
-    this.bulkActionHelper
-      .bulkUpdateField(
-        selectedIds.map((id) => ({ id })),
-        "priority",
-        priority,
-        (id, data) => this.requestService.update<Task>("tasks", id, data)
-      )
-      .subscribe({
-        next: (result: BulkOperationResult) => {
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Updated ${result.successCount} tasks, ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(`Updated ${result.successCount} tasks.`);
-          }
-        },
-      });
+    this.actionsHelper.bulkUpdatePriority(
+      this.selectedTasks(),
+      priority,
+      () => this.clearSelection(),
+      (msg) => this.notifyService.showSuccess(msg),
+      (id, data) => this.requestService.update<Task>("tasks", id, data)
+    );
   }
 
-  bulkUpdateStatus(status: string) {
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    const selectedIds: string[] = Array.from(this.selectedTasks());
-
-    if (selectedIds.length === 0) {
-      return;
-    }
-
-    const visibility = this.todo()?.visibility || "private";
-
-    const updatePromises = Array.from(selectedIds).map((id) => {
-      return firstValueFrom(
-        this.bulkActionHelper.bulkUpdateStatus([{ id, status: "" }], status, (_id, _data) => {
-          return this.requestService.update<Task>(
-            "tasks",
-            id,
-            { status: status as TaskStatus },
-            { visibility: visibility as string as Visibility }
-          );
-        })
-      );
-    });
-
-    Promise.all(updatePromises)
-      .then(() => {
-        this.clearSelection();
-        this.notifyService.showSuccess(`${selectedIds.length} task(s) updated`);
-      })
-      .catch(() => {
-        this.notifyService.showError("Failed to update tasks");
-      });
+  async bulkUpdateStatus(status: string) {
+    await this.actionsHelper.bulkUpdateStatus(
+      this.selectedTasks(),
+      status,
+      this.todo(),
+      () => this.clearSelection(),
+      (msg) => {
+        if (msg.includes("failed")) {
+          this.notifyService.showWarning(msg);
+        } else {
+          this.notifyService.showSuccess(msg);
+        }
+      },
+      (id, data, options) => this.requestService.update<Task>("tasks", id, data, options)
+    );
   }
 
   async bulkDelete(): Promise<void> {
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    const selectedIds: string[] = Array.from(this.selectedTasks());
-    if (selectedIds.length === 0) return;
-
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Delete Tasks",
-      message: `Are you sure you want to delete ${selectedIds.length} task(s)?`,
-      confirmText: "Delete",
-    });
-    if (!confirmed) return;
-
-    this.bulkActionHelper
-      .bulkDelete(
-        selectedIds.map((id) => ({ id })),
-        (id) => this.requestService.delete("tasks", id)
-      )
-      .subscribe({
-        next: (result) => {
-          this.clearSelection();
-          if (result.errorCount > 0) {
-            this.notifyService.showWarning(
-              `Deleted ${result.successCount} tasks, ${result.errorCount} failed.`
-            );
-          } else {
-            this.notifyService.showSuccess(`Deleted ${result.successCount} tasks.`);
-          }
-        },
-      });
+    await this.actionsHelper.bulkDelete(
+      this.selectedTasks(),
+      () => this.clearSelection(),
+      (msg) => {
+        if (msg.includes("failed")) {
+          this.notifyService.showWarning(msg);
+        } else {
+          this.notifyService.showSuccess(msg);
+        }
+      },
+      (id) => this.requestService.delete("tasks", id)
+    );
   }
 
   async bulkArchive(): Promise<void> {
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    const selectedIds: string[] = Array.from(this.selectedTasks());
-    if (selectedIds.length === 0) return;
-
-    const allTasks = this.listTasks();
-    const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
-    const allArchived = allSelected.every((t) => t.deleted_at);
-
-    if (allArchived) {
-      await this.bulkRestoreTasks(selectedIds);
-      return;
-    }
-
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Archive Tasks",
-      message: `Are you sure you want to archive ${selectedIds.length} task(s)?`,
-      confirmText: "Archive All",
-      confirmClass: "bg-orange-600 hover:bg-orange-700",
-    });
-    if (!confirmed) return;
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    if (this.isOffline()) {
-      for (const taskId of selectedIds) {
-        const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-        if (response.status === ResponseStatus.SUCCESS) {
-          successCount++;
+    await this.actionsHelper.bulkArchive(
+      this.selectedTasks(),
+      () => this.listTasks(),
+      () => this.clearSelection(),
+      (msg) => {
+        if (msg.includes("failed")) {
+          this.notifyService.showWarning(msg);
         } else {
-          errorCount++;
+          this.notifyService.showSuccess(msg);
         }
-      }
-    } else {
-      for (const taskId of selectedIds) {
-        const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-        if (response.status === ResponseStatus.SUCCESS) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
-      }
-    }
-
-    this.clearSelection();
-    if (errorCount > 0) {
-      this.notifyService.showWarning(`Archived ${successCount} tasks, ${errorCount} failed.`);
-    } else {
-      this.notifyService.showSuccess(`Archived ${successCount} tasks.`);
-    }
-    this.loadInitialTasks(true);
+      },
+      (forceRefresh) => this.loadInitialTasks(forceRefresh)
+    );
   }
 
   async bulkRestoreTasks(selectedIds: string[]): Promise<void> {
-    const confirmed = await this.confirmDialogService.confirm({
-      title: "Restore Tasks",
-      message: `Are you sure you want to restore ${selectedIds.length} task(s)?`,
-      confirmText: "Restore All",
-      confirmClass: "bg-green-600 hover:bg-green-700",
-    });
-    if (!confirmed) return;
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const taskId of selectedIds) {
-      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-      if (response.status === ResponseStatus.SUCCESS) {
-        successCount++;
-      } else {
-        errorCount++;
-      }
-    }
-
-    this.clearSelection();
-    if (errorCount > 0) {
-      this.notifyService.showWarning(`Restored ${successCount} tasks, ${errorCount} failed.`);
-    } else {
-      this.notifyService.showSuccess(`Restored ${successCount} tasks.`);
-    }
-    this.loadInitialTasks(true);
+    await this.actionsHelper.bulkRestoreTasks(
+      selectedIds,
+      () => this.clearSelection(),
+      (msg) => {
+        if (msg.includes("failed")) {
+          this.notifyService.showWarning(msg);
+        } else {
+          this.notifyService.showSuccess(msg);
+        }
+      },
+      (forceRefresh) => this.loadInitialTasks(forceRefresh)
+    );
   }
 
   isAllSelectedArchivedTasks(): boolean {
-    const selectedIds = Array.from(this.selectedTasks());
-    if (selectedIds.length === 0) return false;
-    const allTasks = this.listTasks();
-    const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
-    return allSelected.length > 0 && allSelected.every((t) => t.deleted_at);
+    return this.actionsHelper.isAllSelectedArchivedTasks(this.selectedTasks(), () =>
+      this.listTasks()
+    );
   }
 
   async onBulkAction(actionId: string) {
-    if (actionId === "delete") this.bulkDelete();
-    else {
+    if (actionId === "delete") {
+      await this.bulkDelete();
+    } else {
       const val = await this.promptDialogService.prompt({
         title: `Enter new ${actionId}`,
         message: `Enter value for ${actionId}:`,
         required: true,
-        validateFn: (v) => {
+        validateFn: (v: string) => {
           if (!v.trim()) return "Value is required";
           return null;
         },
       });
-      if (val) actionId === "priority" ? this.bulkUpdatePriority(val) : this.bulkUpdateStatus(val);
+      if (val) {
+        actionId === "priority" ? this.bulkUpdatePriority(val) : await this.bulkUpdateStatus(val);
+      }
     }
   }
 
@@ -1174,123 +856,49 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return todo?.title || "-";
   }
 
-  getKanbanColumns(): {
-    id: TaskStatus;
-    label: string;
-    color: string;
-    icon: string;
-    iconBgClass: string;
-  }[] {
-    return [
-      {
-        id: TaskStatus.PENDING,
-        label: "To Do",
-        color: "bg-yellow-500",
-        icon: STATUS_ICONS[TaskStatus.PENDING],
-        iconBgClass: "bg-yellow-500/20 text-yellow-400",
-      },
-      {
-        id: TaskStatus.COMPLETED,
-        label: "Done",
-        color: "bg-green-500",
-        icon: STATUS_ICONS[TaskStatus.COMPLETED],
-        iconBgClass: "bg-green-500/20 text-green-400",
-      },
-      {
-        id: TaskStatus.SKIPPED,
-        label: "Skipped",
-        color: "bg-orange-500",
-        icon: STATUS_ICONS[TaskStatus.SKIPPED],
-        iconBgClass: "bg-orange-500/20 text-orange-400",
-      },
-      {
-        id: TaskStatus.FAILED,
-        label: "Failed",
-        color: "bg-red-500",
-        icon: STATUS_ICONS[TaskStatus.FAILED],
-        iconBgClass: "bg-red-500/20 text-red-400",
-      },
-    ];
+  getKanbanColumns() {
+    return this.kanbanHelper.getKanbanColumns();
   }
 
-  getColumnColorClass = BaseItemHelper.getColumnColorClass;
+  getColumnColorClass = this.kanbanHelper.getColumnColorClass;
 
   getTasksByStatus(status: TaskStatus): Task[] {
-    return this.listTasks().filter((t) => t.status === status);
+    return this.kanbanHelper.getTasksByStatus(this.listTasks(), status);
   }
 
   getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
-    return this.kanbanDragDropService.getConnectedDropLists(
-      currentStatus,
-      this.getKanbanColumns() as any
-    );
+    return this.kanbanHelper.getConnectedKanbanDropLists(currentStatus);
   }
 
   onKanbanTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {
-    this.kanbanDragDropService.handleTaskDrop(
-      event,
-      targetStatus,
-      this.isUpdatingKanban(),
-      (newStatus, taskId) => {
-        if (taskId) {
-          this.updateTaskStatus(taskId, newStatus);
-        }
-      }
+    this.kanbanHelper.onKanbanTaskDrop(event, targetStatus, this.todo(), (taskId, newStatus) =>
+      this.updateTaskStatus(taskId, newStatus)
     );
   }
 
   private updateTaskStatus(taskId: string, newStatus: TaskStatus): void {
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    if (this.isUpdatingKanban()) {
-      this.notifyService.showWarning("Please wait for previous operation to complete");
-      return;
-    }
-
-    this.isUpdatingKanban.set(true);
-
-    const visibility = this.todo()?.visibility || "private";
-
-    this.requestService
-      .update<Task>(
-        "tasks",
-        taskId,
-        { status: newStatus },
-        { visibility: visibility as Visibility }
-      )
-      .subscribe({
-        next: () => {
-          this.todoTasks.update((tasks) =>
-            tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-          );
-          this.isUpdatingKanban.set(false);
-          this.notifyService.showSuccess(`Task moved to ${newStatus}`);
-        },
-        error: (err) => {
-          this.isUpdatingKanban.set(false);
-          this.notifyService.showError(err.message || "Failed to update task");
-        },
-      });
+    this.kanbanHelper.updateTaskStatus(taskId, newStatus, this.todo(), (fn) =>
+      this.todoTasks.update(fn)
+    );
   }
 
   onKanbanStatusCycle(task: Task): void {
-    const newStatus = BaseItemHelper.getNextStatus(task.status);
-    this.updateTaskStatus(task.id, newStatus);
+    this.kanbanHelper.onKanbanStatusCycle(task, (taskId, newStatus) =>
+      this.updateTaskStatus(taskId, newStatus)
+    );
   }
 
   onKanbanTaskClick(task: Task): void {
-    const todoId = this.todoId();
-    if (todoId) {
-      this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
-    }
+    this.kanbanHelper.onKanbanTaskClick(task, this.router, this.route);
   }
 
   onKanbanSelectionChange(taskId: string, isSelected: boolean): void {
-    this.toggleTaskSelection({ id: taskId, selected: isSelected });
+    this.kanbanHelper.onKanbanSelectionChange(taskId, isSelected, (event) =>
+      this.toggleTaskSelection(event)
+    );
   }
 
   isKanbanTaskSelected(taskId: string): boolean {
-    return this.selectedTasks().has(taskId);
+    return this.kanbanHelper.isKanbanTaskSelected(taskId, this.selectedTasks());
   }
 }

@@ -59,55 +59,6 @@
       >
         <ng-template #expandTemplate let-item>
           <app-item-expand-details [item]="item" type="task" />
-          <div
-            class="mt-3 flex flex-row flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-200 pt-3 text-sm dark:border-zinc-700"
-          >
-            @if (item.description) {
-              <div class="flex min-w-[200px] items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="description" />
-                <span class="text-xs text-gray-600 dark:text-gray-400">Description:</span>
-                <span class="max-w-[150px] truncate text-gray-900 dark:text-gray-100"
-                  >{{ item.description | slice: 0 : 100
-                  }}{{ item.description.length > 100 ? "..." : "" }}</span
-                >
-              </div>
-            }
-            @if (item.start_date) {
-              <div class="flex items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-                <span class="text-gray-600 dark:text-gray-400">Start:</span>
-                <span>{{ item.start_date | date: "short" }}</span>
-              </div>
-            }
-            @if (item.end_date) {
-              <div class="flex items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-orange-500" fontIcon="schedule" />
-                <span class="text-gray-600 dark:text-gray-400">Due:</span>
-                <span>{{ item.end_date | date: "short" }}</span>
-              </div>
-            }
-            @if (item.order !== undefined) {
-              <div class="flex items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="drag_indicator" />
-                <span class="text-gray-600 dark:text-gray-400">Order:</span>
-                <span>{{ item.order }}</span>
-              </div>
-            }
-            @if (item.completed_subtasks_count !== undefined) {
-              <div class="flex items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-green-500" fontIcon="check_circle" />
-                <span class="text-gray-600 dark:text-gray-400">Completed:</span>
-                <span>{{ item.completed_subtasks_count }}/{{ item.subtasks_count }}</span>
-              </div>
-            }
-            @if (item.comments_count !== undefined) {
-              <div class="flex items-center gap-2">
-                <mat-icon class="h-4! w-4! text-base! text-purple-500" fontIcon="comment" />
-                <span class="text-gray-600 dark:text-gray-400">Comments:</span>
-                <span>{{ item.comments_count }}</span>
-              </div>
-            }
-          </div>
         </ng-template>
       </app-table-view>
     } @else if (viewMode() === "grid") {
@@ -133,9 +84,14 @@
             [highlight]="highlightTaskId() === task.id"
             [isSelected]="selectedTasks().has(task.id)"
             [actions]="getTaskCardActions()"
+            [showCommentToggle]="true"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
             (itemAction)="onTaskItemAction($event)"
+            (toggleComments)="onCommentToggle(task.id)"
+            (addComment)="onTaskCommentAdd($event)"
+            (deleteComment)="onTaskCommentDelete($event)"
+            (markAsRead)="onTaskCommentMarkAsRead($event)"
           >
             <div
               *cdkDragPlaceholder
@@ -223,9 +179,14 @@
             [highlight]="highlightTaskId() === task.id"
             [isSelected]="selectedTasks().has(task.id)"
             [actions]="getTaskCardActions()"
+            [showCommentToggle]="true"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
             (itemAction)="onTaskItemAction($event)"
+            (toggleComments)="onCommentToggle(task.id)"
+            (addComment)="onTaskCommentAdd($event)"
+            (deleteComment)="onTaskCommentDelete($event)"
+            (markAsRead)="onTaskCommentMarkAsRead($event)"
           />
         }
       </div>
