@@ -407,6 +407,35 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.toggleTaskCompletion(task);
   }
 
+  onTaskStatusToggle(status: TaskStatus): void {
+    const taskId = this.lastSelectedId();
+    if (!taskId) return;
+
+    const task = this.todoTasks().find((t) => t.id === taskId);
+    if (!task) return;
+
+    const todo = this.todo();
+    if (!todo) return;
+
+    this.requestService
+      .update<Task>(
+        "tasks",
+        task.id,
+        { ...task, status },
+        { visibility: (todo.visibility || "private") as Visibility, offline: true }
+      )
+      .subscribe({
+        next: () => {
+          this.todoTasks.update((tasks) =>
+            tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
+          );
+        },
+        error: () => {
+          this.notifyService.showError("Failed to update task status");
+        },
+      });
+  }
+
   toggleExpandTask(task: Task) {
     this.toggleExpandItem(task.id);
   }
