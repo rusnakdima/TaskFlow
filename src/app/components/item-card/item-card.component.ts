@@ -172,6 +172,7 @@ export class ItemCardComponent {
   }
 
   onFieldClick(config: ItemDisplayConfig, event: MouseEvent): void {
+    event.stopPropagation();
     if (config.onClick) {
       config.onClick(this.item, event);
     } else if (config.type === "menu") {
@@ -179,12 +180,17 @@ export class ItemCardComponent {
     }
   }
 
-  onAction(action: string): void {
+  onAction(action: string, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!this.item) return;
     this.itemAction.emit({ action, item: this.item });
   }
 
   onTodoCardAction(event: { action: string; todo: Todo }): void {
-    this.itemAction.emit({ action: event.action, item: event.todo });
+    if (!this.item) return;
+    this.itemAction.emit({ action: event.action, item: event.todo || this.item });
   }
 
   onDragDrop(event: CdkDragDrop<any>): void {

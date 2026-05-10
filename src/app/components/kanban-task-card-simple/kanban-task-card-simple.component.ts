@@ -9,8 +9,7 @@ import { Subtask } from "@models/subtask.model";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
-import { PRIORITY_COLORS } from "@constants/table-field.constants";
-import { STATUS_ICONS } from "@constants/table-field.constants";
+import { PRIORITY_COLORS, STATUS_ICONS } from "@constants/table-field.constants";
 
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
@@ -38,13 +37,27 @@ export class KanbanTaskCardSimpleComponent {
     const p = (priority || "medium").toLowerCase();
     switch (p) {
       case "high":
-        return "bg-red-500";
+        return "bg-red-600 dark:bg-red-500";
       case "medium":
-        return "bg-yellow-500";
+        return "bg-yellow-500 dark:bg-yellow-400";
       case "low":
-        return "bg-green-500";
+        return "bg-green-600 dark:bg-green-500";
       default:
-        return "bg-yellow-500";
+        return "bg-yellow-500 dark:bg-yellow-400";
+    }
+  }
+
+  getPriorityBorderColor(priority: string): string {
+    const p = (priority || "medium").toLowerCase();
+    switch (p) {
+      case "high":
+        return "border-red-600 dark:border-red-500 border-l-red-700 dark:border-l-red-500";
+      case "medium":
+        return "border-yellow-500 dark:border-yellow-400 border-l-yellow-600 dark:border-l-yellow-500";
+      case "low":
+        return "border-green-600 dark:border-green-500 border-l-green-700 dark:border-l-green-500";
+      default:
+        return "border-yellow-500 dark:border-yellow-400 border-l-yellow-600 dark:border-l-yellow-500";
     }
   }
 
@@ -82,10 +95,6 @@ export class KanbanTaskCardSimpleComponent {
       default:
         return "text-gray-400 dark:text-gray-500";
     }
-  }
-
-  getPriorityBadgeText(priority: string): string {
-    return (priority || "medium").toUpperCase().substring(0, 4);
   }
 
   getSubtasksCount(): number {
