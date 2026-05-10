@@ -119,7 +119,7 @@
         (cdkDropListDropped)="onTaskDrop($event)"
       >
         @for (task of listTasks(); track task.id) {
-          <app-item-display
+          <app-item-card
             cdkDrag
             [cdkDragData]="task"
             cdkDragPreviewContainer="global"
@@ -141,7 +141,7 @@
               *cdkDragPlaceholder
               class="cdk-drag-placeholder h-full min-h-[100px] rounded-xl"
             ></div>
-          </app-item-display>
+          </app-item-card>
         }
       </div>
     } @else if (viewMode() === "kanban") {
@@ -149,14 +149,17 @@
         @for (column of getKanbanColumns(); track column.id) {
           <div class="flex flex-col overflow-hidden rounded-xl bg-gray-800/50 dark:bg-zinc-700/50">
             <div
-              class="column-header flex items-center justify-between bg-gray-700/50 p-4 dark:bg-zinc-600/50"
+              class="column-header rounded-t-xl p-4 text-white"
+              [ngClass]="getColumnColorClass(column.id)"
             >
-              <div class="flex items-center gap-2">
-                <span class="h-3 w-3 rounded-full" [ngClass]="column.color"></span>
-                <span class="font-semibold text-white">{{ column.label }}</span>
-                <span class="text-sm text-gray-400"
-                  >({{ getTasksByStatus(column.id).length }})</span
-                >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="size-5! min-w-5 text-xl!" [fontIcon]="column.icon" />
+                  <h3 class="font-semibold">{{ column.label }}</h3>
+                </div>
+                <span class="rounded-full bg-white/20 px-2 py-1 text-sm">
+                  {{ getTasksByStatus(column.id).length }}
+                </span>
               </div>
             </div>
 
@@ -206,7 +209,7 @@
         (cdkDropListDropped)="onTaskDrop($event)"
       >
         @for (task of listTasks(); track task.id) {
-          <app-item-display
+          <app-item-card
             cdkDrag
             [cdkDragData]="task"
             cdkDragPreviewContainer="global"

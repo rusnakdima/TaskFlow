@@ -64,8 +64,8 @@ import { FilterField } from "@models/filter-config.model";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { TABLE_ACTIONS, STATUS_ICONS } from "@constants/table-field.constants";
+import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
 import { KanbanTaskCardSimpleComponent } from "@components/kanban-task-card-simple/kanban-task-card-simple.component";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
@@ -91,7 +91,7 @@ import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
     ItemExpandDetailsComponent,
     LoadingStateComponent,
     ChatFabComponent,
-    ItemDisplayComponent,
+    ItemCardComponent,
     KanbanTaskCardSimpleComponent,
   ],
   templateUrl: "./tasks.view.html",
@@ -1174,34 +1174,46 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return todo?.title || "-";
   }
 
-  getKanbanColumns(): { id: TaskStatus; label: string; color: string; iconBgClass: string }[] {
+  getKanbanColumns(): {
+    id: TaskStatus;
+    label: string;
+    color: string;
+    icon: string;
+    iconBgClass: string;
+  }[] {
     return [
       {
         id: TaskStatus.PENDING,
         label: "To Do",
         color: "bg-yellow-500",
+        icon: STATUS_ICONS[TaskStatus.PENDING],
         iconBgClass: "bg-yellow-500/20 text-yellow-400",
       },
       {
         id: TaskStatus.COMPLETED,
         label: "Done",
         color: "bg-green-500",
+        icon: STATUS_ICONS[TaskStatus.COMPLETED],
         iconBgClass: "bg-green-500/20 text-green-400",
       },
       {
         id: TaskStatus.SKIPPED,
         label: "Skipped",
         color: "bg-orange-500",
+        icon: STATUS_ICONS[TaskStatus.SKIPPED],
         iconBgClass: "bg-orange-500/20 text-orange-400",
       },
       {
         id: TaskStatus.FAILED,
         label: "Failed",
         color: "bg-red-500",
+        icon: STATUS_ICONS[TaskStatus.FAILED],
         iconBgClass: "bg-red-500/20 text-red-400",
       },
     ];
   }
+
+  getColumnColorClass = BaseItemHelper.getColumnColorClass;
 
   getTasksByStatus(status: TaskStatus): Task[] {
     return this.listTasks().filter((t) => t.status === status);

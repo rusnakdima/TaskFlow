@@ -31,7 +31,7 @@ import { compareByTimestamp } from "@helpers/array.helper";
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import {
   PageToolbarComponent,
@@ -53,7 +53,7 @@ import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-dis
     CategoryFormComponent,
     BulkActionsComponent,
     TableViewComponent,
-    ItemDisplayComponent,
+    ItemCardComponent,
     ItemExpandDetailsComponent,
     PageToolbarComponent,
   ],
