@@ -20,6 +20,7 @@ use crate::entities::{
 /* helpers */
 use crate::helpers::config::ConfigHelper;
 use crate::helpers::response_helper::err_response;
+use crate::helpers::timestamp_helper::get_current_datetime;
 
 #[derive(Clone)]
 pub struct AuthPasswordService {
@@ -66,7 +67,7 @@ impl AuthPasswordService {
 
     user.temporary_code = code.clone();
     user.code_expires_at = expiration;
-    user.updated_at = Some(chrono::Utc::now());
+    user.updated_at = Some(get_current_datetime());
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();
@@ -164,7 +165,7 @@ impl AuthPasswordService {
     user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
-    user.updated_at = Some(chrono::Utc::now());
+    user.updated_at = Some(get_current_datetime());
 
     let user_id = user.id.as_ref().cloned().unwrap_or_default();
     let user_json = serde_json::to_value(&user).unwrap();

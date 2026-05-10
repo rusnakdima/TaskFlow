@@ -110,13 +110,22 @@ impl EntityResolutionService {
 
   pub async fn get_task_id_for_subtask(&self, subtask_id: &str) -> OrmResult<Option<String>> {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Ok(Some(subtask)) = mongo.find_by_id("subtasks", subtask_id).await {
+      let filter = Filter::Eq("id".to_string(), json!(subtask_id));
+      let subtasks = mongo
+        .find_many("subtasks", Some(&filter), None, None, None, false)
+        .await?;
+      if let Some(subtask) = subtasks.into_iter().next() {
         if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
           return Ok(Some(task_id.to_string()));
         }
       }
     }
-    if let Ok(Some(subtask)) = self.json_provider.find_by_id("subtasks", subtask_id).await {
+    let filter = Filter::Eq("id".to_string(), json!(subtask_id));
+    let subtasks = self
+      .json_provider
+      .find_many("subtasks", Some(&filter), None, None, None, false)
+      .await?;
+    if let Some(subtask) = subtasks.into_iter().next() {
       if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
         return Ok(Some(task_id.to_string()));
       }

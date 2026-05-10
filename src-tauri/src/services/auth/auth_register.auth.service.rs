@@ -1,6 +1,5 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
-use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -24,7 +23,9 @@ use crate::entities::{
 };
 
 /* helpers */
+use crate::helpers::filter_builder::{eq_filter, or_filters};
 use crate::helpers::response_helper::err_response;
+use crate::helpers::timestamp_helper::get_current_datetime;
 
 #[derive(Clone)]
 pub struct AuthRegisterService {
@@ -55,9 +56,9 @@ impl AuthRegisterService {
     let password = signup_data.password;
 
     let table_name = TableModelType::User.table_name();
-    let filter = Filter::Or(vec![
-      Filter::Eq("email".to_string(), serde_json::json!(email)),
-      Filter::Eq("username".to_string(), serde_json::json!(username)),
+    let filter = or_filters(vec![
+      eq_filter("email", serde_json::json!(email)),
+      eq_filter("username", serde_json::json!(username)),
     ]);
 
     let existing = self
@@ -73,7 +74,7 @@ impl AuthRegisterService {
     let hashed_password = hash(password, DEFAULT_COST)
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
 
-    let now = Utc::now();
+    let now = get_current_datetime();
     let user_id = Uuid::new_v4().to_string();
     let profile_id = Uuid::new_v4().to_string();
 
@@ -84,8 +85,8 @@ impl AuthRegisterService {
       bio: "".to_string(),
       image_url: "".to_string(),
       user_id: user_id.clone(),
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: Some(now.clone()),
+      updated_at: Some(now.clone()),
     };
 
     let profile_sync_service = self.profile_sync_service.clone();
