@@ -95,25 +95,32 @@ export class QrLoginService implements OnDestroy {
   }
 
   private checkStatus(token: string): void {
-    this.requestService.invokeCommand<QrStatusResult>("qr_status", { token }).subscribe({
-      next: (data) => {
-        this.qrStatus.set(data.status);
-        this.qrStatusData.set(data);
+    this.requestService
+      .invokeCommand<{
+        status: string;
+        message: string;
+        data: { status: string; username?: string; approved_by?: string };
+      }>("qr_status", { token })
+      .subscribe({
+        next: (response) => {
+          const innerStatus = response.data?.status;
+          this.qrStatus.set(innerStatus as QrStatus);
+          this.qrStatusData.set(response as any);
 
-        if (data.status === "approved") {
+          if (innerStatus === "approved") {
+            this.stopPolling();
+            this.qrApprovedSubject.next(token);
+          } else if (innerStatus === "expired") {
+            this.stopPolling();
+            this.qrApprovedSubject.error(new Error("QR code expired"));
+          }
+        },
+        error: () => {
+          this.qrStatus.set("expired");
           this.stopPolling();
-          this.qrApprovedSubject.next(token);
-        } else if (data.status === "expired") {
-          this.stopPolling();
-          this.qrApprovedSubject.error(new Error("QR code expired"));
-        }
-      },
-      error: () => {
-        this.qrStatus.set("expired");
-        this.stopPolling();
-        this.qrApprovedSubject.error(new Error("Failed to check QR status"));
-      },
-    });
+          this.qrApprovedSubject.error(new Error("Failed to check QR status"));
+        },
+      });
   }
 
   approveFromMobile(token: string): Observable<{ success: boolean }> {

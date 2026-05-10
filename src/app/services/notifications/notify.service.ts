@@ -393,7 +393,7 @@ export class NotifyService implements OnDestroy {
 
     // Play sound for all actions, show notification for others' actions OR local actions
     if (type) {
-      this.handleOtherNotification(type, action, data, !isOwnAction || isLocalAction);
+      this.handleOtherNotification(type, action, data, !isOwnAction);
     }
   }
 
