@@ -43,7 +43,7 @@ export class ChatWindowComponent
   extends ScrollingMixin
   implements OnInit, AfterViewChecked, OnDestroy, OnChanges
 {
-  @Input({ required: true }) todo_id!: string;
+  @Input() todo_id?: string;
   @Output() close = new EventEmitter<void>();
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
 
@@ -83,7 +83,11 @@ export class ChatWindowComponent
 
   ngOnInit() {
     this.shouldScroll.set(true);
-    this.loadTodo();
+    if (this.todo_id) {
+      this.loadTodo();
+    } else {
+      this.loadInitialChats();
+    }
     setTimeout(
       () =>
         this.initIntersectionObserver(".unread-chat", "data-chat-id", (id: string) =>
@@ -112,7 +116,7 @@ export class ChatWindowComponent
 
   private loadTodo() {
     this.subscriptions.add(
-      this.apiService.get<Todo>("todos", this.todo_id).subscribe({
+      this.apiService.get<Todo>("todos", this.todo_id!).subscribe({
         next: (todo) => {
           this.currentTodo.set(todo);
           this.currentTodoId = todo.id;
@@ -123,12 +127,14 @@ export class ChatWindowComponent
     );
   }
 
-  private loadInitialChats(todoId: string, visibility: string) {
+  private loadInitialChats(todoId?: string, visibility?: string) {
     this.loadingInitial.set(true);
+    const filter = todoId ? { todo_id: todoId } : {};
+    const vis = todoId ? (visibility === "shared" ? "shared" : "private") : "shared";
     this.apiService
       .loadPage<Chat>("chats", {
-        filter: { todo_id: todoId },
-        visibility: visibility === "shared" ? "shared" : "private",
+        filter,
+        visibility: vis,
         skip: 0,
         limit: 20,
         load: ["user"],
@@ -164,7 +170,7 @@ export class ChatWindowComponent
     }
   }
 
-  loadOlderChats(todoId: string) {
+  loadOlderChats(todoId?: string) {
     if (this.loadingOlder() || !this.hasMoreMessages()) return;
 
     const timestamp = this.oldestTimestamp();
@@ -172,10 +178,12 @@ export class ChatWindowComponent
 
     this.loadingOlder.set(true);
 
+    const filter = todoId ? { todo_id: todoId, before: timestamp } : { before: timestamp };
+    const vis = todoId ? "private" : "shared";
     this.apiService
       .loadPage<Chat>("chats", {
-        filter: { todo_id: todoId, before: timestamp },
-        visibility: "private",
+        filter,
+        visibility: vis,
         skip: 0,
         limit: 20,
         load: ["user"],
@@ -204,7 +212,7 @@ export class ChatWindowComponent
   onChatScroll(event: Event) {
     const element = event.target as HTMLElement;
     if (element.scrollTop === 0 && this.hasMoreMessages() && !this.loadingOlder()) {
-      this.loadOlderChats(this.currentTodoId);
+      this.loadOlderChats(this.todo_id);
     }
   }
 
@@ -260,13 +268,17 @@ export class ChatWindowComponent
     const currentUsername = this.authService.getValueByKey("username") || "Unknown";
 
     const chatForBackend: ChatCreate = {
-      todo_id: this.todo_id,
+      ...(this.todo_id ? { todo_id: this.todo_id } : {}),
       user_id: currentUserId,
       content: this.newMessage,
     };
 
     const todo = this.currentTodo();
-    const visibility = todo?.visibility === "shared" ? "shared" : "private";
+    const visibility = this.todo_id
+      ? todo?.visibility === "shared"
+        ? "shared"
+        : "private"
+      : "shared";
 
     this.apiService.create<Chat>("chats", chatForBackend, { visibility }).subscribe({
       next: (newChat) => {
@@ -289,7 +301,11 @@ export class ChatWindowComponent
 
   deleteMessage(chatId: string) {
     const todo = this.currentTodo();
-    const visibility = todo?.visibility === "shared" ? "shared" : "private";
+    const visibility = this.todo_id
+      ? todo?.visibility === "shared"
+        ? "shared"
+        : "private"
+      : "shared";
     this.apiService.delete("chats", chatId, { visibility }).subscribe({
       next: () => {
         this.messages.update((current) => current.filter((c) => c.id !== chatId));
@@ -316,7 +332,7 @@ export class ChatWindowComponent
     if (unreadChats.length === 0) return of([]);
 
     return this.apiService.updateAll<Chat>("chats", unreadChats, {
-      visibility: "private",
+      visibility: todo_id ? "private" : "shared",
       parentTodoId: todo_id,
     } as any);
   }
@@ -334,11 +350,13 @@ export class ChatWindowComponent
     if (!chats || chats.length === 0) return;
 
     const chatsToDelete = chats.map((chat) => ({ ...chat, deleted_at: new Date().toISOString() }));
-    this.apiService.updateAll("chats", chatsToDelete, { visibility: "private" }).subscribe({
-      next: () => {
-        this.messages.set([]);
-      },
-    });
+    this.apiService
+      .updateAll("chats", chatsToDelete, { visibility: this.todo_id ? "private" : "shared" })
+      .subscribe({
+        next: () => {
+          this.messages.set([]);
+        },
+      });
   }
 
   getUsername(userId: string): string {
@@ -347,6 +365,10 @@ export class ChatWindowComponent
 
   canDelete(chat: Chat): boolean {
     const currentUserId = this.authService.getValueByKey("id");
+    if (!this.todo_id) {
+      // For global chat, only own messages
+      return chat.user_id === currentUserId;
+    }
     const todo = this.currentTodo();
     if (todo && todo.user_id === currentUserId) return true;
     return chat.user_id === currentUserId;
