@@ -15,7 +15,6 @@ import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
-import { TodoCardComponent } from "@components/todos/todo-card/todo-card.component";
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
@@ -38,7 +37,6 @@ import { TableField } from "@models/table-field.model";
     DragDropModule,
     CheckboxComponent,
     ItemExpandDetailsComponent,
-    TodoCardComponent,
     CommentsToggleComponent,
   ],
   templateUrl: "./item-card.component.html",
@@ -186,11 +184,6 @@ export class ItemCardComponent {
     }
     if (!this.item) return;
     this.itemAction.emit({ action, item: this.item });
-  }
-
-  onTodoCardAction(event: { action: string; todo: Todo }): void {
-    if (!this.item) return;
-    this.itemAction.emit({ action: event.action, item: event.todo || this.item });
   }
 
   onDragDrop(event: CdkDragDrop<any>): void {
