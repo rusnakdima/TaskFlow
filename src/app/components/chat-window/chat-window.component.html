@@ -1,10 +1,14 @@
 <div
-  class="fixed right-6 bottom-36 z-50 flex h-96 w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
+  [class]="
+    todo_id
+      ? 'fixed right-6 bottom-36 z-50 flex h-96 w-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-800'
+      : 'flex h-full flex-col overflow-hidden'
+  "
 >
   <div class="flex items-center justify-between bg-blue-600 p-3 text-white dark:bg-blue-700">
     <div class="flex items-center gap-2">
       <mat-icon fontIcon="chat" />
-      <span class="font-bold">Project Chat</span>
+      <span class="font-bold">{{ todo_id ? "Project Chat" : "Global Chat" }}</span>
       @if (getUnreadCount() > 0) {
         <span
           class="rounded-full border border-white/50 bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
@@ -23,9 +27,11 @@
           <mat-icon fontIcon="delete_sweep" />
         </button>
       }
-      <button (click)="close.emit()" class="rounded-full p-1 transition-colors hover:bg-white/20">
-        <mat-icon fontIcon="close" />
-      </button>
+      @if (todo_id) {
+        <button (click)="close.emit()" class="rounded-full p-1 transition-colors hover:bg-white/20">
+          <mat-icon fontIcon="close" />
+        </button>
+      }
     </div>
   </div>
 
@@ -63,8 +69,12 @@
           <a
             [routerLink]="['/profile']"
             [queryParams]="{ id: chat.user_id }"
-            (click)="close.emit()"
-            class="cursor-pointer text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
+            [class]="
+              todo_id
+                ? 'cursor-pointer text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400'
+                : 'cursor-pointer text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400'
+            "
+            (click)="todo_id ? close.emit() : null"
           >
             {{ getUsername(chat.user_id) }}
           </a>
