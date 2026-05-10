@@ -43,6 +43,8 @@ export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
   },
 ];
 
+export const TODO_CARD_NEW_CONFIG: ItemDisplayConfig[] = [{ key: "todo-card", type: "todo-card" }];
+
 export const TODO_TABLE_CONFIG: ItemDisplayConfig[] = [
   {
     key: "drag-handle",
