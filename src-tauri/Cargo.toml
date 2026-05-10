@@ -55,10 +55,14 @@ rustls = "0.21"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 tauri-plugin-mcp-bridge = "0.11"
 
-nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
-# nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
+# nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
+nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 # nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[dev-dependencies]
+tempfile = "3"
+serde_json = "1"

@@ -298,6 +298,11 @@ impl RepositoryService {
   }
 
   fn add_collection_metadata(&self, mut docs: Vec<Value>, collection: &str) -> Vec<Value> {
+    tracing::trace!(
+      "add_collection_metadata: collection={}, doc_count={}",
+      collection,
+      docs.len()
+    );
     for doc in &mut docs {
       if let Some(obj) = doc.as_object_mut() {
         if !obj.contains_key("_collection") {
@@ -465,6 +470,12 @@ impl RepositoryService {
     }
 
     let mut current_docs = docs;
+    tracing::debug!(
+      "load_relations_for_get_all: table={}, load_paths={:?}, doc_count={}",
+      table,
+      load_paths,
+      current_docs.len()
+    );
     for path in load_paths {
       let segments: Vec<&str> = path.split('.').collect();
       if segments.is_empty() {
@@ -473,9 +484,7 @@ impl RepositoryService {
 
       for doc in &mut current_docs {
         if let Some(obj) = doc.as_object_mut() {
-          if !obj.contains_key("_collection") {
-            obj.insert("_collection".to_string(), Value::String(table.to_string()));
-          }
+          obj.insert("_collection".to_string(), Value::String(table.to_string()));
         }
       }
 
