@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use nosql_orm::cache::QueryCache;
+use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
 use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::{
-  common::{filter_deleted, parse_load_param},
+  common::filter_deleted,
   response_helper::{err_response, err_response_formatted, success_response},
 };
 use crate::providers::json_provider::JsonProvider;
@@ -19,10 +20,7 @@ pub struct JsonRepoService {
 }
 
 impl JsonRepoService {
-  pub fn new(
-    json_provider: JsonProvider,
-    entity_resolution: Arc<EntityResolutionService>,
-  ) -> Self {
+  pub fn new(json_provider: JsonProvider, entity_resolution: Arc<EntityResolutionService>) -> Self {
     Self {
       json_provider,
       entity_resolution,
@@ -55,7 +53,15 @@ impl JsonRepoService {
   }
 
   fn parse_load_param(load: Option<String>) -> Vec<String> {
-    parse_load_param(load)
+    match load {
+      Some(l) => {
+        if let Ok(arr) = serde_json::from_str::<Vec<String>>(&l) {
+          return arr;
+        }
+        l.split(',').map(|s| s.trim().to_string()).collect()
+      }
+      None => vec![],
+    }
   }
 
   async fn invalidate_cache(&self, table: &str) {
@@ -85,15 +91,17 @@ impl JsonRepoService {
       .await
       .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?;
 
-    let docs = self.filter_out_deleted(docs);
-    let projected = self.apply_projection(docs);
-
     if load_paths.is_empty() {
+      let filtered = self.filter_out_deleted(docs);
+      let projected = self.apply_projection(filtered);
       return Ok(success_response(DataValue::Array(projected)));
     }
 
+    let filtered_docs = self.filter_out_deleted(docs);
+    let projected = self.apply_projection(filtered_docs);
+
     self
-      .load_relations(docs, table, &load_paths)
+      .load_relations(projected, table, &load_paths)
       .await
       .map(|docs| success_response(DataValue::Array(docs)))
   }
@@ -140,9 +148,7 @@ impl JsonRepoService {
   ) -> Result<ResponseModel, ResponseModel> {
     let visibility_str = visibility
       .or_else(|| self.get_visibility_from_data(table, &data))
-      .or_else(|| {
-        tauri::async_runtime::block_on(self.resolve_visibility_from_parent(table, &data))
-      })
+      .or_else(|| tauri::async_runtime::block_on(self.resolve_visibility_from_parent(table, &data)))
       .unwrap_or_else(|| "private".to_string());
 
     if !Self::use_json_provider_for_visibility(&visibility_str) {
@@ -151,7 +157,11 @@ impl JsonRepoService {
       ));
     }
 
-    let created = self.json_provider.insert(table, data).await?;
+    let created = self
+      .json_provider
+      .insert(table, data)
+      .await
+      .map_err(|e| err_response_formatted("Insert failed", &e.to_string()))?;
 
     self.invalidate_cache(table).await;
 
@@ -174,17 +184,16 @@ impl JsonRepoService {
       .map_err(|e| err_response_formatted("Query failed", &e.to_string()))?
       .ok_or_else(|| err_response("Document not found"))?;
 
-    let merged = if let (Some(existing_obj), Some(new_obj)) =
-      (existing.as_object(), data.as_object())
-    {
-      let mut result = existing_obj.clone();
-      for (k, v) in new_obj {
-        result.insert(k.clone(), v.clone());
-      }
-      serde_json::to_value(result).map_err(|e| err_response(&e.to_string()))?
-    } else {
-      data
-    };
+    let merged =
+      if let (Some(existing_obj), Some(new_obj)) = (existing.as_object(), data.as_object()) {
+        let mut result = existing_obj.clone();
+        for (k, v) in new_obj {
+          result.insert(k.clone(), v.clone());
+        }
+        serde_json::to_value(result).map_err(|e| err_response(&e.to_string()))?
+      } else {
+        data
+      };
 
     let updated = self
       .json_provider
@@ -226,7 +235,11 @@ impl JsonRepoService {
       );
     }
 
-    let result = self.json_provider.update(table, id, updated_doc).await?;
+    let result = self
+      .json_provider
+      .update(table, id, updated_doc)
+      .await
+      .map_err(|e| err_response_formatted("Update failed", &e.to_string()))?;
     self.invalidate_cache(table).await;
     Ok(success_response(DataValue::Object(result)))
   }
@@ -238,11 +251,7 @@ impl JsonRepoService {
       .map(|s| s.to_string())
   }
 
-  async fn resolve_visibility_from_parent(
-    &self,
-    table: &str,
-    data: &Value,
-  ) -> Option<String> {
+  async fn resolve_visibility_from_parent(&self, table: &str, data: &Value) -> Option<String> {
     let parent_id: String = match table {
       "tasks" => data.get("todo_id")?.as_str()?.to_string(),
       "subtasks" => data.get("task_id")?.as_str()?.to_string(),
@@ -300,7 +309,8 @@ impl JsonRepoService {
 
     for (i, doc) in docs.iter().enumerate() {
       if let Some(obj) = doc.as_object() {
-        tracing::debug!("  doc[{}]: id={:?}, categories={:?}, assignees={:?}",
+        tracing::debug!(
+          "  doc[{}]: id={:?}, categories={:?}, assignees={:?}",
           i,
           obj.get("id"),
           obj.get("categories"),
@@ -320,7 +330,11 @@ impl JsonRepoService {
         continue;
       }
 
-      tracing::debug!("  Loading relation path: {:?} for {} docs", segments, result_docs.len());
+      tracing::debug!(
+        "  Loading relation path: {:?} for {} docs",
+        segments,
+        result_docs.len()
+      );
 
       for doc in &mut result_docs {
         if let Some(obj) = doc.as_object_mut() {
@@ -335,10 +349,15 @@ impl JsonRepoService {
         .await
       {
         Ok(loaded) => {
-          tracing::debug!("  Relation {:?} loaded successfully, docs now: {}", path, loaded.len());
+          tracing::debug!(
+            "  Relation {:?} loaded successfully, docs now: {}",
+            path,
+            loaded.len()
+          );
           for (i, doc) in loaded.iter().enumerate() {
             if let Some(obj) = doc.as_object() {
-              tracing::debug!("    loaded_doc[{}]: id={:?}, categories={:?}",
+              tracing::debug!(
+                "    loaded_doc[{}]: id={:?}, categories={:?}",
                 i,
                 obj.get("id"),
                 obj.get("categories")
@@ -346,10 +365,13 @@ impl JsonRepoService {
             }
           }
           result_docs = loaded;
-        },
+        }
         Err(e) => {
           tracing::error!("  Relation {:?} loading failed: {}", path, e);
-          return Err(err_response_formatted("Relation loading failed", &e.to_string()));
+          return Err(err_response_formatted(
+            "Relation loading failed",
+            &e.to_string(),
+          ));
         }
       }
     }
@@ -366,8 +388,7 @@ impl JsonRepoService {
       .collect()
   }
 
-  fn security_projection(&self) -> crate::helpers::security_helper::SecurityProjection {
-    use crate::helpers::security_helper::security_projection;
-    security_projection()
+  fn security_projection(&self) -> nosql_orm::query::Projection {
+    crate::helpers::security_helper::security_projection()
   }
 }
