@@ -197,12 +197,6 @@
     }
   }
 
-  <app-chat-fab [isOpen]="openChat()" [unreadCount]="getUnreadCount()" (toggle)="toggleChat()" />
-
-  @if (openChat()) {
-    <app-chat-window [todo_id]="todo()?.id || ''" (close)="toggleChat()" />
-  }
-
   <app-bulk-actions
     [selectedCount]="selectedTasks().size"
     [isAllSelected]="isAllSelected()"
