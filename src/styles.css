@@ -87,35 +87,35 @@
   }
 
   .styleBut {
-    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
   }
 
   .styleButInfo {
-    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-blue-900 bg-blue-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-blue-900! bg-blue-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
   }
 
   .styleButWarn {
-    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-yellow-900 bg-yellow-500 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-yellow-900! bg-yellow-500! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
   }
 
   .styleButDanger {
-    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-red-900 bg-red-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-red-900! bg-red-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
   }
 
   .styleButSuccess {
-    @apply flex flex-row items-center justify-center rounded-lg border-b-4 border-solid border-green-900 bg-green-600 px-4 py-2 text-center text-white active:mt-1 active:border-0 dark:text-white;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-green-900! bg-green-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
   }
 
   .styleFloatBut {
-    @apply flex cursor-pointer flex-row items-center justify-center gap-x-1 rounded-xl border border-solid border-zinc-600 p-2 hover:bg-gray-400 dark:border-zinc-500 dark:hover:bg-gray-700;
+    @apply flex! cursor-pointer! flex-row! items-center! justify-center! gap-x-1! rounded-xl! border! border-solid! border-zinc-600! p-2! hover:bg-gray-400! dark:border-zinc-500! dark:hover:bg-gray-700!;
   }
 
   .styleTR {
-    @apply hover:bg-slate-300 dark:hover:bg-neutral-700;
+    @apply hover:bg-slate-300! dark:hover:bg-neutral-700!;
   }
 
   .styleTD {
-    @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
+    @apply border-2! border-solid! border-gray-500! p-1! dark:border-gray-600!;
   }
 
   .styleLI {
