@@ -255,16 +255,6 @@ export class StorageQueryService {
     );
   }
 
-  get chatsByTodoId(): ReturnType<typeof computed<Map<string, Chat[]>>> {
-    return computed(() =>
-      createGroupedMap(
-        this.activeChats(),
-        (c) => c.todo_id,
-        (c) => !!c.todo_id
-      )
-    );
-  }
-
   query(
     type: EntityType,
     filters?: {
@@ -291,7 +281,7 @@ export class StorageQueryService {
         if (filters?.subtaskId) return this.commentsBySubtaskId().get(filters.subtaskId) || [];
         return this.comments();
       case "chats":
-        return filters?.todoId ? this.chatsByTodoId().get(filters.todoId) || [] : this.chats();
+        return this.chats();
       default:
         return this._entityService.getSignal(type)() || [];
     }
@@ -629,12 +619,8 @@ export class StorageQueryService {
     }));
   }
 
-  getUnreadChatCount(todoId: string, userId: string): number {
-    return (
-      this.chatsByTodoId()
-        .get(todoId)
-        ?.filter((c) => !c.read_by?.includes(userId)).length || 0
-    );
+  getUnreadChatCount(_todoId: string, userId: string): number {
+    return (this.chats() as Chat[]).filter((c: Chat) => !c.read_by?.includes(userId)).length;
   }
 
   getUsername(userId: string): string {

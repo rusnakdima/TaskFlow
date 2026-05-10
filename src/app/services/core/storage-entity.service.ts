@@ -120,14 +120,17 @@ export class StorageEntityService {
     removeEntityFromSignal(this.comments, commentId);
   }
 
-  updateChat(todoId: string, op: "set" | "add" | "update" | "delete" | "clear", data?: Chat): void {
-    if (!todoId) return;
+  updateChat(
+    _todoId: string,
+    op: "set" | "add" | "update" | "delete" | "clear",
+    data?: Chat
+  ): void {
     switch (op) {
       case "set":
-        this.chats.update((chats) => [
-          ...chats.filter((c) => c.todo_id !== todoId),
-          ...(data ? [data] : []),
-        ]);
+        if (data)
+          this.chats.update((chats) =>
+            chats.some((c) => c.id === data.id) ? chats : [...chats, data]
+          );
         break;
       case "add":
         if (data)
@@ -142,13 +145,10 @@ export class StorageEntityService {
           );
         break;
       case "delete":
-        if (data)
-          this.chats.update((chats) =>
-            chats.filter((c) => !(c.id === data.id && c.todo_id === todoId))
-          );
+        if (data) this.chats.update((chats) => chats.filter((c) => c.id !== data.id));
         break;
       case "clear":
-        this.chats.update((chats) => chats.filter((c) => c.todo_id !== todoId));
+        this.chats.set([]);
         break;
     }
   }
