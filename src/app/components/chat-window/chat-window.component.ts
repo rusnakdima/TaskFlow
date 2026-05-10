@@ -138,7 +138,7 @@ export class ChatWindowComponent {
   }
 
   startConversationWith(profile: Profile): void {
-    const username = `${profile.name} ${profile.last_name}`.trim();
+    const username = this.getDisplayName(profile);
     this.selectedConversation.set({
       userId: profile.user_id,
       username: username || profile.user?.username || "Unknown",
@@ -199,13 +199,24 @@ export class ChatWindowComponent {
     }
   }
 
-  getUsernameInitials(name: string): string {
-    if (!name) return "?";
-    const parts = name.split(" ");
-    if (parts.length >= 2) {
-      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  getDisplayName(profile: Profile): string {
+    const name = profile.name?.trim() || "";
+    const lastName = profile.last_name?.trim() || "";
+    if (name && lastName) return `${name} ${lastName}`;
+    if (name) return name;
+    if (lastName) return lastName;
+    return profile.user?.username || "Unknown";
+  }
+
+  getProfileInitials(profile: Profile): string {
+    const name = profile.name?.trim() || "";
+    const lastName = profile.last_name?.trim() || "";
+    if (name && lastName) {
+      return (name.charAt(0) + lastName.charAt(0)).toUpperCase();
     }
-    return name.charAt(0).toUpperCase();
+    if (name) return name.charAt(0).toUpperCase();
+    if (lastName) return lastName.charAt(0).toUpperCase();
+    return (profile.user?.username?.charAt(0) || "?").toUpperCase();
   }
 
   trackByUserId(_index: number, conv: ConversationUser): string {
