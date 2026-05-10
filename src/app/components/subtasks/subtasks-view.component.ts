@@ -31,8 +31,6 @@ import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
-import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
-import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 import {
   PageToolbarComponent,
   PageToolbarConfig,
@@ -61,8 +59,6 @@ interface QueryParams {
     MatProgressSpinnerModule,
     DragDropModule,
     TaskInformationComponent,
-    ChatWindowComponent,
-    ChatFabComponent,
     PageToolbarComponent,
     LoadingStateComponent,
     EmptyStateComponent,

@@ -18,7 +18,7 @@
               class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
             >
               <mat-icon class="text-base">lock</mat-icon>
-              Private
+              Private ({{ stateService.groupedTodos().private.length }})
             </h3>
             <app-table-view
               [data]="stateService.groupedTodos().private"
@@ -48,7 +48,7 @@
               class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
             >
               <mat-icon class="text-base">group</mat-icon>
-              Shared
+              Shared ({{ stateService.groupedTodos().shared.length }})
             </h3>
             <app-table-view
               [data]="stateService.groupedTodos().shared"
@@ -78,7 +78,7 @@
               class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
             >
               <mat-icon class="text-base">public</mat-icon>
-              Public
+              Public ({{ stateService.groupedTodos().public.length }})
             </h3>
             <app-table-view
               [data]="stateService.groupedTodos().public"
@@ -116,7 +116,9 @@
         >
           @if (stateService.groupedTodos().private.length > 0) {
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Private ({{ stateService.groupedTodos().private.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -151,7 +153,9 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Shared ({{ stateService.groupedTodos().shared.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -189,7 +193,9 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Public ({{ stateService.groupedTodos().public.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -233,7 +239,9 @@
         >
           @if (stateService.groupedTodos().private.length > 0) {
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Private ({{ stateService.groupedTodos().private.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -268,7 +276,9 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Shared ({{ stateService.groupedTodos().shared.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -306,7 +316,9 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
+              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Public ({{ stateService.groupedTodos().public.length }})
+              </h3>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -357,6 +369,7 @@
                   ? "Shared"
                   : "Public"
             }}
+            ({{ stateService.listTodos().length }})
           </h3>
           <app-table-view
             [data]="stateService.listTodos()"
@@ -387,6 +400,7 @@
                   ? "Shared"
                   : "Public"
             }}
+            ({{ stateService.listTodos().length }})
           </h3>
           <div
             class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -434,6 +448,7 @@
                   ? "Shared"
                   : "Public"
             }}
+            ({{ stateService.listTodos().length }})
           </h3>
           <div
             class="flex w-full flex-col gap-y-3"
