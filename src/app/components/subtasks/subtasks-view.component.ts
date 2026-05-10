@@ -21,7 +21,7 @@ import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { Subtask } from "@models/subtask.model";
-import { Task } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
 import { CommentService } from "@services/features/comment.service";
@@ -281,6 +281,7 @@ export class SubtasksViewComponent extends BaseListView {
         visibility: visibility as Visibility,
         skip: 0,
         limit: 100,
+        load: ["user"],
       })
       .subscribe();
   }
@@ -861,6 +862,7 @@ export class SubtasksViewComponent extends BaseListView {
   onSubtaskItemAction(event: { action: string; item: Subtask }): void {
     switch (event.action) {
       case "toggle":
+      case "toggle_status":
         this.toggleSubtaskCompletion(event.item);
         break;
       case "delete":
@@ -876,6 +878,22 @@ export class SubtasksViewComponent extends BaseListView {
         this.archiveSubtask(event.item.id);
         break;
     }
+  }
+
+  onSubtaskStatusToggle(payload: { item: Subtask; status: TaskStatus }): void {
+    this.toggleSubtaskCompletion(payload.item);
+  }
+
+  onSubtaskCommentToggle(subtaskId: string): void {
+    this.commentExpandedSubtasks.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(subtaskId)) {
+        newSet.delete(subtaskId);
+      } else {
+        newSet.add(subtaskId);
+      }
+      return newSet;
+    });
   }
 
   getSubtaskTableActions(): TableFieldActionButton[] {

@@ -84,9 +84,11 @@
               [highlight]="highlightSubtask() === subtask.id"
               [isSelected]="selectedSubtasks().has(subtask.id)"
               [actions]="subtaskActions"
+              [showStatusToggle]="true"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
               (cardClick)="onCardClick($event)"
               (itemAction)="onSubtaskItemAction($event)"
+              (statusToggle)="onSubtaskStatusToggle($event)"
             >
               <div
                 *cdkDragPlaceholder
@@ -116,9 +118,11 @@
               [highlight]="highlightSubtask() === subtask.id"
               [isSelected]="selectedSubtasks().has(subtask.id)"
               [actions]="subtaskActions"
+              [showStatusToggle]="true"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
               (cardClick)="onCardClick($event)"
               (itemAction)="onSubtaskItemAction($event)"
+              (statusToggle)="onSubtaskStatusToggle($event)"
             />
           }
         </div>
