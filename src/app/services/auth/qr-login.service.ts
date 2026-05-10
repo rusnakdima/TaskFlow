@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
-import { interval, Subscription, Observable } from "rxjs";
+import { interval, Subscription, Observable, Subject } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@models/security.model";
@@ -12,6 +12,9 @@ export class QrLoginService implements OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
 
   private pollSubscription: Subscription | null = null;
+  private readonly qrApprovedSubject = new Subject<string>();
+
+  readonly qrApproved$ = this.qrApprovedSubject.asObservable();
 
   readonly currentQrData = signal<QrCodeData | null>(null);
   readonly qrStatus = signal<QrStatus>("pending");
@@ -97,13 +100,18 @@ export class QrLoginService implements OnDestroy {
         this.qrStatus.set(data.status);
         this.qrStatusData.set(data);
 
-        if (data.status === "approved" || data.status === "expired") {
+        if (data.status === "approved") {
           this.stopPolling();
+          this.qrApprovedSubject.next(token);
+        } else if (data.status === "expired") {
+          this.stopPolling();
+          this.qrApprovedSubject.error(new Error("QR code expired"));
         }
       },
       error: () => {
         this.qrStatus.set("expired");
         this.stopPolling();
+        this.qrApprovedSubject.error(new Error("Failed to check QR status"));
       },
     });
   }
