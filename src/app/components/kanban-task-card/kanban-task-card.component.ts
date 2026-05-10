@@ -51,13 +51,13 @@ export class KanbanTaskCardComponent {
     const p = (priority || "medium").toLowerCase();
     switch (p) {
       case "high":
-        return "border-red-600 dark:border-red-500 border-l-red-700 dark:border-l-red-500";
+        return "border-red-600 dark:border-red-500 border-l-4 border-l-red-700 dark:border-l-red-500";
       case "medium":
-        return "border-yellow-500 dark:border-yellow-400 border-l-yellow-600 dark:border-l-yellow-500";
+        return "border-yellow-500 dark:border-yellow-400 border-l-4 border-l-yellow-600 dark:border-l-yellow-500";
       case "low":
-        return "border-green-600 dark:border-green-500 border-l-green-700 dark:border-l-green-500";
+        return "border-green-600 dark:border-green-500 border-l-4 border-l-green-700 dark:border-l-green-500";
       default:
-        return "border-yellow-500 dark:border-yellow-400 border-l-yellow-600 dark:border-l-yellow-500";
+        return "border-yellow-500 dark:border-yellow-400 border-l-4 border-l-yellow-600 dark:border-l-yellow-500";
     }
   }
 
@@ -68,14 +68,14 @@ export class KanbanTaskCardComponent {
   getStatusBorderColor(status: string): string {
     switch (status) {
       case TaskStatus.COMPLETED:
-        return "border-l-blue-500";
+        return "border-l-4 border-l-blue-500";
       case TaskStatus.SKIPPED:
-        return "border-l-orange-500";
+        return "border-l-4 border-l-orange-500";
       case TaskStatus.FAILED:
-        return "border-l-red-500";
+        return "border-l-4 border-l-red-500";
       case TaskStatus.PENDING:
       default:
-        return "border-l-gray-400";
+        return "border-l-4 border-l-gray-400";
     }
   }
 
