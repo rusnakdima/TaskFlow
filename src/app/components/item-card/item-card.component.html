@@ -119,6 +119,11 @@
               }
             </div>
           }
+          @case ("status-toggle") {
+            @if (showStatusToggle && itemType === "task") {
+              <app-status-toggle [status]="taskStatus" (toggle)="onStatusToggle($event)" />
+            }
+          }
         }
       }
     </div>
@@ -193,34 +198,6 @@
                 </span>
               }
             }
-            @case ("expand-toggle") {
-              @if (canExpand && !hasBadgeGroup) {
-                <button
-                  class="ml-auto cursor-pointer transition-all duration-200 hover:scale-110"
-                  (click)="toggleExpanded($event)"
-                  title="Toggle details"
-                >
-                  <mat-icon
-                    class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                    [class.rotate-180]="isExpanded"
-                    fontIcon="keyboard_arrow_down"
-                  />
-                </button>
-              }
-              @if (canExpand && hasBadgeGroup) {
-                <button
-                  class="cursor-pointer transition-all duration-200 hover:scale-110"
-                  (click)="toggleExpanded($event)"
-                  title="Toggle details"
-                >
-                  <mat-icon
-                    class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                    [class.rotate-180]="isExpanded"
-                    fontIcon="keyboard_arrow_down"
-                  />
-                </button>
-              }
-            }
             @case ("comment-toggle") {
               @if (showCommentToggle && (itemType === "task" || itemType === "subtask")) {
                 <app-comments-toggle
@@ -234,6 +211,70 @@
             }
           }
         }
+      </div>
+    }
+
+    @if (line3Config.length > 0) {
+      <div class="mt-2 flex flex-row items-center">
+        @if (showCommentToggle && (itemType === "task" || itemType === "subtask")) {
+          <app-comments-toggle
+            [showComments]="commentsExpanded()"
+            [unreadCount]="unreadCommentsCount"
+            [count]="$any(item)?.comments_count || 0"
+            (toggle)="toggleCommentsHandler()"
+          />
+        }
+        <div class="ml-auto flex items-center gap-1">
+          @for (config of line3Config; track trackByConfig($index, config)) {
+            @switch (config.type) {
+              @case ("expand-toggle") {
+                @if (canExpand) {
+                  <button
+                    class="cursor-pointer transition-all duration-200 hover:scale-110"
+                    (click)="toggleExpanded($event)"
+                    title="Toggle details"
+                  >
+                    <mat-icon
+                      class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
+                      [class.rotate-180]="isExpanded"
+                      fontIcon="keyboard_arrow_down"
+                    />
+                  </button>
+                }
+              }
+              @case ("menu") {
+                <div class="relative">
+                  <button
+                    (click)="onMenuClick($event)"
+                    class="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                    title="More options"
+                  >
+                    <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
+                  </button>
+                  @if (showMenu()) {
+                    <div
+                      class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+                      (click)="$event.stopPropagation()"
+                    >
+                      @for (action of actions; track action.key) {
+                        <button
+                          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                          (click)="onAction(action.key || action.label, $event)"
+                        >
+                          <mat-icon
+                            class="h-4! w-4! min-w-4 text-base!"
+                            [fontIcon]="action.icon || 'circle'"
+                          />
+                          {{ action.label }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          }
+        </div>
       </div>
     }
 

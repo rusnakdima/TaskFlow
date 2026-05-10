@@ -47,7 +47,7 @@ export interface ItemDisplayConfig {
   toggleable?: boolean;
   showIf?: (item: any) => boolean;
   options?: Array<{ value: string; label: string }>;
-  line?: 1 | 2;
+  line?: 1 | 2 | 3;
   expandFields?: TableField[];
   iconConfig?:
     | ((item: any) => { icon?: string; position?: "left" | "right" })

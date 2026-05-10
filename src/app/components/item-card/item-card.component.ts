@@ -18,10 +18,11 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
 import { CommentsComponent } from "@components/comments/comments.component";
+import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
 import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
+import { Task, TaskStatus } from "@models/task.model";
 import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { ItemType } from "@models/base.model";
@@ -43,6 +44,7 @@ import { StorageService } from "@services/storage.service";
     ItemExpandDetailsComponent,
     CommentsToggleComponent,
     CommentsComponent,
+    StatusToggleComponent,
   ],
   templateUrl: "./item-card.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,6 +68,7 @@ export class ItemCardComponent {
   @Input() expandFields: TableField[] = [];
   @Input() showCommentToggle: boolean = false;
   @Input() unreadCommentsCount: number = 0;
+  @Input() showStatusToggle: boolean = false;
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
@@ -75,6 +78,7 @@ export class ItemCardComponent {
   @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
   @Output() deleteComment = new EventEmitter<string>();
   @Output() markAsRead = new EventEmitter<string[]>();
+  @Output() statusToggle = new EventEmitter<TaskStatus>();
 
   showMenu = signal(false);
   expanded = signal(false);
@@ -82,6 +86,10 @@ export class ItemCardComponent {
 
   get itemId(): string {
     return this.item?.id || "";
+  }
+
+  get taskStatus(): TaskStatus {
+    return (this.item as Task)?.status || TaskStatus.PENDING;
   }
 
   get isCategory(): boolean {
@@ -116,6 +124,10 @@ export class ItemCardComponent {
 
   get line2Config(): ItemDisplayConfig[] {
     return this.visibleConfig.filter((c) => c.line === 2);
+  }
+
+  get line3Config(): ItemDisplayConfig[] {
+    return this.visibleConfig.filter((c) => c.line === 3);
   }
 
   getBadgeGroupItems(): ItemDisplayConfig[] {
@@ -196,6 +208,11 @@ export class ItemCardComponent {
     this.itemAction.emit({ action, item: this.item });
   }
 
+  onMenuClick(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showMenu.update((v) => !v);
+  }
+
   onDragDrop(event: CdkDragDrop<any>): void {
     this.dropped.emit(event);
   }
@@ -225,5 +242,9 @@ export class ItemCardComponent {
 
   onMarkAsRead(commentIds: string[]): void {
     this.markAsRead.emit(commentIds);
+  }
+
+  onStatusToggle(status: TaskStatus): void {
+    this.statusToggle.emit(status);
   }
 }
