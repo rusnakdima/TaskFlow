@@ -1,0 +1,44 @@
+<div class="flex flex-col">
+  @if (field) {
+    @switch (field.type) {
+      @case ("text") {
+        <app-text [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("number") {
+        <app-number [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("textarea") {
+        <app-text-area [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("image") {
+        <app-image [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("select") {
+        <app-select
+          [label]="getLabel()"
+          [parentForm]="parentForm"
+          [form]="formG!"
+          [field]="field"
+        />
+      }
+      @case ("checkbox") {
+        <app-checkbox [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("radio") {
+        <app-radio [label]="getLabel()" [parentForm]="parentForm" [form]="formG!" [field]="field" />
+      }
+      @case ("datepicker") {
+        <app-date-picker [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("slidetoggle") {
+        <app-slide-toggle [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("slider") {
+        <app-slider [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+      @case ("sliderrange") {
+        <app-slider-range [label]="getLabel()" [form]="formG!" [field]="field" />
+      }
+    }
+  }
+</div>
