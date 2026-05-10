@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -20,6 +20,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { RelationLoadingService } from "@services/core/relation-loading.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -63,6 +64,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
   private requestService = inject(REQUEST_SERVICE);
+  private relationLoadingService = inject(RelationLoadingService);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -159,6 +161,10 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   onFormSaved() {
     this.onFormClose();
+  }
+
+  onCategoryExpand(item: Category): Observable<any> {
+    return this.relationLoadingService.load<Category>("categories", item.id, ["user"]);
   }
 
   async archiveCategory(categoryId: string) {
