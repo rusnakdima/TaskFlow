@@ -1,5 +1,6 @@
 /* sys lib */
 use std::env;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 
@@ -22,9 +23,55 @@ pub struct ConfigHelper {
   pub github_callback_url: String,
 }
 
+fn parse_env_content(content: &str) -> Vec<(String, String)> {
+  let mut vars = Vec::new();
+  for line in content.lines() {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with('#') {
+      continue;
+    }
+    if let Some((key, value)) = line.split_once('=') {
+      let key = key.trim();
+      let mut value = value.trim().to_string();
+      if (value.starts_with('"') && value.ends_with('"'))
+        || (value.starts_with('\'') && value.ends_with('\''))
+      {
+        value = value[1..value.len() - 1].to_string();
+      }
+      if !key.is_empty() {
+        vars.push((key.to_string(), value));
+      }
+    }
+  }
+  vars
+}
+
+fn load_env_from_file(path: &Path) -> bool {
+  if let Ok(content) = std::fs::read_to_string(path) {
+    let vars = parse_env_content(&content);
+    for (key, value) in vars {
+      env::set_var(key, value);
+    }
+    return true;
+  }
+  false
+}
+
 impl ConfigHelper {
   pub fn new() -> Self {
     dotenvy::dotenv().ok();
+
+    let fallback_env_paths = [
+      Path::new("/data/data/com.tcs.taskflow/files/.env"),
+      Path::new("resource/.env"),
+      Path::new("./resource/.env"),
+    ];
+
+    for path in &fallback_env_paths {
+      if load_env_from_file(path) {
+        break;
+      }
+    }
 
     Self {
       name_app: env::var("NAME_APP").unwrap_or_else(|_| "TaskFlow".to_string()),
