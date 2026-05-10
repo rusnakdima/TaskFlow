@@ -1,0 +1,176 @@
+/* sys lib */
+import { Injectable, signal, WritableSignal } from "@angular/core";
+
+/* models */
+import { Todo } from "@models/todo.model";
+import { Task } from "@models/task.model";
+import { Subtask } from "@models/subtask.model";
+import { Comment } from "@models/comment.model";
+import { Chat } from "@models/chat.model";
+import { Category } from "@models/category.model";
+import { Profile } from "@models/profile.model";
+import { User } from "@models/user.model";
+import { EntityType } from "@models/storage.model";
+
+/* utils */
+import {
+  updateEntityInSignal,
+  removeEntityFromSignal,
+  addEntityToSignal,
+} from "@stores/utils/store-helpers";
+
+@Injectable({ providedIn: "root" })
+export class StorageEntityService {
+  readonly todos = signal<Todo[]>([]);
+  readonly tasks = signal<Task[]>([]);
+  readonly subtasks = signal<Subtask[]>([]);
+  readonly comments = signal<Comment[]>([]);
+  readonly chats = signal<Chat[]>([]);
+  readonly categories = signal<Category[]>([]);
+  readonly profiles = signal<Profile | null>(null);
+  readonly users = signal<User[]>([]);
+
+  readonly privateTodos = signal<Todo[]>([]);
+  readonly sharedTodos = signal<Todo[]>([]);
+  readonly publicTodos = signal<Todo[]>([]);
+
+  addEntity(type: EntityType, data: any): void {
+    if (!data?.id) return;
+    if (type === "profiles") {
+      this.profiles.set(data);
+      return;
+    }
+    if (type === "todos") {
+      const visibility = data.visibility || "shared";
+      const target =
+        visibility === "private"
+          ? this.privateTodos
+          : visibility === "public"
+            ? this.publicTodos
+            : this.sharedTodos;
+      addEntityToSignal(target, data);
+    } else {
+      addEntityToSignal(this.getSignal(type), data);
+    }
+  }
+
+  updateEntity(type: EntityType, data: any): void {
+    if (!data?.id) return;
+    if (type === "profiles") {
+      const current = this.profiles();
+      if (current?.id === data.id) this.profiles.set({ ...current, ...data });
+      return;
+    }
+    if (type === "todos") {
+      updateEntityInSignal(this.privateTodos, data.id, data);
+      updateEntityInSignal(this.sharedTodos, data.id, data);
+      updateEntityInSignal(this.publicTodos, data.id, data);
+    } else {
+      updateEntityInSignal(this.getSignal(type) as WritableSignal<any[]>, data.id, data);
+    }
+  }
+
+  removeEntity(type: EntityType, id: string): void {
+    if (type === "profiles") {
+      const current = this.profiles();
+      if (current?.id === id) this.profiles.set(null);
+      return;
+    }
+    if (type === "todos") {
+      removeEntityFromSignal(this.privateTodos, id);
+      removeEntityFromSignal(this.sharedTodos, id);
+      removeEntityFromSignal(this.publicTodos, id);
+    } else {
+      removeEntityFromSignal(this.getSignal(type) as WritableSignal<any[]>, id);
+    }
+  }
+
+  getSignal(type: EntityType): WritableSignal<any[]> {
+    switch (type) {
+      case "todos":
+        return this.todos;
+      case "tasks":
+        return this.tasks;
+      case "subtasks":
+        return this.subtasks;
+      case "comments":
+        return this.comments;
+      case "chats":
+        return this.chats;
+      case "categories":
+        return this.categories;
+      case "users":
+        return this.users;
+      default:
+        return this.tasks;
+    }
+  }
+
+  addCommentToTask(comment: Comment, task_id?: string): void {
+    if (!task_id) return;
+    addEntityToSignal(this.comments, { ...comment, task_id });
+  }
+
+  addCommentToSubtask(comment: Comment, subtask_id?: string): void {
+    if (!subtask_id) return;
+    addEntityToSignal(this.comments, { ...comment, subtask_id });
+  }
+
+  removeCommentFromAll(commentId: string): void {
+    removeEntityFromSignal(this.comments, commentId);
+  }
+
+  updateChat(todoId: string, op: "set" | "add" | "update" | "delete" | "clear", data?: Chat): void {
+    if (!todoId) return;
+    switch (op) {
+      case "set":
+        this.chats.update((chats) => [
+          ...chats.filter((c) => c.todo_id !== todoId),
+          ...(data ? [data] : []),
+        ]);
+        break;
+      case "add":
+        if (data)
+          this.chats.update((chats) =>
+            chats.some((c) => c.id === data.id) ? chats : [...chats, data]
+          );
+        break;
+      case "update":
+        if (data)
+          this.chats.update((chats) =>
+            chats.map((c) => (c.id === data.id ? { ...c, ...data } : c))
+          );
+        break;
+      case "delete":
+        if (data)
+          this.chats.update((chats) =>
+            chats.filter((c) => !(c.id === data.id && c.todo_id === todoId))
+          );
+        break;
+      case "clear":
+        this.chats.update((chats) => chats.filter((c) => c.todo_id !== todoId));
+        break;
+    }
+  }
+
+  bulkUpsertSubtasks(subtasks: Subtask[]): void {
+    this.subtasks.update((existing) => {
+      const map = new Map(existing.map((s) => [s.id, s]));
+      subtasks.forEach((s) => map.set(s.id, { ...map.get(s.id), ...s }));
+      return Array.from(map.values());
+    });
+  }
+
+  clearEntitySignals(): void {
+    this.privateTodos.set([]);
+    this.sharedTodos.set([]);
+    this.publicTodos.set([]);
+    this.tasks.set([]);
+    this.subtasks.set([]);
+    this.comments.set([]);
+    this.chats.set([]);
+    this.categories.set([]);
+    this.profiles.set(null);
+    this.users.set([]);
+  }
+}
