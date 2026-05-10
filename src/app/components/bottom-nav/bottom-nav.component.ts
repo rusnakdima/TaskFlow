@@ -41,12 +41,6 @@ export class BottomNavComponent implements OnInit {
       query: {},
     },
     {
-      url: "/kanban",
-      icon: "view_kanban",
-      label: "Kanban",
-      query: {},
-    },
-    {
       url: "/stats",
       icon: "bar_chart",
       label: "Stats",
