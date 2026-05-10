@@ -21,6 +21,7 @@ use crate::helpers::{
   collection_metadata::add_collection_metadata,
   common::merge_immutable_fields,
   load_param::parse_load_param,
+  relation_stripper::strip_relation_fields,
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
 };
@@ -35,12 +36,12 @@ use crate::services::entity_resolution_service::EntityResolutionService;
 use crate::services::profile_service::ProfileService;
 
 use super::cache::CacheService;
-use super::cascade_delegate::CascadeDelegate;
 
 pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
-  pub cascade_delegate: CascadeDelegate,
+  pub cascade_service: CascadeService,
+  pub count_service: Arc<CountService>,
   pub cache_service: CacheService,
   pub activity_monitor: ActivityMonitorService,
   pub profile_service: ProfileService,
@@ -48,32 +49,31 @@ pub struct RepositoryService {
 }
 
 impl RepositoryService {
-  #[allow(clippy::extra_unused_lifetimes)]
   fn get_provider(
     &self,
     table: &str,
     visibility: Option<&str>,
     offline: bool,
-  ) -> Result<DataProvider<'_>, ResponseModel> {
+  ) -> Result<DataProvider, ResponseModel> {
     let _vis = visibility.unwrap_or("private");
 
     if offline {
-      return Ok(DataProvider::Json(&self.json_provider));
+      return Ok(DataProvider::Json(Arc::new(self.json_provider.clone())));
     }
 
     let use_json = self.use_json_provider(table, visibility, offline);
 
     if use_json {
-      Ok(DataProvider::Json(&self.json_provider))
+      Ok(DataProvider::Json(Arc::new(self.json_provider.clone())))
     } else {
       match self.mongodb_provider.as_ref() {
-        Some(p) => Ok(DataProvider::Mongo(p.as_ref())),
+        Some(p) => Ok(DataProvider::Mongo(p.clone())),
         None => {
           if visibility == Some("all")
             || visibility == Some("shared")
             || visibility == Some("public")
           {
-            Ok(DataProvider::Json(&self.json_provider))
+            Ok(DataProvider::Json(Arc::new(self.json_provider.clone())))
           } else {
             Err(err_response(
               "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
@@ -97,11 +97,8 @@ impl RepositoryService {
     Self {
       json_provider,
       mongodb_provider,
-      cascade_delegate: CascadeDelegate::new(
-        cascade_service,
-        count_service,
-        entity_resolution.clone(),
-      ),
+      cascade_service,
+      count_service,
       cache_service: CacheService::new(),
       activity_monitor,
       profile_service,
@@ -303,11 +300,16 @@ impl RepositoryService {
 
     let load_paths = parse_load_param(load);
 
-    let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
+    let (docs, used_json_fallback) = match provider
+      .find_many(&table, filter_opt.as_ref(), None, None, None, true)
+      .await
+    {
       Ok(docs) => (docs, false),
       Err(_e) => {
-        let json_provider = DataProvider::Json(&self.json_provider);
-        let docs = json_provider.find_many(&table, filter_opt.as_ref()).await?;
+        let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+        let docs = json_provider
+          .find_many(&table, filter_opt.as_ref(), None, None, None, true)
+          .await?;
         (docs, true)
       }
     };
@@ -316,7 +318,7 @@ impl RepositoryService {
       match &provider {
         DataProvider::Json(p) => {
           self
-            .load_relations_unified(docs, &table, &load_paths, (*p).clone())
+            .load_relations_unified(docs, &table, &load_paths, (**p).clone())
             .await?
         }
         DataProvider::Mongo(p) => {
@@ -326,7 +328,7 @@ impl RepositoryService {
         }
       }
     } else {
-      docs
+      strip_relation_fields(docs, &table)
     };
 
     let docs = if used_json_fallback || use_json {
@@ -363,7 +365,9 @@ impl RepositoryService {
           if let Some(f) = &filter {
             let filter_obj = nosql_orm::query::Filter::from_json(f)
               .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-            provider.find_many(&table, Some(&filter_obj)).await?
+            provider
+              .find_many(&table, Some(&filter_obj), None, None, None, true)
+              .await?
           } else {
             return Err(err_response("Document not found"));
           }
@@ -372,7 +376,9 @@ impl RepositoryService {
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-      provider.find_many(&table, Some(&filter_obj)).await?
+      provider
+        .find_many(&table, Some(&filter_obj), None, None, None, true)
+        .await?
     } else {
       return Err(err_response("ID or filter is required for get operation"));
     };
@@ -383,7 +389,7 @@ impl RepositoryService {
       match &provider {
         DataProvider::Json(p) => {
           self
-            .load_relations_unified(docs, &table, &load_paths, (*p).clone())
+            .load_relations_unified(docs, &table, &load_paths, (**p).clone())
             .await?
         }
         DataProvider::Mongo(p) => {
@@ -393,7 +399,7 @@ impl RepositoryService {
         }
       }
     } else {
-      docs
+      strip_relation_fields(docs, &table)
     };
 
     let projected = self.apply_projection_recursive(docs);
@@ -448,7 +454,7 @@ impl RepositoryService {
 
     if table == "tasks" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let count_service = self.cascade_delegate.count_service.clone();
+        let count_service = self.count_service.clone();
         let todo_id_clone = todo_id.to_string();
         tokio::spawn(async move {
           let _ = count_service.on_task_created(&todo_id_clone, offline).await;
@@ -456,7 +462,7 @@ impl RepositoryService {
       }
     } else if table == "subtasks" {
       if let Some(task_id) = created_record.get("task_id").and_then(|v| v.as_str()) {
-        let count_service = self.cascade_delegate.count_service.clone();
+        let count_service = self.count_service.clone();
         let task_id_clone = task_id.to_string();
         let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
         if let Some(todo_id) = todo_id_opt {
@@ -471,7 +477,7 @@ impl RepositoryService {
     } else if table == "comments" {
       let task_id = created_record.get("task_id").and_then(|v| v.as_str());
       let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
-      let count_service = self.cascade_delegate.count_service.clone();
+      let count_service = self.count_service.clone();
       let task_id_clone = task_id.map(|s| s.to_string());
       let subtask_id_clone = subtask_id.map(|s| s.to_string());
       tokio::spawn(async move {
@@ -776,7 +782,9 @@ impl RepositoryService {
   ) -> Result<Vec<Value>, ResponseModel> {
     let provider = self.get_provider("subtasks", Some(visibility), false)?;
     let filter = nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-    provider.find_many("subtasks", Some(&filter)).await
+    provider
+      .find_many("subtasks", Some(&filter), None, None, None, true)
+      .await
   }
 
   async fn handle_update_all(
@@ -890,29 +898,19 @@ impl RepositoryService {
       if let Some(tid) = todo_id {
         if table == "tasks" {
           if new_status == Some("completed") && old_status != Some("completed") {
-            let _ = self
-              .cascade_delegate
-              .count_service
-              .on_task_completed(&tid, offline)
-              .await;
+            let _ = self.count_service.on_task_completed(&tid, offline).await;
           } else if old_status == Some("completed") && new_status != Some("completed") {
-            let _ = self
-              .cascade_delegate
-              .count_service
-              .on_task_uncompleted(&tid, offline)
-              .await;
+            let _ = self.count_service.on_task_uncompleted(&tid, offline).await;
           }
         } else if table == "subtasks" {
           if let Some(task_id) = updated_record.get("task_id").and_then(|v| v.as_str()) {
             if new_status == Some("completed") && old_status != Some("completed") {
               let _ = self
-                .cascade_delegate
                 .count_service
                 .on_subtask_completed(task_id, &tid, offline)
                 .await;
             } else if old_status == Some("completed") && new_status != Some("completed") {
               let _ = self
-                .cascade_delegate
                 .count_service
                 .on_subtask_uncompleted(task_id, &tid, offline)
                 .await;
@@ -929,12 +927,12 @@ impl RepositoryService {
       if new_vis != old_vis {
         if Self::use_json_provider_for_visibility(new_vis) {
           self
-            .cascade_delegate
+            .cascade_service
             .import_todo_cascade_to_json(&id_str)
             .await?;
         } else {
           self
-            .cascade_delegate
+            .cascade_service
             .export_todo_cascade_to_mongo(&id_str)
             .await?;
         }
@@ -989,7 +987,7 @@ impl RepositoryService {
           if table == "tasks" {
             let was_completed = existing.get("status") == Some(&json!("completed"));
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
-              let count_service = self.cascade_delegate.count_service.clone();
+              let count_service = self.count_service.clone();
               let todo_id_clone = todo_id.to_string();
               tokio::spawn(async move {
                 let _ = count_service
@@ -1000,7 +998,7 @@ impl RepositoryService {
           } else if table == "subtasks" {
             let was_completed = existing.get("status") == Some(&json!("completed"));
             if let Some(task_id) = existing.get("task_id").and_then(|v| v.as_str()) {
-              let count_service = self.cascade_delegate.count_service.clone();
+              let count_service = self.count_service.clone();
               let task_id_clone = task_id.to_string();
               let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
               if let Some(todo_id) = todo_id_opt {
@@ -1015,7 +1013,7 @@ impl RepositoryService {
           } else if table == "comments" {
             let task_id = existing.get("task_id").and_then(|v| v.as_str());
             let subtask_id = existing.get("subtask_id").and_then(|v| v.as_str());
-            let count_service = self.cascade_delegate.count_service.clone();
+            let count_service = self.count_service.clone();
             let task_id_clone = task_id.map(|s| s.to_string());
             let subtask_id_clone = subtask_id.map(|s| s.to_string());
             tokio::spawn(async move {
@@ -1036,7 +1034,7 @@ impl RepositoryService {
       if use_json {
         let _ = self.json_provider.delete(&table, &id_str).await;
         self
-          .cascade_delegate
+          .cascade_service
           .permanent_delete_cascade_json(&table, &id_str)
           .await?;
       } else {
@@ -1044,18 +1042,18 @@ impl RepositoryService {
           let _ = mongo.delete(&table, &id_str).await;
         }
         self
-          .cascade_delegate
+          .cascade_service
           .permanent_delete_cascade_mongo(&table, &id_str)
           .await?;
       }
     } else if use_json {
       self
-        .cascade_delegate
+        .cascade_service
         .soft_delete_cascade_json(&table, &id_str)
         .await?;
     } else {
       self
-        .cascade_delegate
+        .cascade_service
         .soft_delete_cascade_mongo(&table, &id_str)
         .await?;
     }
@@ -1116,12 +1114,12 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     if target == ProviderType::Mongo {
       self
-        .cascade_delegate
+        .cascade_service
         .sync_entity_to_mongo(&table, &id)
         .await?;
     } else {
       self
-        .cascade_delegate
+        .cascade_service
         .sync_entity_to_json(&table, &id)
         .await?;
     }
