@@ -169,15 +169,15 @@
   }
 
   .styleCheckbox:focus + .checkmark::before {
-    @apply ring-2 ring-blue-500/30;
+    @apply ring-2! ring-blue-500/30!;
   }
 
   .styleToggle {
-    @apply relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800;
+    @apply relative! h-6! w-11! rounded-full! bg-gray-200! peer-checked:bg-blue-600! peer-focus:ring-4! peer-focus:ring-blue-300! peer-focus:outline-none! after:absolute! after:start-[2px]! after:top-[2px]! after:h-5! after:w-5! after:rounded-full! after:border! after:border-gray-300! after:bg-white! after:transition-all! after:content-['']! peer-checked:after:translate-x-full! peer-checked:after:border-white! rtl:peer-checked:after:-translate-x-full! dark:border-gray-600! dark:bg-gray-700! dark:peer-focus:ring-blue-800!;
   }
 
   .styleRadio {
-    @apply h-6 w-6 border-gray-500 bg-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-700 dark:text-green-500 dark:ring-offset-gray-800 dark:focus:ring-green-500;
+    @apply h-6! w-6! border-gray-500! bg-gray-300! text-blue-600! focus:ring-2! focus:ring-blue-600! dark:border-gray-600! dark:bg-gray-700! dark:text-green-500! dark:ring-offset-gray-800! dark:focus:ring-green-500!;
   }
 
   .styleRadio:disabled {
@@ -185,11 +185,11 @@
   }
 
   .styleSelect {
-    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 px-3 py-2 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
+    @apply block! w-full! rounded-lg! border! border-gray-400! bg-slate-300! px-3! py-2! text-gray-900! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-gray-600! dark:bg-neutral-800! dark:text-white! dark:placeholder:text-gray-400! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
   }
 
   .styleDetails {
-    @apply mx-1;
+    @apply mx-1!;
   }
 }
 
@@ -303,7 +303,7 @@ button:disabled {
 }
 
 mat-icon {
-  @apply h-6! w-6! min-w-6 text-2xl!;
+  @apply h-6! w-6! min-w-6! text-2xl!;
   line-height: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -316,22 +316,22 @@ mat-icon {
 }
 
 pre {
-  @apply w-full rounded-lg border border-solid border-zinc-600 bg-transparent p-5 dark:border-zinc-500;
+  @apply w-full! rounded-lg! border! border-solid! border-zinc-600! bg-transparent! p-5! dark:border-zinc-500!;
 }
 
 .dividerIcon > div {
-  @apply hidden;
+  @apply hidden!;
 }
 .dividerIcon:hover > div {
-  @apply flex;
+  @apply flex!;
 }
 
 ::-webkit-scrollbar {
-  @apply h-2 w-2 bg-transparent;
+  @apply h-2! w-2! bg-transparent!;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply rounded-2xl bg-gray-600;
+  @apply rounded-2xl! bg-gray-600!;
 }
 
 @keyframes slide {
@@ -344,19 +344,19 @@ pre {
 }
 
 .ngx-pagination {
-  @apply mb-0! inline-flex items-center -space-x-px;
+  @apply mb-0! inline-flex! items-center! -space-x-px!;
 }
 
 .ngx-pagination .pagination-previous,
 .ngx-pagination .pagination-previous a,
 .ngx-pagination .pagination-previous .disabled {
-  @apply block rounded-l-lg;
+  @apply block! rounded-l-lg!;
 }
 
 .ngx-pagination .pagination-next,
 .ngx-pagination .pagination-next a,
 .ngx-pagination .pagination-next .disabled {
-  @apply block rounded-r-lg;
+  @apply block! rounded-r-lg!;
 }
 
 .ngx-pagination .pagination-previous {
@@ -376,20 +376,19 @@ pre {
 
 .ngx-pagination a,
 .ngx-pagination .disabled {
-  @apply border border-gray-300! bg-white! px-4! py-2! text-base text-gray-500! hover:bg-gray-100! hover:text-gray-700! dark:border-zinc-600! dark:bg-zinc-800! dark:text-zinc-400! dark:hover:bg-zinc-700! dark:hover:text-white!;
+  @apply border! border-gray-300! bg-white! px-4! py-2! text-base! text-gray-500! hover:bg-gray-100! hover:text-gray-700! dark:border-zinc-600! dark:bg-zinc-800! dark:text-zinc-400! dark:hover:bg-zinc-700! dark:hover:text-white!;
 }
 
 .ngx-pagination .current {
-  @apply z-0 border border-blue-300 bg-blue-50! px-4! py-2! text-base text-blue-600! hover:bg-blue-100! hover:text-blue-700! dark:border-zinc-400! dark:bg-zinc-600! dark:text-white! dark:hover:bg-zinc-700!;
+  @apply z-0! border! border-blue-300! bg-blue-50! px-4! py-2! text-base! text-blue-600! hover:bg-blue-100! hover:text-blue-700! dark:border-zinc-400! dark:bg-zinc-600! dark:text-white! dark:hover:bg-zinc-700!;
 }
 
 .mat-calendar,
 .mat-datepicker-content,
 .mat-mdc-select-panel,
 .mat-mdc-menu-panel,
-.mat-datepicker-actions,
 .mat-expansion-panel {
-  @apply rounded-xl! border border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-xl! border! border-solid! border-zinc-600! dark:border-zinc-500!;
 }
 
 .mat-calendar,
@@ -446,7 +445,7 @@ pre {
 }
 
 .mat-mdc-form-field-required-marker {
-  @apply ml-2 text-red-500;
+  @apply ml-2! text-red-500!;
 }
 
 .mat-mdc-form-field-error {
@@ -475,7 +474,7 @@ pre {
 }
 
 .mat-expansion-panel-header-title {
-  @apply font-bold;
+  @apply font-bold!;
 }
 
 .mat-expansion-panel-body {
@@ -516,7 +515,7 @@ div.mdc-checkbox {
 }
 
 .mat-mdc-text-field-wrapper {
-  @apply rounded-lg! border border-gray-400! bg-slate-300! text-gray-900! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-gray-600! dark:bg-neutral-800! dark:text-white! dark:placeholder:text-gray-100! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
+  @apply rounded-lg! border! border-gray-400! bg-slate-300! text-gray-900! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-gray-600! dark:bg-neutral-800! dark:text-white! dark:placeholder:text-gray-100! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
 }
 
 .mdc-line-ripple {
@@ -570,7 +569,7 @@ div.mdc-checkbox {
 
 /* Drag handle */
 .drag-handle {
-  @apply flex h-6 w-6 cursor-grab items-center justify-center text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-zinc-600 active:cursor-grabbing dark:text-zinc-500 dark:hover:text-zinc-400;
+  @apply flex! h-6! w-6! cursor-grab! items-center! justify-center! text-zinc-400! opacity-0! transition-opacity! group-hover:opacity-100! hover:text-zinc-600! active:cursor-grabbing! dark:text-zinc-500! dark:hover:text-zinc-400!;
 }
 
 /* Draggable elements - show grab cursor */
@@ -583,31 +582,31 @@ div.mdc-checkbox {
 
 /* ── Custom Checkbox ── */
 .checkbox {
-  @apply relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded border-2 border-gray-400 bg-transparent transition-colors duration-150 dark:border-gray-600;
+  @apply relative! inline-flex! h-5! w-5! cursor-pointer! items-center! justify-center! rounded! border-2! border-gray-400! bg-transparent! transition-colors! duration-150! dark:border-gray-600!;
 }
 .checkbox--checked {
-  @apply border-blue-500 bg-blue-500;
+  @apply border-blue-500! bg-blue-500!;
 }
 .checkbox--indeterminate {
-  @apply border-yellow-500 bg-yellow-500;
+  @apply border-yellow-500! bg-yellow-500!;
 }
 .checkbox--highlight.checkbox--checked,
 .checkbox--highlight.checkbox--indeterminate {
-  @apply ring-2 ring-yellow-400 ring-offset-1 dark:ring-yellow-500 dark:ring-offset-zinc-800;
+  @apply ring-2! ring-yellow-400! ring-offset-1! dark:ring-yellow-500! dark:ring-offset-zinc-800!;
 }
 .checkbox svg {
-  @apply absolute;
+  @apply absolute!;
 }
 
 /* ── Custom Radio ── */
 .radio {
-  @apply relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-2 border-gray-400 bg-transparent transition-colors duration-150 dark:border-gray-600;
+  @apply relative! inline-flex! h-5! w-5! cursor-pointer! items-center! justify-center! rounded-full! border-2! border-gray-400! bg-transparent! transition-colors! duration-150! dark:border-gray-600!;
 }
 .radio--checked {
-  @apply border-blue-500 bg-blue-500;
+  @apply border-blue-500! bg-blue-500!;
 }
 .radio__dot {
-  @apply h-2 w-2 rounded-full bg-white;
+  @apply h-2! w-2! rounded-full! bg-white!;
 }
 
 /* ── Todos grid drop list (mixed orientation: one drop list per item) ── */
@@ -687,20 +686,20 @@ div.mdc-checkbox {
 
 .fc-theme-standard .fc-popover,
 .fc-multimonth-header {
-  @apply bg-white text-black dark:bg-zinc-900 dark:text-white;
+  @apply bg-white! text-black! dark:bg-zinc-900! dark:text-white!;
 }
 
 .fc .fc-multimonth {
-  @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
+  @apply border-2! border-solid! border-gray-500! p-1! dark:border-gray-600!;
 }
 
 .fc-theme-standard .fc-scrollgrid {
-  @apply rounded-xl border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
+  @apply rounded-xl! border-2! border-solid! border-gray-500! p-1! dark:border-gray-600!;
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th {
-  @apply border-2 border-solid border-gray-500 p-1 dark:border-gray-600;
+  @apply border-2! border-solid! border-gray-500! p-1! dark:border-gray-600!;
 }
 
 .fc-day-disabled,
@@ -715,15 +714,15 @@ td[role="presentation"] {
 }
 
 .fc-prev-button {
-  @apply rounded-lg rounded-r-none! border border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-lg! rounded-r-none! border! border-solid! border-zinc-600! dark:border-zinc-500!;
 }
 
 .fc-next-button {
-  @apply rounded-lg rounded-l-none! border border-solid border-zinc-600 dark:border-zinc-500;
+  @apply rounded-lg! rounded-l-none! border! border-solid! border-zinc-600! dark:border-zinc-500!;
 }
 
 .fc-button {
-  @apply flex cursor-pointer flex-col justify-center border-zinc-600! px-4 text-black! dark:border-zinc-500! dark:text-white!;
+  @apply flex! cursor-pointer! flex-col! justify-center! border-zinc-600! px-4! text-black! dark:border-zinc-500! dark:text-white!;
 }
 
 .fc-button:not(.fc-button-active) {
