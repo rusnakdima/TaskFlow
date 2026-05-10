@@ -34,6 +34,7 @@ export class TasksCommentsHelper {
         visibility: this._todoVisibility,
         skip: 0,
         limit: 100,
+        load: ["user"],
       })
       .subscribe();
   }

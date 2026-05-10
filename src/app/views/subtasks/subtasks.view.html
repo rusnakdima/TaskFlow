@@ -126,6 +126,7 @@
               cdkDrag
               [cdkDragData]="subtask"
               cdkDragPreviewContainer="global"
+              [id]="'subtask-' + subtask.id"
               [item]="subtask"
               [config]="subtaskCardConfig"
               [displayMode]="'card'"
@@ -137,9 +138,15 @@
               [actions]="subtaskActions"
               [showCommentToggle]="true"
               [unreadCommentsCount]="getUnreadCountForSubtask(subtask.id)"
+              [showStatusToggle]="true"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
               (cardClick)="onCardClick($event)"
               (itemAction)="onSubtaskItemAction($event)"
+              (toggleComments)="onSubtaskCommentToggle(subtask.id)"
+              (addComment)="onSubtaskCommentAdd($event)"
+              (deleteComment)="onSubtaskCommentDelete($event)"
+              (markAsRead)="onSubtaskCommentMarkAsRead($event)"
+              (statusToggle)="onSubtaskStatusToggle($event)"
             >
               <div
                 *cdkDragPlaceholder
@@ -160,6 +167,7 @@
               cdkDrag
               [cdkDragData]="subtask"
               cdkDragPreviewContainer="global"
+              [id]="'subtask-' + subtask.id"
               [item]="subtask"
               [config]="subtaskCardConfig"
               [displayMode]="'list'"
@@ -171,9 +179,15 @@
               [actions]="subtaskActions"
               [showCommentToggle]="true"
               [unreadCommentsCount]="getUnreadCountForSubtask(subtask.id)"
+              [showStatusToggle]="true"
               (selectionChangeEvent)="toggleSubtaskSelection($event)"
               (cardClick)="onCardClick($event)"
               (itemAction)="onSubtaskItemAction($event)"
+              (toggleComments)="onSubtaskCommentToggle(subtask.id)"
+              (addComment)="onSubtaskCommentAdd($event)"
+              (deleteComment)="onSubtaskCommentDelete($event)"
+              (markAsRead)="onSubtaskCommentMarkAsRead($event)"
+              (statusToggle)="onSubtaskStatusToggle($event)"
             />
           }
         </div>
