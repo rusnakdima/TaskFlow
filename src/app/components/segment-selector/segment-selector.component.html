@@ -52,9 +52,6 @@
             />
           }
           <span [class.font-bold]="active === option.id">{{ option.label }}</span>
-          @if (option.count !== undefined) {
-            <span class="ml-auto text-xs text-gray-400">({{ option.count }})</span>
-          }
         </button>
       }
     </mat-menu>
