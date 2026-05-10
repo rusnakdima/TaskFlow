@@ -36,7 +36,11 @@
         (actionClick)="onTableAction($event)"
       >
         <ng-template #expandTemplate let-item>
-          <app-item-expand-details [item]="item" type="category" />
+          <app-item-expand-details
+            [item]="item"
+            type="category"
+            [onExpandRequest]="onCategoryExpand.bind(this)"
+          />
         </ng-template>
       </app-table-view>
     } @else if (viewMode() === "grid") {

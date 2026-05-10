@@ -36,6 +36,7 @@ import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
 
 @Component({
   selector: "app-login",
@@ -51,6 +52,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
     MatProgressSpinnerModule,
     MatButtonModule,
     CheckboxComponent,
+    ConnectionStatusComponent,
   ],
   templateUrl: "./login.view.html",
 })

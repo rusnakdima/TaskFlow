@@ -4,6 +4,10 @@
   <div
     class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
   >
+    <div class="mb-4 flex items-center justify-end">
+      <app-connection-status />
+    </div>
+
     @if (hasLocalUsers() === false) {
       <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/20 p-3">
         <mat-icon
