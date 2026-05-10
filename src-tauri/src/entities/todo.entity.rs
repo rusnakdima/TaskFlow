@@ -14,7 +14,6 @@ use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime
 #[soft_delete]
 #[timestamp]
 #[one_to_many("tasks", "tasks", "todo_id", "Cascade")]
-#[one_to_many("chats", "chats", "todo_id", "Cascade")]
 #[many_to_one("user", "users", "user_id")]
 #[many_to_many("categories", "categories", "categories")]
 #[many_to_many("assignees", "profiles", "assignees")]
@@ -40,7 +39,6 @@ pub struct TodoEntity {
   pub github_repo_name: Option<String>,
   pub tasks_count: i32,
   pub completed_tasks_count: i32,
-  pub chats_count: i32,
   pub created_at: Option<DateTime<Utc>>,
   pub updated_at: Option<DateTime<Utc>>,
   pub deleted_at: Option<DateTime<Utc>>,
@@ -87,7 +85,6 @@ impl From<TodoCreateModel> for TodoEntity {
       github_repo_name: value.github_repo_name,
       tasks_count: 0,
       completed_tasks_count: 0,
-      chats_count: 0,
       deleted_at: None,
       created_at: Some(now),
       updated_at: Some(now),

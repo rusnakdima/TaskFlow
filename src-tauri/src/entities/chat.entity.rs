@@ -12,14 +12,11 @@ use nosql_orm::{Model, Validate};
 #[table_name("chats")]
 #[soft_delete]
 #[timestamp]
-#[many_to_one("todo", "todos", "todo_id")]
 #[many_to_one("user", "users", "user_id")]
 #[many_to_many("read_by_users", "users", "read_by")]
-#[index("todo_id", 1)]
 #[index("user_id", 1)]
 pub struct ChatEntity {
   pub id: Option<String>,
-  pub todo_id: String,
   pub user_id: String,
   pub content: String,
   #[serde(default)]
@@ -35,8 +32,6 @@ pub struct ChatEntity {
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatCreateModel {
   #[validate(required)]
-  pub todo_id: String,
-  #[validate(required)]
   pub user_id: String,
   #[validate(required)]
   #[validate(length(min = 1, max = 5000))]
@@ -48,7 +43,6 @@ impl From<ChatCreateModel> for ChatEntity {
     let now = get_current_datetime();
     ChatEntity {
       id: None,
-      todo_id: create.todo_id,
       user_id: create.user_id.clone(),
       content: create.content,
       created_at: Some(now),
