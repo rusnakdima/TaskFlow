@@ -22,7 +22,7 @@ import { CategoriesView } from "@views/categories/categories.view";
 
 import { TodosView } from "@views/todos/todos.view";
 import { TasksView } from "@views/tasks/tasks.view";
-import { SubtasksView } from "@views/subtasks/subtasks.view";
+import { SubtasksViewComponent as SubtasksView } from "@views/subtasks/subtasks.view";
 import { ManageItemPage } from "@views/manage/manage-item.page";
 
 import { ProfileView } from "@views/profile/profile.view";
