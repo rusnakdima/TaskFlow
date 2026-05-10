@@ -24,7 +24,8 @@ export type ItemDisplayType =
   | "boolean"
   | "select"
   | "deleted-badge"
-  | "badge-group";
+  | "badge-group"
+  | "todo-card";
 
 import { TableField } from "./table-field.model";
 

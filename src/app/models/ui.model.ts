@@ -84,6 +84,7 @@ export interface PageToolbarConfig {
     mode: ViewMode;
     pageKey: string;
     onModeChange: (mode: ViewMode) => void;
+    modes?: ViewMode[];
   };
   filterFields?: FilterField[];
   showFilter?: boolean;

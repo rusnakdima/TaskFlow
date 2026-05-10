@@ -1,1 +1,1 @@
-export type ViewMode = "card" | "grid" | "table" | "list";
+export type ViewMode = "card" | "grid" | "table" | "list" | "kanban";
