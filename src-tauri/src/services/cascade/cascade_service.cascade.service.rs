@@ -13,8 +13,8 @@ use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
 
 use crate::helpers::response_helper::err_response_formatted;
-use crate::helpers::soft_delete_helper::{restore_patch, soft_delete_patch};
 use crate::services::activity_monitor_service::ActivityMonitorService;
+use nosql_orm::timestamps::timestamp_now_rfc3339;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct CascadeResult {
@@ -147,13 +147,21 @@ impl CascadeService {
       }
       "chats" => {
         provider
-          .patch("chats", id, soft_delete_patch())
+          .patch(
+            "chats",
+            id,
+            serde_json::json!({ "deleted_at": timestamp_now_rfc3339() }),
+          )
           .await
           .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
       }
       "categories" => {
         provider
-          .patch("categories", id, soft_delete_patch())
+          .patch(
+            "categories",
+            id,
+            serde_json::json!({ "deleted_at": timestamp_now_rfc3339() }),
+          )
           .await
           .map_err(|e| err_response_formatted("Patch category failed", &e.to_string()))?;
       }
@@ -235,13 +243,21 @@ impl CascadeService {
       }
       "comments" => {
         provider
-          .patch("comments", id, restore_patch())
+          .patch(
+            "comments",
+            id,
+            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
+          )
           .await
           .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
       }
       "chats" => {
         provider
-          .patch("chats", id, restore_patch())
+          .patch(
+            "chats",
+            id,
+            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
+          )
           .await
           .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
       }

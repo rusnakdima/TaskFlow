@@ -23,7 +23,6 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::filter_builder::{eq_filter, or_filters};
 use crate::helpers::response_helper::err_response;
 use crate::helpers::timestamp_helper::get_current_datetime;
 
@@ -56,9 +55,9 @@ impl AuthRegisterService {
     let password = signup_data.password;
 
     let table_name = TableModelType::User.table_name();
-    let filter = or_filters(vec![
-      eq_filter("email", serde_json::json!(email)),
-      eq_filter("username", serde_json::json!(username)),
+    let filter = Filter::Or(vec![
+      Filter::Eq("email".to_string(), serde_json::json!(email)),
+      Filter::Eq("username".to_string(), serde_json::json!(username)),
     ]);
 
     let existing = self
