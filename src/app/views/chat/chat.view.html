@@ -1,1 +1,7 @@
-<app-chat-window></app-chat-window>
+<div class="flex h-screen w-full flex-col overflow-hidden bg-white pb-20 dark:bg-zinc-900">
+  <app-chat-window
+    [chats]="chats()"
+    (messageSent)="onMessageSent($event)"
+    (conversationSelected)="onConversationSelected($event)"
+  />
+</div>
