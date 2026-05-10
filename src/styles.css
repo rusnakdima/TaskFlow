@@ -67,23 +67,23 @@
   }
 
   .styleLinkNav {
-    @apply cursor-pointer text-center text-xl font-semibold hover:text-blue-700 dark:hover:text-lime-600;
+    @apply cursor-pointer! text-center! text-xl! font-semibold! hover:text-blue-700! dark:hover:text-lime-600!;
   }
 
   .styleLinkMenuUser {
-    @apply block cursor-pointer px-4 py-2 text-xl text-black hover:bg-gray-300 dark:text-white dark:hover:bg-gray-900;
+    @apply block! cursor-pointer! px-4! py-2! text-xl! text-black! hover:bg-gray-300! dark:text-white! dark:hover:bg-gray-900!;
   }
 
   .styleLinkMenu {
-    @apply flex flex-row items-center gap-x-4 rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700;
+    @apply flex! flex-row! items-center! gap-x-4! rounded-lg! p-2! text-gray-900! hover:bg-gray-100! dark:text-white! dark:hover:bg-gray-700!;
   }
 
   .styleLinkRedir {
-    @apply cursor-pointer text-blue-600! underline decoration-blue-600! decoration-dashed decoration-1 underline-offset-4 dark:text-lime-500! dark:decoration-lime-500!;
+    @apply cursor-pointer! text-blue-600! underline! decoration-blue-600! decoration-dashed! decoration-1! underline-offset-4! dark:text-lime-500! dark:decoration-lime-500!;
   }
 
   .styleBottomNavItems {
-    @apply flex cursor-pointer flex-col items-center text-center;
+    @apply flex! cursor-pointer! flex-col! items-center! text-center!;
   }
 
   .styleBut {
