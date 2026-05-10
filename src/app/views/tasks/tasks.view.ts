@@ -397,13 +397,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.toggleTaskCompletion(task);
   }
 
-  onTaskStatusToggle(status: TaskStatus): void {
-    const taskId = this.lastSelectedId();
-    if (!taskId) return;
-
-    const task = this.todoTasks().find((t) => t.id === taskId);
-    if (!task) return;
-
+  onTaskStatusToggle(payload: { item: Task; status: TaskStatus }): void {
+    const task = payload.item;
+    const status = payload.status;
     const todo = this.todo();
     if (!todo) return;
 

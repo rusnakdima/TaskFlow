@@ -135,7 +135,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
           }
           if (qrData.token) {
             this.qrLoginService.startPolling(qrData.token, 2000);
-            this.watchQrApproval(qrData.token);
+            this.watchQrApproval();
           }
           this.isQrGenerating.set(false);
 
@@ -255,7 +255,6 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Login approved!");
-          this.completeQrLogin(token);
         },
         error: (err: any) => {
           LoginErrorHelper.handleQrError(err, this.notifyService, "QR approval");
@@ -286,20 +285,16 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
     this.isQrLoginActive.set(false);
   }
 
-  private watchQrApproval(token: string): void {
-    const checkApproval = () => {
-      const status = this.qrLoginService.qrStatus();
-
-      if (status === "approved") {
-        this.qrLoginService.stopPolling();
+  private watchQrApproval(): void {
+    this.qrLoginService.qrApproved$.subscribe({
+      next: (token) => {
         this.completeQrLogin(token);
-      } else if (status === "expired") {
-        this.notifyService.showError("QR code expired. Please try again.");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "QR code expired");
         this.cancelQrLogin();
-      }
-    };
-
-    this.qrApprovalInterval = setInterval(checkApproval, 2000);
+      },
+    });
   }
 
   private clearQrApprovalInterval(): void {
