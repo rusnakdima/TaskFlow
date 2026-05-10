@@ -14,7 +14,7 @@
             [queryParams]="nav.query"
             [ngClass]="
               url() === nav.url
-                ? 'bg-accent/20 dark:bg-accent/30'
+                ? 'bg-green-200/70 dark:bg-green-700/15'
                 : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
             "
           >
@@ -22,13 +22,12 @@
               [src]="getProfileImage()"
               alt="Profile"
               class="h-7 w-7 min-w-7 rounded-full object-cover"
-              [ngClass]="url() === nav.url ? 'ring-accent ring-2' : ''"
             />
             <span
               class="mt-1 text-xs font-medium transition-colors"
               [ngClass]="
                 url() === nav.url
-                  ? 'text-accent dark:text-accent'
+                  ? 'text-green-700! dark:text-green-600!'
                   : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
               "
             >
@@ -42,7 +41,7 @@
             [queryParams]="nav.query"
             [ngClass]="
               url() === nav.url
-                ? 'bg-accent/20 dark:bg-accent/30'
+                ? 'bg-green-200/70 dark:bg-green-700/15'
                 : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
             "
           >
@@ -51,7 +50,7 @@
               [fontIcon]="nav.icon"
               [ngClass]="
                 url() === nav.url
-                  ? 'text-accent! dark:text-accent!'
+                  ? 'text-green-700! dark:text-green-600!'
                   : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
               "
             />
@@ -59,7 +58,7 @@
               class="mt-1 text-xs font-medium transition-colors"
               [ngClass]="
                 url() === nav.url
-                  ? 'text-accent dark:text-accent'
+                  ? 'text-green-700! dark:text-green-600!'
                   : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
               "
             >
