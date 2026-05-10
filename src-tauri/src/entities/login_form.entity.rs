@@ -1,22 +1,13 @@
 /* sys lib */
+use nosql_orm::Validate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct LoginForm {
+  #[validate(not_empty)]
   pub username: String,
+  #[validate(not_empty)]
   pub password: String,
   pub remember: bool,
-}
-
-impl LoginForm {
-  pub fn validate(&self) -> Result<(), String> {
-    if self.username.is_empty() {
-      return Err("username cannot be empty".to_string());
-    }
-    if self.password.is_empty() {
-      return Err("password cannot be empty".to_string());
-    }
-    Ok(())
-  }
 }
