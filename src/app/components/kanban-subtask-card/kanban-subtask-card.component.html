@@ -1,0 +1,55 @@
+<div
+  class="task-card flex cursor-pointer flex-col rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-zinc-950/50"
+  [ngClass]="[getPriorityBorderColor(subtask.priority), getStatusBorderColor(subtask.status)]"
+  (click)="onCardClick($event)"
+>
+  <div class="mb-2 flex items-start justify-between">
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      <label
+        class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
+        (click)="$event.stopPropagation()"
+      >
+        <app-checkbox [checked]="isSelected" (checkedChange)="onCheckboxChange($event.checked)" />
+      </label>
+      <div class="min-w-0 flex-1">
+        <h4 class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+          {{ subtask.title }}
+        </h4>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <mat-icon
+        class="h-5! w-5! min-w-5 cursor-pointer text-xl! transition-colors hover:opacity-75"
+        [ngClass]="getStatusColorClass(subtask.status)"
+        [fontIcon]="getStatusIcon(subtask.status)"
+        (click)="onStatusCycleClick($event)"
+        [title]="'Status: ' + subtask.status + ' (click to change)'"
+      ></mat-icon>
+      <button
+        class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-600 dark:hover:text-gray-300"
+        style="touch-action: none; -webkit-user-drag: none"
+        cdkDragHandle
+        (click)="onDragHandleClick($event)"
+        title="Drag to move"
+      >
+        <mat-icon class="h-4! w-4! min-w-4 text-base!">drag_indicator</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="mb-3 flex items-center justify-between text-xs text-gray-500">
+    <div class="flex items-center gap-2">
+      <span
+        class="priority-dot inline-flex h-4 w-4 items-center justify-center rounded-full text-2xl!"
+        [ngClass]="getPriorityDotColor(subtask.priority)"
+      ></span>
+    </div>
+    @if (subtask.end_date) {
+      <span>{{ formatDate(subtask.end_date) }}</span>
+    } @else {
+      <span>No due date</span>
+    }
+  </div>
+
+  <div class="mt-auto flex items-center justify-end"></div>
+</div>
