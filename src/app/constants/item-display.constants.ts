@@ -96,13 +96,14 @@ export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
-  { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 2 },
-  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 2 },
+  { key: "status-toggle", type: "status-toggle", width: "32px", line: 1 },
+  { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 3 },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
     key: "menu",
     type: "menu",
     getClass: () => ActionColors.default,
-    line: 1,
+    line: 3,
   },
 ];
 
