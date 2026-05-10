@@ -51,7 +51,6 @@ import { BaseListView } from "@views/base-list.view";
 
 /* components */
 import { TodoInformationComponent } from "@components/todo-information/todo-information.component";
-import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -62,7 +61,6 @@ import {
 } from "@components/page-toolbar/page-toolbar.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
-import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
@@ -79,7 +77,6 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
     MatProgressSpinnerModule,
     RouterModule,
     TodoInformationComponent,
-    ChatWindowComponent,
     DragDropModule,
     BulkActionsComponent,
     TableViewComponent,
@@ -87,7 +84,6 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
     PageToolbarComponent,
     ItemExpandDetailsComponent,
     LoadingStateComponent,
-    ChatFabComponent,
     ItemCardComponent,
     KanbanTaskCardComponent,
   ],
@@ -134,8 +130,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   showMobileInfo = signal(false);
   highlightTaskId = signal<string | null>(null);
   openComments = signal(false);
-  openChat = signal(false);
-  chats = signal<Chat[]>([]);
 
   taskCardConfig = TASK_CARD_CONFIG;
 
@@ -212,7 +206,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         hasMore: false,
         loading: false,
       }));
-      return;
     }
 
     this.requestService
@@ -275,7 +268,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
 
-    const currentChats = this.chats();
+    const currentChats = this.storageService.chats();
     if (currentChats.length === 0) return 0;
 
     let count = 0;
@@ -368,9 +361,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         }
         if (queryParams.openComments) {
           this.openComments.set(true);
-        }
-        if (queryParams.openChat) {
-          this.openChat.set(true);
         }
       })
     );
@@ -534,20 +524,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       });
   }
 
-  toggleChat() {
-    this.openChat.update((v) => !v);
-  }
-
   toggleMobileInfo() {
     this.showMobileInfo.update((v) => !v);
   }
 
   toggleInfoBlock() {
     this.appStateService.toggleInfoBlock();
-  }
-
-  override getUnreadCount(): number {
-    return super.getUnreadCount(this.chats);
   }
 
   updateTaskInline(event: { task: Task; field: string; value: any }) {

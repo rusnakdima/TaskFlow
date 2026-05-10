@@ -36,10 +36,7 @@ import { BulkActionHelper } from "@helpers/bulk-action.helper";
 import { BaseListView } from "@views/base-list.view";
 
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
-import {
-  SegmentSelectorComponent,
-  SegmentOption,
-} from "@components/segment-selector/segment-selector.component";
+import { SegmentSelectorComponent } from "@components/segment-selector/segment-selector.component";
 import {
   PageToolbarComponent,
   PageToolbarConfig,
@@ -112,12 +109,27 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   userId = signal("");
   showStats = signal(false);
 
-  visibilityOptions: SegmentOption[] = [
-    { id: "all", label: "All", icon: "apps" },
-    { id: "private", label: "Private", icon: "lock" },
-    { id: "shared", label: "Shared", icon: "group" },
-    { id: "public", label: "Public", icon: "public" },
-  ];
+  visibilityOptions = computed(() => [
+    { id: "all", label: "All", icon: "apps", count: this.stateService.allTodosFlat().length },
+    {
+      id: "private",
+      label: "Private",
+      icon: "lock",
+      count: this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at).length,
+    },
+    {
+      id: "shared",
+      label: "Shared",
+      icon: "group",
+      count: this.storageService.sharedTodos().filter((t: Todo) => !t.deleted_at).length,
+    },
+    {
+      id: "public",
+      label: "Public",
+      icon: "public",
+      count: this.storageService.publicTodos().filter((t: Todo) => !t.deleted_at).length,
+    },
+  ]);
 
   selectedTodos = this.selectedItems;
 
@@ -232,7 +244,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         total: this.storageService.todos().length,
         loading: false,
       }));
-      return;
     }
 
     const sub = this.requestService
