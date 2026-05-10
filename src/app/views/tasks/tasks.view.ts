@@ -67,6 +67,8 @@ import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { ItemDisplayComponent } from "@components/item-display/item-display.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
+import { KanbanTaskCardSimpleComponent } from "@components/kanban-task-card-simple/kanban-task-card-simple.component";
+import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 
 @Component({
   selector: "app-tasks",
@@ -90,6 +92,7 @@ import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
     LoadingStateComponent,
     ChatFabComponent,
     ItemDisplayComponent,
+    KanbanTaskCardSimpleComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -110,6 +113,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private appStateService = inject(AppStateService);
   private githubService = inject(GithubService);
   private commentService = inject(CommentService);
+  private kanbanDragDropService = inject(KanbanDragDropService);
+
+  private isUpdatingKanban = signal(false);
 
   protected getItems(): { id: string }[] {
     return this.listTasks();
@@ -332,6 +338,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         mode: this.viewMode(),
         pageKey: "tasks",
         onModeChange: (mode) => this.setViewMode(mode),
+        modes: ["card", "grid", "table", "kanban"],
       },
       filterFields: this.filterFields,
       showFilter: this.showFilter(),
@@ -1165,5 +1172,113 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   resolveTodoTitle(todoId: string): string {
     const todo = this.storageService.todoMap().get(todoId);
     return todo?.title || "-";
+  }
+
+  getKanbanColumns(): { id: TaskStatus; label: string; color: string; iconBgClass: string }[] {
+    return [
+      {
+        id: TaskStatus.PENDING,
+        label: "To Do",
+        color: "bg-yellow-500",
+        iconBgClass: "bg-yellow-500/20 text-yellow-400",
+      },
+      {
+        id: TaskStatus.COMPLETED,
+        label: "Done",
+        color: "bg-green-500",
+        iconBgClass: "bg-green-500/20 text-green-400",
+      },
+      {
+        id: TaskStatus.SKIPPED,
+        label: "Skipped",
+        color: "bg-orange-500",
+        iconBgClass: "bg-orange-500/20 text-orange-400",
+      },
+      {
+        id: TaskStatus.FAILED,
+        label: "Failed",
+        color: "bg-red-500",
+        iconBgClass: "bg-red-500/20 text-red-400",
+      },
+    ];
+  }
+
+  getTasksByStatus(status: TaskStatus): Task[] {
+    return this.listTasks().filter((t) => t.status === status);
+  }
+
+  getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
+    return this.kanbanDragDropService.getConnectedDropLists(
+      currentStatus,
+      this.getKanbanColumns() as any
+    );
+  }
+
+  onKanbanTaskDrop(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {
+    this.kanbanDragDropService.handleTaskDrop(
+      event,
+      targetStatus,
+      this.isUpdatingKanban(),
+      (newStatus, taskId) => {
+        if (taskId) {
+          this.updateTaskStatus(taskId, newStatus);
+        }
+      }
+    );
+  }
+
+  private updateTaskStatus(taskId: string, newStatus: TaskStatus): void {
+    const todoId = this.todoId();
+    if (!todoId) return;
+
+    if (this.isUpdatingKanban()) {
+      this.notifyService.showWarning("Please wait for previous operation to complete");
+      return;
+    }
+
+    this.isUpdatingKanban.set(true);
+
+    const visibility = this.todo()?.visibility || "private";
+
+    this.requestService
+      .update<Task>(
+        "tasks",
+        taskId,
+        { status: newStatus },
+        { visibility: visibility as Visibility }
+      )
+      .subscribe({
+        next: () => {
+          this.todoTasks.update((tasks) =>
+            tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+          );
+          this.isUpdatingKanban.set(false);
+          this.notifyService.showSuccess(`Task moved to ${newStatus}`);
+        },
+        error: (err) => {
+          this.isUpdatingKanban.set(false);
+          this.notifyService.showError(err.message || "Failed to update task");
+        },
+      });
+  }
+
+  onKanbanStatusCycle(task: Task): void {
+    const newStatus = BaseItemHelper.getNextStatus(task.status);
+    this.updateTaskStatus(task.id, newStatus);
+  }
+
+  onKanbanTaskClick(task: Task): void {
+    const todoId = this.todoId();
+    if (todoId) {
+      this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
+    }
+  }
+
+  onKanbanSelectionChange(taskId: string, isSelected: boolean): void {
+    this.toggleTaskSelection({ id: taskId, selected: isSelected });
+  }
+
+  isKanbanTaskSelected(taskId: string): boolean {
+    return this.selectedTasks().has(taskId);
   }
 }

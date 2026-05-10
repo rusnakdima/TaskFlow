@@ -29,6 +29,7 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { REQUEST_SERVICE } from "@services/api.service";
+import { BulkActionHelper } from "@helpers/bulk-action.helper";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DateHelper } from "@helpers/date.helper";
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
@@ -41,6 +42,7 @@ import { BaseListView } from "@views/base-list.view";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
+import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { FilterField } from "@models/filter-config.model";
 import {
   PageToolbarComponent,
@@ -69,6 +71,7 @@ import {
     EmptyStateComponent,
     PageToolbarComponent,
     SegmentSelectorComponent,
+    BulkActionsComponent,
   ],
   templateUrl: "./kanban.view.html",
 })
@@ -77,6 +80,7 @@ export class KanbanView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private requestService = inject(REQUEST_SERVICE);
   private dragDropService = inject(KanbanDragDropService);
+  private bulkActionHelper = inject(BulkActionHelper);
   private cdr = inject(ChangeDetectorRef);
 
   protected getItems(): { id: string }[] {
@@ -106,6 +110,8 @@ export class KanbanView extends BaseListView implements OnInit {
     const todo = this.todos().find((t) => t.id === todoId);
     return todo?.title || "No Project Selected";
   });
+
+  selectedTasks = signal<Set<string>>(new Set());
 
   projectTasks = computed(() => {
     const todoId = this.selectedTodoId();
@@ -422,6 +428,149 @@ export class KanbanView extends BaseListView implements OnInit {
 
   onStatsToggle(): void {
     this.showStats.set(!this.showStats());
+  }
+
+  onTaskSelectionChange(taskId: string, isSelected: boolean): void {
+    this.selectedTasks.update((selected) => {
+      const newSelected = new Set(selected);
+      if (isSelected) {
+        newSelected.add(taskId);
+      } else {
+        newSelected.delete(taskId);
+      }
+      return newSelected;
+    });
+  }
+
+  isTaskSelected(taskId: string): boolean {
+    return this.selectedTasks().has(taskId);
+  }
+
+  isAllTasksSelected(): boolean {
+    const tasks = this.projectTasks();
+    return tasks.length > 0 && tasks.every((t) => this.selectedTasks().has(t.id));
+  }
+
+  getSelectedCount(): number {
+    return this.selectedTasks().size;
+  }
+
+  override toggleSelectAll(): void {
+    const allSelected = this.isAllTasksSelected();
+    this.selectedTasks.update((selected) => {
+      const newSelected = new Set(selected);
+      if (allSelected) {
+        this.projectTasks().forEach((t) => newSelected.delete(t.id));
+      } else {
+        this.projectTasks().forEach((t) => newSelected.add(t.id));
+      }
+      return newSelected;
+    });
+  }
+
+  override clearSelection(): void {
+    this.selectedTasks.set(new Set());
+  }
+
+  onBulkStatusChange(status: string): void {
+    const todoId = this.selectedTodoId();
+    if (!todoId) return;
+
+    const visibility = (this.selectedTodo()?.visibility ?? "private") as
+      | "private"
+      | "shared"
+      | "public";
+
+    const selectedArray = Array.from(this.selectedTasks());
+    if (selectedArray.length === 0) return;
+
+    const updates = selectedArray.map((taskId) => ({ id: taskId, status }));
+    this.bulkActionHelper
+      .bulkUpdateStatus(updates, status, (id, data) => {
+        return this.requestService.update("tasks", id, data, { visibility });
+      })
+      .subscribe({
+        next: () => {
+          this.clearSelection();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to update tasks");
+        },
+      });
+  }
+
+  onBulkSoftDelete(): void {
+    const selectedArray = Array.from(this.selectedTasks());
+    if (selectedArray.length === 0) return;
+
+    const visibility = (this.selectedTodo()?.visibility ?? "private") as
+      | "private"
+      | "shared"
+      | "public";
+
+    this.bulkActionHelper
+      .bulkDelete(
+        selectedArray.map((id) => ({ id })),
+        (id) =>
+          this.requestService.update(
+            "tasks",
+            id,
+            { deleted_at: new Date().toISOString() },
+            { visibility }
+          )
+      )
+      .subscribe({
+        next: (result) => {
+          if (result.errorCount > 0) {
+            this.notifyService.showError(`Failed to delete ${result.errorCount} tasks`);
+          } else {
+            this.notifyService.showNotify(
+              ResponseStatus.SUCCESS,
+              `${result.successCount} tasks deleted`
+            );
+          }
+          this.clearSelection();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete tasks");
+        },
+      });
+  }
+
+  onBulkHardDelete(): void {
+    const selectedArray = Array.from(this.selectedTasks());
+    if (selectedArray.length === 0) return;
+
+    const visibility = (this.selectedTodo()?.visibility ?? "private") as
+      | "private"
+      | "shared"
+      | "public";
+
+    this.bulkActionHelper
+      .bulkDelete(
+        selectedArray.map((id) => ({ id })),
+        (id) => this.requestService.delete("tasks", id, { visibility })
+      )
+      .subscribe({
+        next: (result) => {
+          if (result.errorCount > 0) {
+            this.notifyService.showError(`Failed to delete ${result.errorCount} tasks`);
+          } else {
+            this.notifyService.showNotify(
+              ResponseStatus.SUCCESS,
+              `${result.successCount} tasks deleted`
+            );
+          }
+          this.clearSelection();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete tasks");
+        },
+      });
+  }
+
+  onBulkCancel(): void {
+    this.clearSelection();
   }
 
   getToolbarConfig(): PageToolbarConfig {

@@ -8,7 +8,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { StorageService } from "@services/storage.service";
 
-export type ViewMode = "card" | "grid" | "table" | "list";
+export type ViewMode = "card" | "grid" | "table" | "list" | "kanban";
 
 /**
  * Abstract base class for list views (todos, tasks, subtasks).
