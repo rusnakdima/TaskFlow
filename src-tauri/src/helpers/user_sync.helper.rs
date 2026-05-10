@@ -4,7 +4,7 @@ use nosql_orm::providers::MongoProvider;
 use serde_json::Value;
 
 /* helpers */
-use crate::helpers::timestamp_helper;
+use crate::helpers::timestamp_helper::timestamp_now_rfc3339;
 
 /* entities */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
@@ -20,7 +20,7 @@ pub async fn update_user_profile_id_both(
   user_id: &str,
   profile_id: &str,
 ) -> Result<(), ResponseModel> {
-  let now = timestamp_helper::get_current_timestamp();
+  let now = timestamp_now_rfc3339();
 
   // Step 1: Update JSON
   let user_value = json_provider
@@ -59,7 +59,7 @@ pub async fn update_user_profile_id_both(
     return Ok(());
   };
 
-  let now_str = timestamp_helper::get_current_timestamp();
+  let now_str = timestamp_now_rfc3339();
 
   match mongo.find_by_id("users", user_id).await {
     Ok(Some(existing_mongo_user)) => {
