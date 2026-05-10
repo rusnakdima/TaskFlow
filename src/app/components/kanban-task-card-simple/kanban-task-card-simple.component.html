@@ -1,0 +1,71 @@
+<div
+  class="task-card flex cursor-pointer flex-col rounded-xl border-l-4 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-700"
+  [ngClass]="getStatusBorderColor(task.status)"
+  (click)="onCardClick($event)"
+>
+  <div class="mb-2 flex items-start justify-between">
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      <label
+        class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
+        (click)="$event.stopPropagation()"
+      >
+        <app-checkbox [checked]="isSelected" (checkedChange)="onCheckboxChange($event.checked)" />
+      </label>
+      <div class="min-w-0 flex-1">
+        <h4 class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+          {{ task.title }}
+        </h4>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <mat-icon
+        class="h-5! w-5! min-w-5 cursor-pointer text-xl! transition-colors hover:opacity-75"
+        [ngClass]="getStatusColorClass(task.status)"
+        [fontIcon]="getStatusIcon(task.status)"
+        (click)="onStatusCycleClick($event)"
+        [title]="'Status: ' + task.status + ' (click to change)'"
+      ></mat-icon>
+      <button
+        class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-600 dark:hover:text-gray-300"
+        style="touch-action: none; -webkit-user-drag: none"
+        cdkDragHandle
+        (click)="onDragHandleClick($event)"
+        title="Drag to move"
+      >
+        <mat-icon class="h-4! w-4! min-w-4 text-base!">drag_indicator</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="mb-3 flex items-center justify-between text-xs text-gray-500">
+    <div class="flex items-center gap-2">
+      <span
+        class="priority-dot inline-block h-2 w-2 shrink-0 rounded-full"
+        [ngClass]="getPriorityDotColor(task.priority)"
+      ></span>
+      <span
+        class="rounded-full px-2 py-0.5 font-medium"
+        [ngClass]="getPriorityBgColor(task.priority)"
+      >
+        {{ getPriorityBadgeText(task.priority) }}
+      </span>
+    </div>
+    @if (task.end_date) {
+      <span>{{ formatDate(task.end_date) }}</span>
+    } @else {
+      <span>No due date</span>
+    }
+  </div>
+
+  @if (subtasks.length > 0) {
+    <div class="mb-2 flex items-center gap-2 text-xs text-gray-500">
+      <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="list" />
+      <span>{{ getCompletedSubtasksCount() }}/{{ getSubtasksCount() }}</span>
+      <div class="flex-1">
+        <app-progress-bar [items]="subtasks" size="sm" />
+      </div>
+    </div>
+  }
+
+  <div class="mt-auto flex items-center justify-end"></div>
+</div>

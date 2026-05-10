@@ -1,0 +1,11 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+:host-context(.dark) {
+  .cdk-drag-placeholder {
+    background-color: theme("colors.zinc.700");
+    opacity: 0.5;
+  }
+}
