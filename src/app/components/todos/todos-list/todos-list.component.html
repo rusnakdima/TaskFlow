@@ -37,7 +37,7 @@
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
               (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($event)"
+              (dropped)="onTodoDrop($any($event))"
             >
             </app-table-view>
           </div>
@@ -67,7 +67,7 @@
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
               (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($event)"
+              (dropped)="onTodoDrop($any($event))"
             >
             </app-table-view>
           </div>
@@ -97,7 +97,7 @@
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
               (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($event)"
+              (dropped)="onTodoDrop($any($event))"
             >
             </app-table-view>
           </div>
@@ -120,15 +120,24 @@
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="true"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -146,15 +155,24 @@
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="false"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -175,15 +193,24 @@
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="false"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -210,15 +237,24 @@
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="true"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -236,15 +272,24 @@
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="false"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -265,15 +310,24 @@
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="false"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -319,7 +373,7 @@
             (selectAll)="selectAll.emit($event)"
             (rowClick)="onRowClick($event)"
             (actionClick)="tableAction.emit($event)"
-            (dropped)="onTodoDrop($event)"
+            (dropped)="onTodoDrop($any($event))"
           >
           </app-table-view>
         </div>
@@ -343,15 +397,24 @@
           >
             @for (todo of stateService.listTodos(); track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
-                <app-todo-card
-                  [todo]="todo"
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
                   [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
                   [actions]="tableActions"
                   [itemType]="'todo'"
                   [isOwner]="todo.user_id === userId"
-                  [isPrivate]="stateService.activeVisibility() === 'private'"
-                  (toggleExpand)="toggleTodoExpand($event)"
-                  (todoAction)="onTodoCardAction($event)"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="onTodoDrop($any($event))"
                 />
               </div>
               <div
@@ -379,25 +442,31 @@
             (cdkDropListDropped)="onTodoListDropped($event)"
           >
             @for (todo of stateService.listTodos(); track todo.id) {
-              <app-todo-card
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [todo]="todo"
-                [isExpanded]="isTodoExpanded(todo.id)"
-                [actions]="tableActions"
-                [itemType]="'todo'"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="stateService.activeVisibility() === 'private'"
-                (toggleExpand)="toggleTodoExpand($event)"
-                (dropped)="todoDropped.emit($event)"
-                (todoAction)="onTodoCardAction($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-                ></div>
-              </app-todo-card>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-item-card
+                  [item]="todo"
+                  [config]="todoCardConfig"
+                  [displayMode]="'card'"
+                  [expandable]="true"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [showCommentToggle]="true"
+                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isSelected]="selectedTodos().has(todo.id)"
+                  (cardClick)="onCardClick($any($event))"
+                  (toggleExpand)="toggleTodoExpand(todo)"
+                  (toggleComments)="toggleTodoComments(todo.id)"
+                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
+                  (itemAction)="onTodoCardAction($any($event))"
+                  (dropped)="todoDropped.emit($any($event))"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
             }
           </div>
         </div>

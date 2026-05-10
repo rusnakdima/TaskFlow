@@ -9,7 +9,7 @@ import { TableFieldActionButton, TableField } from "@models/table-field.model";
 import { ItemDisplayConfig } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
 
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
@@ -28,7 +28,7 @@ import {
   imports: [
     CommonModule,
     DragDropModule,
-    ItemDisplayComponent,
+    ItemCardComponent,
     TableViewComponent,
     ItemExpandDetailsComponent,
     EmptyStateComponent,

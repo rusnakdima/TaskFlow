@@ -21,9 +21,9 @@ import { TableViewComponent } from "@components/table-view/table-view.component"
 
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
+import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { TodoCardComponent } from "@components/todos/todo-card/todo-card.component";
-import { TODO_TABLE_CONFIG } from "@constants/item-display.constants";
+import { TODO_TABLE_CONFIG, TODO_CARD_CONFIG } from "@constants/item-display.constants";
 import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -41,7 +41,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     EmptyStateComponent,
     ItemExpandDetailsComponent,
     BulkActionsComponent,
-    TodoCardComponent,
+    ItemCardComponent,
   ],
   templateUrl: "./todos-list.component.html",
 })
@@ -103,6 +103,9 @@ export class TodosListComponent {
   ];
 
   todoTableConfig = TODO_TABLE_CONFIG;
+  todoCardConfig = TODO_CARD_CONFIG;
+
+  expandedCommentsIds = signal<Set<string>>(new Set());
 
   computeTodoStatus(todo: Todo): string {
     const tasks = this.stateService["storageService"].getTasksByTodoId(todo.id);
@@ -318,7 +321,23 @@ export class TodosListComponent {
     });
   }
 
+  toggleTodoComments(todoId: string): void {
+    this.expandedCommentsIds.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(todoId)) {
+        newSet.delete(todoId);
+      } else {
+        newSet.add(todoId);
+      }
+      return newSet;
+    });
+  }
+
   isTodoExpanded(todoId: string): boolean {
     return this.expandedTodoIds().has(todoId);
+  }
+
+  isCommentsExpanded(todoId: string): boolean {
+    return this.expandedCommentsIds().has(todoId);
   }
 }
