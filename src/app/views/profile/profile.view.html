@@ -193,17 +193,12 @@
             <span class="font-medium">Categories</span>
           </button>
 
-          <button
+<button
             class="flex w-full items-center gap-3 rounded-lg bg-cyan-50 p-4 text-cyan-700 transition-colors hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-900/50"
-            (click)="syncAll()"
-            [disabled]="isSyncing()"
+            routerLink="/sync"
           >
-            <mat-icon
-              class="h-5! w-5! min-w-5 text-xl!"
-              [ngClass]="isSyncing() ? 'animate-spin' : ''"
-              fontIcon="sync"
-            />
-            <span class="font-medium">{{ isSyncing() ? "Syncing..." : "Sync Data" }}</span>
+            <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sync" />
+            <span class="font-medium">Sync Data</span>
           </button>
 
           <button
