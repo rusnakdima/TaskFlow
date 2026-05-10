@@ -246,6 +246,60 @@ button:disabled {
   animation: fadeOut 0.3s ease-out forwards;
 }
 
+@keyframes slideUpNav {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDownNav {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+}
+
+.floating-bottom-nav-container {
+  @apply fixed z-40;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  transition:
+    transform 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
+}
+
+.floating-bottom-nav-container.show-animation {
+  animation: slideUpNav 0.4s ease-out forwards;
+}
+
+.floating-bottom-nav-container.hide-animation {
+  animation: slideDownNav 0.3s ease-in forwards;
+}
+
+.floating-bottom-nav-container.hidden {
+  transform: translateX(-50%) translateY(calc(100% + 60px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-bottom-nav {
+  @apply flex flex-row flex-nowrap items-center gap-1 rounded-full border border-gray-200/50 bg-white/90 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md dark:border-zinc-700/50 dark:bg-zinc-800/90;
+}
+
+.nav-item {
+  @apply min-w-[64px];
+}
+
 .progressbar-text > p {
   @apply text-black dark:text-white;
 }
