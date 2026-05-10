@@ -10,12 +10,8 @@ pub mod common;
 pub mod config;
 #[path = "crypto.helper.rs"]
 pub mod crypto_helper;
-#[path = "filter_builder.helper.rs"]
-pub mod filter_builder;
 #[path = "load_param.helper.rs"]
 pub mod load_param;
-#[path = "orm_wrapper.helper.rs"]
-pub mod orm_wrapper;
 #[path = "profile.helper.rs"]
 pub mod profile_helper;
 #[path = "qr.helper.rs"]
@@ -24,8 +20,8 @@ pub mod qr_helper;
 pub mod response_helper;
 #[path = "security.helper.rs"]
 pub mod security_helper;
-#[path = "soft_delete.helper.rs"]
-pub mod soft_delete_helper;
+#[path = "statistics_aggregation.helper.rs"]
+pub mod statistics_aggregation;
 #[path = "timestamp.helper.rs"]
 pub mod timestamp_helper;
 #[path = "user_sync.helper.rs"]

@@ -2,6 +2,9 @@
 use std::env;
 use std::path::Path;
 
+#[cfg(target_os = "android")]
+const ENV_CONTENT: &str = include_str!("../../.env");
+
 #[derive(Debug, Clone)]
 
 pub struct ConfigHelper {
@@ -49,13 +52,39 @@ fn parse_env_content(content: &str) -> Vec<(String, String)> {
 fn load_env_from_file(path: &Path) -> bool {
   if let Ok(content) = std::fs::read_to_string(path) {
     let vars = parse_env_content(&content);
-    for (key, value) in vars {
+    tracing::debug!("[ConfigHelper] Loading .env from path: {:?}", path);
+    for (key, value) in &vars {
+      if key == "MONGODB_URI" {
+        tracing::debug!("[ConfigHelper] Found MONGODB_URI: {}", value);
+      }
       env::set_var(key, value);
     }
     return true;
   }
+  tracing::debug!("[ConfigHelper] Failed to read .env from path: {:?}", path);
   false
 }
+
+#[cfg(target_os = "android")]
+fn load_embedded_env() {
+  tracing::debug!("[ConfigHelper] Android detected, loading embedded .env content");
+  let vars = parse_env_content(ENV_CONTENT);
+  for (key, value) in &vars {
+    tracing::debug!(
+      "[ConfigHelper] Setting env var: {}={}",
+      key,
+      if key == "MONGODB_URI" || key == "JWT_SECRET" || key == "SMTP_PASSWORD" {
+        "[REDACTED]"
+      } else {
+        value
+      }
+    );
+    env::set_var(key, value);
+  }
+}
+
+#[cfg(not(target_os = "android"))]
+fn load_embedded_env() {}
 
 impl ConfigHelper {
   pub fn new() -> Self {
@@ -67,11 +96,21 @@ impl ConfigHelper {
       Path::new("./resource/.env"),
     ];
 
+    tracing::debug!("[ConfigHelper] Attempting to load .env files...");
+    load_embedded_env();
+
     for path in &fallback_env_paths {
+      tracing::debug!("[ConfigHelper] Trying fallback path: {:?}", path);
       if load_env_from_file(path) {
+        tracing::debug!("[ConfigHelper] Successfully loaded from: {:?}", path);
         break;
       }
     }
+
+    tracing::debug!(
+      "[ConfigHelper] MONGODB_URI being used: {}",
+      env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string())
+    );
 
     Self {
       name_app: env::var("NAME_APP").unwrap_or_else(|_| "TaskFlow".to_string()),
