@@ -120,7 +120,7 @@
             </div>
           }
           @case ("status-toggle") {
-            @if (showStatusToggle && itemType === "task") {
+            @if (showStatusToggle && (itemType === "task" || itemType === "subtask")) {
               <app-status-toggle [status]="taskStatus" (toggle)="onStatusToggle($event)" />
             }
           }

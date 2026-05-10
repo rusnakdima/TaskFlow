@@ -116,14 +116,15 @@ export class CommentsComponent
 
   private loadProfiles(): void {
     this.requestService
-      .getAll<Profile>("profiles", { visibility: "public" })
+      .getAll<Profile>("profiles", { visibility: "public", load: ["user"] })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (profiles: Profile[]) => {
           profiles.forEach((profile) => {
             const userId = profile.user_id;
             if (userId) {
-              const name = `${profile.name || ""} ${profile.last_name || ""}`.trim();
+              const name =
+                profile.user?.username || `${profile.name || ""} ${profile.last_name || ""}`.trim();
               this.usernameMap.set(userId, name || "Unknown");
             }
           });
@@ -175,6 +176,10 @@ export class CommentsComponent
   }
 
   getUsername(userId: string): string {
+    const comment = this.comments.find((c) => c.user_id === userId);
+    if (comment?.user?.username) {
+      return comment.user.username;
+    }
     return this.usernameMap.get(userId) || "Unknown";
   }
 
