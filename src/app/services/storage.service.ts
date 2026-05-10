@@ -145,13 +145,6 @@ export class StorageService {
       (c) => !!c.subtask_id
     )
   );
-  readonly chatsByTodoId = computed(() =>
-    createGroupedMap(
-      this.activeChats(),
-      (c) => c.todo_id,
-      (c) => !!c.todo_id
-    )
-  );
 
   get todosPagination() {
     return this._pagination().todos;
@@ -211,7 +204,7 @@ export class StorageService {
       case "subtasks":
         return this.subtasksByTaskId().get(parentId) || [];
       case "chats":
-        return this.chatsByTodoId().get(parentId) || [];
+        return this.chats();
     }
   }
 
@@ -248,20 +241,21 @@ export class StorageService {
   ): ReturnType<typeof computed<Task[] | Chat[]>> {
     if (!todoId) return computed(() => []);
     const cacheKey = `${type}_by_todo_${todoId}`;
-    if (this._cacheService.hasChatCache(cacheKey) && type === "chats")
-      return this._cacheService.getChatCache(cacheKey)!;
     if (this._cacheService.hasTasksCache(cacheKey) && type === "tasks")
       return this._cacheService.getTasksCache(cacheKey)!;
     const now = Date.now();
     if (this._cacheService.isCacheValid(cacheKey, DEFAULT_CACHE_TTL_MS)) {
       return type === "chats"
-        ? this._cacheService.getChatCache(cacheKey)!
+        ? computed(() => this.chats())
         : this._cacheService.getTasksCache(cacheKey)!;
     }
     if (this._cacheService.isCacheFull()) {
       this._cacheService.evictOldestCache();
     }
-    const computedSignal = computed(() => this._queryService.query(type, { todoId: todoId! }));
+    const computedSignal =
+      type === "chats"
+        ? computed(() => this.chats())
+        : computed(() => this._queryService.query(type, { todoId: todoId! }));
     if (type === "chats") {
       this._cacheService.setChatCache(todoId, computedSignal);
     } else {
@@ -286,24 +280,24 @@ export class StorageService {
     }
   }
 
-  updateChat(todoId: string, op: ChatOperation, data?: Chat): void {
-    this._entityService.updateChat(todoId, op as any, data);
+  updateChat(op: ChatOperation, data?: Chat): void {
+    this._entityService.updateChat("", op as any, data);
   }
 
-  setChatsByTodo(chats: Chat[], todo_id?: string) {
-    this.updateChat(todo_id!, "set", chats[0]);
+  setChats(chats: Chat[]) {
+    this._entityService.chats.set(chats);
   }
-  addChatToTodo(chat: Chat, todo_id?: string) {
-    this.updateChat(todo_id!, "add", chat);
+  addChat(chat: Chat) {
+    this._entityService.updateChat("", "add", chat);
   }
-  updateChatInTodo(chat: Chat, todo_id?: string) {
-    this.updateChat(todo_id!, "update", chat);
+  updateChatById(chat: Chat) {
+    this._entityService.updateChat("", "update", chat);
   }
-  deleteChatFromTodo(chatId: string, todo_id?: string) {
-    this.updateChat(todo_id!, "delete", { id: chatId } as Chat);
+  deleteChat(chatId: string) {
+    this._entityService.updateChat("", "delete", { id: chatId } as Chat);
   }
-  clearChatsByTodo(todo_id?: string) {
-    this.updateChat(todo_id!, "clear");
+  clearChats() {
+    this._entityService.updateChat("", "clear");
   }
 
   bulkUpsertSubtasks(subtasks: Subtask[]): void {
@@ -355,7 +349,7 @@ export class StorageService {
         return !isTodoComment && !isTaskComment && !isSubtaskComment;
       })
     );
-    this._entityService.chats.update((items) => items.filter((c) => c.todo_id !== todo_id));
+    this._entityService.chats.update((items) => items);
     this._entityService.privateTodos.update((items) => items.filter((t) => t.id !== todo_id));
     this._entityService.sharedTodos.update((items) => items.filter((t) => t.id !== todo_id));
     this._entityService.publicTodos.update((items) => items.filter((t) => t.id !== todo_id));
@@ -468,7 +462,7 @@ export class StorageService {
       const relatedSubtasks = this._entityService
         .subtasks()
         .filter((s) => relatedTasks.some((t) => t.id === s.task_id));
-      const relatedChats = this._entityService.chats().filter((c) => c.todo_id === id);
+      const relatedChats = this._entityService.chats();
       relatedTasks.forEach((t) =>
         this._entityService.updateEntity("tasks", { id: t.id, ...updateData })
       );
@@ -514,9 +508,7 @@ export class StorageService {
           return isRelated ? { ...c, ...update } : c;
         })
       );
-      this._entityService.chats.update((chats) =>
-        chats.map((c) => (c.todo_id === id ? { ...c, ...update } : c))
-      );
+      this._entityService.chats.update((chats) => chats.map((c) => ({ ...c, ...update })));
       [
         this._entityService.privateTodos,
         this._entityService.sharedTodos,
@@ -694,16 +686,15 @@ export class StorageService {
     }
   }
 
-  private handleDelete(table: string, id?: string, parentTodoId?: string): void {
+  private handleDelete(table: string, id?: string, _parentTodoId?: string): void {
     if (table === "todos" && id) this.modify("todos", "delete", { id });
-    else if (table === "chats" && id) this.updateChat(parentTodoId!, "delete", { id } as Chat);
+    else if (table === "chats" && id) this.updateChat("delete", { id } as Chat);
     else if (id) this.modify(table as EntityType, "delete", { id });
   }
 
-  private handleUpdateAll(table: string, result: any, parentTodoId?: string): void {
+  private handleUpdateAll(table: string, result: any, _parentTodoId?: string): void {
     if (table === "chats" && result?.length) {
-      const todoId = parentTodoId || result[0].todo_id;
-      if (todoId) this.updateChat(todoId, "set", result[0]);
+      this.modify("chats", "update", result[0]);
     } else if (result?.length) {
       result.forEach((item: any) => {
         if (item?.id) this.modify(table as EntityType, "update", item);
@@ -753,8 +744,8 @@ export class StorageService {
     });
   }
 
-  getChatsByTodoId(todo_id: string): Chat[] {
-    return this.chatsByTodoId().get(todo_id) || [];
+  getChats(): Chat[] {
+    return this.chats();
   }
   getTaskById(id: string): Task | undefined {
     return this.taskMap().get(id);
@@ -784,8 +775,8 @@ export class StorageService {
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   }
-  getChatsByTodo(todo_id?: string): Chat[] {
-    return todo_id ? this._entityService.chats().filter((c) => c.todo_id === todo_id) : [];
+  getChatsByAll(): Chat[] {
+    return this.chats();
   }
 
   getTodosByVisibility(visibility?: string): Todo[] {
