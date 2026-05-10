@@ -18,7 +18,9 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::{
+  collection_metadata::add_collection_metadata,
   common::merge_immutable_fields,
+  load_param::parse_load_param,
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
 };
@@ -150,26 +152,6 @@ impl RepositoryService {
       })
   }
 
-  fn build_filter(&self, filter_value: &Value) -> Option<Filter> {
-    if filter_value.is_object() && filter_value.as_object().is_none_or(|obj| obj.is_empty()) {
-      return None;
-    }
-
-    Filter::from_json(filter_value).ok()
-  }
-
-  fn parse_load_param(load: Option<String>) -> Vec<String> {
-    match load {
-      Some(l) => {
-        if let Ok(arr) = serde_json::from_str::<Vec<String>>(&l) {
-          return arr;
-        }
-        l.split(',').map(|s| s.trim().to_string()).collect()
-      }
-      None => vec![],
-    }
-  }
-
   async fn load_relations_via_nosql_orm(
     &self,
     docs: Vec<Value>,
@@ -221,7 +203,7 @@ impl RepositoryService {
         docs,
         load_paths,
         table,
-        |docs, collection| self.add_collection_metadata(docs, collection),
+        |docs, collection| add_collection_metadata(docs, collection),
       )
       .await
     } else {
@@ -231,7 +213,7 @@ impl RepositoryService {
         docs,
         load_paths,
         table,
-        |docs, collection| self.add_collection_metadata(docs, collection),
+        |docs, collection| add_collection_metadata(docs, collection),
       )
       .await
     }
@@ -250,7 +232,7 @@ impl RepositoryService {
 
     let segments: Vec<&str> = load_paths.iter().map(|s| s.as_str()).collect();
 
-    let docs_with_meta = self.add_collection_metadata(docs, table);
+    let docs_with_meta = add_collection_metadata(docs, table);
 
     let loader = RelationLoader::new(provider);
     tracing::debug!(
@@ -287,25 +269,6 @@ impl RepositoryService {
       .into_iter()
       .map(|doc| projection.apply_recursive(&doc))
       .collect()
-  }
-
-  fn add_collection_metadata(&self, mut docs: Vec<Value>, collection: &str) -> Vec<Value> {
-    tracing::trace!(
-      "add_collection_metadata: collection={}, doc_count={}",
-      collection,
-      docs.len()
-    );
-    for doc in &mut docs {
-      if let Some(obj) = doc.as_object_mut() {
-        if !obj.contains_key("_collection") {
-          obj.insert(
-            "_collection".to_string(),
-            Value::String(collection.to_string()),
-          );
-        }
-      }
-    }
-    docs
   }
 
   fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
@@ -392,7 +355,12 @@ impl RepositoryService {
     let request_id = "unknown".to_string();
 
     let filter_val = filter.unwrap_or(json!({}));
-    let filter_opt = self.build_filter(&filter_val);
+    let filter_opt =
+      if filter_val.is_object() && filter_val.as_object().is_none_or(|obj| obj.is_empty()) {
+        None
+      } else {
+        Filter::from_json(&filter_val).ok()
+      };
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
 
@@ -400,7 +368,7 @@ impl RepositoryService {
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
-    let load_paths = Self::parse_load_param(load);
+    let load_paths = parse_load_param(load);
 
     let (docs, used_json_fallback) = match provider.find_many(&table, filter_opt.as_ref()).await {
       Ok(docs) => (docs, false),
@@ -533,7 +501,7 @@ impl RepositoryService {
       return Err(err_response("ID or filter is required for get operation"));
     };
 
-    let load_paths = Self::parse_load_param(load);
+    let load_paths = parse_load_param(load);
 
     let docs = if !load_paths.is_empty() {
       match &provider {
