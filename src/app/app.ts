@@ -26,6 +26,7 @@ import { WindowNotifyComponent } from "@components/window-notify/window-notify.c
 import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
 import { HeaderComponent } from "@components/header/header.component";
 import { BottomNavComponent } from "@components/bottom-nav/bottom-nav.component";
+import { FloatingBottomNavComponent } from "@components/floating-bottom-nav/floating-bottom-nav.component";
 import { CommandPaletteComponent } from "@components/command-palette/command-palette.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { ConfirmDialogComponent } from "@components/confirm-dialog/confirm-dialog.component";
@@ -42,6 +43,7 @@ import { PromptDialogComponent } from "@components/prompt-dialog/prompt-dialog.c
     ShortcutHelpComponent,
     HeaderComponent,
     BottomNavComponent,
+    FloatingBottomNavComponent,
     CommandPaletteComponent,
     BulkActionsComponent,
     ConfirmDialogComponent,
