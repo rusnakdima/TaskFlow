@@ -14,9 +14,11 @@ import { QrScannerComponent } from "@components/qr-scanner/qr-scanner.component"
 
 /* models */
 import { Profile } from "@models/profile.model";
+import { ResponseStatus } from "@models/response.model";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -24,6 +26,8 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 
 @Component({
   selector: "app-profile",
@@ -44,7 +48,9 @@ export class ProfileView implements OnInit, OnDestroy {
     private notifyService: NotifyService,
     private requestService: REQUEST_SERVICE,
     private storageService: StorageService,
-    private confirmDialogService: ConfirmDialogService
+    private confirmDialogService: ConfirmDialogService,
+    private syncService: UnifiedSyncService,
+    private shortcutEmitters: ShortcutEmittersService
   ) {}
 
   userId: string = "";
@@ -52,6 +58,10 @@ export class ProfileView implements OnInit, OnDestroy {
   profile = computed(() => this.storageService.profile());
   currentUsername = computed(() => this.storageService.profile()?.user?.username || "");
   currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
+  role = computed(() => this.storageService.user()?.role || "");
+
+  themeVal = signal("");
+  isSyncing = signal(false);
 
   // Offline auth signals
   canExportData = signal(false);
@@ -68,13 +78,65 @@ export class ProfileView implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
+    this.themeVal.set(localStorage.getItem("theme") ?? "");
     this.loadProfile();
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
+
+    this.syncService.isSyncing$.subscribe((isSyncing) => this.isSyncing.set(isSyncing));
   }
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+  }
+
+  setTheme(theme: string) {
+    document.querySelector("html")!.setAttribute("class", theme);
+    localStorage.setItem("theme", theme);
+    this.themeVal.set(theme);
+  }
+
+  toggleTheme() {
+    const newTheme = this.themeVal() === "dark" ? "" : "dark";
+    this.setTheme(newTheme);
+  }
+
+  showShortcuts() {
+    this.shortcutEmitters.emitShortcuts();
+  }
+
+  async syncAll(silent: boolean = false) {
+    if (this.isSyncing()) return;
+
+    if (!silent) {
+      this.notifyService.showInfo("Starting synchronization...");
+    }
+
+    try {
+      const response = await this.syncService.syncAll();
+      if (response.status === ResponseStatus.SUCCESS) {
+        if (!silent) {
+          this.notifyService.showSuccess("Synchronization completed successfully!");
+        }
+      } else {
+        if (NetworkErrorHelper.isNetworkError(response.message)) {
+          if (!silent) {
+            this.notifyService.showWarning("Working offline - sync unavailable");
+          }
+        } else if (!silent) {
+          this.notifyService.showError(response.message || "Synchronization failed");
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (NetworkErrorHelper.isNetworkError(errorMessage)) {
+        if (!silent) {
+          this.notifyService.showWarning("Working offline - sync unavailable");
+        }
+      } else if (!silent) {
+        this.notifyService.showError("Synchronization failed: " + errorMessage);
+      }
+    }
   }
 
   private loadProfile(): void {

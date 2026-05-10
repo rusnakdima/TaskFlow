@@ -104,6 +104,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   categoryCardConfig = CATEGORY_CARD_CONFIG;
   categoryTableConfig = CATEGORY_TABLE_CONFIG;
   categoryActions = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
+  categoryExpandFields: TableField[] = [];
 
   categoryTableFields: TableField[] = [
     {
