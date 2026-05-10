@@ -59,6 +59,12 @@ export const routes: Routes = [
         data: { breadcrumb: "Calendar" },
       },
       {
+        path: "chat",
+        loadComponent: () => import("@views/chat/chat.view").then((m) => m.ChatView),
+        title: "Chat",
+        data: { breadcrumb: "Chat" },
+      },
+      {
         path: "shared-tasks",
         component: TodosView,
         title: "Shared Projects",

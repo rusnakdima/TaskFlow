@@ -85,6 +85,7 @@
             [isSelected]="selectedTasks().has(task.id)"
             [actions]="getTaskCardActions()"
             [showCommentToggle]="true"
+            [showStatusToggle]="true"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
             (itemAction)="onTaskItemAction($event)"
@@ -92,6 +93,7 @@
             (addComment)="onTaskCommentAdd($event)"
             (deleteComment)="onTaskCommentDelete($event)"
             (markAsRead)="onTaskCommentMarkAsRead($event)"
+            (statusToggle)="onTaskStatusToggle($event)"
           >
             <div
               *cdkDragPlaceholder
@@ -180,6 +182,7 @@
             [isSelected]="selectedTasks().has(task.id)"
             [actions]="getTaskCardActions()"
             [showCommentToggle]="true"
+            [showStatusToggle]="true"
             (selectionChangeEvent)="toggleTaskSelection($event)"
             (cardClick)="onCardClick($event)"
             (itemAction)="onTaskItemAction($event)"
@@ -187,6 +190,7 @@
             (addComment)="onTaskCommentAdd($event)"
             (deleteComment)="onTaskCommentDelete($event)"
             (markAsRead)="onTaskCommentMarkAsRead($event)"
+            (statusToggle)="onTaskStatusToggle($event)"
           />
         }
       </div>
