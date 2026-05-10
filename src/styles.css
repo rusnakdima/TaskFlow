@@ -51,19 +51,19 @@
   }
 
   .styleWindNotify {
-    @apply fixed top-1 right-1 z-999 flex flex-col rounded-lg border border-solid border-white text-white;
+    @apply fixed! top-1! right-1! z-999! flex! flex-col! rounded-lg! border! border-solid! border-white! text-white!;
   }
 
   .styleBorderSolid {
-    @apply border-solid border-black dark:border-white;
+    @apply border-solid! border-black! dark:border-white!;
   }
 
   .styleBorderSolidLite {
-    @apply rounded-lg border-solid border-zinc-600 dark:border-zinc-500;
+    @apply rounded-lg! border-solid! border-zinc-600! dark:border-zinc-500!;
   }
 
   .styleLinkAside {
-    @apply flex w-full cursor-pointer flex-row items-center gap-x-2 px-2 py-1 text-left text-xl font-semibold hover:text-blue-700 dark:hover:text-lime-600;
+    @apply flex! w-full! cursor-pointer! flex-row! items-center! gap-x-2! px-2! py-1! text-left! text-xl! font-semibold! hover:text-blue-700! dark:hover:text-lime-600!;
   }
 
   .styleLinkNav {
