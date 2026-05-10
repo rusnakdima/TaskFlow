@@ -290,22 +290,23 @@ export class TodosListComponent {
     this.router.navigate(["/todos", event.id, "tasks"]);
   }
 
-  onTodoCardAction(event: { action: string; todo: Todo }): void {
+  onTodoCardAction(event: { action: string; item: Todo }): void {
+    const todo = event.item;
     switch (event.action) {
       case "archive":
-        this.todoArchived.emit(event.todo.id);
+        this.todoArchived.emit(todo.id);
         break;
       case "restore":
-        this.todoRestored.emit(event.todo.id);
+        this.todoRestored.emit(todo.id);
         break;
       case "blueprint":
-        this.todoSavedAsBlueprint.emit(event.todo);
+        this.todoSavedAsBlueprint.emit(todo);
         break;
       case "delete":
-        this.todoDeleted.emit({ id: event.todo.id, isOwner: event.todo.user_id === this.userId });
+        this.todoDeleted.emit({ id: todo.id, isOwner: todo.user_id === this.userId });
         break;
       default:
-        this.tableAction.emit({ action: event.action, item: event.todo });
+        this.tableAction.emit({ action: event.action, item: todo });
     }
   }
 
