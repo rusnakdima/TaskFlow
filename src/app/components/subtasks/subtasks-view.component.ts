@@ -40,7 +40,7 @@ import {
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
+import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
@@ -68,7 +68,7 @@ interface QueryParams {
     LoadingStateComponent,
     EmptyStateComponent,
     BulkActionsComponent,
-    ItemDisplayComponent,
+    ItemCardComponent,
     ItemExpandDetailsComponent,
     TableViewComponent,
   ],

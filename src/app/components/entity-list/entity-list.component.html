@@ -31,7 +31,7 @@
       (cdkDropListDropped)="dropped.emit($event)"
     >
       @for (item of items; track trackById($index, item)) {
-        <app-item-display
+        <app-item-card
           cdkDrag
           [cdkDragData]="item"
           cdkDragPreviewContainer="global"
@@ -55,7 +55,7 @@
             *cdkDragPlaceholder
             class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
           ></div>
-        </app-item-display>
+        </app-item-card>
       }
     </div>
   } @else {
@@ -66,7 +66,7 @@
       (cdkDropListDropped)="dropped.emit($event)"
     >
       @for (item of items; track trackById($index, item)) {
-        <app-item-display
+        <app-item-card
           cdkDrag
           [cdkDragData]="item"
           cdkDragPreviewContainer="global"
@@ -90,7 +90,7 @@
             *cdkDragPlaceholder
             class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
           ></div>
-        </app-item-display>
+        </app-item-card>
       }
     </div>
   }
