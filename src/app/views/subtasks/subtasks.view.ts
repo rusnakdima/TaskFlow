@@ -25,6 +25,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
 import { CommentService } from "@services/features/comment.service";
+import { SubtasksKanbanHelper } from "./subtasks-kanban.helper";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -42,6 +43,7 @@ import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
+import { KanbanSubtaskCardComponent } from "@components/kanban-subtask-card/kanban-subtask-card.component";
 import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
 
 interface QueryParams {
@@ -68,6 +70,7 @@ interface QueryParams {
     ItemExpandDetailsComponent,
     TableViewComponent,
     ChatFabComponent,
+    KanbanSubtaskCardComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -90,6 +93,8 @@ export class SubtasksViewComponent extends BaseListView {
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private commentService = inject(CommentService);
+
+  kanbanHelper = inject(SubtasksKanbanHelper);
 
   showChat = signal(false);
   showMobileInfo = signal(false);
@@ -435,6 +440,7 @@ export class SubtasksViewComponent extends BaseListView {
         mode: this.viewMode(),
         pageKey: "subtasks",
         onModeChange: (mode) => this.setViewMode(mode),
+        modes: ["card", "grid", "table", "list", "kanban"],
       },
       filterFields: this.filterFields,
       showFilter: this.showFilter(),
@@ -968,6 +974,53 @@ export class SubtasksViewComponent extends BaseListView {
   resolveTaskTitle(taskId: string): string {
     const task = this.storageService.taskMap().get(taskId);
     return task?.title || "-";
+  }
+
+  getKanbanColumns() {
+    return this.kanbanHelper.getKanbanColumns();
+  }
+
+  getColumnColorClass = this.kanbanHelper.getColumnColorClass;
+
+  getSubtasksByStatus(status: TaskStatus): Subtask[] {
+    return this.kanbanHelper.getSubtasksByStatus(this.listSubtasks(), status);
+  }
+
+  getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
+    return this.kanbanHelper.getConnectedKanbanDropLists(currentStatus);
+  }
+
+  onKanbanSubtaskDrop(event: CdkDragDrop<Subtask[]>, targetStatus: TaskStatus): void {
+    this.kanbanHelper.onKanbanSubtaskDrop(
+      event,
+      targetStatus,
+      this.todo(),
+      (subtaskId, newStatus) => this.updateSubtaskStatus(subtaskId, newStatus)
+    );
+  }
+
+  private updateSubtaskStatus(subtaskId: string, newStatus: TaskStatus): void {
+    this.kanbanHelper.updateSubtaskStatus(subtaskId, newStatus, this.todo(), (fn) =>
+      this.taskSubtasks.update(fn)
+    );
+  }
+
+  onKanbanStatusCycle(subtask: Subtask): void {
+    this.kanbanHelper.onKanbanStatusCycle(subtask, (subtaskId, newStatus) =>
+      this.updateSubtaskStatus(subtaskId, newStatus)
+    );
+  }
+
+  onKanbanSubtaskClick(_subtask: Subtask): void {}
+
+  onKanbanSelectionChange(subtaskId: string, isSelected: boolean): void {
+    this.kanbanHelper.onKanbanSelectionChange(subtaskId, isSelected, (event) =>
+      this.toggleSubtaskSelection(event)
+    );
+  }
+
+  isKanbanSubtaskSelected(subtaskId: string): boolean {
+    return this.kanbanHelper.isKanbanSubtaskSelected(subtaskId, this.selectedSubtasks());
   }
 }
 
