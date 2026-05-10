@@ -121,7 +121,11 @@
           }
           @case ("status-toggle") {
             @if (showStatusToggle && (itemType === "task" || itemType === "subtask")) {
-              <app-status-toggle [status]="taskStatus" (toggle)="onStatusToggle($event)" />
+              <app-status-toggle
+                [status]="taskStatus"
+                (toggle)="onStatusToggle($event)"
+                (click)="$event.stopPropagation()"
+              />
             }
           }
         }
@@ -280,7 +284,12 @@
 
     @if (expandable && isExpanded) {
       <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
-        <app-item-expand-details [item]="$any(item)" [type]="itemType" [fields]="expandFields" />
+        <app-item-expand-details
+          [item]="$any(item)"
+          [type]="itemType"
+          [fields]="expandFields"
+          [onExpandRequest]="onExpandRequest"
+        />
       </div>
     }
 

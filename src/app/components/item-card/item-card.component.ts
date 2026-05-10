@@ -13,6 +13,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
+import { Observable } from "rxjs";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
@@ -69,6 +70,7 @@ export class ItemCardComponent {
   @Input() showCommentToggle: boolean = false;
   @Input() unreadCommentsCount: number = 0;
   @Input() showStatusToggle: boolean = false;
+  @Input() onExpandRequest?: (item: any) => Observable<any>;
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
@@ -97,7 +99,7 @@ export class ItemCardComponent {
   }
 
   get canExpand(): boolean {
-    return this.expandable && !this.isCategory;
+    return this.expandable;
   }
 
   toggleExpanded(event: MouseEvent): void {

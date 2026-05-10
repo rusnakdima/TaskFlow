@@ -129,7 +129,7 @@
           @if (isLoadingUser()) {
             <span class="text-xs text-gray-400">Loading...</span>
           } @else {
-            <span>{{ enrichedItem()?.user?.name || item.user_id }}</span>
+            <span>{{ userDisplayName }}</span>
           }
         </div>
       }
