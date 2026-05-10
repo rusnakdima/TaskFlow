@@ -1,0 +1,73 @@
+<div
+  class="floating-bottom-nav-container"
+  [class.hidden]="isHidden() && !isShowing() && !isHiding()"
+  [class.show-animation]="isShowing()"
+  [class.hide-animation]="isHiding()"
+>
+  <div class="floating-bottom-nav">
+    @for (nav of listNavs; track $index) {
+      <div class="flex flex-col items-center justify-center">
+        @if (isProfileRoute(nav.url) && hasProfileImage()) {
+          <div
+            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-3 transition-all duration-300"
+            [routerLink]="nav.url"
+            [queryParams]="nav.query"
+            [ngClass]="
+              url() === nav.url
+                ? 'bg-accent/20 dark:bg-accent/30'
+                : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
+            "
+          >
+            <img
+              [src]="getProfileImage()"
+              alt="Profile"
+              class="h-7 w-7 min-w-7 rounded-full object-cover"
+              [ngClass]="url() === nav.url ? 'ring-accent ring-2' : ''"
+            />
+            <span
+              class="mt-1 text-xs font-medium transition-colors"
+              [ngClass]="
+                url() === nav.url
+                  ? 'text-accent dark:text-accent'
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
+              "
+            >
+              {{ nav.label }}
+            </span>
+          </div>
+        } @else {
+          <div
+            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-3 transition-all duration-300"
+            [routerLink]="nav.url"
+            [queryParams]="nav.query"
+            [ngClass]="
+              url() === nav.url
+                ? 'bg-accent/20 dark:bg-accent/30'
+                : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
+            "
+          >
+            <mat-icon
+              class="h-6! w-6! min-w-6 text-2xl! transition-colors"
+              [fontIcon]="nav.icon"
+              [ngClass]="
+                url() === nav.url
+                  ? 'text-accent! dark:text-accent!'
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
+              "
+            />
+            <span
+              class="mt-1 text-xs font-medium transition-colors"
+              [ngClass]="
+                url() === nav.url
+                  ? 'text-accent dark:text-accent'
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
+              "
+            >
+              {{ nav.label }}
+            </span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
