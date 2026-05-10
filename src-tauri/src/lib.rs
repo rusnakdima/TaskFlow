@@ -229,10 +229,7 @@ pub fn run() {
         auth_service.token_service.clone(),
       ));
 
-      let statistics_service = Arc::new(StatisticsService::new(
-        json_provider.clone(),
-        activity_log_helper.clone(),
-      ));
+      let statistics_service = Arc::new(StatisticsService::new(json_provider.clone()));
       let manage_db_service = Arc::new(ManageDbService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
