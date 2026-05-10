@@ -5,6 +5,7 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
   signal,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCheckboxModule } from "@angular/material/checkbox";
@@ -16,6 +17,7 @@ import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
+import { CommentsComponent } from "@components/comments/comments.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
 import { Todo } from "@models/todo.model";
@@ -24,6 +26,8 @@ import { Subtask } from "@models/subtask.model";
 import { Category } from "@models/category.model";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
+import { Comment } from "@models/comment.model";
+import { StorageService } from "@services/storage.service";
 
 @Component({
   selector: "app-item-card",
@@ -38,11 +42,14 @@ import { TableField } from "@models/table-field.model";
     CheckboxComponent,
     ItemExpandDetailsComponent,
     CommentsToggleComponent,
+    CommentsComponent,
   ],
   templateUrl: "./item-card.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemCardComponent {
+  private storageService = inject(StorageService);
+
   @Input() item: Todo | Task | Subtask | Category | null = null;
   @Input() config: ItemDisplayConfig[] = [];
   @Input() displayMode: DisplayMode = "card";
@@ -65,6 +72,9 @@ export class ItemCardComponent {
   @Output() itemAction = new EventEmitter<{ action: string; item: any }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any>>();
   @Output() toggleComments = new EventEmitter<string>();
+  @Output() addComment = new EventEmitter<{ content: string; itemId: string }>();
+  @Output() deleteComment = new EventEmitter<string>();
+  @Output() markAsRead = new EventEmitter<string[]>();
 
   showMenu = signal(false);
   expanded = signal(false);
@@ -192,5 +202,28 @@ export class ItemCardComponent {
 
   trackByConfig(_index: number, config: ItemDisplayConfig): string {
     return config.key;
+  }
+
+  getComments(): Comment[] {
+    if (!this.item) return [];
+    if (this.itemType === "task") {
+      return this.storageService.getCommentsByTaskId(this.item.id);
+    }
+    if (this.itemType === "subtask") {
+      return this.storageService.getCommentsBySubtaskId(this.item.id);
+    }
+    return [];
+  }
+
+  onAddComment(content: string): void {
+    this.addComment.emit({ content, itemId: this.itemId });
+  }
+
+  onDeleteComment(commentId: string): void {
+    this.deleteComment.emit(commentId);
+  }
+
+  onMarkAsRead(commentIds: string[]): void {
+    this.markAsRead.emit(commentIds);
   }
 }
