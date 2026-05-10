@@ -484,6 +484,17 @@ export class SubtasksViewComponent extends BaseListView {
     return super.getUnreadCount(this.chats);
   }
 
+  getUnreadCountForSubtask(subtaskId: string): number {
+    const userId = this.authService.getValueByKey("id");
+    if (!userId) return 0;
+    const comments = this.storageService
+      .comments()
+      .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
+    return comments.filter(
+      (c) => c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
+    ).length;
+  }
+
   toggleChat() {
     this.showChat.update((v) => !v);
   }
@@ -509,10 +520,6 @@ export class SubtasksViewComponent extends BaseListView {
     }
 
     this.lastSelectedId.set(subtask.id);
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { highlightSubtask: subtask.id, openComments: "true" },
-    });
   }
 
   onCardClick(event: { event: MouseEvent; id: string }): void {
@@ -529,15 +536,6 @@ export class SubtasksViewComponent extends BaseListView {
     }
 
     this.lastSelectedId.set(event.id);
-    const taskId = this.task()?.id;
-    if (taskId) {
-      this.router.navigate(
-        ["/todos", this.todoId(), "tasks", taskId, "subtasks", event.id, "edit_subtask"],
-        {
-          queryParams: { isPrivate: true },
-        }
-      );
-    }
   }
 
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
