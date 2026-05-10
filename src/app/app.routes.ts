@@ -19,7 +19,6 @@ import { DashboardView } from "@views/dashboard/dashboard.view";
 
 import { SyncView } from "@views/sync/sync.view";
 import { CategoriesView } from "@views/categories/categories.view";
-import { KanbanView } from "@views/kanban/kanban.view";
 
 import { TodosView } from "@views/todos/todos.view";
 import { TasksView } from "@views/tasks/tasks.view";
@@ -64,12 +63,6 @@ export const routes: Routes = [
         component: TodosView,
         title: "Shared Projects",
         data: { breadcrumb: "Shared Projects", mode: "shared" },
-      },
-      {
-        path: "kanban",
-        component: KanbanView,
-        title: "Kanban Board",
-        data: { breadcrumb: "Kanban" },
       },
       {
         path: "about",
