@@ -1,6 +1,6 @@
 <div
-  class="task-card flex cursor-pointer flex-col rounded-xl border-l-4 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-700"
-  [ngClass]="getStatusBorderColor(task.status)"
+  class="task-card flex cursor-pointer flex-col rounded-xl bg-white/50 p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:bg-zinc-800/50"
+  [ngClass]="getPriorityBorderColor(task.priority)"
   (click)="onCardClick($event)"
 >
   <div class="mb-2 flex items-start justify-between">
@@ -40,15 +40,9 @@
   <div class="mb-3 flex items-center justify-between text-xs text-gray-500">
     <div class="flex items-center gap-2">
       <span
-        class="priority-dot inline-block h-2 w-2 shrink-0 rounded-full"
+        class="priority-dot inline-flex h-4 w-4 items-center justify-center rounded-full text-2xl!"
         [ngClass]="getPriorityDotColor(task.priority)"
       ></span>
-      <span
-        class="rounded-full px-2 py-0.5 font-medium"
-        [ngClass]="getPriorityBgColor(task.priority)"
-      >
-        {{ getPriorityBadgeText(task.priority) }}
-      </span>
     </div>
     @if (task.end_date) {
       <span>{{ formatDate(task.end_date) }}</span>
