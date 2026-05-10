@@ -38,6 +38,22 @@ export class MainResolver implements Resolve<any> {
         let taskFromStorage = tasks.find((t) => t.id === taskId) || null;
 
         if (todoFromStorage || taskFromStorage) {
+          if (!todoFromStorage) {
+            this.requestService
+              .get("todos", todoId)
+              .pipe(take(1))
+              .subscribe((todo) => {
+                if (todo) this.storageService.modify("todos", "create", todo as any);
+              });
+          }
+          if (!taskFromStorage) {
+            this.requestService
+              .get("tasks", taskId)
+              .pipe(take(1))
+              .subscribe((task) => {
+                if (task) this.storageService.modify("tasks", "create", task as any);
+              });
+          }
           return { task: taskFromStorage, todo: todoFromStorage };
         }
 
@@ -48,6 +64,13 @@ export class MainResolver implements Resolve<any> {
         let taskFromApi = await firstValueFrom(
           this.requestService.get("tasks", taskId).pipe(take(1))
         ).catch(() => null);
+
+        if (todoFromApi) {
+          this.storageService.modify("todos", "create", todoFromApi as any);
+        }
+        if (taskFromApi) {
+          this.storageService.modify("tasks", "create", taskFromApi as any);
+        }
 
         if (todoFromApi || taskFromApi) {
           return { task: taskFromApi || null, todo: todoFromApi || null };
