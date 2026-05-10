@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 /* helpers */
 use crate::helpers::activity_log::ActivityLogHelper;
+
+/* services */
 use crate::services::entity_resolution_service::EntityResolutionService;
 
 #[derive(Clone)]
@@ -23,7 +25,6 @@ impl ActivityMonitorService {
     }
   }
 
-  /// Log activity based on table and operation
   pub async fn log_action(
     &self,
     table: &str,
