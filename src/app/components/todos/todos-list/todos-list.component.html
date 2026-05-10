@@ -119,30 +119,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="true"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="true"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+              ></div>
             }
           }
           @if (stateService.groupedTodos().shared.length > 0) {
@@ -153,30 +145,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="false"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="false"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+              ></div>
             }
           }
           @if (stateService.groupedTodos().public.length > 0) {
@@ -190,30 +174,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="false"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="false"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+              ></div>
             }
           }
         </div>
@@ -233,30 +209,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Private</h3>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="true"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="true"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
             }
           }
           @if (stateService.groupedTodos().shared.length > 0) {
@@ -267,30 +235,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Shared</h3>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="false"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="false"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
             }
           }
           @if (stateService.groupedTodos().public.length > 0) {
@@ -304,30 +264,22 @@
               <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">Public</h3>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="false"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="false"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
+              ></div>
             }
           }
         </div>
@@ -390,30 +342,22 @@
             (cdkDropListDropped)="onTodoListDropped($event)"
           >
             @for (todo of stateService.listTodos(); track todo.id) {
-              <app-item-display
-                cdkDrag
-                [cdkDragData]="todo"
-                cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
-                [isOwner]="todo.user_id === userId"
-                [isPrivate]="stateService.activeVisibility() === 'private'"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
-                (dropped)="todoDropped.emit($event)"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-                ></div>
-              </app-item-display>
+              <div cdkDrag [cdkDragData]="todo">
+                <app-todo-card
+                  [todo]="todo"
+                  [isExpanded]="isTodoExpanded(todo.id)"
+                  [actions]="tableActions"
+                  [itemType]="'todo'"
+                  [isOwner]="todo.user_id === userId"
+                  [isPrivate]="stateService.activeVisibility() === 'private'"
+                  (toggleExpand)="toggleTodoExpand($event)"
+                  (todoAction)="onTodoCardAction($event)"
+                />
+              </div>
+              <div
+                *cdkDragPlaceholder
+                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+              ></div>
             }
           </div>
         </div>
@@ -435,30 +379,25 @@
             (cdkDropListDropped)="onTodoListDropped($event)"
           >
             @for (todo of stateService.listTodos(); track todo.id) {
-              <app-item-display
+              <app-todo-card
                 cdkDrag
                 [cdkDragData]="todo"
                 cdkDragPreviewContainer="global"
-                [item]="todo"
-                [index]="$index"
+                [todo]="todo"
+                [isExpanded]="isTodoExpanded(todo.id)"
+                [actions]="tableActions"
+                [itemType]="'todo'"
                 [isOwner]="todo.user_id === userId"
                 [isPrivate]="stateService.activeVisibility() === 'private'"
-                [highlight]="highlightTodoId === todo.id"
-                [isSelected]="selectedTodos().has(todo.id)"
-                [config]="todoCardConfig"
-                [actions]="tableActions"
-                (selectionChangeEvent)="toggleTodoSelection($event)"
-                (cardClick)="onCardClick($event)"
-                (itemAction)="onTodoAction({ action: $event.action, item: todo })"
-                [expandable]="true"
-                [itemType]="'todo'"
+                (toggleExpand)="toggleTodoExpand($event)"
                 (dropped)="todoDropped.emit($event)"
+                (todoAction)="onTodoCardAction($event)"
               >
                 <div
                   *cdkDragPlaceholder
                   class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
                 ></div>
-              </app-item-display>
+              </app-todo-card>
             }
           </div>
         </div>

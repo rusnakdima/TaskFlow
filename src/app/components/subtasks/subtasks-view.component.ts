@@ -166,12 +166,6 @@ export class SubtasksViewComponent extends BaseListView {
     { key: "title", label: "Subtask", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status" },
-    {
-      key: "comments",
-      label: "Comments",
-      type: "number",
-      getValue: (item: Subtask) => String(item.comments_count || 0),
-    },
   ];
 
   override isAllSelected(): boolean {
@@ -188,7 +182,23 @@ export class SubtasksViewComponent extends BaseListView {
       }
       this.loadInitialSubtasks();
     } else {
-      this.notifyService.showError("Task not found. Please refresh.");
+      this.requestService.get<Task>("tasks", taskId).subscribe({
+        next: (task) => {
+          if (task) {
+            this.storageService.modify("tasks", "create", task as any);
+            this.task.set(task);
+            if (task.todo_id) {
+              this.loadTodo(task.todo_id);
+            }
+            this.loadInitialSubtasks();
+          } else {
+            this.notifyService.showError("Task not found. Please refresh.");
+          }
+        },
+        error: () => {
+          this.notifyService.showError("Task not found. Please refresh.");
+        },
+      });
     }
   }
 

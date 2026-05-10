@@ -186,6 +186,7 @@
     <app-view-mode-switcher
       [mode]="config!.viewMode!.mode"
       [pageKey]="config!.viewMode!.pageKey"
+      [modes]="config!.viewMode!.modes"
       (modeChange)="config!.viewMode!.onModeChange($event)"
     />
   }

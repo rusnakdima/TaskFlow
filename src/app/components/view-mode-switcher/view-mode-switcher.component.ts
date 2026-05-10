@@ -12,7 +12,7 @@ import {
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
-export type ViewMode = "card" | "grid" | "table" | "list";
+export type ViewMode = "card" | "grid" | "table" | "list" | "kanban";
 
 @Component({
   selector: "app-view-mode-switcher",
@@ -24,6 +24,7 @@ export type ViewMode = "card" | "grid" | "table" | "list";
 export class ViewModeSwitcherComponent implements OnInit {
   @Input() mode: ViewMode = "grid";
   @Input() pageKey: string = "default";
+  @Input() modes?: ViewMode[];
   @Output() modeChange = new EventEmitter<ViewMode>();
 
   private get STORAGE_KEY(): string {
@@ -46,10 +47,22 @@ export class ViewModeSwitcherComponent implements OnInit {
     localStorage.setItem(this.STORAGE_KEY, mode);
   }
 
+  isModeAvailable(mode: ViewMode): boolean {
+    if (!this.modes || this.modes.length === 0) {
+      return mode !== "kanban";
+    }
+    return this.modes.includes(mode);
+  }
+
   ngOnInit(): void {
     const saved = this.loadPreference();
-    if (saved !== this.mode) {
+    if (saved !== this.mode && this.isModeAvailable(saved)) {
       this.modeChange.emit(saved);
+    } else if (!this.isModeAvailable(this.mode)) {
+      const availableModes = this.modes || ["card", "grid", "table"];
+      if (availableModes.length > 0) {
+        this.modeChange.emit(availableModes[0]);
+      }
     }
   }
 }

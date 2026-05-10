@@ -10,8 +10,8 @@
           (click)="$event.stopPropagation()"
         >
           <app-checkbox
-            [checked]="task.status === TaskStatus.COMPLETED"
-            (checkedChange)="onStatusToggle($event ? TaskStatus.COMPLETED : TaskStatus.PENDING)"
+            [checked]="isSelected"
+            (checkedChange)="onSelectionChange($event.checked)"
           />
         </label>
         <div class="min-w-0 flex-1">

@@ -40,12 +40,14 @@ export class KanbanTaskCardComponent {
   @Input() columns: { id: string; label: string; icon: string }[] = [];
   @Input() subtasks: Subtask[] = [];
   @Input() isExpanded = false;
+  @Input() isSelected = false;
   @Input() todo_id = "";
 
   @Output() toggleExpand = new EventEmitter<Task>();
   @Output() toggleStatus = new EventEmitter<Task>();
   @Output() moveTaskEvent = new EventEmitter<{ taskId: string; newStatus: TaskStatus }>();
   @Output() toggleSubtaskCompletion = new EventEmitter<Subtask>();
+  @Output() selectionChange = new EventEmitter<boolean>();
 
   TaskStatus = TaskStatus;
 
@@ -67,6 +69,10 @@ export class KanbanTaskCardComponent {
 
   onSubtaskToggleCompletion(subtask: Subtask): void {
     this.toggleSubtaskCompletion.emit(subtask);
+  }
+
+  onSelectionChange(isSelected: boolean): void {
+    this.selectionChange.emit(isSelected);
   }
 
   getTotalSubtasksCount(): number {
