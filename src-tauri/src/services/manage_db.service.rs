@@ -27,6 +27,8 @@ pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
   admin_manager: Mutex<Option<AdminManager>>,
+  mongo_db_uri: String,
+  mongo_db_name: String,
 }
 
 impl ManageDbService {
@@ -34,6 +36,8 @@ impl ManageDbService {
     json_provider: JsonProvider,
     mongodb_provider: Option<Arc<MongoProvider>>,
     cascade_service: CascadeService,
+    mongo_db_uri: String,
+    mongo_db_name: String,
   ) -> Self {
     let admin_manager = mongodb_provider
       .clone()
@@ -43,6 +47,8 @@ impl ManageDbService {
       json_provider,
       mongodb_provider: Mutex::new(mongodb_provider),
       admin_manager: Mutex::new(admin_manager),
+      mongo_db_uri,
+      mongo_db_name,
     }
   }
 
@@ -297,7 +303,24 @@ impl ManageDbService {
           Ok(Ok(_))
         )
       }
-      None => false,
+      None => {
+        let uri = self.mongo_db_uri.clone();
+        let db_name = self.mongo_db_name.clone();
+        match MongoProvider::connect(&uri, &db_name).await {
+          Ok(new_provider) => {
+            let new_provider = Arc::new(new_provider);
+            if let Ok(mut guard) = self.mongodb_provider.lock() {
+              *guard = Some(new_provider.clone());
+            }
+            matches!(
+              tokio::time::timeout(Duration::from_millis(500), new_provider.find_all("users"))
+                .await,
+              Ok(Ok(_))
+            )
+          }
+          Err(_) => false,
+        }
+      }
     }
   }
 

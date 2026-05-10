@@ -235,6 +235,8 @@ pub fn run() {
         json_provider.clone(),
         mongodb_provider.clone(),
         cascade_service.clone(),
+        config_helper.mongo_db_uri.clone(),
+        config_helper.mongo_db_name.clone(),
       ));
 
       app.manage(AppState {
