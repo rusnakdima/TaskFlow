@@ -1,4 +1,5 @@
 use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
+use crate::helpers::statistics_aggregation::StatisticsAggregation;
 use chrono::DateTime;
 use serde_json::Value;
 
@@ -214,6 +215,21 @@ impl TaskAnalytics {
     }
   }
 
+  pub async fn compute_statistics_async(
+    daily_activities: &[Value],
+    previous_daily_activities: &[Value],
+    tasks: &[Value],
+    previous_tasks: &[Value],
+  ) -> StatisticsModel {
+    StatisticsAggregation::compute_statistics_from_docs(
+      daily_activities,
+      previous_daily_activities,
+      tasks,
+      previous_tasks,
+    )
+    .await
+  }
+
   pub fn compute_detailed_metrics(
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
@@ -292,5 +308,16 @@ impl TaskAnalytics {
         change: calculate_change(current_weekly_active_days, previous_weekly_active_days),
       },
     ]
+  }
+
+  pub async fn compute_detailed_metrics_async(
+    daily_activities: &[Value],
+    previous_daily_activities: &[Value],
+  ) -> Vec<DetailedMetricModel> {
+    StatisticsAggregation::compute_detailed_metrics_from_docs(
+      daily_activities,
+      previous_daily_activities,
+    )
+    .await
   }
 }

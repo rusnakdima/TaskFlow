@@ -9,7 +9,6 @@ use nosql_orm::providers::JsonProvider;
 
 /* helpers */
 use crate::helpers::activity_log::ActivityLogHelper;
-use crate::helpers::filter_builder::{and_filters, eq_filter, gte_filter, lt_filter, lte_filter};
 
 /* models */
 use crate::entities::{
@@ -53,11 +52,14 @@ impl StatisticsService {
     let prev_end_naive = previous_end_date.date_naive();
 
     // Fetch data using nosql_orm with filters
-    let user_id_filter = eq_filter("user_id", json!(user_id));
-    let start_date_filter = gte_filter("created_at", json!(start_date.to_rfc3339()));
-    let end_date_filter = lte_filter("created_at", json!(end_date.to_rfc3339()));
-    let prev_start_date_filter = gte_filter("created_at", json!(previous_start_date.to_rfc3339()));
-    let prev_end_date_filter = lt_filter("created_at", json!(start_date.to_rfc3339()));
+    let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let start_date_filter = Filter::Gte("created_at".to_string(), json!(start_date.to_rfc3339()));
+    let end_date_filter = Filter::Lte("created_at".to_string(), json!(end_date.to_rfc3339()));
+    let prev_start_date_filter = Filter::Gte(
+      "created_at".to_string(),
+      json!(previous_start_date.to_rfc3339()),
+    );
+    let prev_end_date_filter = Filter::Lt("created_at".to_string(), json!(start_date.to_rfc3339()));
 
     let daily_activities = self
       .get_daily_activities_filtered(&user_id, &start_date_naive, &end_date_naive)
@@ -70,7 +72,7 @@ impl StatisticsService {
       .json_provider
       .find_many(
         "tasks",
-        Some(&and_filters(vec![
+        Some(&Filter::And(vec![
           user_id_filter.clone(),
           start_date_filter,
           end_date_filter,
@@ -87,7 +89,7 @@ impl StatisticsService {
       .json_provider
       .find_many(
         "tasks",
-        Some(&and_filters(vec![
+        Some(&Filter::And(vec![
           user_id_filter.clone(),
           prev_start_date_filter,
           prev_end_date_filter,
@@ -162,16 +164,16 @@ impl StatisticsService {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    let filter_snake = and_filters(vec![
-      eq_filter("user_id", json!(user_id)),
-      gte_filter("date", json!(start_str.clone())),
-      lte_filter("date", json!(end_str.clone())),
+    let filter_snake = Filter::And(vec![
+      Filter::Eq("user_id".to_string(), json!(user_id)),
+      Filter::Gte("date".to_string(), json!(start_str.clone())),
+      Filter::Lte("date".to_string(), json!(end_str.clone())),
     ]);
 
-    let filter_camel = and_filters(vec![
-      eq_filter("userId", json!(user_id)),
-      gte_filter("date", json!(start_str)),
-      lte_filter("date", json!(end_str)),
+    let filter_camel = Filter::And(vec![
+      Filter::Eq("userId".to_string(), json!(user_id)),
+      Filter::Gte("date".to_string(), json!(start_str)),
+      Filter::Lte("date".to_string(), json!(end_str)),
     ]);
 
     let docs: Vec<Value> = self

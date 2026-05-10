@@ -300,33 +300,62 @@ impl DbBackupService {
   }
 
   pub async fn check_mongodb_connection_async(&self) -> bool {
+    tracing::debug!("[DbBackup] check_mongodb_connection_async called");
+    tracing::debug!(
+      "[DbBackup] mongodb_provider is None, will attempt reconnection with uri: {}",
+      self.mongo_db_uri
+    );
+
     let provider = match self.mongodb_provider.lock() {
       Ok(guard) => guard.clone(),
-      Err(_) => return false,
+      Err(_) => {
+        tracing::error!("[DbBackup] Failed to acquire lock on mongodb_provider");
+        return false;
+      }
     };
     match provider {
       Some(provider) => {
-        matches!(
+        tracing::debug!("[DbBackup] Existing provider found, testing connection...");
+        let result = matches!(
           tokio::time::timeout(Duration::from_millis(500), provider.find_all("users")).await,
           Ok(Ok(_))
-        )
+        );
+        tracing::debug!(
+          "[DbBackup] Existing provider connection test: {}",
+          if result { "SUCCESS" } else { "FAILED" }
+        );
+        result
       }
       None => {
+        tracing::debug!(
+          "[DbBackup] No existing provider, attempting new connection to: {}",
+          self.mongo_db_uri
+        );
         let uri = self.mongo_db_uri.clone();
         let db_name = self.mongo_db_name.clone();
         match MongoProvider::connect(&uri, &db_name).await {
           Ok(new_provider) => {
+            tracing::debug!("[DbBackup] MongoProvider::connect succeeded, caching provider");
             let new_provider = Arc::new(new_provider);
             if let Ok(mut guard) = self.mongodb_provider.lock() {
               *guard = Some(new_provider.clone());
+              tracing::debug!("[DbBackup] Provider cached successfully");
             }
-            matches!(
+            let result = matches!(
               tokio::time::timeout(Duration::from_millis(500), new_provider.find_all("users"))
                 .await,
               Ok(Ok(_))
-            )
+            );
+            tracing::debug!(
+              "[DbBackup] New provider connection test: {}",
+              if result { "SUCCESS" } else { "FAILED" }
+            );
+            result
           }
-          Err(_) => false,
+          Err(e) => {
+            tracing::error!("[DbBackup] MongoProvider::connect FAILED: {:?}", e);
+            false
+          }
         }
       }
     }

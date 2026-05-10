@@ -8,7 +8,6 @@ use nosql_orm::query::Filter;
 use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
-use crate::helpers::filter_builder::{and_filters, gte_filter, lt_filter, lte_filter, or_filters};
 
 use crate::services::db_backup::DbBackupService;
 use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
@@ -272,18 +271,18 @@ impl ManageDbService {
       format!("{:04}-{:02}-01", year, month + 1)
     };
 
-    let filter = or_filters(vec![
-      and_filters(vec![
-        gte_filter("start_date", json!(&start_of_month)),
-        lt_filter("start_date", json!(&end_of_month)),
+    let filter = Filter::Or(vec![
+      Filter::And(vec![
+        Filter::Gte("start_date".to_string(), json!(&start_of_month)),
+        Filter::Lt("start_date".to_string(), json!(&end_of_month)),
       ]),
-      and_filters(vec![
-        gte_filter("end_date", json!(&start_of_month)),
-        lt_filter("end_date", json!(&end_of_month)),
+      Filter::And(vec![
+        Filter::Gte("end_date".to_string(), json!(&start_of_month)),
+        Filter::Lt("end_date".to_string(), json!(&end_of_month)),
       ]),
-      and_filters(vec![
-        lte_filter("start_date", json!(&start_of_month)),
-        gte_filter("end_date", json!(&end_of_month)),
+      Filter::And(vec![
+        Filter::Lte("start_date".to_string(), json!(&start_of_month)),
+        Filter::Gte("end_date".to_string(), json!(&end_of_month)),
       ]),
     ]);
 
