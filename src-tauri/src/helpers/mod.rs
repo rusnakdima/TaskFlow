@@ -16,6 +16,8 @@ pub mod load_param;
 pub mod profile_helper;
 #[path = "qr.helper.rs"]
 pub mod qr_helper;
+#[path = "relation_stripper.helper.rs"]
+pub mod relation_stripper;
 #[path = "response.helper.rs"]
 pub mod response_helper;
 #[path = "security.helper.rs"]
