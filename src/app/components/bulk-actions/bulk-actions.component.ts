@@ -27,6 +27,7 @@ export class BulkActionsComponent {
   @Input() selectedCount: number = 0;
   @Input() isAllSelected: boolean = false;
   @Input() mode: string = "";
+  @Input() allSelectedArchived: boolean = false;
 
   @Output() selectAllEvent = new EventEmitter<void>();
   @Output() setStatusEvent = new EventEmitter<string>();

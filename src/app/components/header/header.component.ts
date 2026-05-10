@@ -7,12 +7,9 @@ import {
   OnInit,
   Output,
   signal,
-  inject,
   ChangeDetectorRef,
-  DestroyRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { distinctUntilChanged, filter, map } from "rxjs";
 
@@ -26,21 +23,15 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
 
 /* models */
-import { Profile } from "@models/profile.model";
-import { User } from "@models/user.model";
 import { Todo } from "@models/todo.model";
 import { Task } from "@models/task.model";
 import { ResponseStatus } from "@models/response.model";
 import { NotificationAction } from "@models/notification.model";
 
 /* services */
-import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { AppStateService } from "@services/core/app-state.service";
-import { StorageService } from "@services/storage.service";
-import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -66,35 +57,23 @@ interface Breadcrumb {
   templateUrl: "./header.component.html",
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  private requestService = inject(REQUEST_SERVICE);
-  private storageService = inject(StorageService);
-  private destroyRef = inject(DestroyRef);
-
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private authService: AuthService,
     private notifyService: NotifyService,
     private syncService: UnifiedSyncService,
     private cdr: ChangeDetectorRef,
     private location: Location,
-    private appStateService: AppStateService,
-    private shortcutEmitters: ShortcutEmittersService
+    private appStateService: AppStateService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
 
-  themeVal = signal("");
   title = signal("");
   description = signal("");
   subtitle = signal("");
   iconUrl = signal("");
-  userId = signal("");
 
-  profile = signal<Profile | null>(null);
-  user = signal<User | null>(null);
-  userEmail = signal("");
-  role = signal("");
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
 
@@ -103,8 +82,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   showInfoBlock = this.appStateService.showInfoBlock;
 
-  private profileLoaded = false;
-
   notifications = this.notifyService.notifications;
   unreadCount = this.notifyService.unreadCount;
 
@@ -112,14 +89,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private syncSubscription: Subscription | null = null;
 
   ngOnInit(): void {
-    this.themeVal.set(localStorage.getItem("theme") ?? "");
-    this.userId.set(this.authService.getValueByKey("id"));
-
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
     );
-
-    this.loadProfile();
 
     this.router.events
       .pipe(
@@ -142,84 +114,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
             : ""
         );
         this.cdr.detectChanges();
-      });
-  }
-
-  private loadProfile(): void {
-    if (this.profileLoaded && this.profile() && this.user()) {
-      return;
-    }
-
-    const storedProfile = this.storageService.profile();
-    const storedUser = this.storageService.user();
-
-    if (storedProfile && storedUser) {
-      this.profile.set(storedProfile);
-      this.user.set(storedUser);
-      this.userEmail.set(storedUser.email || "");
-      this.role.set(storedUser.role || "");
-      this.profileLoaded = true;
-      return;
-    }
-
-    if (this.storageService.isLoading()) {
-      let attempts = 0;
-      const maxAttempts = 10;
-      const checkStorage = () => {
-        attempts++;
-        const profile = this.storageService.profile();
-        const user = this.storageService.user();
-        if (profile && user) {
-          this.profile.set(profile);
-          this.user.set(user);
-          this.userEmail.set(user.email || "");
-          this.role.set(user.role || "");
-          this.profileLoaded = true;
-          return;
-        }
-        if (attempts < maxAttempts) {
-          setTimeout(checkStorage, 100);
-        } else {
-          this.fetchProfileFromApi();
-        }
-      };
-      setTimeout(checkStorage, 100);
-      return;
-    }
-
-    this.fetchProfileFromApi();
-  }
-
-  private fetchProfileFromApi(): void {
-    const userId = this.authService.getValueByKey("id");
-    this.requestService
-      .getAll<any>("profiles", {
-        visibility: "private",
-        filter: { user_id: userId },
-        load: ["user"],
-      })
-      .pipe(
-        map((profiles: any[]) => profiles[0]),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: (profile) => {
-          if (profile) {
-            this.profile.set(profile);
-            if (profile.user) {
-              this.user.set(profile.user);
-              this.userEmail.set(profile.user.email || "");
-              this.role.set(profile.user.role || "");
-            }
-            this.profileLoaded = true;
-          }
-        },
-        error: () => {
-          this.profile.set(null);
-          this.user.set(null);
-          this.userEmail.set("");
-          this.role.set("");
-        },
       });
   }
 
@@ -308,17 +202,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   showNav() {
     this.isShowNavEvent.next(true);
-  }
-
-  setTheme(theme: string) {
-    document.querySelector("html")!.setAttribute("class", theme);
-    localStorage.setItem("theme", theme);
-    this.themeVal.set(theme);
-  }
-
-  toggleTheme() {
-    const newTheme = this.themeVal() === "dark" ? "" : "dark";
-    this.setTheme(newTheme);
   }
 
   markAsRead(id: string) {
@@ -415,13 +298,5 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.notifyService.showError("Synchronization failed: " + errorMessage);
       }
     }
-  }
-
-  logout() {
-    this.authService.logout();
-  }
-
-  showShortcuts() {
-    this.shortcutEmitters.emitShortcuts();
   }
 }

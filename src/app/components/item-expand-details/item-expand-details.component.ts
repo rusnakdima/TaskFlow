@@ -161,8 +161,11 @@ export class ItemExpandDetailsComponent implements OnInit {
   }
 
   get userDisplayName(): string {
-    if (this.enrichedItem()?.user?.name) {
-      return this.enrichedItem().user.name;
+    if (this.enrichedItem()?.user?.username) {
+      return this.enrichedItem().user.username;
+    }
+    if (this.item?.user?.username) {
+      return this.item.user.username;
     }
     return this.item?.user_id || "-";
   }
