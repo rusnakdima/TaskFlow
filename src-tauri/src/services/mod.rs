@@ -1,14 +1,15 @@
-#[path = "repository.service.rs"]
-pub mod repository_service;
-
 pub mod repository;
 
-/* global re-export Entity trait for services that use entity types */
 #[allow(unused_imports)]
 use nosql_orm::Entity;
 
+pub use repository::service::RepositoryService;
+
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
+
+#[path = "db_backup.service.rs"]
+pub mod db_backup;
 
 // WebSocket server - REMOVED
 
