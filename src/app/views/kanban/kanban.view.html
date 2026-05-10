@@ -55,11 +55,13 @@
                     [columns]="columns"
                     [subtasks]="getSubtasksForTask(task.id)"
                     [isExpanded]="isTaskExpanded(task.id)"
+                    [isSelected]="isTaskSelected(task.id)"
                     [todo_id]="selectedTodoId()"
                     (toggleExpand)="onToggleExpand($event)"
                     (toggleStatus)="onToggleTaskStatus($event)"
                     (moveTaskEvent)="onMoveTask($event)"
                     (toggleSubtaskCompletion)="onSubtaskToggleCompletion($event)"
+                    (selectionChange)="onTaskSelectionChange(task.id, $event)"
                   />
                 </div>
                 <div
@@ -81,6 +83,17 @@
         }
       </div>
     </div>
+
+    <app-bulk-actions
+      [selectedCount]="getSelectedCount()"
+      [isAllSelected]="isAllTasksSelected()"
+      mode="tasks"
+      (selectAllEvent)="toggleSelectAll()"
+      (setStatusEvent)="onBulkStatusChange($event)"
+      (softDeleteEvent)="onBulkSoftDelete()"
+      (hardDeleteEvent)="onBulkHardDelete()"
+      (cancelEvent)="onBulkCancel()"
+    />
   } @else {
     <app-empty-state
       icon="view_kanban"

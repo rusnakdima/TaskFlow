@@ -54,7 +54,6 @@ import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { ViewMode } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import {
   SegmentSelectorComponent,
@@ -65,9 +64,6 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
-import { ItemDisplayComponent } from "@components/item-display/item-display.component";
-import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
-import { ADMIN_CARD_CONFIG } from "@constants/item-display.constants";
 
 @Component({
   selector: "app-data-management-view",
@@ -92,7 +88,6 @@ import { ADMIN_CARD_CONFIG } from "@constants/item-display.constants";
     SegmentSelectorComponent,
     PageToolbarComponent,
     ItemExpandDetailsComponent,
-    ItemDisplayComponent,
   ],
   templateUrl: "./data-management.view.html",
 })
@@ -127,7 +122,6 @@ export class DataManagementView implements OnInit {
   dataMap = signal<any>({});
 
   selectedType = signal<string>("todos");
-  viewMode = signal<ViewMode>("card");
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
@@ -138,15 +132,6 @@ export class DataManagementView implements OnInit {
   getAdminActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
   }
-
-  adminCardConfig: ItemDisplayConfig[] = ADMIN_CARD_CONFIG;
-
-  adminCardActions: ItemDisplayAction[] = [
-    { key: "edit", icon: "edit", label: "Edit" },
-    { key: "archive", icon: "archive", label: "Archive" },
-    { key: "restore", icon: "restore", label: "Restore" },
-    { key: "delete", icon: "delete_forever", label: "Permanent Delete" },
-  ];
 
   // Filter state
   titleFilter = signal<string>("");
@@ -479,11 +464,6 @@ export class DataManagementView implements OnInit {
       filter: {
         onToggle: () => this.showFilters.update((v) => !v),
         isActive: this.showFilters(),
-      },
-      viewMode: {
-        mode: this.viewMode(),
-        pageKey: "data-management",
-        onModeChange: (mode) => this.viewMode.set(mode),
       },
     };
   }

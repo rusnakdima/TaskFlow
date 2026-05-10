@@ -25,7 +25,7 @@
       <h3 class="textNormal mb-2 text-xl font-semibold">No records found</h3>
       <p class="textMuted">No {{ getSelectedTypeLabel().toLowerCase() }} data available</p>
     </div>
-  } @else if (viewMode() === "table") {
+  } @else {
     <app-table-view
       [data]="getCurrentData()"
       [fields]="getFieldConfig()"
@@ -40,42 +40,6 @@
       (selectAll)="onBulkSelectAllRecords($event)"
       (actionClick)="onAdminAction($event)"
     />
-  } @else if (viewMode() === "grid") {
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      @for (item of getCurrentData(); track item.id) {
-        <app-item-display
-          [item]="item"
-          [config]="adminCardConfig"
-          [displayMode]="'card'"
-          [isSelected]="selectedRecords().has(item.id)"
-          [actions]="adminCardActions"
-          [expandable]="true"
-          [itemType]="getItemType()"
-          [expandFields]="getFieldConfig()"
-          (selectionChangeEvent)="onRecordSelect({ id: $event.id, selected: $event.selected })"
-          (cardClick)="onCardClick($event)"
-          (itemAction)="onItemAction($event)"
-        />
-      }
-    </div>
-  } @else {
-    <div class="flex w-full flex-col gap-y-3">
-      @for (item of getCurrentData(); track item.id) {
-        <app-item-display
-          [item]="item"
-          [config]="adminCardConfig"
-          [displayMode]="'list'"
-          [isSelected]="selectedRecords().has(item.id)"
-          [actions]="adminCardActions"
-          [expandable]="true"
-          [itemType]="getItemType()"
-          [expandFields]="getFieldConfig()"
-          (selectionChangeEvent)="onRecordSelect({ id: $event.id, selected: $event.selected })"
-          (cardClick)="onCardClick($event)"
-          (itemAction)="onItemAction($event)"
-        />
-      }
-    </div>
   }
 
   <app-bulk-actions
