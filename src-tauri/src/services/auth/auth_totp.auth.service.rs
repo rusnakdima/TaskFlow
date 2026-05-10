@@ -21,6 +21,7 @@ use crate::entities::{
 };
 
 /* helpers */
+use crate::helpers::timestamp_helper::get_current_datetime;
 use crate::helpers::{
   qr_helper,
   response_helper::{err_response, success_response},
@@ -253,7 +254,7 @@ impl AuthTotpService {
       new_recovery_codes.remove(pos);
       let updated_user = UserEntity {
         recovery_codes: new_recovery_codes,
-        updated_at: Some(chrono::Utc::now()),
+        updated_at: Some(get_current_datetime()),
         ..user
       };
       self.save_user(&updated_user).await?;
@@ -353,7 +354,7 @@ impl AuthTotpService {
       totp_enabled,
       totp_secret: totp_secret.to_string(),
       recovery_codes,
-      updated_at: Some(chrono::Utc::now()),
+      updated_at: Some(get_current_datetime()),
       ..user
     };
 
