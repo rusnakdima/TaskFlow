@@ -122,7 +122,7 @@
           (cdkDropListDropped)="onSubtaskDrop($event)"
         >
           @for (subtask of listSubtasks(); track subtask.id) {
-            <app-item-display
+            <app-item-card
               cdkDrag
               [cdkDragData]="subtask"
               cdkDragPreviewContainer="global"
@@ -143,7 +143,7 @@
                 *cdkDragPlaceholder
                 class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
               ></div>
-            </app-item-display>
+            </app-item-card>
           }
         </div>
       } @else {
@@ -154,7 +154,7 @@
           (cdkDropListDropped)="onSubtaskDrop($event)"
         >
           @for (subtask of listSubtasks(); track subtask.id) {
-            <app-item-display
+            <app-item-card
               cdkDrag
               [cdkDragData]="subtask"
               cdkDragPreviewContainer="global"
