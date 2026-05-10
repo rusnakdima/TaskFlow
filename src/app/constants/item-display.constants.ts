@@ -175,12 +175,13 @@ export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
-  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 2 },
+  { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 3 },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
     key: "menu",
     type: "menu",
     getClass: () => ActionColors.default,
-    line: 1,
+    line: 3,
   },
 ];
 
@@ -228,35 +229,17 @@ export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
   {
     key: "priority-badge",
     type: "priority-badge",
-    getValue: (item: Task) => item.priority,
-    getChipColor: (item: Task) =>
+    getValue: (item: Subtask) =>
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
-  {
-    key: "status-badge",
-    type: "status-badge",
-    getValue: (item: Task) => item.status,
-    getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
-    line: 2,
-  },
-  {
-    key: "subtasks-count",
-    type: "number",
-    getDisplayValue: (item: Task) => {
-      const total = item.subtasks?.length || 0;
-      const completed =
-        item.subtasks?.filter((s: Subtask) => s.status === TaskStatus.COMPLETED).length || 0;
-      return `${completed}/${total}`;
-    },
-    line: 2,
-  },
-  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 2 },
+  { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 3 },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
     key: "menu",
     type: "menu",
     getClass: () => ActionColors.default,
-    line: 1,
+    line: 3,
   },
 ];
 
@@ -276,6 +259,7 @@ export const CATEGORY_CARD_CONFIG: ItemDisplayConfig[] = [
     getClass: () => ActionColors.default,
     line: 1,
   },
+  { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
 ];
 
 export const CATEGORY_TABLE_CONFIG: ItemDisplayConfig[] = [

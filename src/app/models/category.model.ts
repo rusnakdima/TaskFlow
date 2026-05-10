@@ -5,5 +5,5 @@ export interface Category extends BaseEntity {
   id: string;
   title: string;
   user_id: string;
-  user: User;
+  user?: User;
 }
