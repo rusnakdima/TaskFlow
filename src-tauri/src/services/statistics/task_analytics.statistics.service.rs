@@ -1,207 +1,73 @@
 use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
-use crate::helpers::statistics_aggregation::StatisticsAggregation;
 use chrono::DateTime;
+use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
 use serde_json::Value;
 
 pub struct TaskAnalytics;
 
 impl TaskAnalytics {
-  pub fn calculate_average_task_time(tasks: &[Value]) -> i32 {
-    let completed_tasks: Vec<_> = tasks
-      .iter()
-      .filter(|task| {
-        if let Some(status) = task.get("status").and_then(|v| v.as_str()) {
-          status == "completed" || status == "skipped"
-        } else {
-          false
-        }
-      })
-      .collect();
+  pub async fn calculate_average_task_time(tasks: &[Value]) -> i32 {
+    let pipeline = AggregationPipeline::new()
+      .match_stage(serde_json::json!({ "status": { "$in": ["completed", "skipped"] } }))
+      .project(vec![
+        ("created_at", serde_json::json!("$created_at")),
+        ("updated_at", serde_json::json!("$updated_at")),
+      ]);
 
-    let count = completed_tasks.len();
+    let results = pipeline
+      .execute_docs(tasks.to_vec())
+      .await
+      .unwrap_or_default();
+    let count = results.len();
     if count == 0 {
       return 0;
     }
 
     let mut total_duration = 0.0;
-    for task in completed_tasks {
-      if let Some(created_str) = task.get("created_at").and_then(|v| v.as_str()) {
-        if let Some(updated_str) = task.get("updated_at").and_then(|v| v.as_str()) {
-          if let Ok(created) = DateTime::parse_from_rfc3339(created_str) {
-            if let Ok(updated) = DateTime::parse_from_rfc3339(updated_str) {
-              let duration = updated.signed_duration_since(created);
-              let seconds = duration.num_seconds() as f32;
-              let hours = seconds / 3600.0;
-              total_duration += hours;
-            }
-          }
+    for task in results {
+      if let (Some(created_str), Some(updated_str)) = (
+        task.get("created_at").and_then(|v| v.as_str()),
+        task.get("updated_at").and_then(|v| v.as_str()),
+      ) {
+        if let (Ok(created), Ok(updated)) = (
+          DateTime::parse_from_rfc3339(created_str),
+          DateTime::parse_from_rfc3339(updated_str),
+        ) {
+          let duration = updated.signed_duration_since(created);
+          let seconds = duration.num_seconds() as f32;
+          let hours = seconds / 3600.0;
+          total_duration += hours;
         }
       }
     }
     (total_duration / count as f32) as i32
   }
 
-  pub fn compute_statistics(
+  pub async fn compute_statistics(
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
     tasks: &[Value],
     previous_tasks: &[Value],
   ) -> StatisticsModel {
-    let total_tasks: i32 = daily_activities
-      .iter()
-      .map(|activity| {
-        let created = activity
-          .get("tasks_created")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        let updated = activity
-          .get("tasks_updated")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        let completed = activity
-          .get("tasks_completed")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        created + updated + completed
-      })
-      .sum::<i64>() as i32;
-
-    let completed_tasks = daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
+    let (total_tasks, completed_tasks) = Self::compute_activity_totals(daily_activities).await;
     let completion_rate = if total_tasks > 0 {
       ((completed_tasks as f32 / total_tasks as f32) * 100.0) as i32
     } else {
       0
     };
+    let average_task_time = Self::calculate_average_task_time(tasks).await;
+    let productivity_score = Self::compute_productivity_score(daily_activities).await;
 
-    let average_task_time = Self::calculate_average_task_time(tasks);
-
-    let productivity_score = if !daily_activities.is_empty() {
-      let total_score: i32 = daily_activities
-        .iter()
-        .map(|activity| {
-          let creates = activity
-            .get("todos_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let updates = activity
-            .get("todos_updated")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let deletes = activity
-            .get("todos_deleted")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let task_creates = activity
-            .get("tasks_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let task_completes = activity
-            .get("tasks_completed")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let subtask_creates = activity
-            .get("subtasks_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let subtask_completes = activity
-            .get("subtasks_completed")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          (creates
-            + updates
-            + deletes
-            + task_creates
-            + task_completes
-            + subtask_creates
-            + subtask_completes) as i32
-        })
-        .sum::<i32>();
-      total_score / daily_activities.len() as i32
-    } else {
-      0
-    };
-
-    let previous_total_tasks: i32 = previous_daily_activities
-      .iter()
-      .map(|activity| {
-        let created = activity
-          .get("tasks_created")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        let updated = activity
-          .get("tasks_updated")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        let completed = activity
-          .get("tasks_completed")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0);
-        created + updated + completed
-      })
-      .sum::<i64>() as i32;
-
-    let previous_completed_tasks = previous_daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
+    let (previous_total_tasks, previous_completed_tasks) =
+      Self::compute_activity_totals(previous_daily_activities).await;
     let previous_completion_rate = if previous_total_tasks > 0 {
       ((previous_completed_tasks as f32 / previous_total_tasks as f32) * 100.0) as i32
     } else {
       0
     };
-
-    let previous_average_time = Self::calculate_average_task_time(previous_tasks);
-
-    let previous_productivity_score = if !previous_daily_activities.is_empty() {
-      let total_score: i32 = previous_daily_activities
-        .iter()
-        .map(|activity| {
-          let creates = activity
-            .get("todos_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let updates = activity
-            .get("todos_updated")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let deletes = activity
-            .get("todos_deleted")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let task_creates = activity
-            .get("tasks_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let task_completes = activity
-            .get("tasks_completed")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let subtask_creates = activity
-            .get("subtasks_created")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          let subtask_completes = activity
-            .get("subtasks_completed")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-          (creates
-            + updates
-            + deletes
-            + task_creates
-            + task_completes
-            + subtask_creates
-            + subtask_completes) as i32
-        })
-        .sum::<i32>();
-      total_score / previous_daily_activities.len() as i32
-    } else {
-      0
-    };
+    let previous_average_time = Self::calculate_average_task_time(previous_tasks).await;
+    let previous_productivity_score =
+      Self::compute_productivity_score(previous_daily_activities).await;
 
     StatisticsModel {
       total_tasks,
@@ -215,66 +81,67 @@ impl TaskAnalytics {
     }
   }
 
-  pub async fn compute_statistics_async(
-    daily_activities: &[Value],
-    previous_daily_activities: &[Value],
-    tasks: &[Value],
-    previous_tasks: &[Value],
-  ) -> StatisticsModel {
-    StatisticsAggregation::compute_statistics_from_docs(
-      daily_activities,
-      previous_daily_activities,
-      tasks,
-      previous_tasks,
-    )
-    .await
+  async fn compute_activity_totals(daily_activities: &[Value]) -> (i32, i32) {
+    let pipeline = AggregationPipeline::new().group(
+      GroupStage::new(serde_json::Value::Null)
+        .sum(
+          "total_tasks",
+          serde_json::json!({ "$sum": ["$tasks_created", "$tasks_updated", "$tasks_completed"] }),
+        )
+        .sum("completed", serde_json::json!("$tasks_completed")),
+    );
+
+    let results = pipeline
+      .execute_docs(daily_activities.to_vec())
+      .await
+      .unwrap_or_default();
+    if let Some(result) = results.first() {
+      let total = result
+        .get("total_tasks")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
+      let completed = result
+        .get("completed")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
+      (total, completed)
+    } else {
+      (0, 0)
+    }
   }
 
-  pub fn compute_detailed_metrics(
+  async fn compute_productivity_score(daily_activities: &[Value]) -> i32 {
+    if daily_activities.is_empty() {
+      return 0;
+    }
+
+    let pipeline = AggregationPipeline::new().group(GroupStage::new(serde_json::Value::Null).sum(
+      "score",
+      serde_json::json!({ "$sum": [
+          "$todos_created", "$todos_updated", "$todos_deleted",
+          "$tasks_created", "$tasks_completed",
+          "$subtasks_created", "$subtasks_completed"
+        ] }),
+    ));
+
+    let results = pipeline
+      .execute_docs(daily_activities.to_vec())
+      .await
+      .unwrap_or_default();
+    if let Some(result) = results.first() {
+      let score = result.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+      (score / daily_activities.len() as f32) as i32
+    } else {
+      0
+    }
+  }
+
+  pub async fn compute_detailed_metrics(
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
   ) -> Vec<DetailedMetricModel> {
-    let current_tasks_created = daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
-    let current_tasks_completed = daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
-    let current_weekly_active_days = daily_activities
-      .iter()
-      .filter(|activity| {
-        activity
-          .get("total_tasks")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0)
-          > 0
-      })
-      .count() as i32;
-
-    let previous_tasks_created = previous_daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_created").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
-    let previous_tasks_completed = previous_daily_activities
-      .iter()
-      .filter_map(|activity| activity.get("tasks_completed").and_then(|v| v.as_i64()))
-      .sum::<i64>() as i32;
-
-    let previous_weekly_active_days = previous_daily_activities
-      .iter()
-      .filter(|activity| {
-        activity
-          .get("total_tasks")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0)
-          > 0
-      })
-      .count() as i32;
+    let current_metrics = Self::compute_metric_sums(daily_activities).await;
+    let previous_metrics = Self::compute_metric_sums(previous_daily_activities).await;
 
     let calculate_change = |current: i32, previous: i32| -> i32 {
       if previous == 0 {
@@ -291,33 +158,57 @@ impl TaskAnalytics {
     vec![
       DetailedMetricModel {
         name: "Tasks Created".to_string(),
-        current: current_tasks_created.to_string(),
-        previous: previous_tasks_created.to_string(),
-        change: calculate_change(current_tasks_created, previous_tasks_created),
+        current: current_metrics.0.to_string(),
+        previous: previous_metrics.0.to_string(),
+        change: calculate_change(current_metrics.0, previous_metrics.0),
       },
       DetailedMetricModel {
         name: "Tasks Completed".to_string(),
-        current: current_tasks_completed.to_string(),
-        previous: previous_tasks_completed.to_string(),
-        change: calculate_change(current_tasks_completed, previous_tasks_completed),
+        current: current_metrics.1.to_string(),
+        previous: previous_metrics.1.to_string(),
+        change: calculate_change(current_metrics.1, previous_metrics.1),
       },
       DetailedMetricModel {
         name: "Weekly Active Days".to_string(),
-        current: current_weekly_active_days.to_string(),
-        previous: previous_weekly_active_days.to_string(),
-        change: calculate_change(current_weekly_active_days, previous_weekly_active_days),
+        current: current_metrics.2.to_string(),
+        previous: previous_metrics.2.to_string(),
+        change: calculate_change(current_metrics.2, previous_metrics.2),
       },
     ]
   }
 
-  pub async fn compute_detailed_metrics_async(
-    daily_activities: &[Value],
-    previous_daily_activities: &[Value],
-  ) -> Vec<DetailedMetricModel> {
-    StatisticsAggregation::compute_detailed_metrics_from_docs(
-      daily_activities,
-      previous_daily_activities,
-    )
-    .await
+  async fn compute_metric_sums(daily_activities: &[Value]) -> (i32, i32, i32) {
+    let pipeline = AggregationPipeline::new().group(
+      GroupStage::new(serde_json::Value::Null)
+        .sum("tasks_created", serde_json::json!("$tasks_created"))
+        .sum("tasks_completed", serde_json::json!("$tasks_completed"))
+        .sum(
+          "active_days",
+          serde_json::json!({ "$cond": [{ "$gt": ["$total_tasks", 0] }, 1, 0] }),
+        ),
+    );
+
+    let results = pipeline
+      .execute_docs(daily_activities.to_vec())
+      .await
+      .unwrap_or_default();
+    if let Some(result) = results.first() {
+      (
+        result
+          .get("tasks_created")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32,
+        result
+          .get("tasks_completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32,
+        result
+          .get("active_days")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32,
+      )
+    } else {
+      (0, 0, 0)
+    }
   }
 }

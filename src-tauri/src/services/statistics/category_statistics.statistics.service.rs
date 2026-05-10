@@ -1,11 +1,12 @@
 use chrono::{DateTime, NaiveDate};
+use nosql_orm::aggregation::AggregationPipeline;
 use serde_json::Value;
 use std::collections::HashMap;
 
 pub struct CategoryStatistics;
 
 impl CategoryStatistics {
-  pub fn calculate_category_tasks(
+  pub async fn calculate_category_tasks(
     categories: &[Value],
     todos: &[Value],
     tasks: &[Value],
@@ -23,6 +24,8 @@ impl CategoryStatistics {
           .push(task.clone());
       }
     }
+
+    let tasks_in_range = Self::filter_tasks_by_date(tasks, start_date, end_date).await;
 
     for category in categories {
       let mut category_clone = category.clone();
@@ -52,26 +55,7 @@ impl CategoryStatistics {
 
           if let Some(todo_tasks) = tasks_by_todo.get(todo_id) {
             for task in todo_tasks {
-              let mut is_task_in_range = false;
-              if let Some(created_at_str) = task.get("created_at").and_then(|v| v.as_str()) {
-                if let Ok(dt) = DateTime::parse_from_rfc3339(created_at_str) {
-                  let date = dt.date_naive();
-                  if date >= *start_date && date <= *end_date {
-                    is_task_in_range = true;
-                  }
-                }
-              }
-
-              if !is_task_in_range {
-                if let Some(updated_at_str) = task.get("updated_at").and_then(|v| v.as_str()) {
-                  if let Ok(dt) = DateTime::parse_from_rfc3339(updated_at_str) {
-                    let date = dt.date_naive();
-                    if date >= *start_date && date <= *end_date {
-                      is_task_in_range = true;
-                    }
-                  }
-                }
-              }
+              let is_task_in_range = tasks_in_range.contains(&task);
 
               if is_task_in_range {
                 category_task_count += 1;
@@ -109,5 +93,55 @@ impl CategoryStatistics {
     }
 
     categories_with_counts
+  }
+
+  async fn filter_tasks_by_date(
+    tasks: &[Value],
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
+  ) -> Vec<Value> {
+    let pipeline = AggregationPipeline::new().project(vec![
+      ("id", serde_json::json!("$id")),
+      ("todo_id", serde_json::json!("$todo_id")),
+      ("status", serde_json::json!("$status")),
+      ("created_at", serde_json::json!("$created_at")),
+      ("updated_at", serde_json::json!("$updated_at")),
+    ]);
+
+    let projected = pipeline
+      .execute_docs(tasks.to_vec())
+      .await
+      .unwrap_or_default();
+
+    let mut in_range = Vec::new();
+    for task in projected {
+      let mut is_in_range = false;
+
+      if let Some(created_at_str) = task.get("created_at").and_then(|v| v.as_str()) {
+        if let Ok(dt) = DateTime::parse_from_rfc3339(created_at_str) {
+          let date = dt.date_naive();
+          if date >= *start_date && date <= *end_date {
+            is_in_range = true;
+          }
+        }
+      }
+
+      if !is_in_range {
+        if let Some(updated_at_str) = task.get("updated_at").and_then(|v| v.as_str()) {
+          if let Ok(dt) = DateTime::parse_from_rfc3339(updated_at_str) {
+            let date = dt.date_naive();
+            if date >= *start_date && date <= *end_date {
+              is_in_range = true;
+            }
+          }
+        }
+      }
+
+      if is_in_range {
+        in_range.push(task);
+      }
+    }
+
+    in_range
   }
 }

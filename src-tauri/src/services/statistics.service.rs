@@ -1,14 +1,10 @@
 /* sys lib */
 use chrono::NaiveDate;
 use serde_json::{json, Value};
-use std::sync::Arc;
 
 /* providers */
 use nosql_orm::prelude::{DatabaseProvider, Filter};
 use nosql_orm::providers::JsonProvider;
-
-/* helpers */
-use crate::helpers::activity_log::ActivityLogHelper;
 
 /* models */
 use crate::entities::{
@@ -25,15 +21,11 @@ use crate::services::statistics::{
 #[derive(Clone)]
 pub struct StatisticsService {
   pub json_provider: JsonProvider,
-  pub activity_log_helper: Arc<ActivityLogHelper>,
 }
 
 impl StatisticsService {
-  pub fn new(json_provider: JsonProvider, activity_log_helper: Arc<ActivityLogHelper>) -> Self {
-    Self {
-      json_provider,
-      activity_log_helper,
-    }
+  pub fn new(json_provider: JsonProvider) -> Self {
+    Self { json_provider }
   }
 
   pub async fn get_statistics(
@@ -120,7 +112,8 @@ impl StatisticsService {
       &previous_daily_activities,
       &current_tasks,
       &previous_tasks,
-    );
+    )
+    .await;
 
     let categories_with_counts = CategoryStatistics::calculate_category_tasks(
       &categories,
@@ -128,7 +121,8 @@ impl StatisticsService {
       &current_tasks,
       &start_date_naive,
       &end_date_naive,
-    );
+    )
+    .await;
 
     let chart_data = ChartGenerator::compute_chart_data(
       &current_tasks,
@@ -136,10 +130,11 @@ impl StatisticsService {
       &daily_activities,
       &start_date_naive,
       &end_date_naive,
-    );
+    )
+    .await;
 
     let detailed_metrics =
-      TaskAnalytics::compute_detailed_metrics(&daily_activities, &previous_daily_activities);
+      TaskAnalytics::compute_detailed_metrics(&daily_activities, &previous_daily_activities).await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
