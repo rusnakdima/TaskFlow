@@ -1,10 +1,11 @@
-import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
+import { Component, Input, ChangeDetectionStrategy, signal, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatChipsModule } from "@angular/material/chips";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
+import { Observable } from "rxjs";
 
 @Component({
   selector: "app-item-expand-details",
@@ -13,13 +14,23 @@ import { TableField } from "@models/table-field.model";
   templateUrl: "./item-expand-details.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ItemExpandDetailsComponent {
+export class ItemExpandDetailsComponent implements OnInit {
   @Input() item: any = null;
   @Input() type: ItemType = "todo";
   @Input() fields: TableField[] = [];
   @Input() formatDateFn: (date: string) => string = (dateStr: string) =>
     this.formatFieldDate(dateStr);
   @Input() getPriorityBadgeClassFn: (priority: string) => string = () => "";
+  @Input() onExpandRequest?: (item: any) => Observable<any>;
+
+  enrichedItem = signal<any>(null);
+  isLoadingUser = signal(false);
+
+  ngOnInit(): void {
+    if (this.type === "category" && this.hasUserId) {
+      this.handleExpand();
+    }
+  }
 
   get hasFields(): boolean {
     return this.fields.length > 0;
@@ -63,15 +74,21 @@ export class ItemExpandDetailsComponent {
   }
 
   get hasStartDate(): boolean {
-    return !!this.item?.start_date;
+    return !!this.item?.start_date && this.item.start_date !== "";
   }
 
   get hasEndDate(): boolean {
-    return !!this.item?.end_date;
+    return !!this.item?.end_date && this.item.end_date !== "";
   }
 
   get hasDescription(): boolean {
-    return !!this.item?.description;
+    return (
+      (this.type === "todo" ||
+        this.type === "task" ||
+        this.type === "subtask" ||
+        this.type === "category") &&
+      !!this.item?.description
+    );
   }
 
   get hasAssignees(): boolean {
@@ -141,6 +158,29 @@ export class ItemExpandDetailsComponent {
 
   get isDeleted(): boolean {
     return !!this.item?.deleted_at;
+  }
+
+  get userDisplayName(): string {
+    if (this.enrichedItem()?.user?.name) {
+      return this.enrichedItem().user.name;
+    }
+    return this.item?.user_id || "-";
+  }
+
+  handleExpand(): void {
+    if (!this.onExpandRequest || !this.item?.id) return;
+    if (this.enrichedItem()?.user) return;
+
+    this.isLoadingUser.set(true);
+    this.onExpandRequest(this.item).subscribe({
+      next: (enriched) => {
+        this.enrichedItem.set(enriched);
+        this.isLoadingUser.set(false);
+      },
+      error: () => {
+        this.isLoadingUser.set(false);
+      },
+    });
   }
 
   formatFieldDate(dateStr: string): string {

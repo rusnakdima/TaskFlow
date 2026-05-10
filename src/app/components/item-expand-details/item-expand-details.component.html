@@ -1,17 +1,15 @@
 <div class="rounded-lg bg-gray-50 p-3 dark:bg-zinc-800/60">
   <div class="flex flex-col gap-2">
-    <div class="mb-2 flex items-center gap-2 border-b border-gray-200 pb-2 dark:border-zinc-700">
-      <mat-icon class="textMuted">info</mat-icon>
-      <span class="text-sm font-semibold">Details</span>
-      @if (isDeleted) {
+    @if (isDeleted) {
+      <div class="mb-2 flex items-center gap-2">
         <mat-chip
-          class="ml-2 h-6 text-xs"
+          class="h-6 text-xs"
           ngClass="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
         >
           Deleted: {{ formatFieldDate(item.deleted_at) }}
         </mat-chip>
-      }
-    </div>
+      </div>
+    }
 
     @if (hasProgress) {
       <div class="space-y-1">
@@ -32,43 +30,38 @@
       </div>
     }
 
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      @if (hasChatsCount) {
-        <div class="flex items-center gap-2 text-sm">
-          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="chat" />
-          <span class="text-gray-600 dark:text-gray-400">{{ item.chats_count }} chats</span>
-        </div>
-      }
-      @if (hasRepeat) {
-        <div class="flex items-center gap-2 text-sm">
-          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="repeat" />
-          <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
-          <span class="font-medium capitalize">{{ item.repeat }}</span>
-        </div>
-      }
-      @if (hasGithubIssue) {
-        <div class="flex items-center gap-2 text-sm">
-          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="bug_report" />
-          <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
-          <a [href]="item.github_issue_url" target="_blank" class="text-blue-500 hover:underline">
-            #{{ item.github_issue_number }}
-          </a>
-        </div>
-      }
-      @if (hasDependsOn) {
-        <div class="flex items-center gap-2 text-sm">
-          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="account_tree" />
-          <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
-          <span class="font-medium">{{ item.depends_on.length }} tasks</span>
-        </div>
-      }
-      @if (hasCommentsCount) {
-        <div class="flex items-center gap-2 text-sm">
-          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="comment" />
-          <span class="text-gray-600 dark:text-gray-400">{{ item.comments_count }} comments</span>
-        </div>
-      }
-    </div>
+    @if (hasDescription) {
+      <div class="text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Description:</span>
+        <p class="mt-1 text-gray-900 dark:text-gray-100">
+          {{ item.description | slice: 0 : 150 }}{{ item.description.length > 150 ? "..." : "" }}
+        </p>
+      </div>
+    }
+
+    @if (hasStartDate || hasEndDate) {
+      <div class="flex flex-wrap items-center gap-4 text-sm">
+        @if (hasStartDate) {
+          <div class="flex items-center gap-1">
+            <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
+            <span class="text-gray-600 dark:text-gray-400">Start:</span>
+            <span>{{ formatDate(item.start_date) }}</span>
+          </div>
+        }
+        @if (hasEndDate) {
+          <div class="flex items-center gap-1" [ngClass]="getDateColor(item.end_date)">
+            <mat-icon class="h-4! w-4! text-base!" fontIcon="schedule" />
+            <span class="text-gray-600 dark:text-gray-400">Due:</span>
+            <span>{{ formatDate(item.end_date) }}</span>
+            @if (isOverdue) {
+              <span class="text-xs font-medium">(Overdue)</span>
+            } @else if (isUpcoming) {
+              <span class="text-xs font-medium">(Due Soon)</span>
+            }
+          </div>
+        }
+      </div>
+    }
 
     @if (hasContent) {
       <div class="text-sm">
@@ -133,7 +126,11 @@
         <div class="flex items-center gap-2 text-sm">
           <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="person" />
           <span class="text-gray-600 dark:text-gray-400">User:</span>
-          <span>{{ item.user_id | slice: 0 : 8 }}...</span>
+          @if (isLoadingUser()) {
+            <span class="text-xs text-gray-400">Loading...</span>
+          } @else {
+            <span>{{ enrichedItem()?.user?.name || item.user_id }}</span>
+          }
         </div>
       }
     }
@@ -155,38 +152,43 @@
       }
     }
 
-    @if (hasStartDate || hasEndDate) {
-      <div class="flex flex-wrap items-center gap-4 text-sm">
-        @if (hasStartDate) {
-          <div class="flex items-center gap-1">
-            <mat-icon class="h-4! w-4! text-base! text-blue-500" fontIcon="event" />
-            <span class="text-gray-600 dark:text-gray-400">Start:</span>
-            <span>{{ formatDate(item.start_date) }}</span>
-          </div>
-        }
-        @if (hasEndDate) {
-          <div class="flex items-center gap-1" [ngClass]="getDateColor(item.end_date)">
-            <mat-icon class="h-4! w-4! text-base!" fontIcon="schedule" />
-            <span class="text-gray-600 dark:text-gray-400">Due:</span>
-            <span>{{ formatDate(item.end_date) }}</span>
-            @if (isOverdue) {
-              <span class="text-xs font-medium">(Overdue)</span>
-            } @else if (isUpcoming) {
-              <span class="text-xs font-medium">(Due Soon)</span>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    @if (hasDescription) {
-      <div class="text-sm">
-        <span class="text-gray-600 dark:text-gray-400">Description:</span>
-        <p class="mt-1 text-gray-900 dark:text-gray-100">
-          {{ item.description | slice: 0 : 150 }}{{ item.description.length > 150 ? "..." : "" }}
-        </p>
-      </div>
-    }
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      @if (hasChatsCount) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="chat" />
+          <span class="text-gray-600 dark:text-gray-400">{{ item.chats_count }} chats</span>
+        </div>
+      }
+      @if (hasRepeat) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="repeat" />
+          <span class="text-gray-600 dark:text-gray-400">Repeat:</span>
+          <span class="font-medium capitalize">{{ item.repeat }}</span>
+        </div>
+      }
+      @if (hasGithubIssue) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="bug_report" />
+          <span class="text-gray-600 dark:text-gray-400">GitHub Issue:</span>
+          <a [href]="item.github_issue_url" target="_blank" class="text-blue-500 hover:underline">
+            #{{ item.github_issue_number }}
+          </a>
+        </div>
+      }
+      @if (hasDependsOn) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="account_tree" />
+          <span class="text-gray-600 dark:text-gray-400">Depends on:</span>
+          <span class="font-medium">{{ item.depends_on.length }} tasks</span>
+        </div>
+      }
+      @if (hasCommentsCount) {
+        <div class="flex items-center gap-2 text-sm">
+          <mat-icon class="h-4! w-4! text-base! text-purple-500" fontIcon="comment" />
+          <span class="text-gray-600 dark:text-gray-400">{{ item.comments_count }} comments</span>
+        </div>
+      }
+    </div>
 
     @if (hasAssignees) {
       <div class="flex items-center gap-2">
@@ -271,6 +273,9 @@
       }
       @if (item.updated_at) {
         <span>Updated: {{ item.updated_at | date: "short" }}</span>
+      }
+      @if (item.deleted_at) {
+        <span>Deleted: {{ item.deleted_at | date: "short" }}</span>
       }
     </div>
   </div>
