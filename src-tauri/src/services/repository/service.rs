@@ -592,14 +592,6 @@ impl RepositoryService {
           });
         }
       }
-    } else if table == "chats" {
-      if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
-        let count_service = self.cascade_delegate.count_service.clone();
-        let todo_id_clone = todo_id.to_string();
-        tokio::spawn(async move {
-          let _ = count_service.on_chat_created(&todo_id_clone, offline).await;
-        });
-      }
     } else if table == "comments" {
       let task_id = created_record.get("task_id").and_then(|v| v.as_str());
       let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
@@ -1112,7 +1104,7 @@ impl RepositoryService {
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
     let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
 
-    if table == "tasks" || table == "subtasks" || table == "chats" || table == "comments" {
+    if table == "tasks" || table == "subtasks" || table == "comments" {
       let provider = self
         .get_provider(&table, Some(&visibility_str), offline)
         .ok();
@@ -1143,14 +1135,6 @@ impl RepositoryService {
                     .await;
                 });
               }
-            }
-          } else if table == "chats" {
-            if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
-              let count_service = self.cascade_delegate.count_service.clone();
-              let todo_id_clone = todo_id.to_string();
-              tokio::spawn(async move {
-                let _ = count_service.on_chat_deleted(&todo_id_clone, offline).await;
-              });
             }
           } else if table == "comments" {
             let task_id = existing.get("task_id").and_then(|v| v.as_str());
