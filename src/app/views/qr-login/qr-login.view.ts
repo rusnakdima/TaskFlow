@@ -23,6 +23,7 @@ import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { AuthStore } from "@stores/auth.store";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
@@ -48,6 +49,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authStore = inject(AuthStore);
+  private jwtTokenService = inject(JwtTokenService);
 
   readonly isMobileDevice = computed(() => this.authCapabilityService.capabilities().isMobile);
 
@@ -242,7 +244,8 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
     if (parsed.isDesktopTarget) {
       this.completeQrLogin(parsed.token);
     } else {
-      this.approveMobileQrLogin(parsed.token, "mobile");
+      const currentUsername = this.jwtTokenService.getUsername(this.jwtTokenService.getToken());
+      this.approveMobileQrLogin(parsed.token, currentUsername || "unknown");
     }
   }
 
