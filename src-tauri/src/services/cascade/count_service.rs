@@ -277,16 +277,4 @@ impl CountService {
         .await;
     }
   }
-
-  pub async fn on_chat_created(&self, todo_id: &str, offline: bool) {
-    self
-      .increment_count_both("todos", todo_id, "chats_count", 1, offline)
-      .await;
-  }
-
-  pub async fn on_chat_deleted(&self, todo_id: &str, offline: bool) {
-    self
-      .decrement_count_both("todos", todo_id, "chats_count", 1, offline)
-      .await;
-  }
 }
