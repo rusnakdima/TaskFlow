@@ -21,12 +21,7 @@
     </div>
 
     <div class="space-y-4">
-      <app-form
-        [form]="form!"
-        [formFields]="formFields"
-        [isShowCloseButton]="false"
-        (onSubmit)="onSubmit()"
-      />
+      <app-template-form [parentForm]="form" [form]="form" [formFields]="formFields" />
     </div>
 
     <div class="mt-6 border-t border-gray-200 pt-4 text-center dark:border-zinc-600">

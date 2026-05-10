@@ -1,88 +1,83 @@
-<div class="mx-auto max-w-7xl">
-  <div class="mb-8 text-center">
+<div class="mx-auto flex max-w-5xl flex-col gap-6">
+  <div class="mb-2 flex items-center gap-3">
     <div
-      class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10 backdrop-blur-sm"
+      class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30"
     >
-      <img
-        src="/assets/images/icon.png"
-        alt="{{ nameProduct }} icon"
-        class="h-12 w-12 rounded-xl"
-      />
+      <img src="/assets/images/icon.png" alt="{{ nameProduct }} icon" class="h-8 w-8 rounded-lg" />
     </div>
-    <h1 class="mb-2 text-4xl font-bold">{{ nameProduct }}</h1>
-    <p>Streamline your workflow and boost productivity</p>
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ nameProduct }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Streamline your workflow and boost productivity
+      </p>
+    </div>
   </div>
 
-  <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-    <div
-      class="rounded-2xl border border-white/20 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
-    >
-      <div class="mb-4 flex items-center gap-3">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900"
-        >
-          <mat-icon
-            fontIcon="info"
-            class="h-6 w-6 min-w-6 text-emerald-600 dark:text-emerald-400"
-          />
-        </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Version Info</h3>
+  <div
+    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+  >
+    <div class="mb-4 flex items-center gap-3">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+      >
+        <mat-icon fontIcon="info" class="h-6 w-6 min-w-6 text-blue-600 dark:text-blue-400" />
       </div>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Version</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ version }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Released</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ dateVersion() }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Last Checked</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ dateCheck() }}</span>
-        </div>
-      </div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">Version Info</h3>
     </div>
-
-    <div
-      class="rounded-2xl border border-white/20 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
-    >
-      <div class="mb-4 flex items-center gap-3">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900"
-        >
-          <mat-icon fontIcon="code" class="h-6 w-6 min-w-6 text-teal-600 dark:text-teal-400" />
-        </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Developer</h3>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Version</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ version }}</span>
       </div>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Author</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ authors[0]?.name }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Company</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ companyName }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-600 dark:text-slate-400">Year</span>
-          <span class="font-semibold text-slate-900 dark:text-white">{{ yearCreate }}</span>
-        </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Released</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ dateVersion() }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Last Checked</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ dateCheck() }}</span>
       </div>
     </div>
   </div>
 
   <div
-    class="mb-6 rounded-2xl border border-white/20 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+  >
+    <div class="mb-4 flex items-center gap-3">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-900/30"
+      >
+        <mat-icon fontIcon="code" class="h-6 w-6 min-w-6 text-indigo-600 dark:text-indigo-400" />
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">Developer</h3>
+    </div>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Author</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ authors[0]?.name }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Company</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ companyName }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-600 dark:text-slate-400">Year</span>
+        <span class="font-semibold text-slate-900 dark:text-white">{{ yearCreate }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
   >
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900"
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
         >
           <mat-icon
             fontIcon="system_update"
-            class="h-6 w-6 min-w-6 text-cyan-600 dark:text-cyan-400"
+            class="h-6 w-6 min-w-6 text-blue-600 dark:text-blue-400"
           />
         </div>
         <div>
@@ -91,7 +86,7 @@
         </div>
       </div>
       <button
-        class="flex transform items-center gap-2 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 px-4 py-2 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-cyan-600 hover:to-blue-700 hover:shadow-xl"
+        class="flex transform items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 px-5 py-2.5 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-600 hover:to-purple-700 hover:shadow-xl"
         (click)="checkUpdate()"
       >
         <mat-icon fontIcon="refresh" class="h-5 w-5 min-w-5 text-sm text-white" />
@@ -104,19 +99,19 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900"
+              class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30"
             >
               <mat-icon
                 fontIcon="download_done"
-                class="text-sm text-green-600 dark:text-green-400"
+                class="text-sm text-emerald-600 dark:text-emerald-400"
               />
             </div>
-            <span class="font-medium text-green-600 dark:text-green-400"
+            <span class="font-medium text-emerald-600 dark:text-emerald-400"
               >New version available!</span
             >
           </div>
           <button
-            class="flex transform items-center gap-2 rounded-lg bg-green-500 px-4 py-2 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-green-600 hover:shadow-xl"
+            class="flex transform items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-emerald-600 hover:shadow-xl"
             (click)="openFile()"
           >
             <mat-icon fontIcon="open_in_new" class="h-5 w-5 min-w-5 text-sm text-white" />
@@ -127,10 +122,22 @@
     }
   </div>
 
-  <div class="text-center">
-    <p class="text-sm text-emerald-100">
-      {{ nameProduct }} - Built with ❤️ for productivity enthusiasts
-    </p>
+  <div
+    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30"
+      >
+        <mat-icon
+          fontIcon="favorite"
+          class="h-6 w-6 min-w-6 text-purple-600 dark:text-purple-400"
+        />
+      </div>
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        {{ nameProduct }} - Built with ❤️ for productivity enthusiasts
+      </p>
+    </div>
   </div>
 </div>
 
@@ -141,9 +148,9 @@
     <div
       class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
     >
-      <div class="bg-linear-to-r from-cyan-500 to-blue-600 p-6 text-white">
+      <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
             <mat-icon fontIcon="system_update" class="h-5 w-5 min-w-5 text-white" />
           </div>
           <h2 class="text-xl font-bold">Update Available</h2>
@@ -164,7 +171,7 @@
             </div>
             <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700">
               <div
-                class="h-2 rounded-full bg-linear-to-r from-cyan-500 to-blue-600 transition-all duration-300"
+                class="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
                 [style.width.%]="downloadProgressValue()"
               ></div>
             </div>
@@ -174,13 +181,13 @@
 
       <div class="flex gap-3 p-6 pt-0">
         <button
-          class="flex-1 rounded-lg bg-slate-100 px-4 py-3 font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+          class="flex-1 rounded-xl bg-slate-100 px-4 py-3 font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
           (click)="windUpdates.set(false)"
         >
           Cancel
         </button>
         <button
-          class="flex flex-1 transform items-center justify-center gap-2 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 px-4 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-cyan-600 hover:to-blue-700 hover:shadow-xl"
+          class="flex flex-1 transform items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-600 hover:to-purple-700 hover:shadow-xl"
           (click)="downloadFile()"
         >
           <mat-icon fontIcon="download" class="h-5 w-5 min-w-5 text-sm text-white" />

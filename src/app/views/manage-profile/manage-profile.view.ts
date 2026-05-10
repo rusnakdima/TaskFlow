@@ -14,7 +14,7 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* components */
-import { FormComponent } from "@components/form/form.component";
+import { TemplateFormComponent } from "@components/form/template-form/template-form.component";
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
@@ -36,7 +36,7 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
     ReactiveFormsModule,
     RouterModule,
     MatIconModule,
-    FormComponent,
+    TemplateFormComponent,
   ],
   templateUrl: "./manage-profile.view.html",
 })
