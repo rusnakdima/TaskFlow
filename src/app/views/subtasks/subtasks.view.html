@@ -155,6 +155,64 @@
             </app-item-card>
           }
         </div>
+      } @else if (viewMode() === "kanban") {
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+          @for (column of getKanbanColumns(); track column.id) {
+            <div
+              class="flex flex-col overflow-hidden rounded-xl bg-gray-300/50 dark:bg-zinc-700/50"
+            >
+              <div
+                class="column-header rounded-t-xl p-4 text-white"
+                [ngClass]="getColumnColorClass(column.id)"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="size-5! min-w-5 text-xl!" [fontIcon]="column.icon" />
+                    <h3 class="font-semibold">{{ column.label }}</h3>
+                  </div>
+                  <span class="rounded-full bg-white/20 px-2 py-1 text-sm">
+                    {{ getSubtasksByStatus(column.id).length }}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="column-drop-zone min-h-[200px] flex-1 space-y-3 overflow-y-auto p-3"
+                cdkDropList
+                [cdkDropListData]="getSubtasksByStatus(column.id)"
+                [cdkDropListConnectedTo]="getConnectedKanbanDropLists(column.id)"
+                (cdkDropListDropped)="onKanbanSubtaskDrop($event, column.id)"
+                [id]="'cdk-drop-list-' + column.id"
+              >
+                @for (subtask of getSubtasksByStatus(column.id); track subtask.id) {
+                  <div cdkDrag [cdkDragData]="subtask" class="block">
+                    <app-kanban-subtask-card
+                      [subtask]="subtask"
+                      [todo_id]="todoId() || ''"
+                      [isSelected]="isKanbanSubtaskSelected(subtask.id)"
+                      (statusCycle)="onKanbanStatusCycle($event)"
+                      (selectionChange)="onKanbanSelectionChange(subtask.id, $event)"
+                      (cardClick)="onKanbanSubtaskClick($event)"
+                    />
+                  </div>
+                  <div
+                    *cdkDragPlaceholder
+                    class="min-h-[100px] rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                  ></div>
+                }
+
+                @if (getSubtasksByStatus(column.id).length === 0) {
+                  <div
+                    class="flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-600 text-gray-500"
+                  >
+                    <mat-icon class="mb-2 size-8! min-w-8 text-4xl! opacity-50" fontIcon="inbox" />
+                    <span class="text-xs">No subtasks</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
       } @else {
         <div
           class="flex w-full flex-col gap-y-3"
