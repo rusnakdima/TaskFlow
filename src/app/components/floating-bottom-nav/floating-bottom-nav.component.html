@@ -9,7 +9,7 @@
       <div class="flex flex-col items-center justify-center">
         @if (isProfileRoute(nav.url) && hasProfileImage()) {
           <div
-            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-3 transition-all duration-300"
+            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-1.5 transition-all duration-300"
             [routerLink]="nav.url"
             [queryParams]="nav.query"
             [ngClass]="
@@ -21,10 +21,10 @@
             <img
               [src]="getProfileImage()"
               alt="Profile"
-              class="h-7 w-7 min-w-7 rounded-full object-cover"
+              class="h-6 w-6 min-w-6 rounded-full object-cover"
             />
             <span
-              class="mt-1 text-xs font-medium transition-colors"
+              class="mt-0.5 text-xs font-medium transition-colors"
               [ngClass]="
                 url() === nav.url
                   ? 'text-green-700! dark:text-green-600!'
@@ -36,7 +36,7 @@
           </div>
         } @else {
           <div
-            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-3 transition-all duration-300"
+            class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-1.5 transition-all duration-300"
             [routerLink]="nav.url"
             [queryParams]="nav.query"
             [ngClass]="
@@ -46,7 +46,7 @@
             "
           >
             <mat-icon
-              class="h-6! w-6! min-w-6 text-2xl! transition-colors"
+              class="h-5! w-5! min-w-5 text-xl! transition-colors"
               [fontIcon]="nav.icon"
               [ngClass]="
                 url() === nav.url
@@ -55,7 +55,7 @@
               "
             />
             <span
-              class="mt-1 text-xs font-medium transition-colors"
+              class="mt-0.5 text-xs font-medium transition-colors"
               [ngClass]="
                 url() === nav.url
                   ? 'text-green-700! dark:text-green-600!'
