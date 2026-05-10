@@ -16,12 +16,12 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
 @Component({
-  selector: "app-kanban-task-card-simple",
+  selector: "app-kanban-task-card",
   standalone: true,
   imports: [CommonModule, MatIconModule, CheckboxComponent, ProgressBarComponent],
-  templateUrl: "./kanban-task-card-simple.component.html",
+  templateUrl: "./kanban-task-card.component.html",
 })
-export class KanbanTaskCardSimpleComponent {
+export class KanbanTaskCardComponent {
   @Input() task!: Task;
   @Input() todo_id: string = "";
   @Input() subtasks: Subtask[] = [];
