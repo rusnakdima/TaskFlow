@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <color name="splash_background">#FF6200EE</color>
+
     <style name="Theme.taskflow" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>
