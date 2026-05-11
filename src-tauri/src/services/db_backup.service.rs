@@ -96,9 +96,34 @@ impl DbBackupService {
     user_id: &str,
     filter_deleted: bool,
   ) -> usize {
+    self
+      .import_table_by_field(mongo, table, "user_id", user_id, filter_deleted)
+      .await
+  }
+
+  pub async fn import_table_by_id(
+    &self,
+    mongo: &MongoProvider,
+    table: &str,
+    user_id: &str,
+    filter_deleted: bool,
+  ) -> usize {
+    self
+      .import_table_by_field(mongo, table, "id", user_id, filter_deleted)
+      .await
+  }
+
+  pub async fn import_table_by_field(
+    &self,
+    mongo: &MongoProvider,
+    table: &str,
+    field: &str,
+    user_id: &str,
+    filter_deleted: bool,
+  ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let filter = Filter::Eq(field.to_string(), json!(user_id));
     match mongo
       .find_many(table, Some(&filter), None, None, None, true)
       .await
@@ -169,7 +194,9 @@ impl DbBackupService {
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
 
     let mut imported_count = 0;
-    imported_count += self.import_table(&mongo, "users", &user_id, false).await;
+    imported_count += self
+      .import_table_by_id(&mongo, "users", &user_id, false)
+      .await;
     imported_count += self.import_table(&mongo, "profiles", &user_id, false).await;
     imported_count += self.import_table(&mongo, "todos", &user_id, true).await;
     imported_count += self
@@ -203,9 +230,34 @@ impl DbBackupService {
     user_id: &str,
     filter_deleted: bool,
   ) -> usize {
+    self
+      .export_table_by_field(mongo, table, "user_id", user_id, filter_deleted)
+      .await
+  }
+
+  pub async fn export_table_by_id(
+    &self,
+    mongo: &MongoProvider,
+    table: &str,
+    user_id: &str,
+    filter_deleted: bool,
+  ) -> usize {
+    self
+      .export_table_by_field(mongo, table, "id", user_id, filter_deleted)
+      .await
+  }
+
+  pub async fn export_table_by_field(
+    &self,
+    mongo: &MongoProvider,
+    table: &str,
+    field: &str,
+    user_id: &str,
+    filter_deleted: bool,
+  ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let filter = Filter::Eq(field.to_string(), json!(user_id));
     match self
       .json_provider
       .find_many(table, Some(&filter), None, None, None, true)
@@ -363,7 +415,9 @@ impl DbBackupService {
     };
 
     let mut exported_count = 0;
-    exported_count += self.export_table(&mongo, "users", &user_id, false).await;
+    exported_count += self
+      .export_table_by_id(&mongo, "users", &user_id, false)
+      .await;
     exported_count += self.export_table(&mongo, "profiles", &user_id, false).await;
     exported_count += self.export_table(&mongo, "todos", &user_id, true).await;
     exported_count += self
