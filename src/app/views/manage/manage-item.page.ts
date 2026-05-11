@@ -103,9 +103,10 @@ export class ManageItemPage implements OnInit {
   assignees = signal<Profile[]>([]);
 
   githubRepos = signal<any[]>([]);
-  selectedGithubRepo = signal<string | null>(null);
+  selectedGithubRepoId = signal<string | null>(null);
   githubConnected = signal(false);
   publishToGithub = signal(false);
+  githubRepoSearchQuery = signal("");
 
   categorySearchQuery = signal("");
   newCategoryTitle = signal("");
@@ -137,6 +138,12 @@ export class ManageItemPage implements OnInit {
         `${p.name} ${p.last_name}`.toLowerCase().includes(query) ||
         (p.user?.email || "").toLowerCase().includes(query)
     );
+  });
+
+  filteredGithubRepos = computed(() => {
+    const query = this.githubRepoSearchQuery().toLowerCase();
+    if (!query) return this.githubRepos();
+    return this.githubRepos().filter((r: any) => r.full_name.toLowerCase().includes(query));
   });
 
   isAllCategoriesSelected = computed(() => {
@@ -256,7 +263,13 @@ export class ManageItemPage implements OnInit {
         this.githubConnected.set(status.connected);
         if (status.connected) {
           this.githubService.getRepos().subscribe({
-            next: (repos) => this.githubRepos.set(repos),
+            next: (repos) => {
+              this.githubRepos.set(repos);
+              const currentRepoId = this.form.get("github_repo_id")?.value;
+              if (currentRepoId) {
+                this.selectedGithubRepoId.set(currentRepoId);
+              }
+            },
             error: () => {},
           });
         }
@@ -615,7 +628,7 @@ export class ManageItemPage implements OnInit {
   }
 
   onGithubRepoChange(repoId: string): void {
-    this.selectedGithubRepo.set(repoId);
+    this.selectedGithubRepoId.set(repoId || null);
     this.form.patchValue({ github_repo_id: repoId });
   }
 
