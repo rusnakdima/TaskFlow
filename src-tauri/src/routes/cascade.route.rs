@@ -14,16 +14,13 @@ pub async fn batch_soft_delete_cascade(
   let mut all_failed = true;
 
   for id in &ids {
-    match state
+    if let Ok(result) = state
       .cascade_service
       .soft_delete_cascade_json(&table, id)
       .await
     {
-      Ok(result) => {
-        all_failed = false;
-        results.push(result);
-      }
-      Err(_) => {}
+      all_failed = false;
+      results.push(result);
     }
   }
 
@@ -47,16 +44,13 @@ pub async fn batch_hard_delete_cascade(
   let mut all_failed = true;
 
   for id in &ids {
-    match state
+    if let Ok(result) = state
       .cascade_service
       .permanent_delete_cascade_json(&table, id)
       .await
     {
-      Ok(result) => {
-        all_failed = false;
-        results.push(result);
-      }
-      Err(_) => {}
+      all_failed = false;
+      results.push(result);
     }
   }
 
@@ -80,12 +74,9 @@ pub async fn batch_restore_cascade(
   let mut all_failed = true;
 
   for id in &ids {
-    match state.cascade_service.restore_cascade_json(&table, id).await {
-      Ok(result) => {
-        all_failed = false;
-        results.push(result);
-      }
-      Err(_) => {}
+    if let Ok(result) = state.cascade_service.restore_cascade_json(&table, id).await {
+      all_failed = false;
+      results.push(result);
     }
   }
 
