@@ -1,6 +1,7 @@
 /* sys lib */
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::sync::RwLock;
 use std::time::Instant;
 
 /* nosql_orm */
@@ -33,6 +34,7 @@ use crate::providers::mongodb_provider::MongoProvider;
 use crate::services::activity_monitor_service::ActivityMonitorService;
 use crate::services::cascade::{CascadeService, CountService};
 use crate::services::entity_resolution_service::EntityResolutionService;
+use crate::services::permission_service::PermissionService;
 use crate::services::profile_service::ProfileService;
 
 use super::cache::CacheService;
@@ -46,6 +48,17 @@ pub struct RepositoryService {
   pub activity_monitor: ActivityMonitorService,
   pub profile_service: ProfileService,
   pub entity_resolution: Arc<EntityResolutionService>,
+  spawned_handles: RwLock<Vec<tokio::task::JoinHandle<()>>>,
+}
+
+impl Drop for RepositoryService {
+  fn drop(&mut self) {
+    if let Ok(handles) = self.spawned_handles.write() {
+      for handle in handles.iter() {
+        handle.abort();
+      }
+    }
+  }
 }
 
 impl RepositoryService {
@@ -103,11 +116,13 @@ impl RepositoryService {
       activity_monitor,
       profile_service,
       entity_resolution,
+      spawned_handles: RwLock::new(Vec::new()),
     }
   }
 
   pub fn with_cache(mut self, cache: QueryCache) -> Self {
-    self.cache_service = self.cache_service.with_cache(cache);
+    let new_cache_service = CacheService::new().with_cache(cache);
+    self.cache_service = new_cache_service;
     self
   }
 
@@ -205,16 +220,17 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     offline: bool,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(table, filter, load, visibility, offline)
+          .handle_get_all(table, filter, load, visibility, offline, user_id)
           .await
       }
       "get" => {
         self
-          .handle_get(table, id, load, visibility, filter, offline)
+          .handle_get(table, id, load, visibility, filter, offline, user_id)
           .await
       }
       "create" => self.handle_create(table, data, visibility, offline).await,
@@ -265,6 +281,7 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     offline: bool,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let _request_id = "unknown".to_string();
@@ -285,15 +302,31 @@ impl RepositoryService {
 
     let load_paths = parse_load_param(load);
 
+    let final_filter = if table == "todos" {
+      let permission_filter_json = PermissionService::get_todo_filter_for_user(
+        user_id.as_deref().unwrap_or(""),
+        Some(&visibility_str),
+      );
+      let permission_filter = Filter::from_json(&permission_filter_json).ok();
+      match (permission_filter, filter_opt) {
+        (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing])),
+        (Some(perm), None) => Some(perm),
+        (None, existing) => existing,
+        (None, None) => None,
+      }
+    } else {
+      filter_opt
+    };
+
     let (docs, used_json_fallback) = match provider
-      .find_many(&table, filter_opt.as_ref(), None, None, None, true)
+      .find_many(&table, final_filter.as_ref(), None, None, None, true)
       .await
     {
       Ok(docs) => (docs, false),
       Err(_e) => {
         let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
         let docs = json_provider
-          .find_many(&table, filter_opt.as_ref(), None, None, None, true)
+          .find_many(&table, final_filter.as_ref(), None, None, None, true)
           .await?;
         (docs, true)
       }
@@ -337,6 +370,7 @@ impl RepositoryService {
     visibility: Option<String>,
     filter: Option<Value>,
     offline: bool,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
 
@@ -388,6 +422,19 @@ impl RepositoryService {
     };
 
     let projected = self.apply_projection_recursive(docs);
+
+    if table == "todos" {
+      if let Some(user) = &user_id {
+        for doc in &projected {
+          if !PermissionService::can_view_todo(doc, user) {
+            return Err(err_response(
+              "Unauthorized: You do not have permission to view this todo",
+            ));
+          }
+        }
+      }
+    }
+
     let _elapsed = start.elapsed();
 
     if id.is_some() {
@@ -441,9 +488,12 @@ impl RepositoryService {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
         let count_service = self.count_service.clone();
         let todo_id_clone = todo_id.to_string();
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
           let _ = count_service.on_task_created(&todo_id_clone, offline).await;
         });
+        if let Ok(mut handles) = self.spawned_handles.write() {
+          handles.push(handle);
+        }
       }
     } else if table == "subtasks" {
       if let Some(task_id) = created_record.get("task_id").and_then(|v| v.as_str()) {
@@ -452,11 +502,14 @@ impl RepositoryService {
         let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
         if let Some(todo_id) = todo_id_opt {
           let todo_id_clone = todo_id.to_string();
-          tokio::spawn(async move {
+          let handle = tokio::spawn(async move {
             let _ = count_service
               .on_subtask_created(&task_id_clone, &todo_id_clone, offline)
               .await;
           });
+          if let Ok(mut handles) = self.spawned_handles.write() {
+            handles.push(handle);
+          }
         }
       }
     } else if table == "comments" {
@@ -465,7 +518,7 @@ impl RepositoryService {
       let count_service = self.count_service.clone();
       let task_id_clone = task_id.map(|s| s.to_string());
       let subtask_id_clone = subtask_id.map(|s| s.to_string());
-      tokio::spawn(async move {
+      let handle = tokio::spawn(async move {
         let _ = count_service
           .on_comment_created(
             task_id_clone.as_deref(),
@@ -474,17 +527,23 @@ impl RepositoryService {
           )
           .await;
       });
+      if let Ok(mut handles) = self.spawned_handles.write() {
+        handles.push(handle);
+      }
     }
 
     if offline {
       let monitor = self.activity_monitor.clone();
       let table_clone = table.to_string();
       let record_clone = created_record.clone();
-      tokio::spawn(async move {
+      let handle = tokio::spawn(async move {
         let _ = monitor
           .log_action(&table_clone, "create", &record_clone, None)
           .await;
       });
+      if let Ok(mut handles) = self.spawned_handles.write() {
+        handles.push(handle);
+      }
     } else {
       let _ = self
         .activity_monitor
@@ -930,11 +989,14 @@ impl RepositoryService {
       let monitor = self.activity_monitor.clone();
       let table_clone = table.to_string();
       let record_clone = updated_record.clone();
-      tokio::spawn(async move {
+      let handle = tokio::spawn(async move {
         let _ = monitor
           .log_action(&table_clone, "update", &record_clone, None)
           .await;
       });
+      if let Ok(mut handles) = self.spawned_handles.write() {
+        handles.push(handle);
+      }
     } else {
       let _ = self
         .activity_monitor
@@ -974,11 +1036,14 @@ impl RepositoryService {
             if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
               let count_service = self.count_service.clone();
               let todo_id_clone = todo_id.to_string();
-              tokio::spawn(async move {
+              let handle = tokio::spawn(async move {
                 let _ = count_service
                   .on_task_deleted(&todo_id_clone, was_completed, offline)
                   .await;
               });
+              if let Ok(mut handles) = self.spawned_handles.write() {
+                handles.push(handle);
+              }
             }
           } else if table == "subtasks" {
             let was_completed = existing.get("status") == Some(&json!("completed"));
@@ -988,11 +1053,14 @@ impl RepositoryService {
               let todo_id_opt = self.get_todo_id_from_task(&task_id_clone).await;
               if let Some(todo_id) = todo_id_opt {
                 let todo_id_clone = todo_id.to_string();
-                tokio::spawn(async move {
+                let handle = tokio::spawn(async move {
                   let _ = count_service
                     .on_subtask_deleted(&task_id_clone, &todo_id_clone, was_completed, offline)
                     .await;
                 });
+                if let Ok(mut handles) = self.spawned_handles.write() {
+                  handles.push(handle);
+                }
               }
             }
           } else if table == "comments" {
@@ -1001,7 +1069,7 @@ impl RepositoryService {
             let count_service = self.count_service.clone();
             let task_id_clone = task_id.map(|s| s.to_string());
             let subtask_id_clone = subtask_id.map(|s| s.to_string());
-            tokio::spawn(async move {
+            let handle = tokio::spawn(async move {
               let _ = count_service
                 .on_comment_deleted(
                   task_id_clone.as_deref(),
@@ -1010,6 +1078,9 @@ impl RepositoryService {
                 )
                 .await;
             });
+            if let Ok(mut handles) = self.spawned_handles.write() {
+              handles.push(handle);
+            }
           }
         }
       }
@@ -1049,11 +1120,14 @@ impl RepositoryService {
       let monitor = self.activity_monitor.clone();
       let table_clone = table.to_string();
       let id_clone = id_str.clone();
-      tokio::spawn(async move {
+      let handle = tokio::spawn(async move {
         let _ = monitor
           .log_action(&table_clone, "delete", &json!({"id": id_clone}), None)
           .await;
       });
+      if let Ok(mut handles) = self.spawned_handles.write() {
+        handles.push(handle);
+      }
     } else {
       let _ = self
         .activity_monitor

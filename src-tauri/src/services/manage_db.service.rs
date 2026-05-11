@@ -255,6 +255,14 @@ impl ManageDbService {
     }
   }
 
+  pub fn get_mongodb_provider(&self) -> Option<Arc<MongoProvider>> {
+    self
+      .mongodb_provider
+      .lock()
+      .ok()
+      .and_then(|guard| guard.clone())
+  }
+
   pub async fn get_tasks_by_month(
     &self,
     year: i32,

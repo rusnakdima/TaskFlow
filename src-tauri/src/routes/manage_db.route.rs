@@ -7,7 +7,7 @@ use tauri::State;
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::auth_helper::validate_user_owns_data;
+use crate::helpers::auth_helper::{extract_user_from_token, validate_user_owns_data};
 use crate::helpers::response_helper::err_response;
 
 // ==================== GENERIC CRUD ENDPOINT ====================
@@ -25,6 +25,7 @@ pub async fn manage_data(
   offline: Option<bool>,
   request_id: Option<String>,
   items: Option<Value>,
+  token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
   let _req_id = request_id.unwrap_or_else(|| "no-req-id".to_string());
@@ -58,6 +59,11 @@ pub async fn manage_data(
   }
 
   let _op_for_log = operation.clone();
+  let user_id = extract_user_from_token(
+    &state.config_helper.jwt_secret,
+    token.as_deref().unwrap_or(""),
+  )
+  .ok();
   let result = state
     .repository_service
     .execute(
@@ -69,6 +75,7 @@ pub async fn manage_data(
       load,
       visibility,
       is_offline,
+      user_id,
     )
     .await;
 
@@ -101,9 +108,6 @@ pub async fn export_to_cloud(
   state.manage_db_service.export_to_cloud(user_id).await
 }
 
-// ==================== ADMIN MANAGEMENT ENDPOINTS ====================
-
-/// Check if MongoDB is connected
 #[tauri::command]
 pub async fn check_mongodb_connection(
   state: State<'_, AppState>,
@@ -123,128 +127,7 @@ pub async fn check_mongodb_connection(
   })
 }
 
-/// Get all data from local JSON for Archive page (all users, includes deleted)
-#[tauri::command]
-pub async fn get_all_data_for_archive(
-  state: State<'_, AppState>,
-) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.get_all_data_for_archive().await
-}
-
-/// Get paginated data from local JSON for Archive page
-#[tauri::command]
-pub async fn get_archive_data_paginated(
-  state: State<'_, AppState>,
-  data_type: String,
-  skip: u64,
-  limit: u64,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .get_archive_data_paginated(data_type, skip, limit)
-    .await
-}
-
-/// Get all data for admin from MongoDB (global view with all users' data)
-#[tauri::command]
-pub async fn get_all_data_for_admin(
-  state: State<'_, AppState>,
-) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.get_all_data_for_admin().await
-}
-
-/// Get paginated data from MongoDB for Admin page
-#[tauri::command]
-pub async fn get_admin_data_paginated(
-  state: State<'_, AppState>,
-  data_type: String,
-  skip: u64,
-  limit: u64,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .get_admin_data_paginated(data_type, skip, limit)
-    .await
-}
-
-#[tauri::command]
-pub async fn permanently_delete_record(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .permanently_delete_record(table, id)
-    .await
-}
-
-#[tauri::command]
-pub async fn toggle_delete_status(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .toggle_delete_status(table, id)
-    .await
-}
-
-#[tauri::command]
-pub async fn toggle_delete_status_local(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .toggle_delete_status_local(table, id)
-    .await
-}
-
-#[tauri::command]
-pub async fn permanently_delete_record_local(
-  state: State<'_, AppState>,
-  table: String,
-  id: String,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .manage_db_service
-    .permanently_delete_record_local(table, id)
-    .await
-}
-
-#[tauri::command]
-pub async fn sync_visibility_to_provider(
-  state: State<'_, AppState>,
-  todo_id: String,
-  source_provider: String,
-  target_provider: String,
-) -> Result<ResponseModel, ResponseModel> {
-  use crate::entities::provider_type_entity::ProviderType;
-  use crate::services::cascade::VisibilitySyncService;
-
-  let source = if source_provider == "Mongo" {
-    ProviderType::Mongo
-  } else {
-    ProviderType::Json
-  };
-  let target = if target_provider == "Mongo" {
-    ProviderType::Mongo
-  } else {
-    ProviderType::Json
-  };
-
-  VisibilitySyncService::sync_todo_visibility(
-    &state.repository_service.json_provider,
-    state.repository_service.mongodb_provider.as_ref(),
-    todo_id,
-    source,
-    target,
-  )
-  .await
-}
+// ==================== CALENDAR ENDPOINTS ====================
 
 #[tauri::command]
 pub async fn get_tasks_by_month(
