@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubRepo {
-  pub id: String,
+  pub id: i64,
   pub name: String,
   pub full_name: String,
   pub private: bool,
@@ -224,7 +224,25 @@ impl GithubService {
         .await
         .map_err(|e| e.to_string())?;
 
-      let repos: Vec<GithubRepo> = response.json().await.map_err(|e| e.to_string())?;
+      let status = response.status();
+
+      if !status.is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("GitHub API error: {} - {}", status, error_text));
+      }
+
+      let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+      let body_str = String::from_utf8_lossy(&body_bytes);
+
+      let repos: Vec<GithubRepo> = match serde_json::from_slice(&body_bytes) {
+        Ok(r) => r,
+        Err(e) => {
+          return Err(format!(
+            "Failed to parse repos JSON: {} - raw response: {}",
+            e, body_str
+          ));
+        }
+      };
 
       if repos.is_empty() {
         break;
