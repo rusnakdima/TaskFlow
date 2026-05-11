@@ -1,5 +1,4 @@
 use chrono::{DateTime, NaiveDate};
-use nosql_orm::aggregation::AggregationPipeline;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -116,21 +115,8 @@ impl CategoryStatistics {
     start_date: &NaiveDate,
     end_date: &NaiveDate,
   ) -> Vec<Value> {
-    let pipeline = AggregationPipeline::new().project(vec![
-      ("id", serde_json::json!("$id")),
-      ("todo_id", serde_json::json!("$todo_id")),
-      ("status", serde_json::json!("$status")),
-      ("created_at", serde_json::json!("$created_at")),
-      ("updated_at", serde_json::json!("$updated_at")),
-    ]);
-
-    let projected = pipeline
-      .execute_docs(tasks.to_vec())
-      .await
-      .unwrap_or_default();
-
     let mut in_range = Vec::new();
-    for task in projected {
+    for task in tasks {
       let mut is_in_range = false;
 
       if let Some(created_at_str) = task.get("created_at").and_then(|v| v.as_str()) {
@@ -154,7 +140,7 @@ impl CategoryStatistics {
       }
 
       if is_in_range {
-        in_range.push(task);
+        in_range.push(task.clone());
       }
     }
 
