@@ -27,7 +27,7 @@ pub async fn manage_data(
   items: Option<Value>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
-  let req_id = request_id.unwrap_or_else(|| "no-req-id".to_string());
+  let _req_id = request_id.unwrap_or_else(|| "no-req-id".to_string());
   let start = std::time::Instant::now();
 
   // If updateAll with items but no data, use items as data
@@ -57,7 +57,7 @@ pub async fn manage_data(
     }
   }
 
-  let op_for_log = operation.clone();
+  let _op_for_log = operation.clone();
   let result = state
     .repository_service
     .execute(
@@ -72,7 +72,7 @@ pub async fn manage_data(
     )
     .await;
 
-  let elapsed = start.elapsed();
+  let _elapsed = start.elapsed();
   result
 }
 
