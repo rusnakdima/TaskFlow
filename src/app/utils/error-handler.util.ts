@@ -1,0 +1,73 @@
+import { inject } from "@angular/core";
+import { NotifyService } from "@services/notifications/notify.service";
+import { Observable, Subscriber } from "rxjs";
+
+export type ErrorHandlerFn = (err: unknown) => void;
+
+export interface ErrorHandlerOptions {
+  notifyOnError?: boolean;
+  errorMessage?: string;
+  context?: string;
+}
+
+export class ErrorHandlerUtil {
+  private notifyService = inject(NotifyService);
+
+  handleError(err: unknown, context?: string): void {
+    const message = err instanceof Error ? err.message : String(err);
+    const prefix = context ? `${context}: ` : "";
+    this.notifyService.showError(prefix + message);
+  }
+
+  subscribeError<T>(
+    observer: Subscriber<T>,
+    errorMessage?: string
+  ): (err: unknown) => void {
+    return (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      this.notifyService.showError(errorMessage || message);
+      observer.error(err);
+    };
+  }
+
+  wrapObservable<T>(
+    observable: Observable<T>,
+    errorMessage?: string
+  ): Observable<T> {
+    return new Observable<T>((observer) => {
+      return observable.subscribe({
+        next: (value) => observer.next(value),
+        error: this.subscribeError(observer, errorMessage),
+        complete: () => observer.complete(),
+      });
+    });
+  }
+
+  withErrorHandling<T extends unknown[], R>(
+    fn: (...args: T) => R,
+    context?: string
+  ): (...args: T) => R {
+    return (...args: T): R => {
+      try {
+        return fn(...args);
+      } catch (err) {
+        this.handleError(err, context);
+        throw err;
+      }
+    };
+  }
+
+  createErrorHandler(options: ErrorHandlerOptions = {}): ErrorHandlerFn {
+    return (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      if (options.notifyOnError !== false) {
+        const prefix = options.context ? `${options.context}: ` : "";
+        this.notifyService.showError(prefix + (options.errorMessage || message));
+      }
+    };
+  }
+}
+
+export function injectErrorHandler(): ErrorHandlerUtil {
+  return new ErrorHandlerUtil();
+}
