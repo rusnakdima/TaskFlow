@@ -357,7 +357,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-        super.handleHighlightQueryParams(queryParams, "highlightTodoId", "todo-", "ring-blue-500");
+        super.handleHighlightQueryParams(queryParams, "highlightTodoId", "todo-");
       })
     );
 
