@@ -63,6 +63,8 @@
           [expandable]="true"
           [expandTemplate]="expandTemplate"
           [actions]="getSubtaskTableActions()"
+          [highlightedId]="highlightSubtask()"
+          [highlightIdPrefix]="'subtask-'"
           (selectionChange)="toggleSubtaskSelection({ id: $event.id, selected: $event.selected })"
           (selectAll)="onTableSelectAll($event)"
           (rowClick)="onRowClick($event)"

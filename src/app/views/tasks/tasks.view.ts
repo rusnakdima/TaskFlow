@@ -41,10 +41,10 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 /* helpers - tasks view */
-import { TasksKanbanHelper } from "./tasks-kanban.helper";
-import { TasksFiltersHelper } from "./tasks-filters.helper";
-import { TasksActionsHelper } from "./tasks-actions.helper";
-import { TasksCommentsHelper } from "./tasks-comments.helper";
+import { TasksKanbanHelper } from "@helpers/tasks-kanban.helper";
+import { TasksFiltersHelper } from "@helpers/tasks-filters.helper";
+import { TasksActionsHelper } from "@helpers/tasks-actions.helper";
+import { TasksCommentsHelper } from "@helpers/tasks-comments.helper";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -354,7 +354,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
-        super.handleHighlightQueryParams(queryParams, "highlightTaskId", "task-", "ring-green-500");
+        const highlightId = queryParams.highlightTaskId;
+        if (highlightId) {
+          this.highlightTaskId.set(highlightId);
+        }
+        super.handleHighlightQueryParams(queryParams, "highlightTaskId", "task-", () =>
+          this.highlightTaskId.set(null)
+        );
         if (queryParams.highlightCommentId) {
           this.commentsHelper["_highlightCommentId"].set(queryParams.highlightCommentId);
           this.openComments.set(true);

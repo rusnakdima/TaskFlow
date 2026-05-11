@@ -437,9 +437,18 @@
                   <div class="space-y-4">
                     <div class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/30">
                       <p class="textMuted mb-2 text-sm">Enter this code on GitHub:</p>
-                      <p class="font-mono text-2xl font-bold tracking-wider">
-                        {{ githubUserCode() }}
-                      </p>
+                      <div class="flex items-center gap-3">
+                        <p class="font-mono text-2xl font-bold tracking-wider">
+                          {{ githubUserCode() }}
+                        </p>
+                        <button
+                          (click)="copyUserCode()"
+                          class="flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-200 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
+                        >
+                          <mat-icon class="h-4! w-4! text-base!" fontIcon="content_copy"></mat-icon>
+                          Copy
+                        </button>
+                      </div>
                     </div>
                     <div class="flex gap-2">
                       <button

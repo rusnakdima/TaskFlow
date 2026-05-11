@@ -30,6 +30,8 @@
         [expandable]="true"
         [expandTemplate]="expandTemplate"
         [actions]="getCategoryTableActions()"
+        [highlightedId]="null"
+        [highlightIdPrefix]="''"
         (selectionChange)="toggleCategorySelection($event.id)"
         (selectAll)="onTableSelectAll($event)"
         (rowClick)="onRowClick($event)"
