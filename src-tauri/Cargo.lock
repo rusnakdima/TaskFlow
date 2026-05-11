@@ -2930,13 +2930,13 @@ dependencies = [
 
 [[package]]
 name = "nosql_orm"
-version = "0.8.0"
+version = "0.9.0"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#88867210c4b3518fa7276c1936091cd37893ed96"
 dependencies = [
  "async-trait",
  "chrono",
  "deadpool",
  "futures-util",
- "log",
  "mongodb 2.8.2",
  "nosql_orm_derive",
  "rand 0.8.6",
@@ -2951,6 +2951,7 @@ dependencies = [
 [[package]]
 name = "nosql_orm_derive"
 version = "0.1.0"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#88867210c4b3518fa7276c1936091cd37893ed96"
 dependencies = [
  "chrono",
  "proc-macro2",
