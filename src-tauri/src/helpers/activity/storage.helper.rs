@@ -27,13 +27,6 @@ impl ActivityStorage {
 
   pub async fn get_all(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = Filter::from_json(&filter).ok();
-    let timer = std::time::Instant::now();
-
-    tracing::debug!(
-      target: "activity::storage",
-      "[ActivityStorage] get_all START - filter: {}",
-      filter
-    );
 
     let list_daily_activities = self
       .json_provider
@@ -48,37 +41,16 @@ impl ActivityStorage {
       .await;
 
     match list_daily_activities {
-      Ok(daily_activities) => {
-        tracing::debug!(
-          target: "activity::storage",
-          "[ActivityStorage] get_all END - count: {}, elapsed: {:?}",
-          daily_activities.len(),
-          timer.elapsed()
-        );
-        tracing::debug!(
-          target: "activity::storage",
-          "[ActivityStorage] get_all - sample data: {:?}",
-          daily_activities.first().map(|v| v.clone())
-        );
-        Ok(ResponseModel {
-          status: ResponseStatus::Success,
-          message: "".to_string(),
-          data: convert_data_to_array(&daily_activities),
-        })
-      }
-      Err(error) => {
-        tracing::error!(
-          target: "activity::storage",
-          "[ActivityStorage] get_all ERROR: {}, elapsed: {:?}",
-          error,
-          timer.elapsed()
-        );
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't get a list of daily activities! {}", error),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Ok(daily_activities) => Ok(ResponseModel {
+        status: ResponseStatus::Success,
+        message: "".to_string(),
+        data: convert_data_to_array(&daily_activities),
+      }),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't get a list of daily activities! {}", error),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -87,15 +59,6 @@ impl ActivityStorage {
     user_id: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
-    let timer = std::time::Instant::now();
-
-    tracing::debug!(
-      target: "activity::storage",
-      "[ActivityStorage] get_or_create_daily_activity START - user_id: {}, date: {}",
-      user_id,
-      date
-    );
-
     let filter = Filter::And(vec![
       Filter::Eq("user_id".to_string(), serde_json::json!(user_id)),
       Filter::Eq("date".to_string(), serde_json::json!(date)),
@@ -108,22 +71,11 @@ impl ActivityStorage {
 
     if let Ok(activities) = existing {
       if let Some(activity_value) = activities.first() {
-        tracing::debug!(
-          target: "activity::storage",
-          "[ActivityStorage] get_or_create_daily_activity - FOUND existing, elapsed: {:?}",
-          timer.elapsed()
-        );
         if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activity_value.clone()) {
           return Ok(activity);
         }
       }
     }
-
-    tracing::debug!(
-      target: "activity::storage",
-      "[ActivityStorage] get_or_create_daily_activity - creating NEW, elapsed: {:?}",
-      timer.elapsed()
-    );
 
     let create_model = DailyActivityCreateModel {
       user_id: user_id.clone(),
@@ -134,19 +86,11 @@ impl ActivityStorage {
 
     match self.json_provider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
-      Err(error) => {
-        tracing::error!(
-          target: "activity::storage",
-          "[ActivityStorage] get_or_create_daily_activity ERROR: {}, elapsed: {:?}",
-          error,
-          timer.elapsed()
-        );
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't create daily activity! {}", error),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't create daily activity! {}", error),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 
@@ -156,16 +100,6 @@ impl ActivityStorage {
   ) -> Result<(), ResponseModel> {
     let activity_id = activity.id.clone().unwrap_or_default();
     let now = chrono::Utc::now();
-    let timer = std::time::Instant::now();
-
-    tracing::debug!(
-      target: "activity::storage",
-      "[ActivityStorage] update_daily_activity START - id: {}, date: {}, total_tasks: {}, completed_tasks: {}",
-      activity_id,
-      activity.date,
-      activity.total_tasks,
-      activity.completed_tasks
-    );
 
     let update_model = DailyActivityUpdateModel {
       id: activity.id.unwrap_or_default(),
@@ -206,28 +140,12 @@ impl ActivityStorage {
       .update("daily_activities", &activity_id, record)
       .await
     {
-      Ok(_) => {
-        tracing::debug!(
-          target: "activity::storage",
-          "[ActivityStorage] update_daily_activity OK - id: {}, elapsed: {:?}",
-          activity_id,
-          timer.elapsed()
-        );
-        Ok(())
-      }
-      Err(error) => {
-        tracing::error!(
-          target: "activity::storage",
-          "[ActivityStorage] update_daily_activity ERROR: {}, elapsed: {:?}",
-          error,
-          timer.elapsed()
-        );
-        Err(ResponseModel {
-          status: ResponseStatus::Error,
-          message: format!("Couldn't update daily activity! {}", error),
-          data: DataValue::String("".to_string()),
-        })
-      }
+      Ok(_) => Ok(()),
+      Err(error) => Err(ResponseModel {
+        status: ResponseStatus::Error,
+        message: format!("Couldn't update daily activity! {}", error),
+        data: DataValue::String("".to_string()),
+      }),
     }
   }
 }

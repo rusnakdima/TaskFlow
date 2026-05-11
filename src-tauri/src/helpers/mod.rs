@@ -8,8 +8,6 @@ pub mod collection_metadata;
 pub mod common;
 #[path = "config.helper.rs"]
 pub mod config;
-#[path = "crypto.helper.rs"]
-pub mod crypto_helper;
 #[path = "load_param.helper.rs"]
 pub mod load_param;
 #[path = "profile.helper.rs"]
