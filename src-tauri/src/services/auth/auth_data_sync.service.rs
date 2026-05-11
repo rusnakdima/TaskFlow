@@ -58,7 +58,6 @@ impl AuthDataSyncService {
       // User in MongoDB - try to sync to JSON but don't block
 
       let _ = self.user_sync_service.sync_user_to_json(user_id).await;
-    } else {
     }
 
     // Step 2: Check profile in JSON first (offline-capable)
