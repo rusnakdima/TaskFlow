@@ -3,8 +3,6 @@ pub mod repository;
 #[allow(unused_imports)]
 use nosql_orm::Entity;
 
-pub use repository::service::RepositoryService;
-
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 
@@ -45,9 +43,6 @@ pub mod user;
 
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
-
-#[path = "crypto.service.rs"]
-pub mod crypto_service;
 
 #[path = "github_service.rs"]
 pub mod github_service;
