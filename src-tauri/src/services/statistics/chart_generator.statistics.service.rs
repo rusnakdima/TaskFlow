@@ -2,7 +2,7 @@ use crate::entities::statistics_entity::{
   CategoryItem, ChartDataModel, CompletionTrendItem, DailyActivityItem,
 };
 use chrono::{Datelike, NaiveDate, Weekday};
-use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
+use nosql_orm::aggregation::AggregationPipeline;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -12,6 +12,7 @@ impl ChartGenerator {
   pub async fn compute_chart_data(
     tasks: &[Value],
     categories: &[Value],
+    todos: &[Value],
     daily_activities: &[Value],
     start_date: &NaiveDate,
     end_date: &NaiveDate,
@@ -52,7 +53,7 @@ impl ChartGenerator {
 
     let completion_trend = Self::compute_completion_trend(tasks).await;
     let daily_activity = Self::compute_daily_activity(daily_activities).await;
-    let category_items = Self::compute_category_items(categories).await;
+    let category_items = Self::compute_category_items(categories, todos, tasks).await;
 
     tracing::debug!(
       target: "statistics::chart_generator",
@@ -219,7 +220,11 @@ impl ChartGenerator {
       .collect()
   }
 
-  async fn compute_category_items(categories: &[Value]) -> Vec<CategoryItem> {
+  async fn compute_category_items(
+    categories: &[Value],
+    todos: &[Value],
+    tasks: &[Value],
+  ) -> Vec<CategoryItem> {
     tracing::debug!(
       target: "statistics::chart_generator",
       "[ChartGenerator] compute_category_items START - categories: {}",
