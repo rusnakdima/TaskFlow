@@ -60,17 +60,14 @@ impl ProfileSyncUnifiedService {
     let filter = Filter::Eq("user_id".to_string(), json!(user_id));
 
     // Step 1: Check JSON first (fast, works offline)
-    match self
+    if let Ok(mut profiles) = self
       .json_provider
       .find_many(table_name, Some(&filter), None, None, None, false)
       .await
     {
-      Ok(mut profiles) => {
-        if let Some(profile_val) = profiles.pop() {
-          return Ok(Some(profile_val));
-        }
+      if let Some(profile_val) = profiles.pop() {
+        return Ok(Some(profile_val));
       }
-      Err(_) => {}
     }
 
     // Step 2: If profile not in JSON and MongoDB is available, try with timeout
@@ -96,9 +93,7 @@ impl ProfileSyncUnifiedService {
                   .json_provider
                   .insert(table_name, profile_val.clone())
                   .await
-                {
-                } else {
-                }
+                {}
               }
             }
             return Ok(Some(profile_val));
@@ -107,7 +102,6 @@ impl ProfileSyncUnifiedService {
         Ok(Err(_)) => {}
         Err(_) => {}
       }
-    } else {
     }
 
     Ok(None)
