@@ -73,6 +73,28 @@
   </provides>
 
   <releases>
+    <release version="0.15.1" date="2026-05-11">
+      <description>
+        <p>Release version 0.15.1 with embedded env loading feature flag and renamed GitHub OAuth environment variables.</p>
+
+        <p>
+          <strong>Configuration &amp; CI Improvements:</strong>
+        </p>
+        <ul>
+          <li>Embedded env loading via new "embedded_env" feature flag for consistent cross-platform behavior</li>
+          <li>GitHub OAuth environment variables renamed from GITHUB_* to *_GITHUB format</li>
+        </ul>
+
+        <p>
+          <strong>BREAKING CHANGE:</strong>
+        </p>
+        <ul>
+          <li>GITHUB_CLIENT_ID → CLIENT_ID_GITHUB</li>
+          <li>GITHUB_CLIENT_SECRET → CLIENT_SECRET_GITHUB</li>
+          <li>GITHUB_CALLBACK_URL → CALLBACK_URL_GITHUB</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.0" date="2026-05-11">
       <description>
         <p>Release version 0.15.0 with GitHub integration, unified storage/sync services, enhanced Kanban board, and major backend refactoring across 449 commits.</p>
