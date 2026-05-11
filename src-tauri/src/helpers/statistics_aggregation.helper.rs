@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub struct StatisticsAggregation;
 
 impl StatisticsAggregation {
-  pub fn build_task_completion_pipeline(tasks: &[Value]) -> AggregationPipeline {
+  pub fn build_task_completion_pipeline(_tasks: &[Value]) -> AggregationPipeline {
     AggregationPipeline::new()
       .match_stage(serde_json::json!({ "status": { "$in": ["completed", "skipped"] } }))
       .group(GroupStage::new(serde_json::Value::Null).sum("count", serde_json::json!(1)))
