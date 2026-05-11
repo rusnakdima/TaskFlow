@@ -20,8 +20,6 @@ pub mod relation_stripper;
 pub mod response_helper;
 #[path = "security.helper.rs"]
 pub mod security_helper;
-#[path = "statistics_aggregation.helper.rs"]
-pub mod statistics_aggregation;
 #[path = "timestamp.helper.rs"]
 pub mod timestamp_helper;
 #[path = "user_sync.helper.rs"]

@@ -71,6 +71,7 @@ impl DataProvider {
     }
   }
 
+  #[allow(dead_code)]
   pub async fn patch(&self, table: &str, id: &str, data: Value) -> Result<Value, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::patch(p.as_ref(), table, id, data)
