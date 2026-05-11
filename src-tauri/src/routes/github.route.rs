@@ -69,12 +69,12 @@ async fn update_user_github_tokens(
   });
 
   json_provider
-    .update(table_name, &update.user_id, update_data.clone())
+    .patch(table_name, &update.user_id, update_data.clone())
     .await
-    .map_err(|e| err_response_formatted("Failed to update user", &e.to_string()))?;
+    .map_err(|e| err_response_formatted("Failed to patch user", &e.to_string()))?;
 
   if let Some(mongo) = mongo_provider {
-    let _ = mongo.update(table_name, &update.user_id, update_data).await;
+    let _ = mongo.patch(table_name, &update.user_id, update_data).await;
   }
 
   Ok(())
@@ -218,12 +218,12 @@ pub async fn github_disconnect(
   state
     .repository_service
     .json_provider
-    .update(table_name, &user_id, update_data.clone())
+    .patch(table_name, &user_id, update_data.clone())
     .await
-    .map_err(|e| err_response_formatted("Failed to update user", &e.to_string()))?;
+    .map_err(|e| err_response_formatted("Failed to patch user", &e.to_string()))?;
 
   if let Some(mongo) = state.repository_service.mongodb_provider.as_ref() {
-    let _ = mongo.update(table_name, &user_id, update_data).await;
+    let _ = mongo.patch(table_name, &user_id, update_data).await;
   }
 
   Ok(success_response(DataValue::String(
