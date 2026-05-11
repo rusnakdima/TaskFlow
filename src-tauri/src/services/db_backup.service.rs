@@ -184,6 +184,10 @@ impl DbBackupService {
     imported_count += self
       .import_children_cascade(&mongo, "subtasks", "tasks", "task_id", &user_id)
       .await;
+    imported_count += self
+      .import_comments_cascade(&mongo, "tasks", "subtasks", &user_id)
+      .await;
+    imported_count += self.import_table(&mongo, "chats", &user_id, true).await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -266,6 +270,87 @@ impl DbBackupService {
     count
   }
 
+  pub async fn import_comments_cascade(
+    &self,
+    mongo: &MongoProvider,
+    parent_table: &str,
+    _grandparent_table: &str,
+    user_id: &str,
+  ) -> usize {
+    use nosql_orm::prelude::Filter;
+
+    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
+
+    if let Ok(parents) = mongo
+      .find_many(parent_table, Some(&user_filter), None, None, None, true)
+      .await
+    {
+      let parents = filter_deleted(parents);
+      let parent_ids: Vec<String> = parents
+        .iter()
+        .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
+        .collect();
+
+      let filter = Filter::In(
+        "task_id".to_string(),
+        parent_ids.iter().map(|id| json!(id)).collect(),
+      );
+      if let Ok(items) = mongo
+        .find_many("comments", Some(&filter), None, None, None, true)
+        .await
+      {
+        for item in items {
+          if self.upsert_to_json("comments", item).await {
+            count += 1;
+          }
+        }
+      }
+    }
+    count
+  }
+
+  pub async fn export_comments_cascade(
+    &self,
+    mongo: &MongoProvider,
+    parent_table: &str,
+    user_id: &str,
+  ) -> usize {
+    use nosql_orm::prelude::Filter;
+
+    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let mut count = 0;
+
+    if let Ok(parents) = self
+      .json_provider
+      .find_many(parent_table, Some(&user_filter), None, None, None, true)
+      .await
+    {
+      let parents = filter_deleted(parents);
+      let parent_ids: Vec<String> = parents
+        .iter()
+        .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
+        .collect();
+
+      let filter = Filter::In(
+        "task_id".to_string(),
+        parent_ids.iter().map(|id| json!(id)).collect(),
+      );
+      if let Ok(items) = self
+        .json_provider
+        .find_many("comments", Some(&filter), None, None, None, true)
+        .await
+      {
+        for item in items {
+          if self.upsert_to_mongo(mongo, "comments", item).await {
+            count += 1;
+          }
+        }
+      }
+    }
+    count
+  }
+
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = {
       let guard = self
@@ -293,6 +378,10 @@ impl DbBackupService {
     exported_count += self
       .export_children_cascade(&mongo, "subtasks", "tasks", "task_id", &user_id)
       .await;
+    exported_count += self
+      .export_comments_cascade(&mongo, "tasks", &user_id)
+      .await;
+    exported_count += self.export_table(&mongo, "chats", &user_id, true).await;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
