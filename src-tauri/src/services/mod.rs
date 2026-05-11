@@ -6,6 +6,27 @@ use nosql_orm::Entity;
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 
+#[path = "permission.service.rs"]
+pub mod permission_service;
+
+#[path = "todo.service.rs"]
+pub mod todo_service;
+
+#[path = "task.service.rs"]
+pub mod task_service;
+
+#[path = "subtask.service.rs"]
+pub mod subtask_service;
+
+#[path = "comment.service.rs"]
+pub mod comment_service;
+
+#[path = "category.service.rs"]
+pub mod category_service;
+
+#[path = "chat.service.rs"]
+pub mod chat_service;
+
 #[path = "db_backup.service.rs"]
 pub mod db_backup;
 

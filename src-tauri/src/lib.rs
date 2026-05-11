@@ -4,10 +4,13 @@ mod helpers;
 mod providers;
 mod routes;
 mod services;
+mod shared;
 
 /* sys lib */
 use std::sync::Arc;
 use tauri::{Manager, State};
+
+use crate::providers::data_provider::DataProvider;
 
 /* global re-export for nosql_orm Entity trait */
 
@@ -16,6 +19,11 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
 /* routes */
 use routes::{
+  admin_route::{
+    admin_get_all, admin_get_all_archive, admin_get_archive_paginated, admin_get_paginated,
+    admin_permanently_delete, admin_permanently_delete_local, admin_toggle_delete,
+    admin_toggle_delete_local,
+  },
   auth_data_sync_route::initialize_user_data,
   auth_route::{
     check_token, disable_totp, enable_totp, get_user_security_status, init_totp_qr_login, login,
@@ -24,18 +32,23 @@ use routes::{
     verify_login_totp,
   },
   cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
+  category_route::{
+    create_category, delete_category, get_categories, get_category, update_category,
+  },
+  chat_route::{create_chat, delete_chat, get_chats, update_chat},
+  comment_route::{create_comment, delete_comment, get_comments},
   github_route::{
     github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
     github_start_device_flow, github_update_issue,
   },
   manage_db_route::{
-    check_mongodb_connection, export_to_cloud, get_admin_data_paginated, get_all_data_for_admin,
-    get_all_data_for_archive, get_archive_data_paginated, get_tasks_by_month, import_to_local,
-    manage_data, permanently_delete_record, permanently_delete_record_local,
-    sync_visibility_to_provider, toggle_delete_status, toggle_delete_status_local,
+    check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local, manage_data,
   },
   statistics_route::statistics_get,
+  subtask_route::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
+  task_route::{create_task, delete_task, get_task, get_tasks, update_task},
+  todo_route::{create_todo, delete_todo, get_todo, get_todos, update_todo},
 };
 
 /* services */
@@ -45,12 +58,19 @@ use services::{
   auth::{auth_data_sync::AuthDataSyncService, auth_qr::QrAuthService, auth_totp::AuthTotpService},
   auth_service::AuthService,
   cascade::{CascadeService, CountService},
+  category_service::CategoryService,
+  chat_service::ChatService,
+  comment_service::CommentService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
+  permission_service::PermissionService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
   repository::service::RepositoryService,
   statistics_service::StatisticsService,
+  subtask_service::SubtaskService,
+  task_service::TaskService,
+  todo_service::TodoService,
   user::user_sync::UserSyncService,
 };
 
@@ -77,6 +97,7 @@ async fn process_queued_operation(
       None,
       visibility,
       false,
+      None,
     )
     .await
     .map_err(|e| e.message)?;
@@ -110,6 +131,12 @@ async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<Respon
 pub struct AppState {
   pub config_helper: Arc<ConfigHelper>,
   pub repository_service: Arc<RepositoryService>,
+  pub todo_service: Arc<TodoService>,
+  pub task_service: Arc<TaskService>,
+  pub subtask_service: Arc<SubtaskService>,
+  pub comment_service: Arc<CommentService>,
+  pub category_service: Arc<CategoryService>,
+  pub chat_service: Arc<ChatService>,
   pub about_service: Arc<AboutService>,
   pub auth_service: Arc<AuthService>,
   pub manage_db_service: Arc<ManageDbService>,
@@ -227,6 +254,22 @@ pub fn run() {
         profile_service.as_ref().clone(),
       ));
 
+      let data_provider = DataProvider::Json(Arc::new(json_provider.clone()));
+      let permission_service = PermissionService::new(config_helper.jwt_secret.clone());
+
+      let todo_service = Arc::new(TodoService::new(
+        data_provider.clone(),
+        permission_service.clone(),
+      ));
+      let task_service = Arc::new(TaskService::new(data_provider.clone()));
+      let subtask_service = Arc::new(SubtaskService::new(data_provider.clone()));
+      let comment_service = Arc::new(CommentService::new(data_provider.clone()));
+      let category_service = Arc::new(CategoryService::new(
+        data_provider.clone(),
+        permission_service.clone(),
+      ));
+      let chat_service = Arc::new(ChatService::new(data_provider.clone()));
+
       let auth_service = Arc::new(AuthService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
@@ -260,6 +303,12 @@ pub fn run() {
       app.manage(AppState {
         config_helper,
         repository_service,
+        todo_service,
+        task_service,
+        subtask_service,
+        comment_service,
+        category_service,
+        chat_service,
         about_service,
         auth_service,
         manage_db_service,
@@ -295,19 +344,18 @@ pub fn run() {
       qr_toggle,
       qr_login_complete,
       export_to_cloud,
-      get_all_data_for_admin,
-      get_all_data_for_archive,
-      get_admin_data_paginated,
-      get_archive_data_paginated,
       get_tasks_by_month,
       check_mongodb_connection,
       import_to_local,
       manage_data,
-      permanently_delete_record,
-      permanently_delete_record_local,
-      toggle_delete_status,
-      toggle_delete_status_local,
-      sync_visibility_to_provider,
+      admin_get_all,
+      admin_get_all_archive,
+      admin_get_archive_paginated,
+      admin_get_paginated,
+      admin_permanently_delete,
+      admin_permanently_delete_local,
+      admin_toggle_delete,
+      admin_toggle_delete_local,
       statistics_get,
       batch_soft_delete_cascade,
       batch_hard_delete_cascade,
@@ -324,7 +372,34 @@ pub fn run() {
       github_check_device_flow,
       github_update_issue,
       process_queued_operation,
-      sync_data
+      sync_data,
+      get_todo,
+      get_todos,
+      create_todo,
+      update_todo,
+      delete_todo,
+      get_task,
+      get_tasks,
+      create_task,
+      update_task,
+      delete_task,
+      get_subtask,
+      get_subtasks,
+      create_subtask,
+      update_subtask,
+      delete_subtask,
+      get_comments,
+      create_comment,
+      delete_comment,
+      get_category,
+      get_categories,
+      create_category,
+      update_category,
+      delete_category,
+      get_chats,
+      create_chat,
+      update_chat,
+      delete_chat,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

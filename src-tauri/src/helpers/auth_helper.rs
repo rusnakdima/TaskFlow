@@ -51,6 +51,63 @@ pub fn validate_user_owns_data(
   Ok(())
 }
 
+pub async fn validate_admin_role(
+  token: &str,
+  jwt_secret: &str,
+  json_provider: &JsonProvider,
+  mongodb_provider: Option<&Arc<MongoProvider>>,
+) -> Result<(), ResponseModel> {
+  let user_id = extract_user_from_token(token, jwt_secret)?;
+
+  let table_name = TableModelType::User.table_name();
+  let filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
+
+  let user_val = match timeout(
+    Duration::from_secs(3),
+    json_provider.find_many(table_name, Some(&filter), None, None, None, true),
+  )
+  .await
+  {
+    Ok(Ok(mut users)) => {
+      if users.is_empty() {
+        None
+      } else {
+        Some(users.remove(0))
+      }
+    }
+    Ok(Err(_)) => None,
+    Err(_) => None,
+  };
+
+  let user_val = match user_val {
+    Some(v) => v,
+    None => {
+      let mongo =
+        mongodb_provider.ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
+      let mut users = timeout(
+        Duration::from_secs(5),
+        mongo.find_many(table_name, Some(&filter), None, None, None, true),
+      )
+      .await
+      .map_err(|_| err_response("Database timeout"))?
+      .map_err(|e| err_response(&format!("Database error: {}", e)))?;
+      users.pop().ok_or_else(|| err_response("User not found"))?
+    }
+  };
+
+  let user: UserEntity = serde_json::from_value(user_val)
+    .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+
+  if user.role != "admin" {
+    return Err(ResponseModel {
+      status: ResponseStatus::Error,
+      message: "Forbidden: Admin access required".to_string(),
+      data: crate::entities::response_entity::DataValue::String("".to_string()),
+    });
+  }
+  Ok(())
+}
+
 pub async fn find_user_by_username(
   json_provider: &JsonProvider,
   mongodb_provider: Option<&Arc<MongoProvider>>,
