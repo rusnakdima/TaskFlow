@@ -8,7 +8,6 @@ mod services;
 /* sys lib */
 use std::sync::Arc;
 use tauri::Manager;
-use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Layer};
 
 /* global re-export for nosql_orm Entity trait */
 
@@ -115,20 +114,6 @@ pub fn run() {
   register_relations_for_entity::<ChatEntity>();
   register_relations_for_entity::<ProfileEntity>();
   register_relations_for_entity::<UserEntity>();
-
-  let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("debug"));
-
-  env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
-
-  let stdout_layer = fmt::layer()
-    .with_target(true)
-    .with_level(true)
-    .with_writer(std::io::stdout)
-    .with_ansi(true)
-    .with_filter(filter);
-
-  let _ =
-    tracing::subscriber::set_global_default(tracing_subscriber::registry().with(stdout_layer));
 
   let builder = tauri::Builder::default();
 
