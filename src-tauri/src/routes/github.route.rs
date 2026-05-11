@@ -1,6 +1,7 @@
 /* sys lib */
 use std::sync::Arc;
 use tauri::State;
+use tracing::{debug, error, info};
 
 use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
@@ -315,19 +316,39 @@ pub async fn github_update_issue(
 pub async fn github_start_device_flow(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
+  info!("[github_start_device_flow] Starting device flow request");
+  debug!(
+    "[github_start_device_flow] Config - client_id present: {}",
+    !state.config_helper.github_client_id.is_empty()
+  );
+
   let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
+    error!("[github_start_device_flow] GitHub OAuth not configured - missing GITHUB_CLIENT_ID");
     return Err(err_response(
       "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
     ));
   }
 
   let service = GithubService::new();
+  debug!("[github_start_device_flow] Calling GitHub service to start device code flow");
+
   let (device_code, user_code, verification_uri) = service
     .start_device_code_flow(&github_client_id)
     .await
-    .map_err(|e| err_response_formatted("Failed to start device flow", &e))?;
+    .map_err(|e| {
+      error!(
+        "[github_start_device_flow] Failed to start device flow: {}",
+        e
+      );
+      err_response_formatted("Failed to start device flow", &e)
+    })?;
+
+  info!(
+    "[github_start_device_flow] Device flow started successfully - device_code: {}, user_code: {}, verification_uri: {}",
+    device_code, user_code, verification_uri
+  );
 
   Ok(success_response(DataValue::Object(json!({
     "device_code": device_code,
@@ -340,25 +361,76 @@ pub async fn github_start_device_flow(
 pub async fn github_check_device_flow(
   state: State<'_, AppState>,
   device_code: String,
+  user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  info!(
+    "[github_check_device_flow] Received check request for device_code: {}, user_id: {}",
+    device_code, user_id
+  );
+  debug!(
+    "[github_check_device_flow] Config - client_id present: {}",
+    !state.config_helper.github_client_id.is_empty()
+  );
+
   let github_client_id = state.config_helper.github_client_id.clone();
 
   if github_client_id.is_empty() {
+    error!("[github_check_device_flow] GitHub OAuth not configured - missing GITHUB_CLIENT_ID");
     return Err(err_response(
       "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
     ));
   }
 
   let service = GithubService::new();
+  debug!("[github_check_device_flow] Calling GitHub service to check device code");
+
   match service
     .check_device_code(&github_client_id, &device_code)
     .await
   {
     Ok(Some(tokens)) => {
-      let github_user = service
-        .get_user(&tokens.access_token)
-        .await
-        .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
+      debug!(
+        "[github_check_device_flow] Token received - access_token length: {}, refresh_token length: {}, expires_in: {}",
+        tokens.access_token.len(),
+        tokens.refresh_token.len(),
+        tokens.expires_in
+      );
+
+      let github_user = service.get_user(&tokens.access_token).await.map_err(|e| {
+        error!(
+          "[github_check_device_flow] Failed to get GitHub user: {}",
+          e
+        );
+        err_response_formatted("Failed to get GitHub user", &e)
+      })?;
+
+      debug!(
+        "[github_check_device_flow] GitHub user retrieved - login: {}, id: {}, avatar_url: {}",
+        github_user.login, github_user.id, github_user.avatar_url
+      );
+
+      let access_token_clone = tokens.access_token.clone();
+      let refresh_token_clone = tokens.refresh_token.clone();
+      let expires_in_clone = tokens.expires_in;
+
+      let _ = update_user_github_tokens(
+        &state.repository_service.json_provider,
+        state.repository_service.mongodb_provider.as_ref(),
+        GithubTokenUpdate {
+          user_id: user_id.clone(),
+          access_token: access_token_clone,
+          refresh_token: refresh_token_clone,
+          expires_in: expires_in_clone,
+          github_user_id: github_user.id.to_string(),
+          github_username: github_user.login.clone(),
+        },
+      )
+      .await;
+
+      info!(
+        "[github_check_device_flow] SUCCESS - GitHub connected for user: {}, id: {}",
+        github_user.login, github_user.id
+      );
 
       Ok(success_response(DataValue::Object(json!({
         "success": true,
@@ -370,10 +442,20 @@ pub async fn github_check_device_flow(
         "avatar_url": github_user.avatar_url
       }))))
     }
-    Ok(None) => Ok(success_response(DataValue::Object(json!({
-      "success": false,
-      "pending": true
-    })))),
-    Err(e) => Err(err_response(&e)),
+    Ok(None) => {
+      debug!("[github_check_device_flow] Authorization still pending - user has not completed GitHub auth yet");
+      info!("[github_check_device_flow] Pending - waiting for user authorization");
+      Ok(success_response(DataValue::Object(json!({
+        "success": false,
+        "pending": true
+      }))))
+    }
+    Err(e) => {
+      error!(
+        "[github_check_device_flow] Error checking device flow: {}",
+        e
+      );
+      Err(err_response(&e))
+    }
   }
 }

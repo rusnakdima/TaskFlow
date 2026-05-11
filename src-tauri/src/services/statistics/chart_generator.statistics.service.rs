@@ -13,12 +13,54 @@ impl ChartGenerator {
     tasks: &[Value],
     categories: &[Value],
     daily_activities: &[Value],
-    _start_date: &NaiveDate,
-    _end_date: &NaiveDate,
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
   ) -> ChartDataModel {
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_chart_data START - tasks: {}, categories: {}, daily_activities: {}, date_range: {} to {}",
+      tasks.len(),
+      categories.len(),
+      daily_activities.len(),
+      start_date,
+      end_date
+    );
+
+    if let Some(first_task) = tasks.first() {
+      tracing::debug!(
+        target: "statistics::chart_generator",
+        "[ChartGenerator] sample task: {:?}",
+        first_task
+      );
+    }
+
+    if let Some(first_activity) = daily_activities.first() {
+      tracing::debug!(
+        target: "statistics::chart_generator",
+        "[ChartGenerator] sample daily_activity: {:?}",
+        first_activity
+      );
+    }
+
+    if let Some(first_cat) = categories.first() {
+      tracing::debug!(
+        target: "statistics::chart_generator",
+        "[ChartGenerator] sample category: {:?}",
+        first_cat
+      );
+    }
+
     let completion_trend = Self::compute_completion_trend(tasks).await;
     let daily_activity = Self::compute_daily_activity(daily_activities).await;
     let category_items = Self::compute_category_items(categories).await;
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_chart_data END - completion_trend: {:?}, daily_activity: {:?}, categories: {:?}",
+      completion_trend,
+      daily_activity,
+      category_items
+    );
 
     ChartDataModel {
       completion_trend,
@@ -28,6 +70,12 @@ impl ChartGenerator {
   }
 
   async fn compute_completion_trend(tasks: &[Value]) -> Vec<CompletionTrendItem> {
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_completion_trend START - tasks: {}",
+      tasks.len()
+    );
+
     let pipeline = AggregationPipeline::new()
       .match_stage(serde_json::json!({ "status": { "$in": ["completed", "skipped"] } }));
 
@@ -35,6 +83,12 @@ impl ChartGenerator {
       .execute_docs(tasks.to_vec())
       .await
       .unwrap_or_default();
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_completion_trend - matched_tasks (completed/skipped): {}",
+      matched_tasks.len()
+    );
 
     let mut completion_by_weekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
 
@@ -54,6 +108,13 @@ impl ChartGenerator {
       .execute_docs(tasks.to_vec())
       .await
       .unwrap_or_default();
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_completion_trend - all_tasks: {}, completion_by_weekday: {:?}",
+      all_tasks.len(),
+      completion_by_weekday
+    );
 
     for task in all_tasks {
       if let Some(updated_at) = task.get("updated_at").and_then(|v| v.as_str()) {
@@ -75,7 +136,7 @@ impl ChartGenerator {
       Weekday::Sun,
     ];
 
-    weekdays
+    let result: Vec<CompletionTrendItem> = weekdays
       .iter()
       .map(|&weekday| {
         let day_name = match weekday {
@@ -104,36 +165,50 @@ impl ChartGenerator {
           value: percentage,
         }
       })
-      .collect()
+      .collect();
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_completion_trend END - result: {:?}",
+      result
+    );
+
+    result
   }
 
   async fn compute_daily_activity(daily_activities: &[Value]) -> Vec<DailyActivityItem> {
-    let pipeline = AggregationPipeline::new()
-      .match_stage(serde_json::json!({ "total_activity": { "$gt": 0 } }))
-      .group(
-        GroupStage::new(serde_json::Value::Null)
-          .sum("activity", serde_json::json!("$total_activity")),
-      );
-
-    let results = pipeline
-      .execute_docs(daily_activities.to_vec())
-      .await
-      .unwrap_or_default();
-
     let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     let mut activity_by_day: HashMap<String, i32> = HashMap::new();
     for day in &day_names {
       activity_by_day.insert(day.to_string(), 0);
     }
 
-    for result in results {
-      if let Some(total) = result.get("activity").and_then(|v| v.as_i64()) {
-        for day in &day_names {
-          let entry = activity_by_day.entry(day.to_string()).or_insert(0);
-          *entry += total as i32;
+    for activity in daily_activities {
+      if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+          let weekday = date.weekday();
+          let day_name = match weekday {
+            chrono::Weekday::Mon => "Mon",
+            chrono::Weekday::Tue => "Tue",
+            chrono::Weekday::Wed => "Wed",
+            chrono::Weekday::Thu => "Thu",
+            chrono::Weekday::Fri => "Fri",
+            chrono::Weekday::Sat => "Sat",
+            chrono::Weekday::Sun => "Sun",
+          };
+          if let Some(total_activity) = activity.get("total_activity").and_then(|v| v.as_i64()) {
+            let entry = activity_by_day.entry(day_name.to_string()).or_insert(0);
+            *entry += total_activity as i32;
+          }
         }
       }
     }
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_daily_activity - activity_by_day: {:?}",
+      activity_by_day
+    );
 
     day_names
       .iter()
@@ -145,36 +220,101 @@ impl ChartGenerator {
   }
 
   async fn compute_category_items(categories: &[Value]) -> Vec<CategoryItem> {
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_category_items START - categories: {}",
+      categories.len()
+    );
+
     let category_colors = [
       "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4",
     ];
 
-    categories
+    for (i, cat) in categories.iter().enumerate() {
+      tracing::debug!(
+        target: "statistics::chart_generator",
+        "[ChartGenerator] category[{}] keys: {:?}, value: {:?}",
+        i,
+        cat.as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()),
+        cat
+      );
+    }
+
+    let result: Vec<CategoryItem> = categories
       .iter()
       .enumerate()
       .filter_map(|(index, category)| {
-        let category_title = category.get("title").and_then(|v| v.as_str())?;
+        let category_title = category.get("title").and_then(|v| v.as_str());
+        let category_name = category.get("name").and_then(|v| v.as_str());
+        let title = category_title.or(category_name);
+
+        if title.is_none() {
+          tracing::warn!(
+            target: "statistics::chart_generator",
+            "[ChartGenerator] category missing title/name: {:?}",
+            category
+          );
+          return None;
+        }
+
         let total_tasks = category
           .get("task_count")
           .and_then(|v| v.as_i64())
           .unwrap_or(0) as i32;
+        let total_tasks_alt = category
+          .get("total_tasks")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32;
+        let tasks_count = if total_tasks == 0 && total_tasks_alt > 0 {
+          total_tasks_alt
+        } else {
+          total_tasks
+        };
+
         let completed_tasks = category
           .get("completed_task_count")
           .and_then(|v| v.as_i64())
           .unwrap_or(0) as i32;
-        let percentage = if total_tasks > 0 {
-          ((completed_tasks as f32 / total_tasks as f32) * 100.0) as i32
+        let completed_tasks_alt = category
+          .get("completed")
+          .and_then(|v| v.as_i64())
+          .unwrap_or(0) as i32;
+        let completed_count = if completed_tasks == 0 && completed_tasks_alt > 0 {
+          completed_tasks_alt
+        } else {
+          completed_tasks
+        };
+
+        let percentage = if tasks_count > 0 {
+          ((completed_count as f32 / tasks_count as f32) * 100.0) as i32
         } else {
           0
         };
 
+        tracing::debug!(
+          target: "statistics::chart_generator",
+          "[ChartGenerator] category '{}': tasks_count={}, completed_count={}, percentage={}",
+          title.unwrap(),
+          tasks_count,
+          completed_count,
+          percentage
+        );
+
         Some(CategoryItem {
-          name: category_title.to_string(),
-          count: total_tasks,
+          name: title.unwrap().to_string(),
+          count: tasks_count,
           percentage,
           color: category_colors[index % category_colors.len()].to_string(),
         })
       })
-      .collect()
+      .collect();
+
+    tracing::debug!(
+      target: "statistics::chart_generator",
+      "[ChartGenerator] compute_category_items END - result: {:?}",
+      result
+    );
+
+    result
   }
 }
