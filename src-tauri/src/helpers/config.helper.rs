@@ -21,9 +21,9 @@ pub struct ConfigHelper {
   pub reset_token_expiry_hours: u64,
   pub rp_domain: String,
   pub enable_query_logging: bool,
-  pub github_client_id: String,
-  pub github_client_secret: String,
-  pub github_callback_url: String,
+  pub client_id_github: String,
+  pub client_secret_github: String,
+  pub callback_url_github: String,
 }
 
 fn parse_env_content(content: &str) -> Vec<(String, String)> {
@@ -132,9 +132,9 @@ impl ConfigHelper {
       enable_query_logging: env::var("ENABLE_QUERY_LOGGING")
         .map(|s| s.to_lowercase() == "true")
         .unwrap_or(false),
-      github_client_id: env::var("GITHUB_CLIENT_ID").unwrap_or_else(|_| "".to_string()),
-      github_client_secret: env::var("GITHUB_CLIENT_SECRET").unwrap_or_else(|_| "".to_string()),
-      github_callback_url: env::var("GITHUB_CALLBACK_URL").unwrap_or_else(|_| "".to_string()),
+      client_id_github: env::var("CLIENT_ID_GITHUB").unwrap_or_else(|_| "".to_string()),
+      client_secret_github: env::var("CLIENT_SECRET_GITHUB").unwrap_or_else(|_| "".to_string()),
+      callback_url_github: env::var("CALLBACK_URL_GITHUB").unwrap_or_else(|_| "".to_string()),
     }
   }
 }

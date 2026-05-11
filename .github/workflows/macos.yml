@@ -31,6 +31,9 @@ jobs:
       SMTP_SERVER: smtp.gmail.com
       SMTP_PORT: 587
       RESET_TOKEN_EXPIRY_HOURS: 1
+      CLIENT_ID_GITHUB: ${{ secrets.CLIENT_ID_GITHUB }}
+      CLIENT_SECRET_GITHUB: ${{ secrets.CLIENT_SECRET_GITHUB }}
+      CALLBACK_URL_GITHUB: ${{ secrets.CALLBACK_URL_GITHUB }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +51,9 @@ jobs:
           echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
           echo "SMTP_PORT=587" >> src-tauri/.env
           echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
+          echo "CLIENT_ID_GITHUB=${{ secrets.CLIENT_ID_GITHUB }}" >> src-tauri/.env
+          echo "CLIENT_SECRET_GITHUB=${{ secrets.CLIENT_SECRET_GITHUB }}" >> src-tauri/.env
+          echo "CALLBACK_URL_GITHUB=${{ secrets.CALLBACK_URL_GITHUB }}" >> src-tauri/.env
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

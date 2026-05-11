@@ -81,23 +81,23 @@ async fn update_user_github_tokens(
 
 #[tauri::command]
 pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = state.config_helper.github_client_id.clone();
+  let client_id_github = state.config_helper.client_id_github.clone();
 
-  if github_client_id.is_empty() {
+  if client_id_github.is_empty() {
     return Err(err_response(
-      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+      "GitHub OAuth not configured. Set CLIENT_ID_GITHUB in .env",
     ));
   }
 
-  let redirect_uri = if state.config_helper.github_callback_url.is_empty() {
+  let redirect_uri = if state.config_helper.callback_url_github.is_empty() {
     format!("https://{}/github/callback", state.config_helper.rp_domain)
   } else {
-    state.config_helper.github_callback_url.clone()
+    state.config_helper.callback_url_github.clone()
   };
 
   let service = GithubService::new();
   let url = service
-    .get_authorization_url(&github_client_id, &redirect_uri)
+    .get_authorization_url(&client_id_github, &redirect_uri)
     .await;
 
   Ok(success_response(DataValue::String(url)))
@@ -109,18 +109,18 @@ pub async fn github_oauth_callback(
   user_id: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = state.config_helper.github_client_id.clone();
-  let github_client_secret = state.config_helper.github_client_secret.clone();
+  let client_id_github = state.config_helper.client_id_github.clone();
+  let client_secret_github = state.config_helper.client_secret_github.clone();
 
-  if github_client_id.is_empty() || github_client_secret.is_empty() {
+  if client_id_github.is_empty() || client_secret_github.is_empty() {
     return Err(err_response(
-      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env",
+      "GitHub OAuth not configured. Set CLIENT_ID_GITHUB and CLIENT_SECRET_GITHUB in .env",
     ));
   }
 
   let service = GithubService::new();
   let tokens = service
-    .exchange_code_for_token(&github_client_id, &github_client_secret, &code)
+    .exchange_code_for_token(&client_id_github, &client_secret_github, &code)
     .await
     .map_err(|e| err_response_formatted("GitHub OAuth failed", &e))?;
 
@@ -315,18 +315,18 @@ pub async fn github_update_issue(
 pub async fn github_start_device_flow(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = state.config_helper.github_client_id.clone();
+  let client_id_github = state.config_helper.client_id_github.clone();
 
-  if github_client_id.is_empty() {
+  if client_id_github.is_empty() {
     return Err(err_response(
-      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+      "GitHub OAuth not configured. Set CLIENT_ID_GITHUB in .env",
     ));
   }
 
   let service = GithubService::new();
 
   let (device_code, user_code, verification_uri) = service
-    .start_device_code_flow(&github_client_id)
+    .start_device_code_flow(&client_id_github)
     .await
     .map_err(|e| err_response_formatted("Failed to start device flow", &e))?;
 
@@ -343,18 +343,18 @@ pub async fn github_check_device_flow(
   device_code: String,
   user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let github_client_id = state.config_helper.github_client_id.clone();
+  let client_id_github = state.config_helper.client_id_github.clone();
 
-  if github_client_id.is_empty() {
+  if client_id_github.is_empty() {
     return Err(err_response(
-      "GitHub OAuth not configured. Set GITHUB_CLIENT_ID in .env",
+      "GitHub OAuth not configured. Set client_id_github in .env",
     ));
   }
 
   let service = GithubService::new();
 
   match service
-    .check_device_code(&github_client_id, &device_code)
+    .check_device_code(&client_id_github, &device_code)
     .await
   {
     Ok(Some(tokens)) => {
