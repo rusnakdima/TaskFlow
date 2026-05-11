@@ -748,3 +748,8 @@ td[role="presentation"] {
   background-color: rgba(239, 68, 68, 0.3) !important;
   border: 2px dashed #f87171 !important;
 }
+
+/* Global bottom padding so floating nav never overlaps content */
+.shell-visible {
+  padding-bottom: 72px !important;
+}

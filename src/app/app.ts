@@ -1,15 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  ViewChild,
-  signal,
-  computed,
-  inject,
-  ChangeDetectorRef,
-} from "@angular/core";
+import { Component, OnInit, OnDestroy, ViewChild, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 
@@ -80,16 +71,8 @@ export class App implements OnInit, OnDestroy {
   );
   showInfoBlock = this.appStateService.showInfoBlock;
 
-  navPaddingBottom = signal(0);
-  private cdr = inject(ChangeDetectorRef);
-
   private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
   private connectionCheckInterval: any;
-
-  onNavVisibilityChange(visible: boolean): void {
-    this.navPaddingBottom.set(visible ? 72 : 0);
-    this.cdr.detectChanges();
-  }
 
   ngOnInit(): void {
     this.shortcutService.help$.subscribe(() => {

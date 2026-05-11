@@ -165,17 +165,20 @@ export class GithubService {
     }
 
     this._loading.set(true);
-    return this.requestService.invokeCommand<GithubRepo[]>("github_get_repos", { userId }).pipe(
-      tap((repos) => {
-        this._repos.set(repos);
-        this._loading.set(false);
-      }),
-      catchError((err) => {
-        this.notifyService.showError("Failed to load repositories: " + (err.message || err));
-        this._loading.set(false);
-        return of([]);
-      })
-    );
+    return this.requestService
+      .invokeCommand<Response<GithubRepo[]>>("github_get_repos", { userId })
+      .pipe(
+        map((response) => response.data || []),
+        tap((repos) => {
+          this._repos.set(repos);
+          this._loading.set(false);
+        }),
+        catchError((err) => {
+          this.notifyService.showError("Failed to load repositories: " + (err.message || err));
+          this._loading.set(false);
+          return of([]);
+        })
+      );
   }
 
   disconnect(userId: string): Observable<void> {
