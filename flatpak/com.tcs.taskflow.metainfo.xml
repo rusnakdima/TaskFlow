@@ -73,6 +73,75 @@
   </provides>
 
   <releases>
+    <release version="0.15.0" date="2026-05-11">
+      <description>
+        <p>Release version 0.15.0 with GitHub integration, unified storage/sync services, enhanced Kanban board, and major backend refactoring across 449 commits.</p>
+
+        <p>
+          <strong>GitHub Integration:</strong>
+        </p>
+        <ul>
+          <li>Device code flow authentication for secure GitHub OAuth</li>
+          <li>GitHub route and service for backend integration</li>
+          <li>GitHub sync service with repository services restructured</li>
+        </ul>
+
+        <p>
+          <strong>Unified Storage &amp; Sync:</strong>
+        </p>
+        <ul>
+          <li>Unified-storage.service for centralized state management</li>
+          <li>Unified-sync.service replacing legacy data-sync.service</li>
+          <li>Storage cache, entity, and query services plus GitHub helper</li>
+        </ul>
+
+        <p>
+          <strong>Kanban Board Enhancements:</strong>
+        </p>
+        <ul>
+          <li>Subtasks kanban helper for better subtask management</li>
+          <li>Kanban-subtask-card and kanban-task-card-simple components</li>
+          <li>Drag-and-drop support with visibility filter handling</li>
+        </ul>
+
+        <p>
+          <strong>New UI Components:</strong>
+        </p>
+        <ul>
+          <li>Table view component with field management</li>
+          <li>Floating bottom navigation for mobile experience</li>
+          <li>Connection-status component for real-time monitoring</li>
+          <li>Prompt dialog component and service</li>
+        </ul>
+
+        <p>
+          <strong>Chat &amp; Communication:</strong>
+        </p>
+        <ul>
+          <li>New dedicated chat view</li>
+          <li>Enhanced chat-window component</li>
+          <li>QR login with JWT username integration for mobile approval</li>
+        </ul>
+
+        <p>
+          <strong>Backend Refactoring:</strong>
+        </p>
+        <ul>
+          <li>Repository services restructured into subdirectories</li>
+          <li>Database backup, migration, and schema services added</li>
+          <li>WebAuthn/passkey removed from frontend and backend</li>
+          <li>New helper modules for collection metadata, filter builder, and soft delete</li>
+        </ul>
+
+        <p>
+          <strong>Mobile &amp; Android:</strong>
+        </p>
+        <ul>
+          <li>Android adaptive icons and edge-to-edge display</li>
+          <li>Updated launcher icons and themes</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.14.2" date="2026-05-02">
       <description>
         <p>Update Tauri and webauthn-rs dependencies to latest versions for improved functionality and security.</p>
