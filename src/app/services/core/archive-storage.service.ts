@@ -95,6 +95,11 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.chatsSignal.set(data["chats"] || []);
         this.categoriesSignal.set(data["categories"] || []);
         this.dailyActivitiesSignal.set(data["daily_activities"] || []);
+        console.log(
+          "[DailyActivities] loadAllAdminData - loaded",
+          data["daily_activities"]?.length || 0,
+          "activities"
+        );
 
         this.extractUsersAndProfiles(data);
 
@@ -105,6 +110,10 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.storageService.setCollection("chats", data["chats"] || []);
         this.storageService.setCollection("categories", data["categories"] || []);
         this.storageService.setCollection("dailyActivities", data["daily_activities"] || []);
+        console.log(
+          '[DailyActivities] loadAllAdminData - setCollection "dailyActivities" with',
+          data["daily_activities"]?.length || 0
+        );
         this.storageService.setCollection("users", data["users"] || []);
 
         this.loadingSignal.set(false);
