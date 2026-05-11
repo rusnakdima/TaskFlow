@@ -1,30 +1,17 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
-import { BaseItemHelper } from "@helpers/base-item.helper";
+import { BaseKanbanHelper, KanbanColumn } from "@helpers/base-kanban.helper";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { NotifyService } from "@services/notifications/notify.service";
-import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
-import { STATUS_ICONS } from "@constants/table-field.constants";
-
-export interface KanbanColumn {
-  id: TaskStatus;
-  label: string;
-  color: string;
-  icon: string;
-  iconBgClass: string;
-}
 
 @Injectable({ providedIn: "root" })
-export class TasksKanbanHelper {
+export class TasksKanbanHelper extends BaseKanbanHelper<Task> {
   private requestService = inject(REQUEST_SERVICE);
-  private notifyService = inject(NotifyService);
-  private kanbanDragDropService = inject(KanbanDragDropService);
 
-  private _isUpdatingKanban = signal(false);
-
-  getColumnColorClass = BaseItemHelper.getColumnColorClass;
+  getEntityName(): string {
+    return "task";
+  }
 
   getKanbanColumns(): KanbanColumn[] {
     return [
@@ -32,42 +19,39 @@ export class TasksKanbanHelper {
         id: TaskStatus.PENDING,
         label: "To Do",
         color: "bg-yellow-500",
-        icon: STATUS_ICONS[TaskStatus.PENDING],
+        icon: "circle",
         iconBgClass: "bg-yellow-500/20 text-yellow-400",
       },
       {
         id: TaskStatus.COMPLETED,
         label: "Done",
         color: "bg-green-500",
-        icon: STATUS_ICONS[TaskStatus.COMPLETED],
+        icon: "check-circle",
         iconBgClass: "bg-green-500/20 text-green-400",
       },
       {
         id: TaskStatus.SKIPPED,
         label: "Skipped",
         color: "bg-orange-500",
-        icon: STATUS_ICONS[TaskStatus.SKIPPED],
+        icon: "skip-forward",
         iconBgClass: "bg-orange-500/20 text-orange-400",
       },
       {
         id: TaskStatus.FAILED,
         label: "Failed",
         color: "bg-red-500",
-        icon: STATUS_ICONS[TaskStatus.FAILED],
+        icon: "x-circle",
         iconBgClass: "bg-red-500/20 text-red-400",
       },
     ];
   }
 
-  getTasksByStatus(tasks: Task[], status: TaskStatus): Task[] {
-    return tasks.filter((t) => t.status === status);
+  getColumns(): KanbanColumn[] {
+    return this.getKanbanColumns();
   }
 
-  getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
-    return this.kanbanDragDropService.getConnectedDropLists(
-      currentStatus,
-      this.getKanbanColumns() as any
-    );
+  getTasksByStatus(tasks: Task[], status: TaskStatus): Task[] {
+    return this.getItemsByStatus(tasks, status);
   }
 
   onKanbanTaskDrop(
@@ -76,43 +60,35 @@ export class TasksKanbanHelper {
     _todo: Todo | null,
     updateTaskFn: (taskId: string, newStatus: TaskStatus) => void
   ): void {
-    this.kanbanDragDropService.handleTaskDrop(
-      event,
-      targetStatus,
-      this._isUpdatingKanban(),
-      (newStatus, taskId) => {
-        if (taskId) {
-          updateTaskFn(taskId, newStatus);
-        }
-      }
-    );
-  }
-
-  onKanbanStatusCycle(
-    task: Task,
-    updateTaskFn: (taskId: string, newStatus: TaskStatus) => void
-  ): void {
-    const newStatus = BaseItemHelper.getNextStatus(task.status);
-    updateTaskFn(task.id, newStatus);
+    this.onKanbanItemDrop(event, targetStatus, _todo, updateTaskFn);
   }
 
   onKanbanTaskClick(task: Task, router: any, route: any): void {
     router.navigate([task.id, "subtasks"], { relativeTo: route });
   }
 
-  onKanbanSelectionChange(
+  override onKanbanSelectionChange(
     taskId: string,
     isSelected: boolean,
     toggleTaskSelectionFn: (event: { id: string; selected: boolean }) => void
   ): void {
-    toggleTaskSelectionFn({ id: taskId, selected: isSelected });
+    super.onKanbanSelectionChange(taskId, isSelected, toggleTaskSelectionFn);
   }
 
   isKanbanTaskSelected(taskId: string, selectedTasks: Set<string>): boolean {
-    return selectedTasks.has(taskId);
+    return super.isKanbanItemSelected(taskId, selectedTasks);
   }
 
   updateTaskStatus(
+    taskId: string,
+    newStatus: TaskStatus,
+    todo: Todo | null,
+    updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void
+  ): void {
+    this.updateStatus(taskId, newStatus, todo, updateTasksFn);
+  }
+
+  updateStatus(
     taskId: string,
     newStatus: TaskStatus,
     todo: Todo | null,
