@@ -80,6 +80,8 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Input() showStatusToggle = false;
   @Input() statusKey = "status";
   @Input() itemType: ItemType = "task";
+  @Input() highlightedId: string | null = null;
+  @Input() highlightIdPrefix: string = "";
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
@@ -263,6 +265,14 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   isItemSelected(id: string): boolean {
     return this.selectedIds.has(id);
+  }
+
+  isHighlighted(id: string): boolean {
+    return this.highlightedId === id;
+  }
+
+  getRowId(id: string): string {
+    return this.highlightIdPrefix ? this.highlightIdPrefix + id : id;
   }
 
   onSelectAll(checked: boolean): void {
