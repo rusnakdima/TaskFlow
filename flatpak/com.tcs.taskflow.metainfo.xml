@@ -73,6 +73,24 @@
   </provides>
 
   <releases>
+    <release version="0.15.2" date="2026-05-11">
+      <description>
+        <p>Release version 0.15.2</p>
+      </description>
+    </release>
+    <release version="0.15.2" date="2026-05-11">
+      <description>
+        <p>Release version 0.15.2 with Android build improvements.</p>
+
+        <p>
+          <strong>Build &amp; CI Improvements:</strong>
+        </p>
+        <ul>
+          <li>Streamlined Tauri CLI execution with npm-based invocation for cross-platform consistency</li>
+          <li>Unified build tasks in RustPlugin, replacing per-target build tasks</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.1" date="2026-05-11">
       <description>
         <p>Release version 0.15.1 with embedded env loading feature flag and renamed GitHub OAuth environment variables.</p>
