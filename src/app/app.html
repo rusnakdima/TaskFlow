@@ -6,7 +6,7 @@
   <main
     class="mx-auto w-full max-w-7xl lg:px-6"
     [ngClass]="showShell() ? 'p-3' : ''"
-    [style.padding-bottom.px]="navPaddingBottom()"
+    [class.shell-visible]="showShell()"
     style="min-height: calc(100vh - 72px - 62px)"
   >
     <router-outlet />
@@ -14,7 +14,7 @@
 
   @if (showShell()) {
     <!-- <app-bottom-nav /> -->
-    <app-floating-bottom-nav (visibilityChange)="onNavVisibilityChange($event)" />
+    <app-floating-bottom-nav />
   }
 </div>
 
