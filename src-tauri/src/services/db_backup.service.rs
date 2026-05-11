@@ -9,14 +9,13 @@ use serde_json::{json, Value};
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 use crate::helpers::common::filter_deleted;
 
-fn filter_not_deleted(records: Vec<Value>) -> Vec<Value> {
-  filter_deleted(records)
-}
-
 pub struct DbBackupService {
   json_provider: JsonProvider,
+  #[allow(dead_code)]
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
+  #[allow(dead_code)]
   mongo_db_uri: String,
+  #[allow(dead_code)]
   mongo_db_name: String,
 }
 
@@ -35,14 +34,17 @@ impl DbBackupService {
     }
   }
 
+  #[allow(dead_code)]
   pub fn get_json_provider(&self) -> JsonProvider {
     self.json_provider.clone()
   }
 
+  #[allow(dead_code)]
   pub fn get_mongo_provider(&self) -> Option<Arc<MongoProvider>> {
     self.mongodb_provider.lock().unwrap().clone()
   }
 
+  #[allow(dead_code)]
   pub fn set_mongo_provider(&self, provider: Arc<MongoProvider>) {
     if let Ok(mut guard) = self.mongodb_provider.lock() {
       *guard = Some(provider);
@@ -103,7 +105,7 @@ impl DbBackupService {
     {
       Ok(mut items) => {
         if filter_deleted {
-          items = filter_not_deleted(items);
+          items = crate::helpers::common::filter_deleted(items);
         }
         let count = items.len();
         for item in items {
@@ -134,7 +136,7 @@ impl DbBackupService {
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
       .await
     {
-      let parents = filter_not_deleted(parents);
+      let parents = filter_deleted(parents);
       let parent_ids: Vec<String> = parents
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
@@ -146,7 +148,7 @@ impl DbBackupService {
           .find_many(child_table, Some(&filter), None, None, None, true)
           .await
         {
-          let items = filter_not_deleted(items);
+          let items = filter_deleted(items);
           for item in items {
             if self.upsert_to_json(child_table, item).await {
               count += 1;
@@ -207,7 +209,7 @@ impl DbBackupService {
     {
       Ok(mut items) => {
         if filter_deleted {
-          items = filter_not_deleted(items);
+          items = crate::helpers::common::filter_deleted(items);
         }
         let count = items.len();
         for item in items {
@@ -239,7 +241,7 @@ impl DbBackupService {
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
       .await
     {
-      let parents = filter_not_deleted(parents);
+      let parents = filter_deleted(parents);
       let parent_ids: Vec<String> = parents
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
@@ -252,7 +254,7 @@ impl DbBackupService {
           .find_many(child_table, Some(&filter), None, None, None, true)
           .await
         {
-          let items = filter_not_deleted(items);
+          let items = filter_deleted(items);
           for item in items {
             if self.upsert_to_mongo(mongo, child_table, item).await {
               count += 1;

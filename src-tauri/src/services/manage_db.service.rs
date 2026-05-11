@@ -14,7 +14,9 @@ pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
   admin_manager: Mutex<Option<AdminManager>>,
+  #[allow(dead_code)]
   mongo_db_uri: String,
+  #[allow(dead_code)]
   mongo_db_name: String,
   db_backup: DbBackupService,
 }
@@ -292,24 +294,22 @@ impl ManageDbService {
         Err(_) => None,
       };
       if let Some(mongo) = mongo_option {
-        match mongo
+        if let Ok(tasks) = mongo
           .find_many("tasks", Some(&filter), None, None, None, true)
           .await
         {
-          Ok(tasks) => all_tasks.extend(tasks),
-          Err(_) => {}
+          all_tasks.extend(tasks)
         }
       }
     }
 
     if visibility == "private" {
-      match self
+      if let Ok(tasks) = self
         .json_provider
         .find_many("tasks", Some(&filter), None, None, None, true)
         .await
       {
-        Ok(tasks) => all_tasks.extend(tasks),
-        Err(_) => {}
+        all_tasks.extend(tasks)
       }
     }
 
