@@ -392,7 +392,11 @@ export class StorageQueryService {
   }
 
   setDailyActivities(activities: any[]): void {
+    const timer = `[DailyActivities] setDailyActivities`;
+    console.time(timer);
+    console.log(`${timer} RECEIVED - count: ${activities?.length || 0}`, activities?.slice(0, 2));
     this._dailyActivities.set(activities);
+    console.timeEnd(timer);
   }
 
   setCollection(
@@ -442,6 +446,10 @@ export class StorageQueryService {
         this._entityService.users.set(items);
         break;
       case "dailyActivities":
+        console.log(
+          `[DailyActivities] setCollection 'dailyActivities' - count: ${items?.length || 0}`,
+          items?.slice(0, 2)
+        );
         this._dailyActivities.set(items);
         break;
     }
@@ -558,6 +566,9 @@ export class StorageQueryService {
         this._entityService.chats.set(data["chats"] || []);
         this._entityService.categories.set(data["categories"] || []);
         this._dailyActivities.set(data["daily_activities"] || []);
+        console.log(
+          `[DailyActivities] loadAdminData - loaded ${data["daily_activities"]?.length || 0} activities`
+        );
         this.extractUsersAndProfiles(data);
         this._loading.set(false);
         this._loaded.set(true);

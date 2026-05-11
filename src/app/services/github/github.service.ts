@@ -6,11 +6,29 @@ import { GithubRepo, GithubConnection } from "@models/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { REQUEST_SERVICE } from "@services/api.service";
+import { Response } from "@models/response.model";
 
 interface GithubOAuthResult {
   username: string;
   user_id: string;
   avatar_url: string;
+}
+
+interface GithubDeviceFlowResult {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+}
+
+interface GithubDeviceFlowCheckResult {
+  success: boolean;
+  pending?: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  username?: string;
+  user_id?: string;
+  avatar_url?: string;
 }
 
 interface GithubIssueResult {
@@ -58,17 +76,9 @@ export class GithubService {
     );
   }
 
-  startDeviceFlow(): Observable<{
-    device_code: string;
-    user_code: string;
-    verification_uri: string;
-  }> {
+  startDeviceFlow(): Observable<Response<GithubDeviceFlowResult>> {
     return this.requestService
-      .invokeCommand<{
-        device_code: string;
-        user_code: string;
-        verification_uri: string;
-      }>("github_start_device_flow", {})
+      .invokeCommand<Response<GithubDeviceFlowResult>>("github_start_device_flow", {})
       .pipe(
         catchError((err) => {
           this.notifyService.showError(
@@ -79,27 +89,15 @@ export class GithubService {
       );
   }
 
-  checkDeviceFlow(device_code: string): Observable<{
-    success: boolean;
-    pending?: boolean;
-    access_token?: string;
-    refresh_token?: string;
-    expires_in?: number;
-    username?: string;
-    user_id?: string;
-    avatar_url?: string;
-  }> {
+  checkDeviceFlow(
+    deviceCode: string,
+    userId: string
+  ): Observable<Response<GithubDeviceFlowCheckResult>> {
+    console.log(deviceCode);
     return this.requestService
-      .invokeCommand<{
-        success: boolean;
-        pending?: boolean;
-        access_token?: string;
-        refresh_token?: string;
-        expires_in?: number;
-        username?: string;
-        user_id?: string;
-        avatar_url?: string;
-      }>("github_check_device_flow", { device_code })
+      .invokeCommand<
+        Response<GithubDeviceFlowCheckResult>
+      >("github_check_device_flow", { deviceCode: deviceCode, userId: userId })
       .pipe(
         catchError((err) => {
           this.notifyService.showError("Failed to check device flow: " + (err.message || err));
@@ -179,8 +177,7 @@ export class GithubService {
     );
   }
 
-  disconnect(): Observable<void> {
-    const userId = this.getUserId();
+  disconnect(userId: string): Observable<void> {
     if (!userId) {
       return new Observable((subscriber) => {
         subscriber.error(new Error("Not authenticated"));
