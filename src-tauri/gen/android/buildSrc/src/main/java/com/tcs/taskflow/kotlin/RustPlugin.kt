@@ -63,21 +63,25 @@ open class RustPlugin : Plugin<Project> {
                     val targetName = targetPair.value
                     val targetArch = archList[targetPair.index]
                     val targetArchCapitalized = targetArch.replaceFirstChar { it.uppercase() }
-                    val targetBuildTask = project.tasks.maybeCreate(
-                        "rustBuild$targetArchCapitalized$profileCapitalized",
-                        BuildTask::class.java
-                    ).apply {
-                        group = TASK_GROUP
-                        description = "Build dynamic library in $profile mode for $targetArch"
-                        rootDirRel = config.rootDirRel
-                        target = targetName
-                        release = profile == "release"
-                    }
 
-                    buildTask.dependsOn(targetBuildTask)
-                    tasks["merge$targetArchCapitalized${profileCapitalized}JniLibFolders"].dependsOn(
-                        targetBuildTask
-                    )
+                    if (targetPair.index == 0) {
+                        val targetBuildTask = project.tasks.maybeCreate(
+                            "rustBuildUniversal",
+                            BuildTask::class.java
+                        ).apply {
+                            group = TASK_GROUP
+                            description = "Build dynamic library for all targets at once"
+                            rootDirRel = config.rootDirRel
+                            release = profile == "release"
+                        }
+
+                        buildTask.dependsOn(targetBuildTask)
+                        tasks["mergeUniversal${profileCapitalized}JniLibFolders"].dependsOn(targetBuildTask)
+                        tasks["mergeArm64${profileCapitalized}JniLibFolders"].dependsOn(targetBuildTask)
+                        tasks["mergeArm${profileCapitalized}JniLibFolders"].dependsOn(targetBuildTask)
+                        tasks["mergeX86${profileCapitalized}JniLibFolders"].dependsOn(targetBuildTask)
+                        tasks["mergeX86_64${profileCapitalized}JniLibFolders"].dependsOn(targetBuildTask)
+                    }
                 }
             }
         }
