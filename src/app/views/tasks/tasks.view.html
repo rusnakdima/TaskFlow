@@ -45,6 +45,7 @@
         [expandable]="true"
         [expandTemplate]="expandTemplate"
         [actions]="getTaskTableActions()"
+        [highlightedId]="highlightTaskId()"
         (selectionChange)="toggleTaskSelection({ id: $event.id, selected: $event.selected })"
         (selectAll)="toggleSelectAll()"
         (rowClick)="onRowClick($event)"

@@ -25,7 +25,7 @@ import { Task, TaskStatus } from "@models/task.model";
 import { Todo } from "@models/todo.model";
 import { Chat } from "@models/chat.model";
 import { CommentService } from "@services/features/comment.service";
-import { SubtasksKanbanHelper } from "./subtasks-kanban.helper";
+import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -352,13 +352,9 @@ export class SubtasksViewComponent extends BaseListView {
           if (queryParams.openComments) {
             this.openCommentsForSubtaskId.set(id);
           }
-          super.handleHighlightQueryParams(
-            queryParams,
-            "highlightSubtask",
-            "subtask-",
-            "ring-purple-500"
+          super.handleHighlightQueryParams(queryParams, "highlightSubtask", "subtask-", () =>
+            this.highlightSubtask.set(null)
           );
-          this.highlightSubtask.set(null);
         }
         if (queryParams.highlightComment) {
           this.highlightComment.set(queryParams.highlightComment);

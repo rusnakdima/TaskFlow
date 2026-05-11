@@ -193,6 +193,14 @@ export class ManageItemPage implements OnInit {
     );
   });
 
+  parentTodoHasGithubRepo = computed(() => {
+    if (this.itemType() !== "task") return false;
+    const todoId = this.form.get("todo_id")?.value;
+    if (!todoId) return false;
+    const parentTodo = this.todos().find((t) => t.id === todoId);
+    return !!parentTodo?.github_repo_id;
+  });
+
   pageTitle = computed(() => {
     const type = this.itemType();
     const edit = this.isEdit() ? "Edit" : "Create";

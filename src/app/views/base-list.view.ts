@@ -206,7 +206,7 @@ export abstract class BaseListView implements OnInit, OnDestroy {
     queryParams: any,
     highlightParamName: string,
     idPrefix: string,
-    colorClass: string
+    onHighlightEnd?: () => void
   ): void {
     const id = queryParams[highlightParamName];
     if (!id) return;
@@ -215,10 +215,13 @@ export abstract class BaseListView implements OnInit, OnDestroy {
       const element = document.getElementById(idPrefix + id);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
-        element.classList.add("ring-4", colorClass, "animate-pulse");
+        element.classList.add("bg-green-100", "dark:bg-green-900/20", "animate-pulse");
         setTimeout(() => {
-          element.classList.remove("ring-4", colorClass, "animate-pulse");
-        }, 2000);
+          element.classList.remove("bg-green-100", "dark:bg-green-900/20", "animate-pulse");
+          if (onHighlightEnd) {
+            onHighlightEnd();
+          }
+        }, 5000);
       }
     }, 500);
   }

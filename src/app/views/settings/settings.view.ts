@@ -16,7 +16,10 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
 
 import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService } from "@services/auth/security.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { GithubService } from "@services/github/github.service";
+import { Response, ResponseStatus } from "@models/response.model";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 @Component({
   selector: "app-settings",
@@ -29,6 +32,7 @@ export class SettingsView implements OnInit, OnDestroy {
   private notifyService = inject(NotifyService);
   private securityService = inject(SecurityService);
   private githubService = inject(GithubService);
+  private jwtTokenService = inject(JwtTokenService);
   private sanitizer = inject(DomSanitizer);
 
   chatNotificationVolume = signal(50);
@@ -109,14 +113,24 @@ export class SettingsView implements OnInit, OnDestroy {
 
     this.githubLoading.set(true);
     this.githubService.startDeviceFlow().subscribe({
-      next: (result) => {
-        this.githubDeviceFlowActive.set(true);
-        this.githubUserCode.set(result.user_code);
-        this.githubVerificationUri.set(result.verification_uri);
-        this.githubDeviceCode.set(result.device_code);
-        this.githubLoading.set(false);
+      next: (
+        result: Response<{
+          device_code: string;
+          user_code: string;
+          verification_uri: string;
+        }>
+      ) => {
+        console.log(result);
+        if (result.status == ResponseStatus.SUCCESS) {
+          const data = result.data;
+          this.githubDeviceFlowActive.set(true);
+          this.githubUserCode.set(data.user_code);
+          this.githubVerificationUri.set(data.verification_uri);
+          this.githubDeviceCode.set(data.device_code);
+          this.githubLoading.set(false);
 
-        this.startGithubPolling(result.device_code);
+          this.startGithubPolling(data.device_code);
+        }
       },
       error: () => {
         this.githubLoading.set(false);
@@ -126,11 +140,16 @@ export class SettingsView implements OnInit, OnDestroy {
   }
 
   private startGithubPolling(deviceCode: string): void {
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
     this.githubPollingInterval = setInterval(() => {
-      this.githubService.checkDeviceFlow(deviceCode).subscribe({
+      this.githubService.checkDeviceFlow(deviceCode, userId).subscribe({
         next: (result) => {
-          if (result.success && result.access_token) {
-            this.completeGithubConnection(result);
+          if (
+            result.status === ResponseStatus.SUCCESS &&
+            result.data.success &&
+            result.data.access_token
+          ) {
+            this.completeGithubConnection(result.data);
           }
         },
         error: (err) => {
@@ -139,7 +158,7 @@ export class SettingsView implements OnInit, OnDestroy {
           this.resetGithubDeviceFlow();
         },
       });
-    }, 5000);
+    }, 10000);
   }
 
   private stopGithubPolling(): void {
@@ -183,11 +202,17 @@ export class SettingsView implements OnInit, OnDestroy {
   }
 
   openGithubVerification(): void {
-    window.open(this.githubVerificationUri(), "_blank");
+    openUrl(this.githubVerificationUri());
+  }
+
+  copyUserCode(): void {
+    navigator.clipboard.writeText(this.githubUserCode());
+    this.notifyService.showSuccess("Code copied to clipboard!");
   }
 
   disconnectGithub(): void {
-    this.githubService.disconnect().subscribe({
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    this.githubService.disconnect(userId).subscribe({
       next: () => {
         this.githubConnected.set(false);
         this.githubUsername.set("");
