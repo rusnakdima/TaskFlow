@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -34,6 +35,7 @@ export class SettingsView implements OnInit, OnDestroy {
   private githubService = inject(GithubService);
   private jwtTokenService = inject(JwtTokenService);
   private sanitizer = inject(DomSanitizer);
+  private cdr = inject(ChangeDetectorRef);
 
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);
@@ -84,12 +86,14 @@ export class SettingsView implements OnInit, OnDestroy {
         if (status.username) this.githubUsername.set(status.username);
         if (status.user_id) this.githubUserId.set(status.user_id);
         if (status.avatar_url) this.githubAvatarUrl.set(status.avatar_url);
+        this.cdr.markForCheck();
         if (status.connected) {
           this.loadGithubRepos();
         }
       },
       error: () => {
         this.githubConnected.set(false);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -100,10 +104,12 @@ export class SettingsView implements OnInit, OnDestroy {
       next: (repos) => {
         this.githubRepos.set(repos);
         this.githubLoading.set(false);
+        this.cdr.markForCheck();
       },
       error: () => {
         this.githubRepos.set([]);
         this.githubLoading.set(false);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -177,6 +183,7 @@ export class SettingsView implements OnInit, OnDestroy {
         if (status.username) this.githubUsername.set(status.username);
         if (status.user_id) this.githubUserId.set(status.user_id);
         if (status.avatar_url) this.githubAvatarUrl.set(status.avatar_url);
+        this.cdr.markForCheck();
         if (status.connected) {
           this.loadGithubRepos();
         }
@@ -185,6 +192,7 @@ export class SettingsView implements OnInit, OnDestroy {
       },
       error: () => {
         this.resetGithubDeviceFlow();
+        this.cdr.markForCheck();
       },
     });
   }

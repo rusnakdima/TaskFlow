@@ -86,6 +86,23 @@ export class StatsView implements OnInit {
     { key: "change", label: "Change", type: "change" },
   ];
 
+  categoryDetailFields: TableField[] = [
+    { key: "name", label: "Category", type: "text" },
+    { key: "count", label: "Total Tasks", type: "number" },
+    {
+      key: "completed",
+      label: "Completed",
+      type: "number",
+      getValue: (item: any) => Math.round(item.count * (item.percentage / 100)).toString(),
+    },
+    {
+      key: "percentage",
+      label: "Completion %",
+      type: "text",
+      getValue: (item: any) => `${item.percentage}%`,
+    },
+  ];
+
   ngOnInit(): void {
     // Data is already loaded in app.ts, just load statistics
     this.loadStatistics();

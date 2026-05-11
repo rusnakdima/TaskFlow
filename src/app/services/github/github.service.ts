@@ -143,10 +143,11 @@ export class GithubService {
     }
 
     return this.requestService
-      .invokeCommand<GithubConnection>("github_get_connection_status", {
+      .invokeCommand<Response<GithubConnection>>("github_get_connection_status", {
         userId,
       })
       .pipe(
+        map((response) => response.data || { connected: false }),
         tap((status) => {
           this._connectionStatus.set(status);
         }),

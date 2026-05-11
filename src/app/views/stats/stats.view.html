@@ -223,6 +223,25 @@
     class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
   >
     <div class="mb-6 flex items-center justify-between">
+      <h3 class="textNormal text-lg font-semibold">Category Details</h3>
+      <mat-icon class="textMuted h-5! w-5! min-w-5 text-xl!" fontIcon="category" />
+    </div>
+
+    <app-table-view
+      [data]="chartData().categories"
+      [fields]="categoryDetailFields"
+      [showSelection]="false"
+      [showActionsColumn]="false"
+      [highlightedId]="null"
+      [highlightIdPrefix]="''"
+      emptyMessage="No category data available"
+    />
+  </div>
+
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+  >
+    <div class="mb-6 flex items-center justify-between">
       <h3 class="textNormal text-lg font-semibold">Detailed Analytics</h3>
       <button class="text-sm text-blue-600 hover:underline dark:text-blue-400">
         Export Report
