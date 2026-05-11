@@ -9,8 +9,6 @@ pub mod manage_db_service;
 #[path = "db_backup.service.rs"]
 pub mod db_backup;
 
-// WebSocket server - REMOVED
-
 // Special services (not CRUD)
 pub mod auth;
 
@@ -44,5 +42,5 @@ pub mod user;
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
 
-#[path = "github_service.rs"]
+#[path = "github.service.rs"]
 pub mod github_service;
