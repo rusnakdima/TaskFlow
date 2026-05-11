@@ -84,8 +84,8 @@ impl AuthRegisterService {
       bio: "".to_string(),
       image_url: "".to_string(),
       user_id: user_id.clone(),
-      created_at: Some(now.clone()),
-      updated_at: Some(now.clone()),
+      created_at: Some(now),
+      updated_at: Some(now),
     };
 
     let profile_sync_service = self.profile_sync_service.clone();

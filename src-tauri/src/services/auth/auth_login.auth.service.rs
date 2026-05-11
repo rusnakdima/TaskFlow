@@ -3,7 +3,6 @@ use bcrypt::verify;
 use std::sync::Arc;
 
 /* providers */
-use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 
@@ -16,7 +15,6 @@ use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 use crate::entities::{
   login_form_entity::LoginForm,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
-  table_entity::TableModelType,
 };
 
 /* helpers */
@@ -87,32 +85,5 @@ impl AuthLoginService {
         "profile": profile
       })),
     })
-  }
-
-  #[allow(dead_code)]
-  async fn sync_user_to_json(
-    &self,
-    mongo_user: &serde_json::Value,
-  ) -> Result<Option<serde_json::Value>, ResponseModel> {
-    let user_id = mongo_user.get("id").and_then(|v| v.as_str()).unwrap_or("");
-
-    let existing = self
-      .json_provider
-      .find_by_id(TableModelType::User.table_name(), user_id)
-      .await
-      .ok()
-      .flatten();
-
-    if existing.is_some() {
-      return Ok(None);
-    }
-
-    let _ = self
-      .json_provider
-      .insert(TableModelType::User.table_name(), mongo_user.clone())
-      .await
-      .map_err(|e| err_response(&format!("Failed to sync user to JSON: {}", e)))?;
-
-    Ok(Some(mongo_user.clone()))
   }
 }
