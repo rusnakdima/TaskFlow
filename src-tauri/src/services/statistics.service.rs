@@ -89,7 +89,7 @@ impl StatisticsService {
     let prev_start_str = previous_start_date.to_rfc3339();
     let prev_end_str = previous_end_date.to_rfc3339();
 
-    let mut all_tasks: Vec<Value> = self
+    let all_tasks: Vec<Value> = self
       .json_provider
       .find_many("tasks", None, None, None, None, true)
       .await
@@ -105,7 +105,7 @@ impl StatisticsService {
       .iter()
       .filter(|task| {
         let task_todo_id = task.get("todo_id").and_then(|v| v.as_str());
-        if todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
+        if !todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
           return false;
         }
 
@@ -128,7 +128,7 @@ impl StatisticsService {
       .iter()
       .filter(|task| {
         let task_todo_id = task.get("todo_id").and_then(|v| v.as_str());
-        if todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
+        if !todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
           return false;
         }
 
@@ -189,6 +189,7 @@ impl StatisticsService {
     let chart_data = ChartGenerator::compute_chart_data(
       &current_tasks,
       &categories_with_counts,
+      &todos,
       &daily_activities,
       &start_date_naive,
       &end_date_naive,
