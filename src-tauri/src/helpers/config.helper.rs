@@ -2,7 +2,6 @@
 use std::env;
 use std::path::Path;
 
-#[cfg(target_os = "android")]
 const ENV_CONTENT: &str = include_str!("../../.env");
 
 #[derive(Debug, Clone)]
@@ -61,9 +60,9 @@ fn load_env_from_file(path: &Path) -> bool {
   false
 }
 
-#[cfg(target_os = "android")]
+#[cfg(feature = "embedded_env")]
 fn load_embedded_env() {
-  eprintln!("[ConfigHelper] Android detected, loading embedded .env content");
+  eprintln!("[ConfigHelper] Loading embedded .env content");
   let vars = parse_env_content(ENV_CONTENT);
   for (key, value) in &vars {
     eprintln!(
@@ -79,7 +78,7 @@ fn load_embedded_env() {
   }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(feature = "embedded_env"))]
 fn load_embedded_env() {}
 
 impl ConfigHelper {
