@@ -7,7 +7,7 @@ mod services;
 
 /* sys lib */
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Manager, State};
 
 /* global re-export for nosql_orm Entity trait */
 
@@ -55,7 +55,57 @@ use services::{
 };
 
 /* nosql_orm */
+use crate::entities::response_entity::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
+
+#[tauri::command]
+async fn process_queued_operation(
+  state: State<'_, AppState>,
+  operation: String,
+  table: String,
+  data: serde_json::Value,
+  visibility: Option<String>,
+) -> Result<(), String> {
+  state
+    .repository_service
+    .execute(
+      operation,
+      table,
+      None,
+      Some(data),
+      None,
+      None,
+      visibility,
+      false,
+    )
+    .await
+    .map_err(|e| e.message)?;
+  Ok(())
+}
+
+#[tauri::command]
+async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<ResponseModel, String> {
+  let export_result = state
+    .manage_db_service
+    .export_to_cloud(user_id.clone())
+    .await
+    .map_err(|e| e.message)?;
+
+  let import_result = state
+    .manage_db_service
+    .import_to_local(user_id)
+    .await
+    .map_err(|e| e.message)?;
+
+  Ok(ResponseModel {
+    status: export_result.status,
+    message: format!(
+      "Export: {}, Import: {}",
+      export_result.message, import_result.message
+    ),
+    data: export_result.data,
+  })
+}
 
 pub struct AppState {
   pub config_helper: Arc<ConfigHelper>,
@@ -272,7 +322,9 @@ pub fn run() {
       github_create_comment,
       github_start_device_flow,
       github_check_device_flow,
-      github_update_issue
+      github_update_issue,
+      process_queued_operation,
+      sync_data
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
