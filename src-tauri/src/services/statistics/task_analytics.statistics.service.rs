@@ -130,8 +130,8 @@ impl TaskAnalytics {
       .unwrap_or_default();
     if let Some(result) = results.first() {
       let score = result.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-      let final_score = (score / daily_activities.len() as f32) as i32;
-      final_score
+
+      (score / daily_activities.len() as f32) as i32
     } else {
       0
     }

@@ -14,8 +14,8 @@ impl ChartGenerator {
     categories: &[Value],
     todos: &[Value],
     daily_activities: &[Value],
-    start_date: &NaiveDate,
-    end_date: &NaiveDate,
+    _start_date: &NaiveDate,
+    _end_date: &NaiveDate,
   ) -> ChartDataModel {
     let completion_trend = Self::compute_completion_trend(tasks).await;
     let daily_activity = Self::compute_daily_activity(daily_activities).await;
@@ -149,8 +149,8 @@ impl ChartGenerator {
 
   async fn compute_category_items(
     categories: &[Value],
-    todos: &[Value],
-    tasks: &[Value],
+    _todos: &[Value],
+    _tasks: &[Value],
   ) -> Vec<CategoryItem> {
     let category_colors = [
       "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4",

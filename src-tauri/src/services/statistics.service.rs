@@ -65,7 +65,7 @@ impl StatisticsService {
     let start_str = start_date.to_rfc3339();
     let end_str = end_date.to_rfc3339();
     let prev_start_str = previous_start_date.to_rfc3339();
-    let prev_end_str = previous_end_date.to_rfc3339();
+    let _prev_end_str = previous_end_date.to_rfc3339();
 
     let all_tasks: Vec<Value> = self
       .json_provider
