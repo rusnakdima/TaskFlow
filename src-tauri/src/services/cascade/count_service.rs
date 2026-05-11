@@ -6,9 +6,6 @@ use nosql_orm::error::OrmResult;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::json;
 
-/* tracing */
-use tracing::warn;
-
 pub struct CountService {
   json_provider: JsonProvider,
   mongodb_provider: Option<Arc<MongoProvider>>,
@@ -71,14 +68,13 @@ impl CountService {
     delta: i32,
     offline: bool,
   ) {
-    // Skip MongoDB operations when offline - only use JSON
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
           .increment_count(mongo.as_ref(), collection, id, field, delta)
           .await
         {
-          warn!(
+          eprintln!(
             "Failed to increment count in MongoDB (collection={}, id={}, field={}): {}",
             collection, id, field, e
           );
@@ -86,12 +82,11 @@ impl CountService {
         return;
       }
     }
-    // JSON fallback (or primary if offline)
     if let Err(e) = self
       .increment_count(&self.json_provider, collection, id, field, delta)
       .await
     {
-      warn!(
+      eprintln!(
         "Failed to increment count in JSON (collection={}, id={}, field={}): {}",
         collection, id, field, e
       );
@@ -106,14 +101,13 @@ impl CountService {
     delta: i32,
     offline: bool,
   ) {
-    // Skip MongoDB operations when offline - only use JSON
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
           .decrement_count(mongo.as_ref(), collection, id, field, delta)
           .await
         {
-          warn!(
+          eprintln!(
             "Failed to decrement count in MongoDB (collection={}, id={}, field={}): {}",
             collection, id, field, e
           );
@@ -121,12 +115,11 @@ impl CountService {
         return;
       }
     }
-    // JSON fallback (or primary if offline)
     if let Err(e) = self
       .decrement_count(&self.json_provider, collection, id, field, delta)
       .await
     {
-      warn!(
+      eprintln!(
         "Failed to decrement count in JSON (collection={}, id={}, field={}): {}",
         collection, id, field, e
       );

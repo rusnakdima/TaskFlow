@@ -101,12 +101,9 @@ impl AuthRegisterService {
     }
 
     if self.mongodb_provider.is_some() {
-      if let Err(e) = profile_sync_service
+      let _ = profile_sync_service
         .export_profile_to_mongo(&new_profile)
-        .await
-      {
-      } else {
-      }
+        .await;
     }
 
     let new_user = UserEntity {

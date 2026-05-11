@@ -1,10 +1,8 @@
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::time::Duration;
 
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use nosql_orm::query::Filter;
 use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
