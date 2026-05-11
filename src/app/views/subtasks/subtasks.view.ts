@@ -112,6 +112,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   task = signal<Task | null>(null);
   todo = signal<Todo | null>(null);
+  visibilityParam = signal<Visibility>("private");
 
   private lastTaskIdForEffect: string | null = null;
 
@@ -346,6 +347,9 @@ export class SubtasksViewComponent extends BaseListView {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: QueryParams) => {
+        if ((queryParams as any).visibility) {
+          this.visibilityParam.set((queryParams as any).visibility as Visibility);
+        }
         if (queryParams.highlightSubtask) {
           const id = queryParams.highlightSubtask;
           this.highlightSubtask.set(id);

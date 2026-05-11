@@ -135,6 +135,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   todo = signal<Todo | null>(null);
   todoId = signal<string | null>(null);
+  visibilityParam = signal<Visibility>("private");
 
   isOwner(): boolean {
     return true;
@@ -151,7 +152,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private loadInitialTodo(todoId: string): void {
     this.requestService
       .get<Todo>("todos", todoId, {
-        visibility: "all",
+        visibility: this.visibilityParam(),
         load: ["user", "categories", "assignees"],
       })
       .subscribe({
@@ -354,6 +355,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
+        if (queryParams.visibility) {
+          this.visibilityParam.set(queryParams.visibility as Visibility);
+        }
         const highlightId = queryParams.highlightTaskId;
         if (highlightId) {
           this.highlightTaskId.set(highlightId);
@@ -570,7 +574,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.lastSelectedId.set(task.id);
-    this.router.navigate([task.id, "subtasks"], { relativeTo: this.route });
+    this.router.navigate([task.id, "subtasks"], {
+      relativeTo: this.route,
+      queryParams: { visibility: this.visibilityParam() },
+    });
   }
 
   onCardClick(event: { event: MouseEvent; id: string }): void {
@@ -587,7 +594,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.lastSelectedId.set(event.id);
-    this.router.navigate([event.id, "subtasks"], { relativeTo: this.route });
+    this.router.navigate([event.id, "subtasks"], {
+      relativeTo: this.route,
+      queryParams: { visibility: this.visibilityParam() },
+    });
   }
 
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
