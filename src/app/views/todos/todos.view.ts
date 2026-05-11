@@ -540,7 +540,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.lastSelectedId.set(item.id);
-    this.router.navigate(["/todos", item.id, "tasks"]);
+    this.router.navigate(["/todos", item.id, "tasks"], {
+      queryParams: { visibility: item.visibility || "private" },
+    });
   }
 
   async onTableAction(event: { action: string; item: Todo }): Promise<void> {
