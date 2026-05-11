@@ -200,7 +200,7 @@ impl StatisticsAggregation {
         .sum("tasks_completed", serde_json::json!("$tasks_completed"))
         .sum(
           "active_days",
-          serde_json::json!({ "$cond": [{ "$gt": ["$total_tasks", 0] }, 1, 0] }),
+          serde_json::json!({ "$cond": [{ "$gt": [{ "$sum": ["$tasks_created", "$tasks_completed", "$tasks_updated"] }, 0] }, 1, 0] }),
         ),
     );
 

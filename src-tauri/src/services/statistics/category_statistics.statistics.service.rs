@@ -40,10 +40,19 @@ impl CategoryStatistics {
         if let Some(todo_categories) = todo.get("categories").and_then(|v| v.as_array()) {
           has_category = todo_categories.iter().any(|cat| {
             if let Some(cat_id) = cat.get("id").and_then(|v| v.as_str()) {
-              return cat_id == category_id;
+              if cat_id == category_id {
+                return true;
+              }
+            }
+            if let Some(cat_name) = cat.get("name").and_then(|v| v.as_str()) {
+              if cat_name == category_id {
+                return true;
+              }
             }
             if let Some(cat_id) = cat.as_str() {
-              return cat_id == category_id;
+              if cat_id == category_id {
+                return true;
+              }
             }
             false
           });
@@ -55,7 +64,14 @@ impl CategoryStatistics {
 
           if let Some(todo_tasks) = tasks_by_todo.get(todo_id) {
             for task in todo_tasks {
-              let is_task_in_range = tasks_in_range.contains(&task);
+              let task_id = task.get("id").and_then(|v| v.as_str());
+              let is_task_in_range = task_id
+                .map(|id| {
+                  tasks_in_range
+                    .iter()
+                    .any(|t| t.get("id").and_then(|v| v.as_str()) == Some(id))
+                })
+                .unwrap_or(false);
 
               if is_task_in_range {
                 category_task_count += 1;

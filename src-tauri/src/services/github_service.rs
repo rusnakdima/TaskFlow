@@ -1,6 +1,7 @@
 /* sys lib */
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubRepo {
@@ -75,7 +76,18 @@ impl GithubService {
     &self,
     client_id: &str,
   ) -> Result<(String, String, String), String> {
+    info!(
+      "[GithubService::start_device_code_flow] Starting device code flow for client_id: {}",
+      client_id
+    );
+    debug!("[GithubService::start_device_code_flow] Preparing HTTP request to https://github.com/login/device/code");
+
     let params = [("client_id", client_id), ("scope", "repo")];
+
+    debug!(
+      "[GithubService::start_device_code_flow] Request params: client_id={}, scope=repo",
+      client_id
+    );
 
     let response = self
       .http_client
@@ -85,11 +97,32 @@ impl GithubService {
       .form(&params)
       .send()
       .await
-      .map_err(|e| e.to_string())?;
+      .map_err(|e| {
+        error!(
+          "[GithubService::start_device_code_flow] HTTP request failed: {}",
+          e
+        );
+        e.to_string()
+      })?;
 
     let status = response.status();
-    let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    debug!(
+      "[GithubService::start_device_code_flow] HTTP response status: {}",
+      status
+    );
+
+    let body_bytes = response.bytes().await.map_err(|e| {
+      error!(
+        "[GithubService::start_device_code_flow] Failed to read response body: {}",
+        e
+      );
+      e.to_string()
+    })?;
     let body_str = String::from_utf8_lossy(&body_bytes);
+    debug!(
+      "[GithubService::start_device_code_flow] Raw response body: {}",
+      body_str
+    );
 
     #[derive(Deserialize)]
     struct DeviceCodeResponse {
@@ -98,8 +131,18 @@ impl GithubService {
       verification_uri: String,
     }
 
-    let code_resp: DeviceCodeResponse = serde_json::from_slice(&body_bytes)
-      .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
+    let code_resp: DeviceCodeResponse = serde_json::from_slice(&body_bytes).map_err(|e| {
+      error!(
+        "[GithubService::start_device_code_flow] JSON parse error: {}",
+        e
+      );
+      format!("JSON parse error: {}, body: {}", e, body_str)
+    })?;
+
+    info!(
+      "[GithubService::start_device_code_flow] Successfully parsed device code response - device_code: {}, user_code: {}, verification_uri: {}",
+      code_resp.device_code, code_resp.user_code, code_resp.verification_uri
+    );
 
     Ok((
       code_resp.device_code,
@@ -113,11 +156,23 @@ impl GithubService {
     client_id: &str,
     device_code: &str,
   ) -> Result<Option<GithubOAuthTokens>, String> {
+    info!(
+      "[GithubService::check_device_code] Checking device code: {}",
+      device_code
+    );
+    debug!(
+      "[GithubService::check_device_code] client_id: {}, device_code: {}",
+      client_id, device_code
+    );
+    debug!("[GithubService::check_device_code] Preparing HTTP request to https://github.com/login/oauth/access_token");
+
     let params = [
       ("client_id", client_id),
       ("device_code", device_code),
       ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
     ];
+
+    debug!("[GithubService::check_device_code] Request params: grant_type=urn:ietf:params:oauth:grant-type:device_code");
 
     let response = self
       .http_client
@@ -126,11 +181,32 @@ impl GithubService {
       .form(&params)
       .send()
       .await
-      .map_err(|e| e.to_string())?;
+      .map_err(|e| {
+        error!(
+          "[GithubService::check_device_code] HTTP request failed: {}",
+          e
+        );
+        e.to_string()
+      })?;
 
     let status = response.status();
-    let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    debug!(
+      "[GithubService::check_device_code] HTTP response status: {}",
+      status
+    );
+
+    let body_bytes = response.bytes().await.map_err(|e| {
+      error!(
+        "[GithubService::check_device_code] Failed to read response body: {}",
+        e
+      );
+      e.to_string()
+    })?;
     let body_str = String::from_utf8_lossy(&body_bytes);
+    debug!(
+      "[GithubService::check_device_code] Raw response body: {}",
+      body_str
+    );
 
     #[derive(Deserialize)]
     struct TokenResponse {
@@ -142,29 +218,65 @@ impl GithubService {
       error_description: Option<String>,
     }
 
-    let token_resp: TokenResponse = serde_json::from_slice(&body_bytes)
-      .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
+    let token_resp: TokenResponse = serde_json::from_slice(&body_bytes).map_err(|e| {
+      error!("[GithubService::check_device_code] JSON parse error: {}", e);
+      format!("JSON parse error: {}, body: {}", e, body_str)
+    })?;
 
-    if token_resp.error.is_some() {
-      let err = token_resp.error.unwrap();
+    debug!(
+      "[GithubService::check_device_code] Parsed token response - access_token present: {}, refresh_token present: {}, expires_in: {:?}, token_type: {:?}, error: {:?}, error_description: {:?}",
+      token_resp.access_token.is_some(),
+      token_resp.refresh_token.is_some(),
+      token_resp.expires_in,
+      token_resp.token_type,
+      token_resp.error,
+      token_resp.error_description
+    );
+
+    if let Some(err) = &token_resp.error {
+      let err_desc = token_resp.error_description.clone().unwrap_or_default();
       if err == "authorization_pending" {
+        debug!(
+          "[GithubService::check_device_code] Authorization pending - user has not yet authorized"
+        );
+        info!("[GithubService::check_device_code] Pending - waiting for user to complete GitHub authorization");
         return Ok(None);
       }
-      return Err(token_resp.error_description.unwrap_or(err));
+      if err == "slow_down" {
+        debug!("[GithubService::check_device_code] Slow down - GitHub requests to wait longer between polls");
+        info!("[GithubService::check_device_code] Slow down - need to wait longer between polls");
+        return Ok(None);
+      }
+      error!(
+        "[GithubService::check_device_code] GitHub returned error: {} - {}",
+        err, err_desc
+      );
+      return Err(err_desc);
     }
 
-    match (
-      token_resp.access_token,
-      token_resp.refresh_token,
-      token_resp.expires_in,
-    ) {
-      (Some(access_token), Some(refresh_token), Some(expires_in)) => Ok(Some(GithubOAuthTokens {
-        access_token,
-        refresh_token,
-        expires_in: expires_in as i64,
-        token_type: token_resp.token_type.unwrap_or_default(),
-      })),
-      _ => Err("Missing tokens in response".to_string()),
+    match (token_resp.access_token, token_resp.expires_in) {
+      (Some(access_token), expires_in) => {
+        debug!(
+          "[GithubService::check_device_code] Token exchange successful - access_token length: {}, expires_in: {:?}",
+          access_token.len(),
+          expires_in
+        );
+        info!(
+          "[GithubService::check_device_code] SUCCESS - Received tokens from GitHub device flow"
+        );
+        Ok(Some(GithubOAuthTokens {
+          access_token,
+          refresh_token: token_resp.refresh_token.unwrap_or_default(),
+          expires_in: expires_in.unwrap_or(3600) as i64,
+          token_type: token_resp.token_type.unwrap_or_default(),
+        }))
+      }
+      _ => {
+        error!(
+          "[GithubService::check_device_code] Missing tokens in response - access_token is None"
+        );
+        Err("Missing tokens in response".to_string())
+      }
     }
   }
 

@@ -43,15 +43,14 @@ impl StatisticsService {
     let prev_start_naive = previous_start_date.date_naive();
     let prev_end_naive = previous_end_date.date_naive();
 
-    // Fetch data using nosql_orm with filters
-    let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    let start_date_filter = Filter::Gte("created_at".to_string(), json!(start_date.to_rfc3339()));
-    let end_date_filter = Filter::Lte("created_at".to_string(), json!(end_date.to_rfc3339()));
-    let prev_start_date_filter = Filter::Gte(
-      "created_at".to_string(),
-      json!(previous_start_date.to_rfc3339()),
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] get_statistics START - user_id: {}, time_range: {}, date_range: {} to {}",
+      user_id,
+      time_range,
+      start_date_naive,
+      end_date_naive
     );
-    let prev_end_date_filter = Filter::Lt("created_at".to_string(), json!(start_date.to_rfc3339()));
 
     let daily_activities = self
       .get_daily_activities_filtered(&user_id, &start_date_naive, &end_date_naive)
@@ -60,51 +59,114 @@ impl StatisticsService {
       .get_daily_activities_filtered(&user_id, &prev_start_naive, &prev_end_naive)
       .await;
 
-    let current_tasks: Vec<Value> = self
+    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let todos: Vec<Value> = self
       .json_provider
-      .find_many(
-        "tasks",
-        Some(&Filter::And(vec![
-          user_id_filter.clone(),
-          start_date_filter,
-          end_date_filter,
-        ])),
-        None,
-        None,
-        None,
-        true,
-      )
+      .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
       .unwrap_or_default();
 
-    let previous_tasks: Vec<Value> = self
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] todos for user: {} count: {}",
+      user_id,
+      todos.len()
+    );
+
+    let todo_ids: Vec<String> = todos
+      .iter()
+      .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
+      .collect();
+
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] todo_ids for user: {:?}",
+      todo_ids
+    );
+
+    let start_str = start_date.to_rfc3339();
+    let end_str = end_date.to_rfc3339();
+    let prev_start_str = previous_start_date.to_rfc3339();
+    let prev_end_str = previous_end_date.to_rfc3339();
+
+    let mut all_tasks: Vec<Value> = self
       .json_provider
-      .find_many(
-        "tasks",
-        Some(&Filter::And(vec![
-          user_id_filter.clone(),
-          prev_start_date_filter,
-          prev_end_date_filter,
-        ])),
-        None,
-        None,
-        None,
-        true,
-      )
+      .find_many("tasks", None, None, None, None, true)
       .await
       .unwrap_or_default();
 
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] total tasks in db: {}",
+      all_tasks.len()
+    );
+
+    let current_tasks: Vec<Value> = all_tasks
+      .iter()
+      .filter(|task| {
+        let task_todo_id = task.get("todo_id").and_then(|v| v.as_str());
+        if todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
+          return false;
+        }
+
+        let created_at = task.get("created_at").and_then(|v| v.as_str());
+        let updated_at = task.get("updated_at").and_then(|v| v.as_str());
+
+        let in_created_range = created_at
+          .map(|s| s >= start_str.as_str() && s <= end_str.as_str())
+          .unwrap_or(false);
+        let in_updated_range = updated_at
+          .map(|s| s >= start_str.as_str() && s <= end_str.as_str())
+          .unwrap_or(false);
+
+        in_created_range || in_updated_range
+      })
+      .cloned()
+      .collect();
+
+    let previous_tasks: Vec<Value> = all_tasks
+      .iter()
+      .filter(|task| {
+        let task_todo_id = task.get("todo_id").and_then(|v| v.as_str());
+        if todo_ids.iter().any(|id| id == task_todo_id.unwrap_or("")) {
+          return false;
+        }
+
+        let created_at = task.get("created_at").and_then(|v| v.as_str());
+        let updated_at = task.get("updated_at").and_then(|v| v.as_str());
+
+        let in_created_range = created_at
+          .map(|s| s >= prev_start_str.as_str() && s < end_str.as_str())
+          .unwrap_or(false);
+        let in_updated_range = updated_at
+          .map(|s| s >= prev_start_str.as_str() && s < end_str.as_str())
+          .unwrap_or(false);
+
+        in_created_range || in_updated_range
+      })
+      .cloned()
+      .collect();
+
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] filtered tasks - current: {}, previous: {}",
+      current_tasks.len(),
+      previous_tasks.len()
+    );
+
+    let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
     let categories: Vec<Value> = self
       .json_provider
       .find_many("categories", Some(&user_id_filter), None, None, None, true)
       .await
       .unwrap_or_default();
 
-    let todos: Vec<Value> = self
-      .json_provider
-      .find_many("todos", Some(&user_id_filter), None, None, None, true)
-      .await
-      .unwrap_or_default();
+    tracing::debug!(
+      target: "statistics",
+      "[Statistics] categories for user: {} count: {}",
+      user_id,
+      categories.len()
+    );
 
     // Compute metrics
     let statistics = TaskAnalytics::compute_statistics(
@@ -158,6 +220,15 @@ impl StatisticsService {
   ) -> Vec<Value> {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
+    let timer = std::time::Instant::now();
+
+    tracing::debug!(
+      target: "statistics::daily_activities",
+      "[Statistics] get_daily_activities_filtered START - user_id: {}, date_range: {} to {}",
+      user_id,
+      start_str,
+      end_str
+    );
 
     let filter_snake = Filter::And(vec![
       Filter::Eq("user_id".to_string(), json!(user_id)),
@@ -167,7 +238,7 @@ impl StatisticsService {
 
     let filter_camel = Filter::And(vec![
       Filter::Eq("userId".to_string(), json!(user_id)),
-      Filter::Gte("date".to_string(), json!(start_str)),
+      Filter::Gte("date".to_string(), json!(end_str)),
       Filter::Lte("date".to_string(), json!(end_str)),
     ]);
 
@@ -184,8 +255,22 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
+    tracing::debug!(
+      target: "statistics::daily_activities",
+      "[Statistics] get_daily_activities_filtered - snake_case query returned {} docs, elapsed: {:?}",
+      docs.len(),
+      timer.elapsed()
+    );
+
     if !docs.is_empty() {
-      return Self::deduplicate_by_date(docs);
+      let result = Self::deduplicate_by_date(docs);
+      tracing::debug!(
+        target: "statistics::daily_activities",
+        "[Statistics] get_daily_activities_filtered - after deduplication: {} unique dates, elapsed: {:?}",
+        result.len(),
+        timer.elapsed()
+      );
+      return result;
     }
 
     let docs_camel: Vec<Value> = self
@@ -201,7 +286,15 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    Self::deduplicate_by_date(docs_camel)
+    let result = Self::deduplicate_by_date(docs_camel);
+    tracing::debug!(
+      target: "statistics::daily_activities",
+      "[Statistics] get_daily_activities_filtered - camelCase query returned {} docs after dedup, total_elapsed: {:?}",
+      result.len(),
+      timer.elapsed()
+    );
+
+    result
   }
 
   fn deduplicate_by_date(docs: Vec<Value>) -> Vec<Value> {

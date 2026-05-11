@@ -2,6 +2,7 @@ use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
 use chrono::DateTime;
 use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
 use serde_json::Value;
+use std::time::Instant;
 
 pub struct TaskAnalytics;
 
@@ -49,6 +50,17 @@ impl TaskAnalytics {
     tasks: &[Value],
     previous_tasks: &[Value],
   ) -> StatisticsModel {
+    let timer = Instant::now();
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_statistics START - daily_activities: {}, previous_daily_activities: {}, tasks: {}, previous_tasks: {}",
+      daily_activities.len(),
+      previous_daily_activities.len(),
+      tasks.len(),
+      previous_tasks.len()
+    );
+
     let (total_tasks, completed_tasks) = Self::compute_activity_totals(daily_activities).await;
     let completion_rate = if total_tasks > 0 {
       ((completed_tasks as f32 / total_tasks as f32) * 100.0) as i32
@@ -69,6 +81,15 @@ impl TaskAnalytics {
     let previous_productivity_score =
       Self::compute_productivity_score(previous_daily_activities).await;
 
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_statistics END - total_tasks: {}, completed: {}, productivity: {}, elapsed: {:?}",
+      total_tasks,
+      completed_tasks,
+      productivity_score,
+      timer.elapsed()
+    );
+
     StatisticsModel {
       total_tasks,
       completion_rate,
@@ -82,6 +103,14 @@ impl TaskAnalytics {
   }
 
   async fn compute_activity_totals(daily_activities: &[Value]) -> (i32, i32) {
+    let timer = Instant::now();
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_activity_totals START - input count: {}",
+      daily_activities.len()
+    );
+
     let pipeline = AggregationPipeline::new().group(
       GroupStage::new(serde_json::Value::Null)
         .sum(
@@ -104,16 +133,40 @@ impl TaskAnalytics {
         .get("completed")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0) as i32;
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_activity_totals END - total: {}, completed: {}, elapsed: {:?}",
+        total,
+        completed,
+        timer.elapsed()
+      );
       (total, completed)
     } else {
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_activity_totals END - no results, elapsed: {:?}",
+        timer.elapsed()
+      );
       (0, 0)
     }
   }
 
   async fn compute_productivity_score(daily_activities: &[Value]) -> i32 {
+    let timer = Instant::now();
+
     if daily_activities.is_empty() {
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_productivity_score - empty input, returning 0"
+      );
       return 0;
     }
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_productivity_score START - days: {}",
+      daily_activities.len()
+    );
 
     let pipeline = AggregationPipeline::new().group(GroupStage::new(serde_json::Value::Null).sum(
       "score",
@@ -130,8 +183,22 @@ impl TaskAnalytics {
       .unwrap_or_default();
     if let Some(result) = results.first() {
       let score = result.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-      (score / daily_activities.len() as f32) as i32
+      let final_score = (score / daily_activities.len() as f32) as i32;
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_productivity_score END - raw_score: {}, days: {}, final_score: {}, elapsed: {:?}",
+        score,
+        daily_activities.len(),
+        final_score,
+        timer.elapsed()
+      );
+      final_score
     } else {
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_productivity_score END - no results, elapsed: {:?}",
+        timer.elapsed()
+      );
       0
     }
   }
@@ -140,6 +207,15 @@ impl TaskAnalytics {
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
   ) -> Vec<DetailedMetricModel> {
+    let timer = Instant::now();
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_detailed_metrics START - current: {}, previous: {}",
+      daily_activities.len(),
+      previous_daily_activities.len()
+    );
+
     let current_metrics = Self::compute_metric_sums(daily_activities).await;
     let previous_metrics = Self::compute_metric_sums(previous_daily_activities).await;
 
@@ -155,7 +231,7 @@ impl TaskAnalytics {
       }
     };
 
-    vec![
+    let result = vec![
       DetailedMetricModel {
         name: "Tasks Created".to_string(),
         current: current_metrics.0.to_string(),
@@ -174,17 +250,34 @@ impl TaskAnalytics {
         previous: previous_metrics.2.to_string(),
         change: calculate_change(current_metrics.2, previous_metrics.2),
       },
-    ]
+    ];
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_detailed_metrics END - {} metrics, elapsed: {:?}",
+      result.len(),
+      timer.elapsed()
+    );
+
+    result
   }
 
   async fn compute_metric_sums(daily_activities: &[Value]) -> (i32, i32, i32) {
+    let timer = Instant::now();
+
+    tracing::debug!(
+      target: "statistics::task_analytics",
+      "[TaskAnalytics] compute_metric_sums START - input count: {}",
+      daily_activities.len()
+    );
+
     let pipeline = AggregationPipeline::new().group(
       GroupStage::new(serde_json::Value::Null)
         .sum("tasks_created", serde_json::json!("$tasks_created"))
         .sum("tasks_completed", serde_json::json!("$tasks_completed"))
         .sum(
           "active_days",
-          serde_json::json!({ "$cond": [{ "$gt": ["$total_tasks", 0] }, 1, 0] }),
+          serde_json::json!({ "$cond": [{ "$gt": [{ "$sum": ["$tasks_created", "$tasks_completed", "$tasks_updated"] }, 0] }, 1, 0] }),
         ),
     );
 
@@ -193,21 +286,36 @@ impl TaskAnalytics {
       .await
       .unwrap_or_default();
     if let Some(result) = results.first() {
-      (
-        result
-          .get("tasks_created")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0) as i32,
-        result
-          .get("tasks_completed")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0) as i32,
-        result
-          .get("active_days")
-          .and_then(|v| v.as_i64())
-          .unwrap_or(0) as i32,
-      )
+      let tasks_created = result
+        .get("tasks_created")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
+      let tasks_completed = result
+        .get("tasks_completed")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
+      let active_days = result
+        .get("active_days")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
+
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_metric_sums END - raw result: {:?}, tasks_created: {}, tasks_completed: {}, active_days: {}, elapsed: {:?}",
+        result,
+        tasks_created,
+        tasks_completed,
+        active_days,
+        timer.elapsed()
+      );
+
+      (tasks_created, tasks_completed, active_days)
     } else {
+      tracing::debug!(
+        target: "statistics::task_analytics",
+        "[TaskAnalytics] compute_metric_sums END - no results, elapsed: {:?}",
+        timer.elapsed()
+      );
       (0, 0, 0)
     }
   }
