@@ -165,31 +165,16 @@ impl RepositoryService {
     let docs_with_meta = add_collection_metadata(docs, table);
 
     let loader = RelationLoader::new(provider);
-    tracing::debug!(
-      "load_relations_unified: table={}, paths={:?}, doc_count={}",
-      table,
-      segments,
-      docs_with_meta.len()
-    );
 
     match loader
       .load_relations_on_docs(docs_with_meta, table, &segments, true)
       .await
     {
-      Ok(loaded) => {
-        tracing::debug!(
-          "  load_relations_on_docs success, result doc_count: {}",
-          loaded.len()
-        );
-        Ok(loaded)
-      }
-      Err(e) => {
-        tracing::error!("  load_relations_on_docs FAILED: {:?}", e);
-        Err(err_response_formatted(
-          "Relation loading failed",
-          &e.to_string(),
-        ))
-      }
+      Ok(loaded) => Ok(loaded),
+      Err(e) => Err(err_response_formatted(
+        "Relation loading failed",
+        &e.to_string(),
+      )),
     }
   }
 
@@ -282,7 +267,7 @@ impl RepositoryService {
     offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    let request_id = "unknown".to_string();
+    let _request_id = "unknown".to_string();
 
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt =
@@ -337,7 +322,7 @@ impl RepositoryService {
       self.filter_out_deleted(docs)
     };
 
-    let elapsed = start.elapsed();
+    let _elapsed = start.elapsed();
 
     Ok(success_response(DataValue::Array(
       self.apply_projection_recursive(docs),
@@ -403,7 +388,7 @@ impl RepositoryService {
     };
 
     let projected = self.apply_projection_recursive(docs);
-    let elapsed = start.elapsed();
+    let _elapsed = start.elapsed();
 
     if id.is_some() {
       if !projected.is_empty() {
@@ -535,8 +520,8 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&final_record);
-    let elapsed = start.elapsed();
-    let created_id = final_record
+    let _elapsed = start.elapsed();
+    let _created_id = final_record
       .get("id")
       .and_then(|v| v.as_str())
       .unwrap_or("unknown");
@@ -831,7 +816,7 @@ impl RepositoryService {
     }
 
     let projected_records = self.apply_projection_recursive(validated_records);
-    let elapsed = start.elapsed();
+    let _elapsed = start.elapsed();
 
     Ok(success_response(DataValue::Array(projected_records)))
   }
@@ -959,7 +944,7 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
-    let elapsed = start.elapsed();
+    let _elapsed = start.elapsed();
 
     Ok(success_response(DataValue::Object(response_doc)))
   }
@@ -1076,9 +1061,9 @@ impl RepositoryService {
         .await;
     }
 
-    let elapsed = start.elapsed();
+    let _elapsed = start.elapsed();
 
-    Ok(success_response(DataValue::String(id_str)))
+    Ok(success_response(DataValue::String(id_str.clone())))
   }
 
   async fn handle_soft_delete_cascade(

@@ -43,15 +43,6 @@ impl StatisticsService {
     let prev_start_naive = previous_start_date.date_naive();
     let prev_end_naive = previous_end_date.date_naive();
 
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] get_statistics START - user_id: {}, time_range: {}, date_range: {} to {}",
-      user_id,
-      time_range,
-      start_date_naive,
-      end_date_naive
-    );
-
     let daily_activities = self
       .get_daily_activities_filtered(&user_id, &start_date_naive, &end_date_naive)
       .await;
@@ -66,23 +57,10 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] todos for user: {} count: {}",
-      user_id,
-      todos.len()
-    );
-
     let todo_ids: Vec<String> = todos
       .iter()
       .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(String::from))
       .collect();
-
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] todo_ids for user: {:?}",
-      todo_ids
-    );
 
     let start_str = start_date.to_rfc3339();
     let end_str = end_date.to_rfc3339();
@@ -94,12 +72,6 @@ impl StatisticsService {
       .find_many("tasks", None, None, None, None, true)
       .await
       .unwrap_or_default();
-
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] total tasks in db: {}",
-      all_tasks.len()
-    );
 
     let current_tasks: Vec<Value> = all_tasks
       .iter()
@@ -147,13 +119,6 @@ impl StatisticsService {
       .cloned()
       .collect();
 
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] filtered tasks - current: {}, previous: {}",
-      current_tasks.len(),
-      previous_tasks.len()
-    );
-
     let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
     let categories: Vec<Value> = self
       .json_provider
@@ -161,14 +126,6 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    tracing::debug!(
-      target: "statistics",
-      "[Statistics] categories for user: {} count: {}",
-      user_id,
-      categories.len()
-    );
-
-    // Compute metrics
     let statistics = TaskAnalytics::compute_statistics(
       &daily_activities,
       &previous_daily_activities,
@@ -221,15 +178,6 @@ impl StatisticsService {
   ) -> Vec<Value> {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
-    let timer = std::time::Instant::now();
-
-    tracing::debug!(
-      target: "statistics::daily_activities",
-      "[Statistics] get_daily_activities_filtered START - user_id: {}, date_range: {} to {}",
-      user_id,
-      start_str,
-      end_str
-    );
 
     let filter_snake = Filter::And(vec![
       Filter::Eq("user_id".to_string(), json!(user_id)),
@@ -256,22 +204,8 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    tracing::debug!(
-      target: "statistics::daily_activities",
-      "[Statistics] get_daily_activities_filtered - snake_case query returned {} docs, elapsed: {:?}",
-      docs.len(),
-      timer.elapsed()
-    );
-
     if !docs.is_empty() {
-      let result = Self::deduplicate_by_date(docs);
-      tracing::debug!(
-        target: "statistics::daily_activities",
-        "[Statistics] get_daily_activities_filtered - after deduplication: {} unique dates, elapsed: {:?}",
-        result.len(),
-        timer.elapsed()
-      );
-      return result;
+      return Self::deduplicate_by_date(docs);
     }
 
     let docs_camel: Vec<Value> = self
@@ -287,15 +221,7 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    let result = Self::deduplicate_by_date(docs_camel);
-    tracing::debug!(
-      target: "statistics::daily_activities",
-      "[Statistics] get_daily_activities_filtered - camelCase query returned {} docs after dedup, total_elapsed: {:?}",
-      result.len(),
-      timer.elapsed()
-    );
-
-    result
+    Self::deduplicate_by_date(docs_camel)
   }
 
   fn deduplicate_by_date(docs: Vec<Value>) -> Vec<Value> {
