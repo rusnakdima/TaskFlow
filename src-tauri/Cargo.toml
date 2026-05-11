@@ -57,8 +57,9 @@ nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", 
 # nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "embedded_env"]
 custom-protocol = ["tauri/custom-protocol"]
+embedded_env = []
 
 [dev-dependencies]
 tempfile = "3"
