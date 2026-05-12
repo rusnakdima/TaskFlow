@@ -13,7 +13,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { QrScannerComponent } from "@components/qr-scanner/qr-scanner.component";
 
 /* models */
-import { Profile } from "@models/profile.model";
+import { Profile } from "@models/generated/api.types";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";

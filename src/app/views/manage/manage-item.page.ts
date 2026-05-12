@@ -20,11 +20,8 @@ import { MatRadioModule } from "@angular/material/radio";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatDividerModule } from "@angular/material/divider";
 
-import { Todo } from "@models/todo.model";
-import { Task, TaskStatus, PriorityTask, RepeatInterval } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Category } from "@models/category.model";
-import { Profile } from "@models/profile.model";
+import { Todo, Task, TaskStatus, Subtask, Category, Profile } from "@models/generated/api.types";
+import { PriorityTask, RepeatInterval } from "@models/task-enums.model";
 
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";

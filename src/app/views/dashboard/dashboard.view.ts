@@ -7,12 +7,12 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { TaskStatus } from "@models/task.model";
-import { Profile } from "@models/profile.model";
+import { TaskStatus, Profile } from "@models/generated/api.types";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { REQUEST_SERVICE } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { StorageService } from "@services/storage.service";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -23,11 +23,11 @@ import { getLatestTimestamp, compareByTimestamp } from "@helpers/array.helper";
 interface DisplayTask {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   status: TaskStatus;
   dueDate: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | undefined;
+  updated_at: string | undefined;
   todo_id?: string;
   isPrivate: boolean;
   isOwner: boolean;
@@ -44,6 +44,7 @@ export class DashboardView implements OnInit {
 
   private authService = inject(AuthService);
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private storageService = inject(StorageService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
@@ -61,9 +62,9 @@ export class DashboardView implements OnInit {
       .map((task) => ({
         id: task.id,
         title: task.title,
-        description: task.description,
+        description: task.description ?? null,
         status: task.status,
-        dueDate: task.end_date,
+        dueDate: task.end_date ?? null,
         created_at: task.created_at,
         updated_at: task.updated_at,
         todo_id: task.todo_id,
@@ -121,7 +122,7 @@ export class DashboardView implements OnInit {
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
     this.loadProfile();
-    this.requestService.getAll("tasks", { visibility: "all", limit: 10, skip: 0 }).subscribe({});
+    this.typedApiService.getTasks({ visibility: "all", limit: 10, page: 0 }).subscribe({});
   }
 
   private loadProfile(): void {

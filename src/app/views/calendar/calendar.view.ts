@@ -9,7 +9,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* models */
-import { Task, TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/generated/api.types";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";

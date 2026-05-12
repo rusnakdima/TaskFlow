@@ -9,7 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
 
 /* models */
-import { Chat } from "@models/chat.model";
+import { Chat } from "@models/generated/api.types";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
