@@ -221,11 +221,15 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
     user_id: Option<String>,
+    skip: Option<u64>,
+    limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(table, filter, load, visibility, offline, user_id)
+          .handle_get_all(
+            table, filter, load, visibility, offline, user_id, skip, limit,
+          )
           .await
       }
       "get" => {
@@ -282,6 +286,8 @@ impl RepositoryService {
     visibility: Option<String>,
     offline: bool,
     user_id: Option<String>,
+    skip: Option<u64>,
+    limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let _request_id = "unknown".to_string();
@@ -319,14 +325,14 @@ impl RepositoryService {
     };
 
     let (docs, used_json_fallback) = match provider
-      .find_many(&table, final_filter.as_ref(), None, None, None, true)
+      .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
       .await
     {
       Ok(docs) => (docs, false),
       Err(_e) => {
         let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
         let docs = json_provider
-          .find_many(&table, final_filter.as_ref(), None, None, None, true)
+          .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
           .await?;
         (docs, true)
       }
