@@ -1,7 +1,6 @@
 /* sys lib */
 import { Injectable, inject, signal, computed, Injector, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { tap, map, catchError } from "rxjs/operators";
 
 /* models */
 import { Todo, Task, Subtask, Comment, Chat, User, Profile } from "@models/generated/api.types";
@@ -9,7 +8,9 @@ import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@model
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
-import { AdminDataService, AdminDataWithRelations } from "@services/core/admin-data.service";
+import { AdminDataWithRelations } from "@models/admin.model";
+import { TypedApiService } from "@services/typed-api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* utils */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/utils/store-helpers";
@@ -24,7 +25,8 @@ export class StorageQueryService {
   private readonly _injector = inject(Injector);
   private readonly _entityService = inject(StorageEntityService);
   private _adminService: AdminService | null = null;
-  private _adminDataService: AdminDataService | null = null;
+  private _typedApiService: TypedApiService | null = null;
+  private _jwtTokenService: JwtTokenService | null = null;
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -32,6 +34,15 @@ export class StorageQueryService {
   private readonly _allProfiles = signal<Profile[]>([]);
   private readonly _user = signal<User | null>(null);
   private readonly _dailyActivities = signal<any[]>([]);
+  private readonly _profileLoading = signal(false);
+  private readonly _publicProfileLoading = signal(false);
+  private readonly _userLoading = signal(false);
+  private readonly _todosLoading = signal(false);
+  private readonly _tasksLoading = signal(false);
+  private readonly _subtasksLoading = signal(false);
+  private readonly _categoriesLoading = signal(false);
+  private readonly _chatsLoading = signal(false);
+  private readonly _commentsLoading = signal(false);
 
   private readonly _pagination = signal<Record<ChildType, PaginationState>>({
     todos: { ...DEFAULT_PAGINATION },
@@ -110,10 +121,16 @@ export class StorageQueryService {
     return this._adminService;
   }
 
-  private get adminDataService(): AdminDataService {
-    if (!this._adminDataService)
-      this._adminDataService = this._injector.get(AdminDataService) as AdminDataService;
-    return this._adminDataService;
+  private get typedApiService(): TypedApiService {
+    if (!this._typedApiService)
+      this._typedApiService = this._injector.get(TypedApiService) as TypedApiService;
+    return this._typedApiService;
+  }
+
+  private get jwtTokenService(): JwtTokenService {
+    if (!this._jwtTokenService)
+      this._jwtTokenService = this._injector.get(JwtTokenService) as JwtTokenService;
+    return this._jwtTokenService;
   }
 
   private get activeTasks(): ReturnType<typeof computed<Task[]>> {
@@ -312,7 +329,12 @@ export class StorageQueryService {
     items.forEach((item) => this._entityService.updateEntity(type, item));
   }
 
-  updatePagination(type: ChildType, skip: number, limit: number, receivedCount: number): void {
+  private updatePagination(
+    type: ChildType,
+    skip: number,
+    limit: number,
+    receivedCount: number
+  ): void {
     this._pagination.update((p) => ({
       ...p,
       [type]: { skip: skip + receivedCount, limit, hasMore: receivedCount >= limit },
@@ -551,55 +573,110 @@ export class StorageQueryService {
     if (!force && this.isCacheValid(DEFAULT_TTL_MS)) return of(this.getAdminDataWithRelations());
     if (this._loading()) return of(this.getAdminDataWithRelations());
     this._loading.set(true);
-    return this.adminDataService.loadAllAdminData().pipe(
-      tap((data: AdminDataWithRelations) => {
-        this._entityService.privateTodos.set(data["todos"] || []);
-        this._entityService.tasks.set(data["tasks"] || []);
-        this._entityService.subtasks.set(data["subtasks"] || []);
-        this._entityService.comments.set(data["comments"] || []);
-        this._entityService.chats.set(data["chats"] || []);
-        this._entityService.categories.set(data["categories"] || []);
-        this._dailyActivities.set(data["daily_activities"] || []);
-        console.log(
-          `[DailyActivities] loadAdminData - loaded ${data["daily_activities"]?.length || 0} activities`
-        );
-        this.extractUsersAndProfiles(data);
-        this._loading.set(false);
-        this._loaded.set(true);
-        this._lastLoaded.set(new Date());
-      }),
-      catchError((_err) => {
-        this._loading.set(false);
-        return of(this.getAdminDataWithRelations());
-      }),
-      map(() => this.getAdminDataWithRelations())
-    );
+
+    this.ensureTodosLoaded();
+    this.ensureTasksLoaded();
+    this.ensureSubtasksLoaded();
+    this.ensureCategoriesLoaded();
+    this.ensureChatsLoaded();
+    this.ensureCommentsLoaded();
+
+    return of(this.getAdminDataWithRelations());
   }
 
-  private extractUsersAndProfiles(data: AdminDataWithRelations): void {
-    const usersMap = new Map<string, User>();
-    const profilesMap = new Map<string, Profile>();
-    const extract = (entity: any) => {
-      if (!entity?.user) return;
-      usersMap.set(entity.user.id, entity.user);
-      if (entity.user.profile) profilesMap.set(entity.user.profile.id, entity.user.profile);
-    };
-    data["todos"]?.forEach((todo: any) => {
-      extract(todo);
-      todo.categories?.forEach(extract);
+  ensureTodosLoaded(visibility: string = "private", limit: number = 100): void {
+    if (this._todosLoading() || this._entityService.privateTodos().length > 0) return;
+    this._todosLoading.set(true);
+    this.typedApiService.getTodos({ visibility, limit }).subscribe({
+      next: (response) => {
+        const todos = response?.items || [];
+        this._entityService.privateTodos.set(todos);
+        this.updatePagination("todos", 0, limit, todos.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._todosLoading.set(false);
+      },
     });
-    data["tasks"]?.forEach((task: any) => {
-      if (task.todo) extract(task.todo);
+  }
+
+  ensureTasksLoaded(visibility: string = "private", limit: number = 500): void {
+    if (this._tasksLoading() || this._entityService.tasks().length > 0) return;
+    this._tasksLoading.set(true);
+    this.typedApiService.getTasks({ visibility, limit }).subscribe({
+      next: (response) => {
+        const tasks = response?.items || [];
+        this._entityService.tasks.set(tasks);
+        this.updatePagination("tasks", 0, limit, tasks.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._tasksLoading.set(false);
+      },
     });
-    data["subtasks"]?.forEach((subtask: any) => {
-      if (subtask.task?.todo) extract(subtask.task.todo);
-      if (subtask.task) extract(subtask.task);
+  }
+
+  ensureSubtasksLoaded(visibility: string = "private", limit: number = 1000): void {
+    if (this._subtasksLoading() || this._entityService.subtasks().length > 0) return;
+    this._subtasksLoading.set(true);
+    this.typedApiService.getSubtasks({ visibility, limit }).subscribe({
+      next: (response) => {
+        const subtasks = response?.items || [];
+        this._entityService.subtasks.set(subtasks);
+        this.updatePagination("subtasks", 0, limit, subtasks.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._subtasksLoading.set(false);
+      },
     });
-    data["categories"]?.forEach(extract);
-    data["comments"]?.forEach(extract);
-    data["chats"]?.forEach(extract);
-    this._entityService.users.set(Array.from(usersMap.values()));
-    this._entityService.profiles.set(Object.fromEntries(profilesMap) as unknown as Profile);
+  }
+
+  ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
+    if (this._categoriesLoading() || this._entityService.categories().length > 0) return;
+    this._categoriesLoading.set(true);
+    this.typedApiService.getCategories({ visibility, limit }).subscribe({
+      next: (response) => {
+        const categories = response?.items || [];
+        this._entityService.categories.set(categories);
+      },
+      error: () => {},
+      complete: () => {
+        this._categoriesLoading.set(false);
+      },
+    });
+  }
+
+  ensureChatsLoaded(visibility: string = "private", limit: number = 500): void {
+    if (this._chatsLoading() || this._entityService.chats().length > 0) return;
+    this._chatsLoading.set(true);
+    this.typedApiService.getChats({ visibility, limit }).subscribe({
+      next: (response) => {
+        const chats = response?.items || [];
+        this._entityService.chats.set(chats);
+        this.updatePagination("chats", 0, limit, chats.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._chatsLoading.set(false);
+      },
+    });
+  }
+
+  ensureCommentsLoaded(visibility: string = "private", limit: number = 500): void {
+    if (this._commentsLoading() || this._entityService.comments().length > 0) return;
+    this._commentsLoading.set(true);
+    this.typedApiService.getComments({ visibility, limit }).subscribe({
+      next: (response) => {
+        const comments = response?.items || [];
+        this._entityService.comments.set(comments);
+        this.updatePagination("comments", 0, limit, comments.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._commentsLoading.set(false);
+      },
+    });
   }
 
   getTodosByVisibility(visibility?: string): Todo[] {
@@ -679,6 +756,62 @@ export class StorageQueryService {
       subtasks: { ...DEFAULT_PAGINATION },
       comments: { ...DEFAULT_PAGINATION },
       chats: { ...DEFAULT_PAGINATION },
+    });
+  }
+
+  ensureUserLoaded(): void {
+    if (this._userLoading() || this._user()) return;
+    this._userLoading.set(true);
+    const token = this.jwtTokenService.getToken();
+    const user = this.jwtTokenService.getUserFromToken(token);
+    if (user) {
+      this._entityService.setCurrentUser(user);
+      this._user.set(user);
+      this.setCollection("user", user);
+    }
+    this._userLoading.set(false);
+  }
+
+  ensureProfileLoaded(): void {
+    if (this._profileLoading() || this._entityService.profiles()) return;
+    this._profileLoading.set(true);
+    const token = this.jwtTokenService.getToken();
+    const userId = this.jwtTokenService.getUserId(token);
+    if (!userId) {
+      this._profileLoading.set(false);
+      return;
+    }
+    this.typedApiService
+      .getProfiles({ visibility: "private", filter: { user_id: userId } })
+      .subscribe({
+        next: (response) => {
+          if (response.items && response.items.length > 0) {
+            this.setCollection("profiles", response.items[0]);
+            if (response.items[0].user) {
+              this.setCollection("user", response.items[0].user);
+            }
+          }
+        },
+        error: () => {},
+        complete: () => {
+          this._profileLoading.set(false);
+        },
+      });
+  }
+
+  ensurePublicProfilesLoaded(): void {
+    if (this._publicProfileLoading() || this._entityService.publicProfiles().length > 0) return;
+    this._publicProfileLoading.set(true);
+    this.typedApiService.getProfiles({ visibility: "public" }).subscribe({
+      next: (response) => {
+        if (response.items && response.items.length > 0) {
+          this._entityService.publicProfiles.set(response.items);
+        }
+      },
+      error: () => {},
+      complete: () => {
+        this._publicProfileLoading.set(false);
+      },
     });
   }
 }
