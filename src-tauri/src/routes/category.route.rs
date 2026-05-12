@@ -1,7 +1,7 @@
 use crate::entities::response_entity::ResponseModel;
+use crate::routes::crud_helpers as crud;
 use crate::shared::types::{CategoryCreateRequest, CategoryUpdateRequest};
 use crate::AppState;
-use crate::routes::crud_helpers as crud;
 use tauri::State;
 
 #[tauri::command]
@@ -22,7 +22,17 @@ pub async fn get_categories(
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_get_all(&state, "categories", skip, limit, visibility, filter, None, token).await
+  crud::handle_get_all(
+    &state,
+    "categories",
+    skip,
+    limit,
+    visibility,
+    filter,
+    None,
+    token,
+  )
+  .await
 }
 
 #[tauri::command]

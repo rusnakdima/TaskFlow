@@ -1,7 +1,7 @@
 use crate::entities::response_entity::ResponseModel;
+use crate::routes::crud_helpers as crud;
 use crate::shared::types::{ChatCreateRequest, ChatUpdateRequest};
 use crate::AppState;
-use crate::routes::crud_helpers as crud;
 use tauri::State;
 
 #[tauri::command]
