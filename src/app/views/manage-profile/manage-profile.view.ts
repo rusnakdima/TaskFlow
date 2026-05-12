@@ -18,7 +18,7 @@ import { TemplateFormComponent } from "@components/form/template-form/template-f
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
-import { Profile } from "@models/profile.model";
+import { Profile } from "@models/generated/api.types";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";

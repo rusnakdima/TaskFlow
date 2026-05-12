@@ -18,7 +18,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatSelectModule } from "@angular/material/select";
 import { MatMenuModule } from "@angular/material/menu";
 
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
@@ -26,6 +26,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -94,6 +95,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private router = inject(Router);
 
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -402,16 +404,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     const todo = this.storageService.todos().find((t: Todo) => t.id === todoId);
     const visibility = todo?.visibility || "private";
-    const sub = this.requestService
-      .delete("todos", todoId!, { visibility: visibility as Visibility })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Todo deleted successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to delete todo");
-        },
-      });
+    const sub = this.typedApiService.deleteTodo(todoId!, visibility).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Todo deleted successfully");
+      },
+      error: (err) => {
+        this.notifyService.showError(err.message || "Failed to delete todo");
+      },
+    });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
@@ -436,16 +436,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const sub = this.requestService
-        .delete("todos", todoId!, { visibility: visibility as Visibility })
-        .subscribe({
-          next: () => {
-            this.notifyService.showSuccess("Todo archived successfully");
-          },
-          error: (err) => {
-            this.notifyService.showError(err.message || "Failed to archive todo");
-          },
-        });
+      const sub = this.typedApiService.deleteTodo(todoId!, visibility).subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Todo archived successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to archive todo");
+        },
+      });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
@@ -479,7 +477,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .update<Todo>(
           "todos",
           todoId!,
-          { deleted_at: null },
+          { deleted_at: undefined },
           { visibility: todo.visibility as Visibility }
         )
         .subscribe({
@@ -563,13 +561,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         });
         if (archiveConfirmed) {
           const visibility = item.visibility || "private";
-          const sub = this.requestService
-            .delete("todos", item.id, { visibility: visibility as Visibility })
-            .subscribe({
-              next: () => this.notifyService.showSuccess("Project archived successfully"),
-              error: (err) =>
-                this.notifyService.showError(err.message || "Failed to archive project"),
-            });
+          const sub = this.typedApiService.deleteTodo(item.id, visibility).subscribe({
+            next: () => this.notifyService.showSuccess("Project archived successfully"),
+            error: (err) =>
+              this.notifyService.showError(err.message || "Failed to archive project"),
+          });
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
         break;
@@ -688,7 +684,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .bulkDelete(selectedArray, (id) => {
           const todo = this.storageService.todoMap().get(id);
           const visibility = VisibilityHelper.getVisibility(todo?.visibility);
-          return this.requestService.delete("todos", id, { visibility });
+          return this.typedApiService.deleteTodo(id, visibility);
         })
         .subscribe({
           next: (result) => {

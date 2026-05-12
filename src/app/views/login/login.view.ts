@@ -29,7 +29,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { SecurityService } from "@services/auth/security.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
-import { REQUEST_SERVICE } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
@@ -59,7 +59,7 @@ import { ConnectionStatusComponent } from "@components/connection-status/connect
 export class LoginView implements OnDestroy {
   loginForm!: FormGroup<any>;
   private router = inject(Router);
-  private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private destroyRef = inject(DestroyRef);
 
   rememberField: CheckboxField = {
@@ -103,9 +103,9 @@ export class LoginView implements OnDestroy {
   }
 
   checkDatabaseConnection() {
-    const sub = this.requestService.getAll("users", { visibility: "private" }).subscribe({
+    const sub = this.typedApiService.getUsers({ visibility: "private" }).subscribe({
       next: (users) => {
-        const activeUsers = (users || []).filter((u: any) => !u.deleted_at);
+        const activeUsers = (users.items || []).filter((u: any) => !u.deleted_at);
         this.hasLocalUsers.set(activeUsers.length > 0);
       },
       error: (err) => {

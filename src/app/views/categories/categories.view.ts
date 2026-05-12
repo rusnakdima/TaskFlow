@@ -11,7 +11,7 @@ import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 
 /* models */
-import { Category } from "@models/category.model";
+import { Category } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";

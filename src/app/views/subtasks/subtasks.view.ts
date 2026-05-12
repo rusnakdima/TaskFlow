@@ -16,14 +16,15 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
-import { Subtask } from "@models/subtask.model";
-import { Task, TaskStatus } from "@models/task.model";
-import { Todo } from "@models/todo.model";
-import { Chat } from "@models/chat.model";
+import { Subtask } from "@models/generated/api.types";
+import { Task, TaskStatus } from "@models/generated/api.types";
+import { Todo } from "@models/generated/api.types";
+import { Chat } from "@models/generated/api.types";
 import { CommentService } from "@services/features/comment.service";
 import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
 
@@ -85,6 +86,7 @@ export class SubtasksViewComponent extends BaseListView {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private appStateService = inject(AppStateService);
   private confirmDialogService = inject(ConfirmDialogService);
   private bulkService = inject(BulkActionService);
@@ -605,7 +607,7 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    this.requestService.delete("subtasks", id, { visibility: visibility as Visibility }).subscribe({
+    this.typedApiService.deleteSubtask(id, visibility).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -857,7 +859,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   onSubtaskCommentDelete(commentId: string): void {
     this.storageService.removeCommentFromAll(commentId);
-    this.requestService.delete("comments", commentId).subscribe();
+    this.typedApiService.deleteComment(commentId).subscribe();
   }
 
   onSubtaskCommentMarkAsRead(commentIds: string[]): void {

@@ -21,15 +21,17 @@ import { MatExpansionModule } from "@angular/material/expansion";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Task, TaskStatus, RepeatInterval } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Chat } from "@models/chat.model";
+import { Todo } from "@models/generated/api.types";
+import { Task, TaskStatus } from "@models/generated/api.types";
+import { Subtask } from "@models/generated/api.types";
+import { Chat } from "@models/generated/api.types";
+import { RepeatInterval } from "@models/task-enums.model";
 
 /* services */
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -93,6 +95,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   @ViewChild("taskPlaceholder", { read: CdkDropList }) private taskPlaceholder!: CdkDropList;
 
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
@@ -651,7 +654,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onTaskCommentDelete(commentId: string): void {
     this.commentsHelper.onTaskCommentDelete(commentId);
-    this.requestService.delete("comments", commentId).subscribe();
+    this.typedApiService.deleteComment(commentId).subscribe();
   }
 
   onTaskCommentMarkAsRead(commentIds: string[]): void {
@@ -814,7 +817,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showSuccess(msg);
         }
       },
-      (id) => this.requestService.delete("tasks", id)
+      (id) => this.typedApiService.deleteTask(id)
     );
   }
 
