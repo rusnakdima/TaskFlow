@@ -31,7 +31,10 @@ pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, 
     &DecodingKey::from_secret(jwt_secret.as_ref()),
     &Validation::default(),
   )
-  .map_err(|e| err_response(&format!("Invalid token: {}", e)))?;
+  .map_err(|e| {
+    eprintln!("JWT decode failed: {:?}", e);
+    err_response("Invalid token")
+  })?;
   Ok(token_data.claims.id)
 }
 

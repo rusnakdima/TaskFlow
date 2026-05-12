@@ -78,9 +78,6 @@ fn load_embedded_env() {
   }
 }
 
-#[cfg(not(feature = "embedded_env"))]
-fn load_embedded_env() {}
-
 impl ConfigHelper {
   pub fn new() -> Self {
     dotenvy::dotenv().ok();
@@ -114,8 +111,7 @@ impl ConfigHelper {
       mongo_db_uri: env::var("MONGODB_URI")
         .unwrap_or_else(|_| "mongodb://localhost:27017".to_string()),
       mongo_db_name: env::var("MONGODB_NAME").unwrap_or_else(|_| "taskflow".to_string()),
-      jwt_secret: env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default_secret_change_in_production".to_string()),
+      jwt_secret: env::var("JWT_SECRET").expect("JWT_SECRET environment variable must be set"),
       smtp_username: env::var("SMTP_USERNAME").unwrap_or_else(|_| "".to_string()),
       smtp_password: env::var("SMTP_PASSWORD").unwrap_or_else(|_| "".to_string()),
       smtp_server: env::var("SMTP_SERVER").unwrap_or_else(|_| "smtp.example.com".to_string()),

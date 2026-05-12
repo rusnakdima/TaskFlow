@@ -32,11 +32,11 @@ use routes::{
     verify_login_totp,
   },
   cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
-  category_route::{
-    create_category, delete_category, get_categories, get_category, update_category,
+  entity_routes::{
+    create_subtask, create_task, create_todo, delete_subtask, delete_task, delete_todo,
+    get_subtask, get_subtasks, get_task, get_tasks, get_todo, get_todos, update_subtask,
+    update_task, update_todo,
   },
-  chat_route::{create_chat, delete_chat, get_chats, update_chat},
-  comment_route::{create_comment, delete_comment, get_comments},
   github_route::{
     github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
@@ -46,9 +46,6 @@ use routes::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local, manage_data,
   },
   statistics_route::statistics_get,
-  subtask_route::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
-  task_route::{create_task, delete_task, get_task, get_tasks, update_task},
-  todo_route::{create_todo, delete_todo, get_todo, get_todos, update_todo},
 };
 
 /* services */
@@ -63,7 +60,6 @@ use services::{
   comment_service::CommentService,
   entity_resolution_service::EntityResolutionService,
   manage_db_service::ManageDbService,
-  permission_service::PermissionService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
   repository::service::RepositoryService,
@@ -98,6 +94,8 @@ async fn process_queued_operation(
       visibility,
       false,
       None,
+      None,
+      None,
     )
     .await
     .map_err(|e| e.message)?;
@@ -130,6 +128,8 @@ async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<Respon
 
 pub struct AppState {
   pub config_helper: Arc<ConfigHelper>,
+  pub json_provider: JsonProvider,
+  pub mongodb_provider: Option<Arc<MongoProvider>>,
   pub repository_service: Arc<RepositoryService>,
   pub todo_service: Arc<TodoService>,
   pub task_service: Arc<TaskService>,
@@ -255,19 +255,12 @@ pub fn run() {
       ));
 
       let data_provider = DataProvider::Json(Arc::new(json_provider.clone()));
-      let permission_service = PermissionService::new(config_helper.jwt_secret.clone());
 
-      let todo_service = Arc::new(TodoService::new(
-        data_provider.clone(),
-        permission_service.clone(),
-      ));
+      let todo_service = Arc::new(TodoService::new(data_provider.clone()));
       let task_service = Arc::new(TaskService::new(data_provider.clone()));
       let subtask_service = Arc::new(SubtaskService::new(data_provider.clone()));
       let comment_service = Arc::new(CommentService::new(data_provider.clone()));
-      let category_service = Arc::new(CategoryService::new(
-        data_provider.clone(),
-        permission_service.clone(),
-      ));
+      let category_service = Arc::new(CategoryService::new(data_provider.clone()));
       let chat_service = Arc::new(ChatService::new(data_provider.clone()));
 
       let auth_service = Arc::new(AuthService::new(
@@ -302,6 +295,8 @@ pub fn run() {
 
       app.manage(AppState {
         config_helper,
+        json_provider,
+        mongodb_provider,
         repository_service,
         todo_service,
         task_service,
@@ -388,18 +383,6 @@ pub fn run() {
       create_subtask,
       update_subtask,
       delete_subtask,
-      get_comments,
-      create_comment,
-      delete_comment,
-      get_category,
-      get_categories,
-      create_category,
-      update_category,
-      delete_category,
-      get_chats,
-      create_chat,
-      update_chat,
-      delete_chat,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
