@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, inject } from "@angular/core";
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";

@@ -16,7 +16,7 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Category } from "@models/category.model";
+import { Category } from "@models/generated/api.types";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";

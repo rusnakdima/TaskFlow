@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from "@angular/core";
-import { Task } from "@models/task.model";
+import { Task } from "@models/generated/api.types";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { FilterField } from "@models/filter-config.model";
 

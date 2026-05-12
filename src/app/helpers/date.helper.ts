@@ -3,7 +3,7 @@ import { FormGroup } from "@angular/forms";
 import { MatCalendarCellCssClasses } from "@angular/material/datepicker";
 
 /* models */
-import { TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/generated/api.types";
 
 export interface CalendarEvent {
   id: string;

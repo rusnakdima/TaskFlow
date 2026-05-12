@@ -11,10 +11,7 @@ import {
 
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Todo } from "@models/todo.model";
+import { Task, Subtask, Comment, Todo } from "@models/generated/api.types";
 import { ItemType } from "@models/base.model";
 
 export { ItemType } from "@models/base.model";

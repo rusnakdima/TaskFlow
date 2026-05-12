@@ -18,8 +18,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { CommentsComponent } from "@components/comments/comments.component";
 
 /* models */
-import { SubtaskCommentGroup } from "@models/comment.model";
-import { Todo } from "@models/todo.model";
+import { SubtaskCommentGroup } from "@models/comment-ext.model";
+import { Todo } from "@models/generated/api.types";
 
 /* services */
 import { Router } from "@angular/router";

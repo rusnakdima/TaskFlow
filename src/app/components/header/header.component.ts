@@ -23,8 +23,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
+import { Todo, Task } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { NotificationAction } from "@models/notification.model";
 

@@ -1,5 +1,5 @@
 /* sys lib */
-import { TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/generated/api.types";
 import { AdminFilterState } from "@models/admin-table.model";
 
 /* helpers */

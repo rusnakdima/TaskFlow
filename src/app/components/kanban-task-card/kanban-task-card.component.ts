@@ -4,8 +4,7 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task, TaskStatus } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
+import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";

@@ -22,13 +22,9 @@ import { CommentsComponent } from "@components/comments/comments.component";
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
-import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Category } from "@models/category.model";
+import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/generated/api.types";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
-import { Comment } from "@models/comment.model";
 import { StorageService } from "@services/storage.service";
 
 @Component({

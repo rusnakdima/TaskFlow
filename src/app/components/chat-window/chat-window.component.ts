@@ -15,8 +15,7 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Chat } from "@models/chat.model";
-import { Profile } from "@models/profile.model";
+import { Chat, Profile } from "@models/generated/api.types";
 
 /* services */
 import { StorageService } from "@services/storage.service";
@@ -292,7 +291,9 @@ export class ChatWindowComponent {
 
     const sorted = [...chats]
       .filter((c) => !c.deleted_at)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort(
+        (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+      );
 
     for (const chat of sorted) {
       const otherUserId = chat.user_id === userId ? chat.author_name : chat.user_id;
@@ -315,13 +316,15 @@ export class ChatWindowComponent {
         const otherUserId = c.user_id === currentUserId ? c.author_name : c.user_id;
         return otherUserId === userId && !c.deleted_at;
       })
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .sort(
+        (a, b) => new Date(a.created_at || "").getTime() - new Date(b.created_at || "").getTime()
+      )
       .map((c) => ({
         id: c.id,
         content: c.content,
         author_name: c.author_name,
         user_id: c.user_id,
-        created_at: c.created_at,
+        created_at: c.created_at || "",
         isMine: c.user_id === currentUserId,
       }));
 

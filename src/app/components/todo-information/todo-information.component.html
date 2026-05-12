@@ -73,12 +73,12 @@
   @if (getCategories().length > 0) {
     <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
       <div class="flex flex-wrap gap-2">
-        @for (category of getCategories(); track category.id) {
+        @for (categoryId of getCategories(); track categoryId) {
           <span
             class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm"
           >
             <mat-icon class="mr-1 h-4! w-4! min-w-4 text-base!" fontIcon="category" />
-            {{ category.title }}
+            {{ categoryId }}
           </span>
         }
       </div>
