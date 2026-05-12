@@ -100,6 +100,7 @@ export class StorageService {
   readonly categories = this._entityService.categories.asReadonly();
   readonly profile = this._entityService.profiles.asReadonly();
   readonly profiles = this._entityService.profiles.asReadonly();
+  readonly publicProfiles = this._entityService.publicProfiles.asReadonly();
   readonly allProfiles = this._queryService.allProfiles;
   readonly user = this._queryService.user;
   readonly users = this._entityService.users.asReadonly();
@@ -813,5 +814,49 @@ export class StorageService {
 
   setCollectionByTable(table: string, data: any[], options?: { append?: boolean }): void {
     this._queryService.setCollectionByTable(table, data, options);
+  }
+
+  ensureUserLoaded(): void {
+    this._queryService.ensureUserLoaded();
+  }
+
+  ensureProfileLoaded(): void {
+    this._queryService.ensureProfileLoaded();
+  }
+
+  ensurePublicProfilesLoaded(): void {
+    this._queryService.ensurePublicProfilesLoaded();
+  }
+
+  getCurrentUser() {
+    return this._entityService.getCurrentUser();
+  }
+
+  ensureTodosLoaded(visibility: string = "private", limit: number = 100): void {
+    const todos =
+      visibility === "all"
+        ? this.todos()
+        : visibility === "private"
+          ? this.privateTodos()
+          : visibility === "shared"
+            ? this.sharedTodos()
+            : this.publicTodos();
+    if (todos.length > 0) return;
+    this._queryService.ensureTodosLoaded(visibility, limit);
+  }
+
+  ensureTasksLoaded(visibility: string = "private", limit: number = 500): void {
+    if (this.tasks().length > 0) return;
+    this._queryService.ensureTasksLoaded(visibility, limit);
+  }
+
+  ensureSubtasksLoaded(visibility: string = "private", limit: number = 1000): void {
+    if (this.subtasks().length > 0) return;
+    this._queryService.ensureSubtasksLoaded(visibility, limit);
+  }
+
+  ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
+    if (this.categories().length > 0) return;
+    this._queryService.ensureCategoriesLoaded(visibility, limit);
   }
 }

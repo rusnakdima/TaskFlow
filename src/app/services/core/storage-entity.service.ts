@@ -30,7 +30,9 @@ export class StorageEntityService {
   readonly chats = signal<Chat[]>([]);
   readonly categories = signal<Category[]>([]);
   readonly profiles = signal<Profile | null>(null);
+  readonly publicProfiles = signal<Profile[]>([]);
   readonly users = signal<User[]>([]);
+  readonly currentUser = signal<User | null>(null);
 
   readonly privateTodos = signal<Todo[]>([]);
   readonly sharedTodos = signal<Todo[]>([]);
@@ -173,6 +175,16 @@ export class StorageEntityService {
     this.chats.set([]);
     this.categories.set([]);
     this.profiles.set(null);
+    this.publicProfiles.set([]);
     this.users.set([]);
+    this.currentUser.set(null);
+  }
+
+  setCurrentUser(user: User | null): void {
+    this.currentUser.set(user);
+  }
+
+  getCurrentUser(): User | null {
+    return this.currentUser();
   }
 }
