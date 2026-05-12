@@ -86,11 +86,12 @@ pub async fn get_tasks(
   state: State<'_, AppState>,
   page: Option<u64>,
   limit: Option<u64>,
+  visibility: Option<String>,
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_id(&state, &token)?;
-  let visibility = "private".to_string();
+  let visibility = visibility.unwrap_or_else(|| "private".to_string());
   let page = page.unwrap_or(0);
   let limit = limit.unwrap_or(20);
   let skip = Some(page * limit);
@@ -147,11 +148,12 @@ pub async fn get_tasks(
     .await
     .map_err(|e| err_response(&e.message))?;
 
+  let has_more = docs.len() >= limit as usize;
   let paginated = serde_json::json!({
     "items": docs,
     "page": page,
     "limit": limit,
-    "has_more": true
+    "has_more": has_more
   });
 
   Ok(success_response(paginated))

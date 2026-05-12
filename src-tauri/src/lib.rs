@@ -32,6 +32,11 @@ use routes::{
     verify_login_totp,
   },
   cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
+  category_route::{
+    create_category, delete_category, get_categories, get_category, update_category,
+  },
+  chat_route::{create_chat, delete_chat, get_chat, get_chats, update_chat},
+  comment_route::{create_comment, delete_comment, get_comment, get_comments},
   entity_routes::{
     create_subtask, create_task, create_todo, delete_subtask, delete_task, delete_todo,
     get_subtask, get_subtasks, get_task, get_tasks, get_todo, get_todos, update_subtask,
@@ -43,8 +48,9 @@ use routes::{
     github_start_device_flow, github_update_issue,
   },
   manage_db_route::{
-    check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local, manage_data,
+    check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
   },
+  profile_route::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   statistics_route::statistics_get,
 };
 
@@ -342,7 +348,6 @@ pub fn run() {
       get_tasks_by_month,
       check_mongodb_connection,
       import_to_local,
-      manage_data,
       admin_get_all,
       admin_get_all_archive,
       admin_get_archive_paginated,
@@ -383,6 +388,25 @@ pub fn run() {
       create_subtask,
       update_subtask,
       delete_subtask,
+      get_profile,
+      get_profiles,
+      create_profile,
+      update_profile,
+      delete_profile,
+      get_category,
+      get_categories,
+      create_category,
+      update_category,
+      delete_category,
+      get_chat,
+      get_chats,
+      create_chat,
+      update_chat,
+      delete_chat,
+      get_comment,
+      get_comments,
+      create_comment,
+      delete_comment,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
