@@ -22,8 +22,9 @@ use routes::{
   admin_route::{
     admin_get_all, admin_get_all_archive, admin_get_archive_paginated, admin_get_paginated,
     admin_permanently_delete, admin_permanently_delete_local, admin_toggle_delete,
-    admin_toggle_delete_local,
+    admin_toggle_delete_local, get_all_admin_data,
   },
+  archive_route::get_all_archive_data,
   auth_data_sync_route::initialize_user_data,
   auth_route::{
     check_token, disable_totp, enable_totp, get_user_security_status, init_totp_qr_login, login,
@@ -356,6 +357,8 @@ pub fn run() {
       admin_permanently_delete_local,
       admin_toggle_delete,
       admin_toggle_delete_local,
+      get_all_admin_data,
+      get_all_archive_data,
       statistics_get,
       batch_soft_delete_cascade,
       batch_hard_delete_cascade,

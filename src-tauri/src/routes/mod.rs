@@ -25,6 +25,9 @@ pub mod cascade_route;
 #[path = "admin.route.rs"]
 pub mod admin_route;
 
+#[path = "archive.route.rs"]
+pub mod archive_route;
+
 #[path = "user.route.rs"]
 pub mod user_route;
 

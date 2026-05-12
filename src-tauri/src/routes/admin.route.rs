@@ -177,3 +177,18 @@ pub async fn admin_get_archive_paginated(
     .get_archive_data_paginated(data_type, skip, limit)
     .await
 }
+
+#[tauri::command]
+pub async fn get_all_admin_data(
+  state: State<'_, AppState>,
+  token: String,
+) -> Result<ResponseModel, ResponseModel> {
+  validate_admin_role(
+    &token,
+    &state.config_helper.jwt_secret,
+    &state.manage_db_service.json_provider,
+    state.manage_db_service.get_mongodb_provider().as_ref(),
+  )
+  .await?;
+  state.manage_db_service.get_all_data_for_admin().await
+}
