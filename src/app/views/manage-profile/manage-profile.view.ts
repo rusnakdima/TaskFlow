@@ -18,12 +18,11 @@ import { TemplateFormComponent } from "@components/form/template-form/template-f
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
-import { Profile } from "@models/generated/api.types";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { StorageService } from "@services/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
@@ -47,7 +46,7 @@ export class ManageProfileView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private storageService = inject(StorageService);
   private profileRequiredService = inject(ProfileRequiredService);
 
@@ -101,21 +100,25 @@ export class ManageProfileView implements OnInit {
 
     this.form.controls["user_id"].setValue(userId);
 
+    this.storageService.ensureProfileLoaded();
+    this.storageService.ensureUserLoaded();
+
     let profile = this.storageService.profile();
 
     if (!profile) {
-      this.requestService
-        .getAll<Profile>("profiles", { visibility: "private", filter: { user_id: userId } })
-        .subscribe({
-          next: (profiles) => {
-            profile = profiles[0];
-            if (profile && profile.user_id === userId) {
-              this.isEditMode = true;
-              this.form.patchValue(profile);
-            }
-          },
-          error: () => {},
-        });
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkProfile = setInterval(() => {
+        attempts++;
+        profile = this.storageService.profile();
+        if (profile || attempts >= maxAttempts) {
+          clearInterval(checkProfile);
+          if (profile && profile.user_id === userId) {
+            this.isEditMode = true;
+            this.form.patchValue(profile);
+          }
+        }
+      }, 100);
     } else if (profile.user_id === userId) {
       this.isEditMode = true;
       this.form.patchValue(profile);
@@ -137,24 +140,24 @@ export class ManageProfileView implements OnInit {
         const profile = this.storageService.profile();
         if (profile) {
           const { _id, ...updateData } = body;
-          const sub = this.requestService
-            .update<Profile>("profiles", profile.id, updateData)
-            .subscribe({
-              next: () => {
-                this.notifyService.showSuccess("Profile updated successfully");
-                this.profileRequiredService.setProfileRequiredMode(false);
-                this.router.navigate(["/profile"]);
-              },
-              error: (err: unknown) => {
-                const message = err instanceof Error ? err.message : "Failed to update profile";
-                this.notifyService.showError(message);
-              },
-            });
+          const sub = this.typedApiService.updateProfile(profile.id, updateData).subscribe({
+            next: (updatedProfile) => {
+              this.storageService.setCollection("profiles", updatedProfile);
+              this.notifyService.showSuccess("Profile updated successfully");
+              this.profileRequiredService.setProfileRequiredMode(false);
+              this.router.navigate(["/profile"]);
+            },
+            error: (err: unknown) => {
+              const message = err instanceof Error ? err.message : "Failed to update profile";
+              this.notifyService.showError(message);
+            },
+          });
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
       } else {
-        const sub = this.requestService.create<Profile>("profiles", body).subscribe({
-          next: () => {
+        const sub = this.typedApiService.createProfile(body).subscribe({
+          next: (newProfile) => {
+            this.storageService.setCollection("profiles", newProfile);
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
             this.router.navigate(["/"]);

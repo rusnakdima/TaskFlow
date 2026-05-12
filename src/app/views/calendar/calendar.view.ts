@@ -12,7 +12,6 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { Task, TaskStatus } from "@models/generated/api.types";
 
 /* services */
-import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -42,7 +41,6 @@ import {
 })
 export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
-  private requestService = inject(REQUEST_SERVICE);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -76,15 +74,9 @@ export class CalendarView extends BaseListView implements OnInit {
 
   override ngOnInit(): void {
     super.ngOnInit();
-    this.requestService
-      .loadPage("tasks", { visibility: "private", limit: 100, skip: 0 })
-      .subscribe({});
-    this.requestService
-      .loadPage("tasks", { visibility: "shared", limit: 100, skip: 0 })
-      .subscribe({});
-    this.requestService
-      .loadPage("tasks", { visibility: "public", limit: 100, skip: 0 })
-      .subscribe({});
+    this.storageService.ensureTasksLoaded("private", 500);
+    this.storageService.ensureTasksLoaded("shared", 500);
+    this.storageService.ensureTasksLoaded("public", 500);
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {

@@ -20,7 +20,7 @@ import { MatRadioModule } from "@angular/material/radio";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatDividerModule } from "@angular/material/divider";
 
-import { Todo, Task, TaskStatus, Subtask, Category, Profile } from "@models/generated/api.types";
+import { Todo, Task, TaskStatus, Category, Profile } from "@models/generated/api.types";
 import { PriorityTask, RepeatInterval } from "@models/task-enums.model";
 
 import { AuthService } from "@services/auth/auth.service";
@@ -31,7 +31,8 @@ import { StorageService } from "@services/storage.service";
 import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { REQUEST_SERVICE } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -86,6 +87,7 @@ export class ManageItemPage implements OnInit {
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -243,11 +245,11 @@ export class ManageItemPage implements OnInit {
       return;
     }
 
-    this.requestService
-      .getPublicProfiles()
+    this.typedApiService
+      .getProfiles({ visibility: "public" })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (profiles) => this.assignees.set(profiles as Profile[]),
+        next: (response) => this.assignees.set(response.items || []),
         error: () => {
           this.assignees.set([]);
         },
@@ -360,11 +362,11 @@ export class ManageItemPage implements OnInit {
     try {
       let item: any;
       if (config.type === "todo") {
-        item = await firstValueFrom(this.requestService.get<Todo>("todos", id));
+        item = await firstValueFrom(this.typedApiService.getTodo(id));
       } else if (config.type === "task") {
-        item = await firstValueFrom(this.requestService.get<Task>("tasks", id));
+        item = await firstValueFrom(this.typedApiService.getTask(id));
       } else {
-        item = await firstValueFrom(this.requestService.get<Subtask>("subtasks", id));
+        item = await firstValueFrom(this.typedApiService.getSubtask(id));
       }
 
       if (item) {
@@ -465,45 +467,21 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(
-            this.requestService.update<Todo>("todos", id, payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          await firstValueFrom(this.typedApiService.updateTodo(id, payload, visibility));
         } else if (config.type === "task") {
-          await firstValueFrom(
-            this.requestService.update<Task>("tasks", id, payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          await firstValueFrom(this.typedApiService.updateTask(id, payload, visibility));
         } else {
-          await firstValueFrom(
-            this.requestService.update<Subtask>("subtasks", id, payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          await firstValueFrom(this.typedApiService.updateSubtask(id, payload, visibility));
         }
       } else {
         let result: any;
         if (config.type === "todo") {
-          result = await firstValueFrom(
-            this.requestService.create<Todo>("todos", payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          result = await firstValueFrom(this.typedApiService.createTodo(payload));
         } else if (config.type === "task") {
-          result = await firstValueFrom(
-            this.requestService.create<Task>("tasks", payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          result = await firstValueFrom(this.typedApiService.createTask(payload));
           savedTaskId = result?.id || result?._id || null;
         } else {
-          result = await firstValueFrom(
-            this.requestService.create<Subtask>("subtasks", payload, {
-              visibility: visibility as Visibility,
-            })
-          );
+          result = await firstValueFrom(this.typedApiService.createSubtask(payload));
         }
       }
 
@@ -609,7 +587,7 @@ export class ManageItemPage implements OnInit {
       );
 
       if (toVisibility === "shared" || toVisibility === "public") {
-        this.requestService.getAll<Todo>("todos", { visibility: toVisibility }).subscribe();
+        this.typedApiService.getTodos({ visibility: toVisibility }).subscribe();
       }
     } catch (error: any) {
       this.notifyService.showError(
@@ -640,20 +618,14 @@ export class ManageItemPage implements OnInit {
     const userId = this.authService.getValueByKey("id");
     this.newCategoryTitle.set("");
 
-    this.requestService
-      .create<Category>(
-        "categories",
-        { title, user_id: userId },
-        { visibility: "private" as Visibility }
-      )
-      .subscribe({
-        next: (category: Category) => {
-          this.categories.update((cats) => [...cats, category]);
-          this.toggleCategorySelection(category.id);
-        },
-        error: (err: Error) =>
-          this.notifyService.showError(err.message || "Failed to create category"),
-      });
+    this.typedApiService.createCategory({ title, user_id: userId }).subscribe({
+      next: (category: Category) => {
+        this.categories.update((cats) => [...cats, category]);
+        this.toggleCategorySelection(category.id);
+      },
+      error: (err: Error) =>
+        this.notifyService.showError(err.message || "Failed to create category"),
+    });
   }
 
   toggleCategorySelection(categoryId: string): void {
