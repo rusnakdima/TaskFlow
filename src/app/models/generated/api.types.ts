@@ -22,44 +22,59 @@ export enum Priority {
 }
 
 export enum TaskStatus {
-  Pending = "pending",
-  Completed = "completed",
-  Skipped = "skipped",
-  Failed = "failed",
+  PENDING = "pending",
+  COMPLETED = "completed",
+  SKIPPED = "skipped",
+  FAILED = "failed",
+}
+
+export enum RepeatInterval {
+  NONE = "none",
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
 }
 
 export interface Todo {
   id: string;
   user_id: string;
   title: string;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
   categories: string[];
+  category_ids?: string[];
   assignees: string[];
+  assignee_ids?: string[];
   visibility: string;
   priority: string;
   order: number;
   tasks_count: number;
   completed_tasks_count: number;
-  github_repo_id: string | null;
-  github_repo_name: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  github_repo_id?: string;
+  github_repo_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  tasks?: Task[];
+  user?: User;
+  assignees_profiles?: Profile[];
+  chats_count?: number;
 }
 
 export interface TodoCreateRequest {
   user_id: string;
   title: string;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
   categories: string[];
   assignees: string[];
   visibility: string;
   priority: string;
-  github_repo_id: string | null;
-  github_repo_name: string | null;
+  github_repo_id?: string;
+  github_repo_name?: string;
 }
 
 export interface TodoUpdateRequest {
@@ -80,26 +95,34 @@ export interface Task {
   id: string;
   todo_id: string;
   title: string;
-  description: string | null;
-  status: string;
+  description?: string;
+  status: TaskStatus;
   priority: string;
   order: number;
   subtasks_count: number;
   completed_subtasks_count: number;
   comments_count: number;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  start_date?: string;
+  end_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  subtasks?: Subtask[];
+  repeat?: string;
+  depends_on?: string[];
+  publish_to_github?: boolean;
+  github_issue_id?: string;
+  github_issue_number?: number;
+  github_issue_url?: string;
 }
 
 export interface TaskCreateRequest {
   todo_id: string;
   title: string;
-  description: string | null;
+  description?: string;
   priority: string;
-  start_date: string | null;
-  end_date: string | null;
+  start_date?: string;
+  end_date?: string;
   order: number;
 }
 
@@ -117,21 +140,22 @@ export interface Subtask {
   id: string;
   task_id: string;
   title: string;
-  description: string | null;
-  status: string;
+  description?: string;
+  status: TaskStatus;
   priority: string;
   order: number;
   comments_count: number;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  start_date?: string;
+  end_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
 }
 
 export interface SubtaskCreateRequest {
   task_id: string;
   title: string;
-  description: string | null;
+  description?: string;
   priority: string;
   order: number;
 }
@@ -148,8 +172,9 @@ export interface Category {
   id: string;
   user_id: string;
   title: string;
-  created_at: string | null;
-  updated_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
 }
 
 export interface CategoryCreateRequest {
@@ -168,15 +193,18 @@ export interface Profile {
   bio: string;
   image_url: string;
   user_id: string;
-  created_at: string | null;
-  updated_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  user?: User;
+  original_image_url?: string;
 }
 
 export interface ProfileCreateRequest {
-  name: string | null;
-  last_name: string | null;
-  bio: string | null;
-  image_url: string | null;
+  name?: string;
+  last_name?: string;
+  bio?: string;
+  image_url?: string;
   user_id: string;
 }
 
@@ -192,8 +220,11 @@ export interface Chat {
   user_id: string;
   content: string;
   read_by: string[];
-  created_at: string | null;
-  updated_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  author_name?: string;
+  user?: User;
 }
 
 export interface ChatCreateRequest {
@@ -210,11 +241,13 @@ export interface Comment {
   id: string;
   user_id: string;
   content: string;
-  task_id: string | null;
-  subtask_id: string | null;
+  task_id?: string;
+  subtask_id?: string;
   read_by: string[];
-  created_at: string | null;
-  updated_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  user?: User;
 }
 
 export interface CommentCreateRequest {
@@ -232,9 +265,10 @@ export interface User {
   profile_id: string;
   totp_enabled: boolean;
   qr_login_enabled: boolean;
-  github_username: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  github_username?: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
 }
 
 export interface LoginRequest {

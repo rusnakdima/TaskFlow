@@ -1,11 +1,4 @@
-import { Todo } from "./todo.model";
-import { Task } from "./task.model";
-import { Subtask } from "./subtask.model";
-import { Category } from "./category.model";
-import { Profile } from "./profile.model";
-import { Comment } from "./comment.model";
-import { Chat } from "./chat.model";
-import { User } from "./user.model";
+import { Todo, Task, Subtask, Comment, Chat, User, Category, Profile } from "./generated/api.types";
 
 export type EntityType =
   | "todos"
