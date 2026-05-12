@@ -1,8 +1,5 @@
 pub mod repository;
 
-#[allow(unused_imports)]
-use nosql_orm::Entity;
-
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 

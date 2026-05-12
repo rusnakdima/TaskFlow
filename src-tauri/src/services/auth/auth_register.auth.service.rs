@@ -140,7 +140,10 @@ impl AuthRegisterService {
       .map_err(|e| err_response(&format!("Error creating user in JSON: {}", e)))?;
 
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(_e) = mongo.insert(table_name, user_val.clone()).await {}
+      if let Err(e) = mongo.insert(table_name, user_val.clone()).await {
+        eprintln!("Failed to sync user to MongoDB: {:?}", e);
+        return Err(err_response("Failed to complete registration"));
+      }
     }
 
     let token = self.token_service.generate_token(&user_id, "", "")?;

@@ -6,16 +6,11 @@ use serde_json::{json, Value};
 
 pub struct CategoryService {
   provider: DataProvider,
-  #[allow(dead_code)]
-  permission_service: PermissionService,
 }
 
 impl CategoryService {
-  pub fn new(provider: DataProvider, permission_service: PermissionService) -> Self {
-    Self {
-      provider,
-      permission_service,
-    }
+  pub fn new(provider: DataProvider) -> Self {
+    Self { provider }
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {

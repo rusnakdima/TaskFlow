@@ -48,6 +48,11 @@ impl CommentService {
     Ok(success_response(DataValue::Object(doc)))
   }
 
+  pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
+    let doc = self.provider.update("comments", id, data).await?;
+    Ok(success_response(DataValue::Object(doc)))
+  }
+
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
       .provider

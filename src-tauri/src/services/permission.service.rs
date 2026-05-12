@@ -1,14 +1,42 @@
 use serde_json::{json, Value};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct PermissionService {
-  #[allow(dead_code)]
-  jwt_secret: String,
-}
+pub struct PermissionService {}
 
 impl PermissionService {
-  pub fn new(jwt_secret: String) -> Self {
-    Self { jwt_secret }
+  pub fn new() -> Self {
+    Self {}
+  }
+
+  fn is_admin_assignee(todo: &Value, user_id: &str) -> bool {
+    let assignees = todo.get("assignees").and_then(|v| v.as_array());
+    let assignee_roles = todo.get("assignee_roles").and_then(|v| {
+      if let Some(obj) = v.as_object() {
+        Some(obj)
+      } else {
+        None
+      }
+    });
+
+    if let (Some(arr), Some(roles)) = (assignees, assignee_roles) {
+      for (i, assignee) in arr.iter().enumerate() {
+        if assignee.as_str() == Some(user_id) {
+          let key = i.to_string();
+          if let Some(role) = roles.get(&key) {
+            if role.as_str() == Some("admin") {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    false
+  }
+
+  fn is_owner_or_admin(todo: &Value, user_id: &str) -> bool {
+    let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+    owner_id == user_id || Self::is_admin_assignee(todo, user_id)
   }
 
   pub fn can_view_todo(todo: &Value, user_id: &str) -> bool {
@@ -33,61 +61,52 @@ impl PermissionService {
   }
 
   pub fn can_edit_todo(todo: &Value, user_id: &str) -> bool {
-    let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-    owner_id == user_id
+    Self::is_owner_or_admin(todo, user_id)
   }
 
   pub fn can_delete_todo(todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_todo(todo, user_id)
+    Self::is_owner_or_admin(todo, user_id)
   }
 
   pub fn can_add_task_to_todo(todo: &Value, user_id: &str) -> bool {
-    let visibility = todo
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
-    let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-    let assignees = todo.get("assignees").and_then(|v| v.as_array());
-
-    match visibility {
-      "private" => owner_id == user_id,
-      "shared" => {
-        owner_id == user_id
-          || assignees
-            .map(|a| a.iter().any(|id| id.as_str() == Some(user_id)))
-            .unwrap_or(false)
-      }
-      "public" => true,
-      _ => false,
-    }
+    Self::can_view_todo(todo, user_id)
   }
 
   pub fn can_edit_task(task: &Value, todo: &Value, user_id: &str) -> bool {
-    let todo_visibility = todo
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
-    let todo_owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
     let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
 
-    match todo_visibility {
-      "private" => todo_owner_id == user_id,
-      "shared" => todo_owner_id == user_id || task_creator_id == user_id,
-      "public" => task_creator_id == user_id,
-      _ => false,
+    if task_creator_id == user_id {
+      return true;
     }
+
+    Self::is_owner_or_admin(todo, user_id)
   }
 
   pub fn can_delete_task(task: &Value, todo: &Value, user_id: &str) -> bool {
     Self::can_edit_task(task, todo, user_id)
   }
 
-  pub fn can_edit_subtask(_subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_task(task, todo, user_id)
+  pub fn can_edit_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
+    let subtask_creator_id = subtask
+      .get("user_id")
+      .and_then(|v| v.as_str())
+      .unwrap_or("");
+
+    if subtask_creator_id == user_id {
+      return true;
+    }
+
+    let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+
+    if task_creator_id == user_id {
+      return true;
+    }
+
+    Self::is_owner_or_admin(todo, user_id)
   }
 
-  pub fn can_delete_subtask(_subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_subtask(_subtask, task, todo, user_id)
+  pub fn can_delete_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
+    Self::can_edit_subtask(subtask, task, todo, user_id)
   }
 
   pub fn can_edit_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
@@ -95,18 +114,12 @@ impl PermissionService {
       .get("user_id")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-    let todo_visibility = todo
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
-    let todo_owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
 
-    match todo_visibility {
-      "private" => todo_owner_id == user_id || comment_creator_id == user_id,
-      "shared" => todo_owner_id == user_id || comment_creator_id == user_id,
-      "public" => comment_creator_id == user_id,
-      _ => false,
+    if comment_creator_id == user_id {
+      return true;
     }
+
+    Self::is_owner_or_admin(todo, user_id)
   }
 
   pub fn can_delete_comment(comment: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
@@ -114,7 +127,7 @@ impl PermissionService {
   }
 
   pub fn get_todo_filter_for_user(user_id: &str, visibility: Option<&str>) -> Value {
-    let base_filter = match visibility.unwrap_or("private") {
+    match visibility.unwrap_or("private") {
       "private" => {
         json!({ "user_id": user_id })
       }
@@ -138,8 +151,7 @@ impl PermissionService {
       _ => {
         json!({ "user_id": user_id })
       }
-    };
-    base_filter
+    }
   }
 
   pub fn get_tasks_filter_for_user(user_id: &str) -> Value {
