@@ -58,8 +58,15 @@ pub struct CommentCreateRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct CommentUpdateRequest {
+  pub content: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct SubtaskCreateRequest {
   pub task_id: String,
+  pub user_id: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -80,6 +87,7 @@ pub struct SubtaskUpdateRequest {
 #[serde(rename_all = "camelCase")]
 pub struct TaskCreateRequest {
   pub todo_id: String,
+  pub user_id: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -110,6 +118,7 @@ pub struct TodoCreateRequest {
   pub end_date: Option<String>,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub assignee_roles: std::collections::HashMap<String, String>,
   pub visibility: String,
   pub priority: String,
   pub github_repo_id: Option<String>,
@@ -125,6 +134,7 @@ pub struct TodoUpdateRequest {
   pub end_date: Option<String>,
   pub categories: Option<Vec<String>>,
   pub assignees: Option<Vec<String>>,
+  pub assignee_roles: Option<std::collections::HashMap<String, String>>,
   pub visibility: Option<String>,
   pub priority: Option<String>,
   pub order: Option<i32>,

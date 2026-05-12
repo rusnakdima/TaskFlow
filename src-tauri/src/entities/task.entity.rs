@@ -46,6 +46,8 @@ pub struct TaskEntity {
   #[validate(required)]
   pub todo_id: String,
   #[validate(not_empty)]
+  pub user_id: String,
+  #[validate(not_empty)]
   #[validate(length(min = 1, max = 200))]
   pub title: String,
   #[validate(length(max = 5000))]
@@ -73,6 +75,9 @@ pub struct TaskCreateModel {
   #[validate(required)]
   #[validate(not_empty)]
   pub todo_id: String,
+  #[validate(required)]
+  #[validate(not_empty)]
+  pub user_id: String,
   #[validate(not_empty)]
   #[validate(length(min = 1, max = 200))]
   pub title: String,
@@ -94,6 +99,7 @@ impl From<TaskCreateModel> for TaskEntity {
     TaskEntity {
       id: None,
       todo_id: value.todo_id,
+      user_id: value.user_id,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: TaskStatus::Pending,
