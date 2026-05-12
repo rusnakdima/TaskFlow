@@ -19,7 +19,7 @@ export class AdminDataService {
 
   loadAllAdminData(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
-      this.adminService.getAllDataForAdmin<AdminDataWithRelations>().subscribe({
+      this.adminService.getAllAdminData<AdminDataWithRelations>().subscribe({
         next: (response) => {
           if (response.status === ResponseStatus.SUCCESS && response.data) {
             subscriber.next(response.data as AdminDataWithRelations);
