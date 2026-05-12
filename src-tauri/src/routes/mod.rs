@@ -30,3 +30,12 @@ pub mod user_route;
 
 #[path = "profile.route.rs"]
 pub mod profile_route;
+
+#[path = "category.route.rs"]
+pub mod category_route;
+
+#[path = "chat.route.rs"]
+pub mod chat_route;
+
+#[path = "comment.route.rs"]
+pub mod comment_route;
