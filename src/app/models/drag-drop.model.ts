@@ -1,4 +1,4 @@
-import { Task, TaskStatus } from "./task.model";
+import { Task, TaskStatus } from "./generated/api.types";
 
 export interface KanbanColumn {
   id: string;

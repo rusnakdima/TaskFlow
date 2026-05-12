@@ -1,9 +1,5 @@
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Chat } from "@models/chat.model";
-import { Category } from "@models/category.model";
+import { Todo, Task, Subtask, Comment, Chat } from "./generated/api.types";
+import { Category } from "./category.model";
 
 export interface ArchiveDataMap {
   [key: string]: any[];

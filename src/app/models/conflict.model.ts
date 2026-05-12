@@ -1,6 +1,4 @@
-import { Todo } from "./todo.model";
-import { Task } from "./task.model";
-import { Subtask } from "./subtask.model";
+import { Todo, Task, Subtask } from "./generated/api.types";
 
 export interface Conflict {
   id: string;
