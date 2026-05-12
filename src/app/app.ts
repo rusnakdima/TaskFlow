@@ -17,9 +17,9 @@ import { AuthService } from "@services/auth/auth.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
 import { ProfileRequiredService } from "@services/core/profile-required.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { StorageService } from "@services/storage.service";
 
 /* components */
 import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
@@ -56,8 +56,8 @@ export class App implements OnInit, OnDestroy {
   private shortcutService = inject(ShortcutService);
   private profileRequiredService = inject(ProfileRequiredService);
   private appStateService = inject(AppStateService);
-  private requestService = inject(REQUEST_SERVICE);
   private mongoConnectionService = inject(MongoConnectionService);
+  private storageService = inject(StorageService);
 
   @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
   @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
@@ -94,7 +94,8 @@ export class App implements OnInit, OnDestroy {
 
     this.authService.initializeSession(this.authRoutes);
 
-    this.requestService.getProfile().subscribe();
+    this.storageService.ensureUserLoaded();
+    this.storageService.ensureProfileLoaded();
 
     this.mongoConnectionService.checkConnection().subscribe();
 

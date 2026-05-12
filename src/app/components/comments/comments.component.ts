@@ -14,10 +14,8 @@ import {
   SimpleChanges,
   OnDestroy,
   AfterViewChecked,
-  DestroyRef,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -27,8 +25,8 @@ import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/
 
 /* models */
 import { SubtaskCommentGroup } from "@models/comment-ext.model";
-import { Comment, Profile, Todo } from "@models/generated/api.types";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { Comment, Todo } from "@models/generated/api.types";
+import { StorageService } from "@services/storage.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -48,8 +46,7 @@ export class CommentsComponent
   implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private authService = inject(AuthService);
-  private requestService = inject(REQUEST_SERVICE);
-  private destroyRef = inject(DestroyRef);
+  private storageService = inject(StorageService);
 
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
@@ -114,21 +111,16 @@ export class CommentsComponent
   }
 
   private loadProfiles(): void {
-    this.requestService
-      .getAll<Profile>("profiles", { visibility: "public", load: ["user"] })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (profiles: Profile[]) => {
-          profiles.forEach((profile) => {
-            const userId = profile.user_id;
-            if (userId) {
-              const name =
-                profile.user?.username || `${profile.name || ""} ${profile.last_name || ""}`.trim();
-              this.usernameMap.set(userId, name || "Unknown");
-            }
-          });
-        },
-      });
+    this.storageService.ensurePublicProfilesLoaded();
+    const publicProfiles = this.storageService.publicProfiles();
+    publicProfiles.forEach((profile) => {
+      const userId = profile.user_id;
+      if (userId) {
+        const name =
+          profile.user?.username || `${profile.name || ""} ${profile.last_name || ""}`.trim();
+        this.usernameMap.set(userId, name || "Unknown");
+      }
+    });
   }
 
   ngAfterViewChecked() {
