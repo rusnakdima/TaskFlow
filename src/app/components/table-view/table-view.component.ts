@@ -20,7 +20,7 @@ import { MatButtonModule } from "@angular/material/button";
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { CommentsComponent } from "@components/comments/comments.component";
-import { SubtaskCommentGroup } from "@models/comment.model";
+import { SubtaskCommentGroup } from "@models/comment-ext.model";
 import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
 
 /* helpers */
@@ -37,8 +37,7 @@ import { StatusToggleComponent } from "@components/status-toggle/status-toggle.c
 /* models */
 import { TableFieldActionButton, TableField } from "@models/table-field.model";
 import { ItemDisplayConfig } from "@models/item-display.model";
-import { Comment } from "@models/comment.model";
-import { TaskStatus } from "@models/task.model";
+import { Comment, TaskStatus } from "@models/generated/api.types";
 
 /* constants */
 import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/table-field.constants";

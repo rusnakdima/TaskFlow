@@ -1,7 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
-import { Task, TaskStatus } from "@models/task.model";
-import { Todo } from "@models/todo.model";
+import { Task, TaskStatus, Todo } from "@models/generated/api.types";
 import { BaseKanbanHelper, KanbanColumn } from "@helpers/base-kanban.helper";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 

@@ -13,9 +13,7 @@ import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-dro
 
 import { MatIconModule } from "@angular/material/icon";
 
-import { Todo } from "@models/todo.model";
-import { TaskStatus } from "@models/task.model";
-import { Comment } from "@models/comment.model";
+import { Todo, TaskStatus, Comment } from "@models/generated/api.types";
 import { TableFieldActionButton, TableField } from "@models/table-field.model";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 

@@ -2,8 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { GithubService } from "@services/github/github.service";
 import { REQUEST_SERVICE } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { Task } from "@models/task.model";
-import { Todo } from "@models/todo.model";
+import { Task, Todo } from "@models/generated/api.types";
 
 @Injectable({
   providedIn: "root",

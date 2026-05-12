@@ -1,7 +1,5 @@
 import { ItemDisplayConfig } from "@models/item-display.model";
-import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
+import { Todo, Task, TaskStatus, Subtask } from "@models/generated/api.types";
 import {
   ActionColors,
   PRIORITY_COLORS,

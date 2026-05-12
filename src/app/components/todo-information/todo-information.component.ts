@@ -7,8 +7,7 @@ import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Category } from "@models/category.model";
+import { Todo } from "@models/generated/api.types";
 
 /* components */
 import {
@@ -41,7 +40,7 @@ export class TodoInformationComponent extends ItemInfoBaseComponent {
     this.colorScheme.set(ItemInfoColorScheme.BLUE);
   }
 
-  getCategories(): Category[] {
+  getCategories(): string[] {
     return this.todo.categories || [];
   }
 }

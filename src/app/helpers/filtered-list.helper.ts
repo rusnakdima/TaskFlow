@@ -15,11 +15,11 @@ export interface FilteredListOptions {
 export class FilteredListHelper {
   static filterAndSort<
     T extends {
-      title?: string;
-      description?: string;
+      id: string;
       order: number;
-      visibility?: string;
-      deleted_at?: string | null;
+      title?: string;
+      description?: string | null;
+      deleted_at?: string | null | undefined;
     },
   >(items: T[], options: FilteredListOptions): T[] {
     if (!items || !Array.isArray(items)) {
@@ -30,7 +30,7 @@ export class FilteredListHelper {
 
     if (filterType === "visibility") {
       if (filter !== "all") {
-        filtered = filtered.filter((item) => item.visibility === filter);
+        filtered = filtered.filter((item) => (item as any).visibility === filter);
       }
       if (query) {
         const lowerQuery = query.toLowerCase().trim();

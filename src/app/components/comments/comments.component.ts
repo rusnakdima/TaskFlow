@@ -26,9 +26,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 /* models */
-import { Comment, SubtaskCommentGroup } from "@models/comment.model";
-import { Todo } from "@models/todo.model";
-import { Profile } from "@models/profile.model";
+import { SubtaskCommentGroup } from "@models/comment-ext.model";
+import { Comment, Profile, Todo } from "@models/generated/api.types";
 import { REQUEST_SERVICE } from "@services/api.service";
 
 /* helpers */
@@ -148,7 +147,8 @@ export class CommentsComponent
     this.destroyObserver();
   }
 
-  formatDate(date: string) {
+  formatDate(date: string | undefined) {
+    if (!date) return "";
     return DateHelper.formatDateShort(date);
   }
 

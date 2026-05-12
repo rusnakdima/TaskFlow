@@ -1,4 +1,4 @@
-import { TaskStatus } from "@models/task.model";
+import { TaskStatus } from "@models/generated/api.types";
 
 export const TableFieldColors = {
   boolean: {

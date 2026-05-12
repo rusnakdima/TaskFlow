@@ -1,8 +1,7 @@
 /* sys lib */
 
 /* models */
-import { Task, TaskStatus } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
+import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
 
 /* helpers */
 

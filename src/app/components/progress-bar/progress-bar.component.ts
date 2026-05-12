@@ -7,7 +7,7 @@ import { StorageService } from "@services/storage.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-import { Task } from "@models/task.model";
+import { Task } from "@models/generated/api.types";
 
 export interface ProgressBarSegment {
   status: string;

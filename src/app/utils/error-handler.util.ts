@@ -19,10 +19,7 @@ export class ErrorHandlerUtil {
     this.notifyService.showError(prefix + message);
   }
 
-  subscribeError<T>(
-    observer: Subscriber<T>,
-    errorMessage?: string
-  ): (err: unknown) => void {
+  subscribeError<T>(observer: Subscriber<T>, errorMessage?: string): (err: unknown) => void {
     return (err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
       this.notifyService.showError(errorMessage || message);
@@ -30,10 +27,7 @@ export class ErrorHandlerUtil {
     };
   }
 
-  wrapObservable<T>(
-    observable: Observable<T>,
-    errorMessage?: string
-  ): Observable<T> {
+  wrapObservable<T>(observable: Observable<T>, errorMessage?: string): Observable<T> {
     return new Observable<T>((observer) => {
       return observable.subscribe({
         next: (value) => observer.next(value),
