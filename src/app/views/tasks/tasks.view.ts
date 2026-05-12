@@ -30,7 +30,7 @@ import { RepeatInterval } from "@models/task-enums.model";
 /* services */
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { Visibility } from "@services/api.service";
 import { TypedApiService } from "@services/typed-api.service";
 
 import { AppStateService } from "@services/core/app-state.service";
@@ -94,7 +94,6 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   @ViewChild("taskPlaceholder", { read: CdkDropList }) private taskPlaceholder!: CdkDropList;
 
-  private requestService = inject(REQUEST_SERVICE);
   private typedApiService = inject(TypedApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -153,37 +152,32 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   allTasksForTodo = computed(() => this.todoTasks());
 
   private loadInitialTodo(todoId: string): void {
-    this.requestService
-      .get<Todo>("todos", todoId, {
-        visibility: this.visibilityParam(),
-        load: ["user", "categories", "assignees"],
-      })
-      .subscribe({
-        next: (todo) => {
-          if (todo) {
-            this.todo.set(todo);
-            this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
-            const tasks = todo.tasks || [];
-            if (tasks.length > 0) {
-              this.todoTasks.set(tasks);
-              this.taskPagination.update((p) => ({
-                ...p,
-                skip: tasks.length,
-                total: tasks.length,
-                hasMore: false,
-                loading: false,
-              }));
-            } else {
-              this.loadInitialTasks();
-            }
+    this.typedApiService.getTodo(todoId, this.visibilityParam()).subscribe({
+      next: (todo) => {
+        if (todo) {
+          this.todo.set(todo);
+          this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
+          const tasks = todo.tasks || [];
+          if (tasks.length > 0) {
+            this.todoTasks.set(tasks);
+            this.taskPagination.update((p) => ({
+              ...p,
+              skip: tasks.length,
+              total: tasks.length,
+              hasMore: false,
+              loading: false,
+            }));
           } else {
-            this.notifyService.showError("Todo not found.");
+            this.loadInitialTasks();
           }
-        },
-        error: () => {
-          this.notifyService.showError("Failed to load todo.");
-        },
-      });
+        } else {
+          this.notifyService.showError("Todo not found.");
+        }
+      },
+      error: () => {
+        this.notifyService.showError("Failed to load todo.");
+      },
+    });
   }
 
   taskPagination = signal<{
@@ -210,58 +204,23 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         hasMore: false,
         loading: false,
       }));
+      return;
     }
 
-    this.requestService
-      .loadPage<Task>("tasks", {
-        filter: { todo_id: todoId },
-        visibility: (this.todo()?.visibility || "private") as Visibility,
-        skip: 0,
-        limit: 10,
-      })
-      .subscribe({
-        next: (tasks: Task[]) => {
-          this.todoTasks.set(tasks);
-          this.taskPagination.update((p) => ({
-            ...p,
-            skip: tasks.length,
-            total: tasks.length,
-            hasMore: tasks.length === p.limit,
-          }));
-        },
-        error: () => {
-          this.taskPagination.update((p) => ({
-            ...p,
-            loading: false,
-          }));
-        },
-      });
+    this.taskPagination.update((p) => ({ ...p, loading: true }));
+    this.storageService.ensureTasksLoaded();
+    this.taskPagination.update((p) => ({
+      ...p,
+      skip: cachedTasks.length,
+      total: cachedTasks.length,
+      hasMore: this.storageService.hasMoreTasks,
+      loading: false,
+    }));
   }
 
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
-
-    const todoId = this.todoId();
-    if (!todoId) return;
-
-    this.requestService.loadMore<Task>("tasks").subscribe({
-      next: (tasks: Task[]) => {
-        this.todoTasks.update((current) => [...current, ...tasks]);
-        this.taskPagination.update((p) => ({
-          ...p,
-          skip: p.skip + tasks.length,
-          loading: false,
-          hasMore: tasks.length === p.limit,
-        }));
-      },
-      error: () => {
-        this.taskPagination.update((p) => ({
-          ...p,
-          loading: false,
-          hasMore: false,
-        }));
-      },
-    });
+    this.storageService.ensureTasksLoaded();
   }
 
   listTasks = computed(() => {
@@ -416,15 +375,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.requestService
-      .update<Task>(
-        "tasks",
-        task.id,
-        { ...task, status },
-        { visibility: (todo.visibility || "private") as Visibility, offline: true }
-      )
+    this.typedApiService
+      .updateTask(task.id, { ...task, status }, todo.visibility || "private")
       .subscribe({
-        next: () => {
+        next: (updatedTask) => {
+          this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
           this.todoTasks.update((tasks) =>
             tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
           );
@@ -458,15 +413,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.requestService
-      .update<Subtask>(
-        "subtasks",
-        subtask.id,
-        { status: newStatus },
-        { visibility: (todo.visibility || "private") as Visibility }
-      )
+    this.typedApiService
+      .updateSubtask(subtask.id, { status: newStatus }, todo.visibility || "private")
       .subscribe({
-        next: () => {},
+        next: (updatedSubtask) => {
+          this.storageService.modify("subtasks", "update", { ...updatedSubtask, id: subtask.id });
+        },
         error: () => {
           this.notifyService.showError("Failed to update subtask status");
         },
@@ -488,8 +440,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   generateNextRecurringTask(task: Task): void {
     const todoId = this.todoId();
     if (!todoId) return;
-
-    const todo = this.todo();
 
     const nextTask = { ...task };
     delete (nextTask as any)._id;
@@ -519,18 +469,14 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.requestService
-      .create<Task>("tasks", nextTask, {
-        visibility: (todo?.visibility || "private") as Visibility,
-      })
-      .subscribe({
-        next: () => {
-          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-        },
-        error: () => {
-          this.notifyService.showError("Failed to create recurring task");
-        },
-      });
+    this.typedApiService.createTask(nextTask as any).subscribe({
+      next: () => {
+        this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+      },
+      error: () => {
+        this.notifyService.showError("Failed to create recurring task");
+      },
+    });
   }
 
   toggleMobileInfo() {
@@ -545,15 +491,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.requestService
-      .update<Task>(
-        "tasks",
-        event.task.id,
-        { [event.field]: event.value },
-        { visibility: (todo.visibility || "private") as Visibility }
-      )
+    this.typedApiService
+      .updateTask(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
       .subscribe({
-        next: () => {},
+        next: (updatedTask) => {
+          this.storageService.modify("tasks", "update", { ...updatedTask, id: event.task.id });
+        },
         error: () => {
           this.notifyService.showError("Failed to update task");
         },
@@ -785,7 +728,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       priority,
       () => this.clearSelection(),
       (msg) => this.notifyService.showSuccess(msg),
-      (id, data) => this.requestService.update<Task>("tasks", id, data)
+      (id, data) => this.typedApiService.updateTask(id, data)
     );
   }
 
@@ -802,7 +745,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showSuccess(msg);
         }
       },
-      (id, data, options) => this.requestService.update<Task>("tasks", id, data, options)
+      (id, data, options) => this.typedApiService.updateTask(id, data, options?.visibility)
     );
   }
 

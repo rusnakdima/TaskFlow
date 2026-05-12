@@ -25,13 +25,12 @@ import { TodosBlueprintService } from "@services/features/todos-blueprint.servic
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 import { TypedApiService } from "@services/typed-api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 
-import { DEFAULT_CACHE_TTL_MS, VisibilityHelper } from "@helpers/index";
+import { VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 import { BaseListView } from "@views/base-list.view";
@@ -94,7 +93,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  private requestService = inject(REQUEST_SERVICE);
   private typedApiService = inject(TypedApiService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
@@ -246,95 +244,22 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         total: this.storageService.todos().length,
         loading: false,
       }));
+      return;
     }
 
-    const sub = this.requestService
-      .loadPage<Todo>("todos", {
-        visibility: "all",
-        limit: this.todoPagination().limit,
-        skip: 0,
-        load: ["user", "categories", "assignees"],
-      })
-      .subscribe({
-        next: (todos: Todo[]) => {
-          this.todoPagination.update((p) => ({
-            ...p,
-            skip: todos.length,
-            hasMore: todos.length === p.limit,
-            total: todos.length,
-            loading: false,
-          }));
-        },
-        error: () => {
-          this.todoPagination.update((p) => ({
-            ...p,
-            loading: false,
-          }));
-        },
-        complete: () => {
-          this.todoPagination.update((p) => ({
-            ...p,
-            loading: false,
-          }));
-        },
-      });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    this.todoPagination.update((p) => ({ ...p, loading: true }));
+    this.storageService.ensureTodosLoaded();
+    this.todoPagination.update((p) => ({ ...p, loading: false }));
   }
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-
-    this.todoPagination.update((p) => ({ ...p, loading: true }));
-
-    this.requestService.loadMore<Todo>("todos").subscribe({
-      next: (todos: Todo[]) => {
-        this.todoPagination.update((p) => ({
-          ...p,
-          skip: p.skip + todos.length,
-          loading: false,
-          hasMore: todos.length === p.limit,
-          total: p.total + todos.length,
-        }));
-      },
-      error: () => {
-        this.todoPagination.update((p) => ({
-          ...p,
-          loading: false,
-          hasMore: false,
-        }));
-      },
-    });
+    this.storageService.ensureTodosLoaded();
   }
 
   onVisibilityChange(visibility: string): void {
     this.stateService.activeVisibility.set(visibility as any);
-    const cachedTodos = this.getTodosForVisibility(visibility);
-    if (cachedTodos.length > 0 && this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS)) {
-      return;
-    }
-    this.requestService
-      .loadPage<Todo>("todos", {
-        visibility: visibility as Visibility,
-        limit: this.todoPagination().limit,
-        skip: 0,
-        load: ["user", "categories", "assignees"],
-      })
-      .subscribe();
-  }
-
-  private getTodosForVisibility(visibility: string): Todo[] {
-    switch (visibility) {
-      case "all":
-        return this.stateService.allTodosFlat();
-      case "private":
-        return this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at);
-      case "shared":
-        return this.storageService.sharedTodos().filter((t: Todo) => !t.deleted_at);
-      case "public":
-        return this.storageService.publicTodos().filter((t: Todo) => !t.deleted_at);
-      default:
-        return this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at);
-    }
+    this.storageService.ensureTodosLoaded(visibility);
   }
 
   override ngOnInit(): void {
@@ -406,6 +331,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const visibility = todo?.visibility || "private";
     const sub = this.typedApiService.deleteTodo(todoId!, visibility).subscribe({
       next: () => {
+        this.storageService.modify("todos", "delete", { id: todoId });
         this.notifyService.showSuccess("Todo deleted successfully");
       },
       error: (err) => {
@@ -429,6 +355,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
+          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, true);
           this.notifyService.showSuccess("Todo archived successfully");
         } else {
           this.notifyService.showError(response.message || "Failed to archive todo");
@@ -438,6 +365,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
       const sub = this.typedApiService.deleteTodo(todoId!, visibility).subscribe({
         next: () => {
+          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, true);
           this.notifyService.showSuccess("Todo archived successfully");
         },
         error: (err) => {
@@ -466,6 +394,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
+          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, false);
           this.notifyService.showSuccess("Todo restored successfully");
         } else {
           this.notifyService.showError(response.message || "Failed to restore todo");
@@ -473,15 +402,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const sub = this.requestService
-        .update<Todo>(
-          "todos",
-          todoId!,
-          { deleted_at: undefined },
-          { visibility: todo.visibility as Visibility }
-        )
+      const sub = this.typedApiService
+        .updateTodo(todoId!, { deleted_at: undefined } as any, todo.visibility)
         .subscribe({
           next: () => {
+            this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, false);
             this.notifyService.showSuccess("Todo restored successfully");
           },
           error: (err) => {
@@ -494,15 +419,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   onUpdateTodo(todo: Todo, event: { field: string; value: any }): void {
     const { field, value } = event;
-    const sub = this.requestService
-      .update<Todo>(
-        "todos",
-        todo.id,
-        { [field]: value },
-        { visibility: todo.visibility as Visibility }
-      )
+    const sub = this.typedApiService
+      .updateTodo(todo.id, { [field]: value }, todo.visibility)
       .subscribe({
-        next: () => {
+        next: (updatedTodo) => {
+          this.storageService.modify("todos", "update", { ...updatedTodo, id: todo.id });
           this.notifyService.showSuccess("Project updated successfully");
         },
         error: (err) => {
@@ -562,7 +483,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         if (archiveConfirmed) {
           const visibility = item.visibility || "private";
           const sub = this.typedApiService.deleteTodo(item.id, visibility).subscribe({
-            next: () => this.notifyService.showSuccess("Project archived successfully"),
+            next: () => {
+              this.storageService.updateRecordDeleteStatusWithCascade("todos", item.id, true);
+              this.notifyService.showSuccess("Project archived successfully");
+            },
             error: (err) =>
               this.notifyService.showError(err.message || "Failed to archive project"),
           });
@@ -663,6 +587,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         for (const todoId of selected) {
           const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId);
           if (response.status === ResponseStatus.SUCCESS) {
+            this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId, true);
             successCount++;
           } else {
             errorCount++;
@@ -689,13 +614,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .subscribe({
           next: (result) => {
             this.clearSelection();
-            if (result.errorCount > 0) {
-              this.notifyService.showWarning(
-                `Archived ${result.successCount} project(s), ${result.errorCount} failed.`
-              );
-            } else {
+            if (result.errorCount === 0) {
+              selected.forEach((todoId) => {
+                this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId, true);
+              });
               this.notifyService.showSuccess(
                 `${result.successCount} project(s) archived successfully`
+              );
+            } else {
+              this.notifyService.showWarning(
+                `Archived ${result.successCount} project(s), ${result.errorCount} failed.`
               );
             }
           },

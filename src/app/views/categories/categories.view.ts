@@ -18,6 +18,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
+import { TypedApiService } from "@services/typed-api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
@@ -64,6 +65,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
   private requestService = inject(REQUEST_SERVICE);
+  private typedApiService = inject(TypedApiService);
   private relationLoadingService = inject(RelationLoadingService);
 
   protected getItems(): { id: string }[] {
@@ -226,7 +228,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       const archiveRequests = Array.from(selected).map((categoryId) =>
-        firstValueFrom(this.requestService.get<Category>("categories", categoryId))
+        firstValueFrom(this.typedApiService.getCategory(categoryId))
       );
 
       Promise.all(archiveRequests)

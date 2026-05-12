@@ -186,7 +186,7 @@ export class SubtasksViewComponent extends BaseListView {
       }
       this.loadInitialSubtasks();
     } else {
-      this.requestService.get<Task>("tasks", taskId).subscribe({
+      this.typedApiService.getTask(taskId).subscribe({
         next: (task) => {
           if (task) {
             this.storageService.modify("tasks", "create", task as any);
@@ -555,37 +555,25 @@ export class SubtasksViewComponent extends BaseListView {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.requestService
-      .update<Subtask>(
-        "subtasks",
-        subtask.id,
-        { status: newStatus },
-        { visibility: visibility as Visibility, offline: true }
-      )
-      .subscribe({
-        next: () => {
-          this.taskSubtasks.update((subtasks: Subtask[]) =>
-            subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
-          );
-        },
-        error: (err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to update subtask";
-          this.notifyService.showError(message);
-        },
-      });
+    this.typedApiService.updateSubtask(subtask.id, { status: newStatus }, visibility).subscribe({
+      next: () => {
+        this.taskSubtasks.update((subtasks: Subtask[]) =>
+          subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
+        );
+      },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to update subtask";
+        this.notifyService.showError(message);
+      },
+    });
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    this.requestService
-      .update<Subtask>(
-        "subtasks",
-        event.subtask.id,
-        { [event.field]: event.value },
-        { visibility: visibility as Visibility }
-      )
+    this.typedApiService
+      .updateSubtask(event.subtask.id, { [event.field]: event.value }, visibility)
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -724,12 +712,7 @@ export class SubtasksViewComponent extends BaseListView {
     const visibility = this.isPrivate() ? "private" : "shared";
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.requestService.update(
-          "subtasks",
-          subtaskId,
-          { status: status as any },
-          { visibility: visibility as Visibility }
-        )
+        this.typedApiService.updateSubtask(subtaskId, { status: status as any }, visibility)
       );
     });
 
@@ -894,13 +877,8 @@ export class SubtasksViewComponent extends BaseListView {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    this.requestService
-      .update<Subtask>(
-        "subtasks",
-        payload.item.id,
-        { status: payload.status },
-        { visibility: visibility as Visibility, offline: true }
-      )
+    this.typedApiService
+      .updateSubtask(payload.item.id, { status: payload.status }, visibility)
       .subscribe({
         next: () => {
           this.taskSubtasks.update((subtasks: Subtask[]) =>
@@ -955,18 +933,16 @@ export class SubtasksViewComponent extends BaseListView {
       return;
     }
 
-    this.requestService
-      .delete("subtasks", subtaskId, { visibility: visibility as Visibility })
-      .subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Subtask archived successfully");
-          this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
-        },
-        error: (err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to archive subtask";
-          this.notifyService.showError(message);
-        },
-      });
+    this.typedApiService.deleteSubtask(subtaskId, visibility).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Subtask archived successfully");
+        this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
+      },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to archive subtask";
+        this.notifyService.showError(message);
+      },
+    });
   }
 
   override clearSelection(): void {
