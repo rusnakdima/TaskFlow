@@ -1,46 +1,61 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Observable, from } from "rxjs";
 
 /* models */
 import { Response } from "@models/response.model";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminService {
+  private jwtTokenService = inject(JwtTokenService);
+
   constructor() {}
 
   getAllDataForAdmin<R>(): Observable<Response<R>> {
-    return from(invoke<Response<R>>("get_all_data_for_admin"));
+    const token = this.jwtTokenService.getToken();
+    return from(invoke<Response<R>>("admin_get_all", { token }));
   }
 
   getAllDataForArchive<R>(): Observable<Response<R>> {
-    return from(invoke<Response<R>>("get_all_data_for_archive"));
+    const token = this.jwtTokenService.getToken();
+    return from(invoke<Response<R>>("admin_get_all_archive", { token }));
   }
 
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("permanently_delete_record", { table, id });
+    const token = this.jwtTokenService.getToken();
+    return await invoke<Response<void>>("admin_permanently_delete", { table, id, token });
   }
 
   async permanentlyDeleteRecordLocal(table: string, id: string): Promise<Response<void>> {
-    return await invoke<Response<void>>("permanently_delete_record_local", { table, id });
+    const token = this.jwtTokenService.getToken();
+    return await invoke<Response<void>>("admin_permanently_delete_local", { table, id, token });
   }
 
   async toggleDeleteStatus(table: string, id: string): Promise<Response<boolean>> {
-    return await invoke<Response<boolean>>("toggle_delete_status", { table, id });
+    const token = this.jwtTokenService.getToken();
+    return await invoke<Response<boolean>>("admin_toggle_delete", { table, id, token });
   }
 
   async toggleDeleteStatusLocal(table: string, id: string): Promise<Response<boolean>> {
-    return await invoke<Response<boolean>>("toggle_delete_status_local", { table, id });
+    const token = this.jwtTokenService.getToken();
+    return await invoke<Response<boolean>>("admin_toggle_delete_local", { table, id, token });
   }
 
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
-    return from(invoke<Response<R>>("get_admin_data_paginated", { dataType: type, skip, limit }));
+    const token = this.jwtTokenService.getToken();
+    return from(
+      invoke<Response<R>>("admin_get_paginated", { data_type: type, skip, limit, token })
+    );
   }
 
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
-    return from(invoke<Response<R>>("get_archive_data_paginated", { dataType: type, skip, limit }));
+    const token = this.jwtTokenService.getToken();
+    return from(
+      invoke<Response<R>>("admin_get_archive_paginated", { data_type: type, skip, limit, token })
+    );
   }
 }

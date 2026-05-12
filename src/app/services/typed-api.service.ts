@@ -37,10 +37,15 @@ import {
   UserListResponse,
   CascadeResult,
 } from "@models/generated/api.types";
+import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
 @Injectable({ providedIn: "root" })
 export class TypedApiService {
   private invokeCommand<T>(command: string, args: Record<string, unknown>): Observable<T> {
+    const token = TokenStorageHelper.getToken();
+    if (token) {
+      args["token"] = token;
+    }
     return from(
       invoke<ApiResponse<any>>(command, args).then((response) => {
         if (response.status === "Success") {

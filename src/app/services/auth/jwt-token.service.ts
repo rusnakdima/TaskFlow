@@ -2,6 +2,9 @@
 import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 
+/* models */
+import { User } from "@models/generated/api.types";
+
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
@@ -133,5 +136,27 @@ export class JwtTokenService {
    */
   isLoggedIn(): boolean {
     return this.isValidToken(this.getToken());
+  }
+
+  /**
+   * Get user object from JWT token claims
+   */
+  getUserFromToken(token: string | null): User | null {
+    if (!token) return null;
+    const decoded = this.decodeToken(token);
+    if (!decoded) return null;
+    return {
+      id: decoded["id"] || null,
+      email: decoded["email"] || null,
+      username: decoded["username"] || decoded["name"] || null,
+      role: decoded["role"] || decoded["user_role"] || null,
+      profile_id: decoded["profile_id"] || null,
+      totp_enabled: decoded["totp_enabled"] || false,
+      qr_login_enabled: decoded["qr_login_enabled"] || false,
+      github_username: decoded["github_username"] || undefined,
+      created_at: decoded["created_at"] || undefined,
+      updated_at: decoded["updated_at"] || undefined,
+      deleted_at: decoded["deleted_at"] || undefined,
+    } as User;
   }
 }
