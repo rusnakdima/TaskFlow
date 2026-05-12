@@ -1,8 +1,7 @@
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
-use crate::helpers::response_helper::err_response;
 use crate::shared::types::{TodoCreateRequest, TodoUpdateRequest};
 use crate::AppState;
+use crate::routes::crud_helpers as crud;
 use tauri::State;
 
 #[tauri::command]
@@ -11,12 +10,7 @@ pub async fn get_todo(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .unwrap_or_default();
-
-  state.todo_service.get_by_id(&id, &user_id).await
+  crud::handle_get(&state, "todos", id, None, None, token).await
 }
 
 #[tauri::command]
@@ -28,19 +22,7 @@ pub async fn get_todos(
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .unwrap_or_default();
-
-  let effective_visibility = visibility.as_deref().unwrap_or("private");
-  let skip = page.map(|p| p * limit.unwrap_or(20));
-  let limit = limit.or(Some(20));
-
-  state
-    .todo_service
-    .get_all(&user_id, effective_visibility, filter, skip, limit)
-    .await
+  crud::handle_get_all(&state, "todos", page, limit, visibility, filter, None, token).await
 }
 
 #[tauri::command]
@@ -49,16 +31,7 @@ pub async fn create_todo(
   data: TodoCreateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-
-  let data_value = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
-  state
-    .todo_service
-    .create(data_value, &data.visibility)
-    .await
+  crud::handle_create(&state, "todos", data, None, token).await
 }
 
 #[tauri::command]
@@ -68,13 +41,7 @@ pub async fn update_todo(
   data: TodoUpdateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-
-  let data_value = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
-  state.todo_service.update(&id, data_value).await
+  crud::handle_update(&state, "todos", id, data, None, token).await
 }
 
 #[tauri::command]
@@ -83,10 +50,5 @@ pub async fn delete_todo(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-
-  state.todo_service.delete(&id).await
+  crud::handle_delete(&state, "todos", id, None, token).await
 }

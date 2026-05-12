@@ -19,6 +19,8 @@ pub async fn get_users(
     .as_ref()
     .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
 
+  let skip = Some(page * limit);
+  let limit_opt = Some(limit);
   let result = state
     .repository_service
     .execute(
@@ -31,6 +33,8 @@ pub async fn get_users(
       Some(effective_visibility.to_string()),
       false,
       user_id,
+      skip,
+      limit_opt,
     )
     .await;
 

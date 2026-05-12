@@ -1,4 +1,5 @@
 use crate::entities::response_entity::ResponseModel;
+use crate::helpers::auth_helper::extract_user_from_token;
 use crate::helpers::response_helper::err_response_formatted;
 use crate::services::cascade::CascadeResult;
 use crate::AppState;
@@ -9,7 +10,9 @@ pub async fn batch_soft_delete_cascade(
   state: State<'_, AppState>,
   table: String,
   ids: Vec<String>,
+  token: String,
 ) -> Result<Vec<CascadeResult>, ResponseModel> {
+  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
 
@@ -39,7 +42,9 @@ pub async fn batch_hard_delete_cascade(
   state: State<'_, AppState>,
   table: String,
   ids: Vec<String>,
+  token: String,
 ) -> Result<Vec<CascadeResult>, ResponseModel> {
+  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
 
@@ -69,7 +74,9 @@ pub async fn batch_restore_cascade(
   state: State<'_, AppState>,
   table: String,
   ids: Vec<String>,
+  token: String,
 ) -> Result<Vec<CascadeResult>, ResponseModel> {
+  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
 

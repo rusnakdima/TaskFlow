@@ -1,8 +1,7 @@
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
-use crate::helpers::response_helper::err_response;
 use crate::shared::types::{SubtaskCreateRequest, SubtaskUpdateRequest};
 use crate::AppState;
+use crate::routes::crud_helpers as crud;
 use tauri::State;
 
 #[tauri::command]
@@ -11,10 +10,7 @@ pub async fn get_subtask(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
-  state.subtask_service.get_by_id(&id).await
+  crud::handle_get(&state, "subtasks", id, None, None, token).await
 }
 
 #[tauri::command]
@@ -25,12 +21,7 @@ pub async fn get_subtasks(
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
-  let skip = page.map(|p| p * limit.unwrap_or(20));
-  let limit = limit.or(Some(20));
-  state.subtask_service.get_all(filter, skip, limit).await
+  crud::handle_get_all(&state, "subtasks", page, limit, None, filter, None, token).await
 }
 
 #[tauri::command]
@@ -39,12 +30,7 @@ pub async fn create_subtask(
   data: SubtaskCreateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-  let data_value = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
-  state.subtask_service.create(data_value).await
+  crud::handle_create(&state, "subtasks", data, None, token).await
 }
 
 #[tauri::command]
@@ -54,12 +40,7 @@ pub async fn update_subtask(
   data: SubtaskUpdateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-  let data_value = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
-  state.subtask_service.update(&id, data_value).await
+  crud::handle_update(&state, "subtasks", id, data, None, token).await
 }
 
 #[tauri::command]
@@ -68,9 +49,5 @@ pub async fn delete_subtask(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-  state.subtask_service.delete(&id).await
+  crud::handle_delete(&state, "subtasks", id, None, token).await
 }

@@ -3,6 +3,25 @@ use crate::helpers::auth_helper::validate_admin_role;
 use crate::AppState;
 use tauri::State;
 
+const ALLOWED_TABLES: [&str; 8] = [
+  "todos",
+  "tasks",
+  "subtasks",
+  "categories",
+  "profiles",
+  "chats",
+  "comments",
+  "users",
+];
+
+fn validate_table_name(table: &str) -> Result<(), ResponseModel> {
+  if ALLOWED_TABLES.contains(&table) {
+    Ok(())
+  } else {
+    Err(ResponseModel::new_false("Invalid table name"))
+  }
+}
+
 #[tauri::command]
 pub async fn admin_get_all(
   state: State<'_, AppState>,
@@ -46,6 +65,7 @@ pub async fn admin_toggle_delete(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  validate_table_name(&table)?;
   validate_admin_role(
     &token,
     &state.config_helper.jwt_secret,
@@ -66,6 +86,7 @@ pub async fn admin_permanently_delete(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  validate_table_name(&table)?;
   validate_admin_role(
     &token,
     &state.config_helper.jwt_secret,
@@ -86,6 +107,7 @@ pub async fn admin_toggle_delete_local(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  validate_table_name(&table)?;
   validate_admin_role(
     &token,
     &state.config_helper.jwt_secret,
@@ -106,6 +128,7 @@ pub async fn admin_permanently_delete_local(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
+  validate_table_name(&table)?;
   validate_admin_role(
     &token,
     &state.config_helper.jwt_secret,

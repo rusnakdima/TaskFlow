@@ -1,9 +1,17 @@
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
-use crate::helpers::response_helper::err_response;
-use crate::shared::types::CommentCreateRequest;
+use crate::shared::types::{CommentCreateRequest, CommentUpdateRequest};
 use crate::AppState;
+use crate::routes::crud_helpers as crud;
 use tauri::State;
+
+#[tauri::command]
+pub async fn get_comment(
+  state: State<'_, AppState>,
+  id: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  crud::handle_get(&state, "comments", id, None, None, token).await
+}
 
 #[tauri::command]
 pub async fn get_comments(
@@ -13,13 +21,7 @@ pub async fn get_comments(
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
-  let effective_limit = limit.unwrap_or(100);
-  let skip = page.map(|p| p * effective_limit);
-  let limit = Some(effective_limit);
-  state.comment_service.get_all(filter, skip, limit).await
+  crud::handle_get_all(&state, "comments", page, limit, None, filter, None, token).await
 }
 
 #[tauri::command]
@@ -28,12 +30,17 @@ pub async fn create_comment(
   data: CommentCreateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-  let data_value = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
-  state.comment_service.create(data_value).await
+  crud::handle_create(&state, "comments", data, None, token).await
+}
+
+#[tauri::command]
+pub async fn update_comment(
+  state: State<'_, AppState>,
+  id: String,
+  data: CommentUpdateRequest,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  crud::handle_update(&state, "comments", id, data, None, token).await
 }
 
 #[tauri::command]
@@ -42,9 +49,5 @@ pub async fn delete_comment(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok())
-    .ok_or_else(|| err_response("Unauthorized"))?;
-  state.comment_service.delete(&id).await
+  crud::handle_delete(&state, "comments", id, None, token).await
 }
