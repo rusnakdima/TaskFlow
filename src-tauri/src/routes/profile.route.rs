@@ -30,6 +30,8 @@ pub async fn get_profile(
       Some(effective_visibility.to_string()),
       false,
       user_id,
+      None,
+      None,
     )
     .await
 }
@@ -50,6 +52,8 @@ pub async fn get_profiles(
     .as_ref()
     .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
 
+  let skip = Some(page * limit);
+  let limit_opt = Some(limit);
   let result = state
     .repository_service
     .execute(
@@ -62,6 +66,8 @@ pub async fn get_profiles(
       Some(effective_visibility.to_string()),
       false,
       user_id,
+      skip,
+      limit_opt,
     )
     .await;
 
@@ -100,6 +106,8 @@ pub async fn create_profile(
       Some("private".to_string()),
       false,
       None,
+      None,
+      None,
     )
     .await
 }
@@ -124,6 +132,8 @@ pub async fn update_profile(
       Some("private".to_string()),
       false,
       None,
+      None,
+      None,
     )
     .await
 }
@@ -144,6 +154,8 @@ pub async fn delete_profile(
       None,
       Some("private".to_string()),
       false,
+      None,
+      None,
       None,
     )
     .await

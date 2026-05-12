@@ -4,6 +4,9 @@ pub mod manage_db_route;
 #[path = "crud_helpers.rs"]
 pub mod crud_helpers;
 
+#[path = "entity_routes/mod.rs"]
+pub mod entity_routes;
+
 #[path = "auth.route.rs"]
 pub mod auth_route;
 
@@ -21,24 +24,6 @@ pub mod cascade_route;
 
 #[path = "admin.route.rs"]
 pub mod admin_route;
-
-#[path = "todo.route.rs"]
-pub mod todo_route;
-
-#[path = "task.route.rs"]
-pub mod task_route;
-
-#[path = "subtask.route.rs"]
-pub mod subtask_route;
-
-#[path = "comment.route.rs"]
-pub mod comment_route;
-
-#[path = "category.route.rs"]
-pub mod category_route;
-
-#[path = "chat.route.rs"]
-pub mod chat_route;
 
 #[path = "user.route.rs"]
 pub mod user_route;
