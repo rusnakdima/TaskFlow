@@ -27,6 +27,24 @@ pub struct ResponseModel {
   pub data: DataValue,
 }
 
+impl ResponseModel {
+  pub fn new_false(message: &str) -> Self {
+    ResponseModel {
+      status: ResponseStatus::Error,
+      message: message.to_string(),
+      data: DataValue::String("".to_string()),
+    }
+  }
+
+  pub fn new_success(message: &str) -> Self {
+    ResponseModel {
+      status: ResponseStatus::Success,
+      message: message.to_string(),
+      data: DataValue::String("".to_string()),
+    }
+  }
+}
+
 impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
   fn from(error: Box<dyn std::error::Error + Send + Sync>) -> Self {
     ResponseModel {

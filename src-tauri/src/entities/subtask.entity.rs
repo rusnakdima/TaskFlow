@@ -17,6 +17,8 @@ pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]
   pub task_id: String,
+  #[validate(required)]
+  pub user_id: String,
   #[validate(not_empty)]
   #[validate(length(min = 1, max = 200))]
   pub title: String,
@@ -44,6 +46,9 @@ pub struct SubtaskCreateModel {
   #[validate(required)]
   #[validate(not_empty)]
   pub task_id: String,
+  #[validate(required)]
+  #[validate(not_empty)]
+  pub user_id: String,
   #[validate(not_empty)]
   #[validate(length(min = 1, max = 200))]
   pub title: String,
@@ -62,6 +67,7 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
     SubtaskEntity {
       id: None,
       task_id: value.task_id,
+      user_id: value.user_id,
       title: value.title,
       description: value.description.unwrap_or_default(),
       status: crate::entities::task_entity::TaskStatus::Pending,

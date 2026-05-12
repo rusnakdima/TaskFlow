@@ -1,6 +1,7 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /* nosql_orm */
 use nosql_orm::Model;
@@ -32,6 +33,7 @@ pub struct TodoEntity {
   pub end_date: Option<String>,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub assignee_roles: HashMap<String, String>,
   pub visibility: String,
   pub priority: String,
   pub order: i32,
@@ -55,6 +57,7 @@ pub struct TodoCreateModel {
   pub end_date: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
+  pub assignee_roles: HashMap<String, String>,
   #[validate(not_empty)]
   pub visibility: String,
   pub priority: String,
@@ -78,6 +81,7 @@ impl From<TodoCreateModel> for TodoEntity {
       end_date: formatted_end_date,
       categories: value.categories,
       assignees: value.assignees,
+      assignee_roles: value.assignee_roles,
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,
