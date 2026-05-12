@@ -2,14 +2,16 @@
 import { Injectable, signal, WritableSignal } from "@angular/core";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Chat } from "@models/chat.model";
-import { Category } from "@models/category.model";
-import { Profile } from "@models/profile.model";
-import { User } from "@models/user.model";
+import {
+  Todo,
+  Task,
+  Subtask,
+  Comment,
+  Chat,
+  User,
+  Category,
+  Profile,
+} from "@models/generated/api.types";
 import { EntityType } from "@models/storage.model";
 
 /* utils */

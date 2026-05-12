@@ -4,23 +4,45 @@ import { invoke } from "@tauri-apps/api/core";
 
 import {
   ApiResponse,
-  Todo, TodoCreateRequest, TodoUpdateRequest, TodoListResponse,
-  Task, TaskCreateRequest, TaskUpdateRequest, TaskListResponse,
-  Subtask, SubtaskCreateRequest, SubtaskUpdateRequest, SubtaskListResponse,
-  Category, CategoryCreateRequest, CategoryUpdateRequest, CategoryListResponse,
-  Profile, ProfileCreateRequest, ProfileUpdateRequest, ProfileListResponse,
-  Chat, ChatCreateRequest, ChatUpdateRequest, ChatListResponse,
-  Comment, CommentCreateRequest, CommentListResponse,
-  User, LoginRequest, RegisterRequest, UserListResponse,
+  Todo,
+  TodoCreateRequest,
+  TodoUpdateRequest,
+  TodoListResponse,
+  Task,
+  TaskCreateRequest,
+  TaskUpdateRequest,
+  TaskListResponse,
+  Subtask,
+  SubtaskCreateRequest,
+  SubtaskUpdateRequest,
+  SubtaskListResponse,
+  Category,
+  CategoryCreateRequest,
+  CategoryUpdateRequest,
+  CategoryListResponse,
+  Profile,
+  ProfileCreateRequest,
+  ProfileUpdateRequest,
+  ProfileListResponse,
+  Chat,
+  ChatCreateRequest,
+  ChatUpdateRequest,
+  ChatListResponse,
+  Comment,
+  CommentCreateRequest,
+  CommentListResponse,
+  User,
+  LoginRequest,
+  RegisterRequest,
+  UserListResponse,
   CascadeResult,
 } from "@models/generated/api.types";
 
 @Injectable({ providedIn: "root" })
 export class TypedApiService {
-
   private invokeCommand<T>(command: string, args: Record<string, unknown>): Observable<T> {
     return from(
-      invoke<ApiResponse>(command, args).then((response) => {
+      invoke<ApiResponse<any>>(command, args).then((response) => {
         if (response.status === "Success") {
           return response.data as T;
         }
@@ -310,7 +332,11 @@ export class TypedApiService {
   }
 
   adminGetArchivePaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
-    return this.invokeCommand<unknown>("admin_get_archive_paginated", { data_type: dataType, skip, limit });
+    return this.invokeCommand<unknown>("admin_get_archive_paginated", {
+      data_type: dataType,
+      skip,
+      limit,
+    });
   }
 
   // ==================== CASCADE OPERATIONS ====================

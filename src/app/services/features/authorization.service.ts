@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 
 @Injectable({ providedIn: "root" })
 export class AuthorizationService {

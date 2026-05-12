@@ -1,5 +1,5 @@
 import { Injectable, signal, inject } from "@angular/core";
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { ProjectTemplate, TemplateTask } from "@models/template.model";
 
@@ -48,7 +48,7 @@ export class TemplateService {
       name,
       description,
       tasks: templateTasks,
-      categories: todo.categories?.map((cat) => cat.id) || [],
+      categories: todo.categories || [],
       createdAt: new Date().toISOString(),
     };
 
@@ -72,19 +72,13 @@ export class TemplateService {
         status: "pending",
         priority: templateTask.priority,
         isCompleted: false,
-        deleted_at: null,
         order: stIndex,
-        start_date: null,
-        end_date: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })),
       status: "pending",
       priority: templateTask.priority,
-      start_date: null,
-      end_date: null,
       order: index,
-      deleted_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       assignees: [],

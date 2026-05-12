@@ -4,9 +4,11 @@ import { tap, map } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
+import { Profile } from "@models/generated/api.types";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { TypedApiService } from "@services/typed-api.service";
 import {
   Visibility,
   CrudOptions,
@@ -38,6 +40,7 @@ export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
   private storageService = inject(StorageService);
   private jwtTokenService = inject(JwtTokenService);
+  private typedApiService = inject(TypedApiService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
   private readonly REQUEST_TTL = 30000;
@@ -445,24 +448,27 @@ export class ApiService {
     return from(invoke<Response<unknown>>("initialize_user_data", { userId }));
   }
 
-  getProfile(): Observable<unknown> {
+  getProfile(): Observable<Profile | null> {
     const userId = this.currentUserId();
-    return this.getAll("profiles", {
-      visibility: "all",
-      filter: { user_id: userId },
-      load: ["user"],
-    }).pipe(
-      tap((profiles: unknown[]) => {
-        if (Array.isArray(profiles) && profiles.length > 0) {
-          this.storageService.setCollection("profiles", profiles[0] as any);
-        }
-      }),
-      map((profiles: unknown[]) => profiles[0] || null)
-    );
+    return this.typedApiService
+      .getProfiles({
+        visibility: "all",
+        filter: { user_id: userId },
+      })
+      .pipe(
+        tap((response) => {
+          if (response.items && response.items.length > 0) {
+            this.storageService.setCollection("profiles", response.items[0] as any);
+          }
+        }),
+        map((response) => response.items[0] || null)
+      );
   }
 
-  getPublicProfiles(): Observable<unknown[]> {
-    return this.getAll("profiles", { visibility: "public" });
+  getPublicProfiles(): Observable<Profile[]> {
+    return this.typedApiService
+      .getProfiles({ visibility: "public" })
+      .pipe(map((response) => response.items));
   }
 
   invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
