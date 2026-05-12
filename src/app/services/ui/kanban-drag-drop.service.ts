@@ -3,7 +3,7 @@ import { Injectable } from "@angular/core";
 import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 
 /* models */
-import { Task, TaskStatus } from "@models/task.model";
+import { Task, TaskStatus } from "@models/generated/api.types";
 import { KanbanColumn } from "@models/drag-drop.model";
 
 export interface KanbanItem {

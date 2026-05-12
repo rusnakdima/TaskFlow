@@ -3,11 +3,11 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Task, TaskStatus } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Chat } from "@models/chat.model";
+import { Todo } from "@models/generated/api.types";
+import { Task, TaskStatus } from "@models/generated/api.types";
+import { Subtask } from "@models/generated/api.types";
+import { Comment } from "@models/generated/api.types";
+import { Chat } from "@models/generated/api.types";
 import {
   EntityType,
   VisibilityFilter,
@@ -455,7 +455,7 @@ export class StorageService {
 
   restoreRecordWithCascade(table: string, id: string): void {
     const timestamp = TimestampHelper.createTimestamp();
-    const updateData = { deleted_at: null, updated_at: timestamp };
+    const updateData = { deleted_at: undefined, updated_at: timestamp };
     if (table === "todos") {
       this._entityService.updateEntity("todos", { id, ...updateData });
       const relatedTasks = this._entityService.tasks().filter((t) => t.todo_id === id);
@@ -487,7 +487,7 @@ export class StorageService {
 
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
     const timestamp = TimestampHelper.createTimestamp();
-    const update = { deleted_at: deletedAt ? timestamp : null, updated_at: timestamp };
+    const update = { deleted_at: deletedAt ? timestamp : undefined, updated_at: timestamp };
     if (table === "todos") {
       const { taskIds = [], subtaskIds = [] } = this.cascadeService.computeCascadeForTodo(
         this._entityService.tasks(),
@@ -588,7 +588,7 @@ export class StorageService {
   updateRecordDeleteStatus(table: string, id: string, deletedAt: boolean): void {
     const timestamp = TimestampHelper.createTimestamp();
     this.updateRecord(table, id, {
-      deleted_at: deletedAt ? timestamp : null,
+      deleted_at: deletedAt ? timestamp : undefined,
       updated_at: timestamp,
     });
   }
@@ -767,12 +767,12 @@ export class StorageService {
   }
   getCommentsByTaskId(task_id: string): Comment[] {
     return (this.commentsByTaskId().get(task_id) || []).sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
     );
   }
   getCommentsBySubtaskId(subtask_id: string): Comment[] {
     return (this.commentsBySubtaskId().get(subtask_id) || []).sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
     );
   }
   getChatsByAll(): Chat[] {

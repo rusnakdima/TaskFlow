@@ -8,9 +8,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
 import { Conflict, ConflictResolution, ConflictDetectionStats } from "@models/conflict.model";
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
+import { Todo, Task, Subtask } from "@models/generated/api.types";
 
 const CONFLICT_TTL_MS = 10 * 60 * 1000;
 const MAX_CONFLICTS_SIZE = 100;

@@ -4,13 +4,7 @@ import { Observable, of } from "rxjs";
 import { tap, map, catchError } from "rxjs/operators";
 
 /* models */
-import { Todo } from "@models/todo.model";
-import { Task } from "@models/task.model";
-import { Subtask } from "@models/subtask.model";
-import { Comment } from "@models/comment.model";
-import { Chat } from "@models/chat.model";
-import { User } from "@models/user.model";
-import { Profile } from "@models/profile.model";
+import { Todo, Task, Subtask, Comment, Chat, User, Profile } from "@models/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
 
 /* services */
@@ -239,7 +233,7 @@ export class StorageQueryService {
     return computed(() =>
       createGroupedMap(
         this.activeComments(),
-        (c) => c.task_id,
+        (c) => c.task_id as string,
         (c) => !!c.task_id
       )
     );
@@ -249,7 +243,7 @@ export class StorageQueryService {
     return computed(() =>
       createGroupedMap(
         this.activeComments(),
-        (c) => c.subtask_id,
+        (c) => c.subtask_id as string,
         (c) => !!c.subtask_id
       )
     );

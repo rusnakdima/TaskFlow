@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService, TemplateTask } from "./template.service";
 import { StorageService } from "@services/storage.service";
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 import { Observable, of } from "rxjs";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 
@@ -139,7 +139,6 @@ export class TodosBlueprintService {
       id: `todo-${Date.now()}`,
       title: template.title,
       description: template.description || "",
-      deleted_at: null,
       user_id: userId,
       user: { id: userId } as any,
       visibility: "private",
@@ -153,8 +152,6 @@ export class TodosBlueprintService {
       chats_count: 0,
       priority: template.priority || "medium",
       order: 0,
-      start_date: null,
-      end_date: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

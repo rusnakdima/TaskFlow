@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { Todo } from "@models/todo.model";
+import { Todo } from "@models/generated/api.types";
 
 @Injectable({
   providedIn: "root",
