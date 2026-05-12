@@ -1,7 +1,8 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, of } from "rxjs";
+import { from, Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
+import { invoke } from "@tauri-apps/api/core";
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
@@ -133,8 +134,13 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    */
   private loadAllArchiveDataFromRoute(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
-      this.adminService.getAllDataForArchive<AdminDataWithRelations>().subscribe({
-        next: (response) => {
+      from(
+        invoke<{ status: string; message: string; data: AdminDataWithRelations }>(
+          "get_all_archive_data",
+          {}
+        )
+      ).subscribe({
+        next: (response: { status: string; message: string; data: AdminDataWithRelations }) => {
           if (response.status === "Success" && response.data) {
             subscriber.next(response.data);
             subscriber.complete();
@@ -142,7 +148,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
             subscriber.error(new Error(response.message || "Failed to load archive data"));
           }
         },
-        error: (err) => subscriber.error(err),
+        error: (err: Error) => subscriber.error(err),
       });
     });
   }

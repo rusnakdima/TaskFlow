@@ -344,6 +344,14 @@ export class TypedApiService {
     });
   }
 
+  getAllArchiveData(): Observable<unknown> {
+    return this.invokeCommand<unknown>("get_all_archive_data", {});
+  }
+
+  getAllAdminData(): Observable<unknown> {
+    return this.invokeCommand<unknown>("get_all_admin_data", {});
+  }
+
   // ==================== CASCADE OPERATIONS ====================
 
   batchSoftDelete(table: string, ids: string[]): Observable<CascadeResult> {
