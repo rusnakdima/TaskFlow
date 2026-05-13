@@ -36,6 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract version from git tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Create .env file
         run: |
           echo "NAME_APP=taskflow" > src-tauri/.env
@@ -196,13 +201,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-aab
-          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
+          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab
 
       - name: Upload to Existing Release
         uses: softprops/action-gh-release@v1
@@ -210,7 +215,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
-            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk
+            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

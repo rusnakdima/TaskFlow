@@ -73,6 +73,9 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    base {
+        archivesName.set("${rootProject.name}-${project.version}")
+    }
 }
 
 rust {
