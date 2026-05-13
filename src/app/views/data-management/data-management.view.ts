@@ -252,19 +252,19 @@ export class DataManagementView implements OnInit {
   private hasArchiveData(type: string): boolean {
     switch (type) {
       case "todos":
-        return this.storageService.todos().length > 0;
+        return this.archiveStorageService.todos().length > 0;
       case "tasks":
-        return this.storageService.tasks().length > 0;
+        return this.archiveStorageService.tasks().length > 0;
       case "subtasks":
-        return this.storageService.subtasks().length > 0;
+        return this.archiveStorageService.subtasks().length > 0;
       case "comments":
-        return this.storageService.comments().length > 0;
+        return this.archiveStorageService.comments().length > 0;
       case "chats":
-        return this.storageService.chats().length > 0;
+        return this.archiveStorageService.chats().length > 0;
       case "categories":
-        return this.storageService.categories().length > 0;
+        return this.archiveStorageService.categories().length > 0;
       case "daily_activities":
-        return this.storageService.dailyActivities().length > 0;
+        return this.archiveStorageService.dailyActivities().length > 0;
       default:
         return false;
     }

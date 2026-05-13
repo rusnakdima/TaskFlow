@@ -30,7 +30,6 @@ import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 
-import { VisibilityHelper } from "@helpers/index";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
 import { BaseListView } from "@views/base-list.view";
@@ -324,9 +323,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     if (!confirmed) return;
 
-    const todo = this.storageService.todos().find((t: Todo) => t.id === todoId);
-    const visibility = todo?.visibility || "private";
-    const sub = this.apiService.todos.delete(todoId!, { visibility }).subscribe({
+    const sub = this.apiService.todos.delete(todoId!).subscribe({
       next: () => {
         this.storageService.modify("todos", "delete", { id: todoId });
         this.notifyService.showSuccess("Todo deleted successfully");
@@ -346,9 +343,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const todo = this.storageService.todos().find((t: Todo) => t.id === todoId);
-      const visibility = todo?.visibility || "private";
-
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
@@ -360,7 +354,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const sub = this.apiService.todos.delete(todoId!, { visibility }).subscribe({
+      const sub = this.apiService.todos.delete(todoId!).subscribe({
         next: () => {
           this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, true);
           this.notifyService.showSuccess("Todo archived successfully");
@@ -400,7 +394,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       }
 
       const sub = this.apiService.todos
-        .update(todoId!, { deleted_at: undefined } as any, { visibility: todo.visibility })
+        .update(todoId!, { deleted_at: undefined } as any, todo.visibility)
         .subscribe({
           next: () => {
             this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, false);
@@ -417,7 +411,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   onUpdateTodo(todo: Todo, event: { field: string; value: any }): void {
     const { field, value } = event;
     const sub = this.apiService.todos
-      .update(todo.id, { [field]: value }, { visibility: todo.visibility })
+      .update(todo.id, { [field]: value }, todo.visibility)
       .subscribe({
         next: (updatedTodo) => {
           this.storageService.modify("todos", "update", { ...updatedTodo, id: todo.id });
@@ -478,8 +472,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           confirmClass: "bg-orange-600 hover:bg-orange-700",
         });
         if (archiveConfirmed) {
-          const visibility = item.visibility || "private";
-          const sub = this.apiService.todos.delete(item.id, { visibility }).subscribe({
+          const sub = this.apiService.todos.delete(item.id).subscribe({
             next: () => {
               this.storageService.updateRecordDeleteStatusWithCascade("todos", item.id, true);
               this.notifyService.showSuccess("Project archived successfully");
@@ -603,11 +596,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
       const selectedArray = Array.from(selected).map((id) => ({ id }));
       const sub = this.bulkActionHelper
-        .bulkDelete(selectedArray, (id) => {
-          const todo = this.storageService.todoMap().get(id);
-          const visibility = VisibilityHelper.getVisibility(todo?.visibility);
-          return this.apiService.todos.delete(id, { visibility });
-        })
+        .bulkDelete(selectedArray, (id) => this.apiService.todos.delete(id))
         .subscribe({
           next: (result) => {
             this.clearSelection();

@@ -847,9 +847,10 @@ export class StorageService {
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
 
-  ensureTasksLoaded(visibility: string = "private", limit: number = 10): void {
-    if (this.tasks().length > 0) return;
-    this._queryService.ensureTasksLoaded(visibility, limit);
+  ensureTasksLoaded(visibility: string = "private", limit: number = 10, todoId?: string): void {
+    if (todoId && (this.tasksByTodoId().get(todoId)?.length ?? 0) > 0) return;
+    if (!todoId && this.tasks().length > 0) return;
+    this._queryService.ensureTasksLoaded(visibility, limit, todoId);
   }
 
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10): void {
