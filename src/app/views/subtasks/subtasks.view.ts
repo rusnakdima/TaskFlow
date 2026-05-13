@@ -555,7 +555,7 @@ export class SubtasksViewComponent extends BaseListView {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.apiService.subtasks.update(subtask.id, { status: newStatus }, { visibility }).subscribe({
+    this.apiService.subtasks.update(subtask.id, { status: newStatus }, visibility).subscribe({
       next: () => {
         this.taskSubtasks.update((subtasks: Subtask[]) =>
           subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
@@ -573,7 +573,7 @@ export class SubtasksViewComponent extends BaseListView {
     const visibility = todo?.visibility || "private";
 
     this.apiService.subtasks
-      .update(event.subtask.id, { [event.field]: event.value }, { visibility })
+      .update(event.subtask.id, { [event.field]: event.value }, visibility)
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -584,9 +584,6 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   async deleteSubtask(id: string) {
-    const todo = this.todo();
-    const visibility = todo?.visibility || "private";
-
     const confirmed = await this.confirmDialogService.confirm({
       title: "Delete Subtask",
       message: "Are you sure you want to delete this subtask?",
@@ -595,7 +592,7 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    this.apiService.subtasks.delete(id, { visibility }).subscribe({
+    this.apiService.subtasks.delete(id).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -712,7 +709,7 @@ export class SubtasksViewComponent extends BaseListView {
     const visibility = this.isPrivate() ? "private" : "shared";
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.apiService.subtasks.update(subtaskId, { status: status as any }, { visibility })
+        this.apiService.subtasks.update(subtaskId, { status: status as any }, visibility)
       );
     });
 
@@ -878,7 +875,7 @@ export class SubtasksViewComponent extends BaseListView {
     const visibility = todo?.visibility || "private";
 
     this.apiService.subtasks
-      .update(payload.item.id, { status: payload.status }, { visibility })
+      .update(payload.item.id, { status: payload.status }, visibility)
       .subscribe({
         next: () => {
           this.taskSubtasks.update((subtasks: Subtask[]) =>
@@ -919,9 +916,6 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    const todo = this.todo();
-    const visibility = todo?.visibility || "private";
-
     if (this.isOffline()) {
       const response = await this.adminService.toggleDeleteStatusLocal("subtasks", subtaskId);
       if (response.status === ResponseStatus.SUCCESS) {
@@ -933,7 +927,7 @@ export class SubtasksViewComponent extends BaseListView {
       return;
     }
 
-    this.apiService.subtasks.delete(subtaskId, { visibility }).subscribe({
+    this.apiService.subtasks.delete(subtaskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask archived successfully");
         this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));

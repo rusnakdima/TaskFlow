@@ -467,11 +467,11 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(this.apiService.todos.update(id, payload, { visibility }));
+          await firstValueFrom(this.apiService.todos.update(id, payload, visibility));
         } else if (config.type === "task") {
-          await firstValueFrom(this.apiService.tasks.update(id, payload, { visibility }));
+          await firstValueFrom(this.apiService.tasks.update(id, payload, visibility));
         } else {
-          await firstValueFrom(this.apiService.subtasks.update(id, payload, { visibility }));
+          await firstValueFrom(this.apiService.subtasks.update(id, payload, visibility));
         }
       } else {
         let result: any;

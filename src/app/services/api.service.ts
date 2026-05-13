@@ -1,6 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { Observable, from } from "rxjs";
-import { tap, map } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
@@ -11,8 +10,8 @@ import {
   Category,
   Chat,
   Comment,
-  User,
   Profile,
+  User,
 } from "@models/generated/api.types";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
@@ -21,12 +20,9 @@ import {
   Visibility,
   CrudOptions,
   PaginatedOptions,
-  PaginatedResult,
   HasVisibility,
-  HasId,
   ApiError,
   PaginationState,
-  Operation,
 } from "@models/api.model";
 
 export { ApiError, Visibility, HasId } from "@models/api.model";
@@ -39,95 +35,28 @@ export interface CascadeResult {
   chat_count: number;
 }
 
-function generateRequestId(): string {
-  return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9);
-}
-
 @Injectable({ providedIn: "root" })
 export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
-  private storageService = inject(StorageService);
-  private jwtTokenService = inject(JwtTokenService);
+  storageService = inject(StorageService);
+  jwtTokenService = inject(JwtTokenService);
 
-  private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
-  private readonly REQUEST_TTL = 30000;
-  private readonly MAX_PENDING_REQUESTS = 100;
-  private readonly DEFAULT_PAGE_SIZE = 10;
-
-  readonly todos = new EntityApi<Todo>(this, "todos");
-  readonly tasks = new EntityApi<Task>(this, "tasks");
-  readonly subtasks = new EntityApi<Subtask>(this, "subtasks");
-  readonly categories = new EntityApi<Category>(this, "categories");
-  readonly profiles = new EntityApi<Profile>(this, "profiles");
-  readonly comments = new EntityApi<Comment>(this, "comments");
-  readonly chats = new EntityApi<Chat>(this, "chats");
-  readonly users = new EntityApi<User>(this, "users");
+  readonly todos = new TodoApi(this);
+  readonly tasks = new TaskApi(this);
+  readonly subtasks = new SubtaskApi(this);
+  readonly categories = new CategoryApi(this);
+  readonly profiles = new ProfileApi(this);
+  readonly comments = new CommentApi(this);
+  readonly chats = new ChatApi(this);
   readonly admin = new AdminApi(this);
+  readonly users = new UserApi(this);
 
   private paginationState = signal<Map<string, PaginationState>>(new Map());
-
-  private cleanupPendingRequests(): void {
-    const now = Date.now();
-    for (const [key, entry] of Array.from(this.pendingRequests.entries())) {
-      if (now - entry.timestamp > this.REQUEST_TTL) {
-        entry.controller.abort();
-        this.pendingRequests.delete(key);
-      }
-    }
-    while (this.pendingRequests.size > this.MAX_PENDING_REQUESTS) {
-      const oldestKey = this.pendingRequests.keys().next().value;
-      if (oldestKey) {
-        this.pendingRequests.get(oldestKey)?.controller.abort();
-        this.pendingRequests.delete(oldestKey);
-      }
-    }
-  }
-
-  private getRequestKey(operation: string, table: string, id?: string, filter?: unknown): string {
-    return `${operation}:${table}:${id || ""}:${JSON.stringify(filter || {})}`;
-  }
-
-  private getRequestDeduplicationKey(
-    operation: string,
-    table: string,
-    id?: string,
-    filter?: unknown
-  ): string {
-    this.cleanupPendingRequests();
-
-    const key = this.getRequestKey(operation, table, id, filter);
-    const now = Date.now();
-    const existing = this.pendingRequests.get(key);
-
-    if (existing && now - existing.timestamp < 500) {
-      existing.controller.abort();
-    }
-
-    const controller = new AbortController();
-    this.pendingRequests.set(key, { controller, timestamp: now });
-
-    return key;
-  }
-
-  private removeRequest(key: string): void {
-    this.pendingRequests.delete(key);
-  }
-
-  private determineOfflineFlag(): boolean {
-    const isMongoConnected = this.mongoConnectionService.isConnected();
-    const isBrowserOffline = !navigator.onLine;
-
-    if (isBrowserOffline || !isMongoConnected) {
-      return true;
-    }
-
-    return false;
-  }
 
   private getPaginationState(table: string): PaginationState {
     let state = this.paginationState().get(table);
     if (!state) {
-      state = { skip: 0, limit: this.DEFAULT_PAGE_SIZE, hasMore: true };
+      state = { skip: 0, limit: 10, hasMore: true };
       this.paginationState.update((m) => {
         const newMap = new Map(m);
         newMap.set(table, state!);
@@ -149,107 +78,8 @@ export class ApiService {
   private resetPaginationState(table: string): void {
     this.paginationState.update((m) => {
       const newMap = new Map(m);
-      newMap.set(table, { skip: 0, limit: this.DEFAULT_PAGE_SIZE, hasMore: true });
+      newMap.set(table, { skip: 0, limit: 10, hasMore: true });
       return newMap;
-    });
-  }
-
-  private syncToStorage<T extends HasId>(
-    table: string,
-    operation: "add" | "update" | "remove" | "set",
-    data: T | T[] | null,
-    extra?: { append?: boolean; isPrivate?: boolean }
-  ): void {
-    switch (operation) {
-      case "add":
-        if (data && (data as HasId).id) {
-          this.storageService.modify(table as any, "create", data as any);
-        }
-        break;
-      case "update":
-        if (data && (data as HasId).id) {
-          this.storageService.modify(table as any, "update", data as any);
-        }
-        break;
-      case "remove":
-        if (data && (data as HasId).id) {
-          this.storageService.modify(table as any, "delete", { id: (data as HasId).id });
-        }
-        break;
-      case "set":
-        if (Array.isArray(data)) {
-          this.storageService.setCollection(table as any, data as any, extra);
-        } else if (data) {
-          this.storageService.setCollection(table as any, data as any);
-        }
-        break;
-    }
-  }
-
-  private invokeCrud<T>(
-    operation: Operation,
-    table: string,
-    options: CrudOptions,
-    extras?: { id?: string; data?: unknown; items?: unknown }
-  ): Observable<T> {
-    const key =
-      operation === "getAll" || operation === "get"
-        ? this.getRequestDeduplicationKey(operation, table, extras?.id, options.filter)
-        : generateRequestId();
-
-    const offline = options.offline ?? this.determineOfflineFlag();
-    const requestId = generateRequestId();
-
-    const payload: Record<string, unknown> = {
-      operation,
-      table,
-      offline,
-      request_id: requestId,
-    };
-
-    if (extras?.id) payload["id"] = extras.id;
-    if (extras?.data) payload["data"] = extras.data;
-    if (extras?.items) payload["items"] = extras.items;
-    if (options.visibility) payload["visibility"] = options.visibility;
-    if (options.filter) payload["filter"] = options.filter;
-    if (options.load) payload["load"] = JSON.stringify(options.load);
-    if (options.skip !== undefined) payload["skip"] = options.skip;
-    if (options.limit !== undefined) payload["limit"] = options.limit;
-    if (options.sort) payload["sort"] = JSON.stringify(options.sort);
-
-    return new Observable<T>((subscriber) => {
-      invoke<Response<T>>("manage_data", payload)
-        .then(
-          (response) => {
-            this.removeRequest(key);
-            if (response.status === ResponseStatus.SUCCESS) {
-              subscriber.next(response.data as T);
-              subscriber.complete();
-            } else {
-              subscriber.error(
-                new ApiError(
-                  response?.message || "Unknown error",
-                  "server",
-                  String(response.status)
-                )
-              );
-            }
-          },
-          (err) => {
-            this.removeRequest(key);
-            if (offline && !this.mongoConnectionService.isConnected()) {
-              subscriber.error(
-                new ApiError(
-                  "MongoDB is not connected. This operation requires a database connection.",
-                  "offline"
-                )
-              );
-            } else {
-              subscriber.error(new ApiError(err?.message || String(err), "network"));
-            }
-          }
-        )
-        .catch((err) => subscriber.error(err));
     });
   }
 
@@ -292,148 +122,20 @@ export class ApiService {
     });
   }
 
-  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
-    return this.invokeCrud<T>("get", table, options, { id }).pipe(
-      tap((data) => this.syncToStorage(table, "add", data as HasId))
-    );
+  invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
+    return from(invoke<T>(command, args) as Promise<T>);
   }
 
-  getAll<T extends HasId>(
-    table: string,
-    options: PaginatedOptions = { visibility: "all" }
-  ): Observable<T[]> {
-    return this.invokeCrud<T[]>("getAll", table, options).pipe(
-      tap((data) => {
-        if (Array.isArray(data)) {
-          this.syncToStorage(table, "set", data);
-          this.updatePaginationState(table, {
-            skip: (options.skip || 0) + data.length,
-            hasMore: data.length >= (options.limit || this.DEFAULT_PAGE_SIZE),
-          });
-        }
-      })
-    );
+  async batchSoftDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_soft_delete_cascade", { table, ids });
   }
 
-  create<T extends HasId>(
-    table: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    const isPrivate = options.visibility === "private";
-    return this.invokeCrud<T>("create", table, options, { data }).pipe(
-      tap((created) => {
-        this.syncToStorage(table, "add", created, { isPrivate });
-      })
-    );
+  async batchHardDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_hard_delete_cascade", { table, ids });
   }
 
-  update<T>(
-    table: string,
-    id: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    return this.invokeCrud<T>("update", table, options, { id, data }).pipe(
-      tap((updated) => this.syncToStorage(table, "update", updated as HasId))
-    );
-  }
-
-  delete<T extends HasId>(
-    table: string,
-    id: string,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<void> {
-    return this.invokeCrud<void>("delete", table, options, { id }).pipe(
-      tap(() => this.syncToStorage(table, "remove", { id } as T))
-    );
-  }
-
-  updateAll<T extends HasId>(
-    table: string,
-    items: Partial<T>[],
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T[]> {
-    return this.invokeCrud<T[]>("updateAll", table, options, { items }).pipe(
-      tap((updatedItems) => {
-        if (Array.isArray(updatedItems)) {
-          for (const item of updatedItems) {
-            this.syncToStorage(table, "update", item);
-          }
-        }
-      })
-    );
-  }
-
-  loadPage<T extends HasId>(table: string, options: PaginatedOptions): Observable<T[]> {
-    const state = this.getPaginationState(table);
-    const pageOptions = { ...options, skip: 0, limit: options.limit || state.limit };
-
-    return this.invokeCrud<T[]>("getAll", table, pageOptions).pipe(
-      tap((data) => {
-        if (Array.isArray(data)) {
-          this.syncToStorage(table, "set", data);
-          this.updatePaginationState(table, {
-            skip: data.length,
-            hasMore: data.length >= (pageOptions.limit || state.limit),
-            visibility: options.visibility as Visibility,
-            filter: options.filter,
-          });
-        }
-      })
-    );
-  }
-
-  loadMore<T extends HasId>(table: string): Observable<T[]> {
-    const state = this.getPaginationState(table);
-    if (!state.hasMore) {
-      return new Observable((observer) => {
-        observer.next([] as unknown as T[]);
-        observer.complete();
-      });
-    }
-
-    return this.invokeCrud<T[]>("getAll", table, {
-      visibility: state.visibility || "all",
-      filter: state.filter,
-      skip: state.skip,
-      limit: state.limit,
-    }).pipe(
-      tap((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          this.syncToStorage(table, "set", data, { append: true });
-          this.updatePaginationState(table, {
-            skip: state.skip + data.length,
-            hasMore: data.length >= state.limit,
-          });
-        } else if (Array.isArray(data) && data.length === 0) {
-          this.updatePaginationState(table, { hasMore: false });
-        }
-      })
-    );
-  }
-
-  paginate<T extends HasId>(
-    table: string,
-    options: PaginatedOptions,
-    reset = false
-  ): Observable<PaginatedResult<T>> {
-    const state = this.getPaginationState(table);
-    const limit = options.limit || state.limit;
-    const skip = reset ? 0 : state.skip;
-
-    return this.invokeCrud<T[]>("getAll", table, { ...options, skip, limit }).pipe(
-      tap((data) => {
-        if (Array.isArray(data)) {
-          this.syncToStorage(table, "set", data, reset ? undefined : { append: !reset });
-          this.updatePaginationState(table, {
-            skip: skip + data.length,
-            hasMore: data.length >= limit,
-          });
-        }
-      }),
-      map((data) => ({ items: data, hasMore: data.length >= limit }))
-    );
+  async batchRestore(table: string, ids: string[]): Promise<CascadeResult[]> {
+    return invoke<CascadeResult[]>("batch_restore_cascade", { table, ids });
   }
 
   resetPagination(table: string): void {
@@ -465,174 +167,1123 @@ export class ApiService {
     return from(invoke<Response<unknown>>("initialize_user_data", { userId }));
   }
 
-  getProfile(): Observable<Profile | null> {
-    const userId = this.currentUserId();
-    return this.getAll<Profile>("profiles", {
-      visibility: "all",
-      filter: { user_id: userId },
-    }).pipe(
-      tap((profiles) => {
-        if (profiles && profiles.length > 0) {
-          this.storageService.setCollection("profiles", profiles[0] as any);
-        }
-      }),
-      map((profiles) => profiles?.[0] || null)
-    );
+  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
+    const token = this.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(this.getCommand(table, "get"), {
+        id,
+        visibility: options.visibility,
+        token,
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  getAll<T>(
+    table: string,
+    options: PaginatedOptions & { todoId?: string; taskId?: string } = { visibility: "all" }
+  ): Observable<T[]> {
+    const token = this.jwtTokenService.getToken();
+    const page = options.skip || 0;
+    const limit = options.limit || 10;
+    const filter = { ...options.filter };
+    if (options.todoId) (filter as any).todo_id = options.todoId;
+    if (options.taskId) (filter as any).task_id = options.taskId;
+    return new Observable((subscriber) => {
+      invoke<Response<T[]>>(this.getCommand(table, "getAll"), {
+        page,
+        limit,
+        visibility: options.visibility,
+        filter,
+        token,
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any)?.items || [];
+            this.storageService.setCollection(table as any, items as any);
+            subscriber.next(items as T[]);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get all", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  create<T>(
+    table: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    const token = this.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(this.getCommand(table, "create"), {
+        data,
+        visibility: options.visibility,
+        token,
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.storageService.modify(table as any, "create", response.data as any);
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to create", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update<T>(
+    table: string,
+    id: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    const token = this.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(this.getCommand(table, "update"), {
+        id,
+        data,
+        visibility: options.visibility,
+        token,
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.storageService.modify(table as any, "update", response.data as any);
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to update", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  updateAll<T>(
+    table: string,
+    items: Partial<T>[],
+    options?: { visibility?: string; offline?: boolean }
+  ): Observable<T[]> {
+    const token = this.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      Promise.all(
+        items.map((item) =>
+          (item as any).id
+            ? invoke<Response<T>>(this.getCommand(table, "update"), {
+                id: (item as any).id,
+                data: item,
+                visibility: options?.visibility || "all",
+                token,
+              })
+            : null
+        )
+      )
+        .then((responses) => {
+          const updatedItems = responses
+            .filter((r) => r && r.status === ResponseStatus.SUCCESS)
+            .map((r) => r!.data as T);
+          updatedItems.forEach((item) => {
+            if ((item as any).id) this.storageService.modify(table as any, "update", item as any);
+          });
+          subscriber.next(updatedItems);
+          subscriber.complete();
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(table: string, id: string, options?: CrudOptions): Observable<void> {
+    const token = this.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>(this.getCommand(table, "delete"), {
+        id,
+        visibility: options?.visibility,
+        token,
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.storageService.modify(table as any, "delete", { id } as any);
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to delete", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  loadPage<T>(table: string, options: PaginatedOptions): Observable<T[]> {
+    return this.getAll<T>(table, { ...options, skip: 0, limit: options.limit || 10 });
+  }
+
+  loadMore<T>(table: string): Observable<T[]> {
+    const state = this.getPaginationState(table);
+    if (!state.hasMore) {
+      return new Observable((observer) => {
+        observer.next([] as unknown as T[]);
+        observer.complete();
+      });
+    }
+    return this.getAll<T>(table, {
+      visibility: state.visibility as Visibility,
+      filter: state.filter,
+      skip: state.skip,
+      limit: state.limit,
+    });
+  }
+
+  paginate<T>(
+    table: string,
+    options: PaginatedOptions,
+    reset = false
+  ): Observable<{ items: T[]; hasMore: boolean }> {
+    const state = this.getPaginationState(table);
+    const limit = options.limit || state.limit;
+    const skip = reset ? 0 : state.skip;
+    return new Observable((subscriber) => {
+      this.getAll<T>(table, { ...options, skip, limit }).subscribe({
+        next: (items) => {
+          this.updatePaginationState(table, {
+            skip: skip + items.length,
+            hasMore: items.length >= limit,
+          });
+          subscriber.next({ items, hasMore: items.length >= limit });
+          subscriber.complete();
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
   }
 
   getPublicProfiles(): Observable<Profile[]> {
-    return this.getAll<Profile>("profiles", { visibility: "public" });
+    return this.profiles.getAll({ visibility: "public" });
   }
 
-  invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
-    return from(invoke<T>(command, args) as Promise<T>);
-  }
-
-  async batchSoftDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_soft_delete_cascade", { table, ids });
-  }
-
-  async batchHardDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_hard_delete_cascade", { table, ids });
-  }
-
-  async batchRestore(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_restore_cascade", { table, ids });
+  private getCommand(table: string, operation: string): string {
+    const commands: Record<string, Record<string, string>> = {
+      todos: {
+        get: "get_todo",
+        getAll: "get_todos",
+        create: "create_todo",
+        update: "update_todo",
+        delete: "delete_todo",
+      },
+      tasks: {
+        get: "get_task",
+        getAll: "get_tasks",
+        create: "create_task",
+        update: "update_task",
+        delete: "delete_task",
+      },
+      subtasks: {
+        get: "get_subtask",
+        getAll: "get_subtasks",
+        create: "create_subtask",
+        update: "update_subtask",
+        delete: "delete_subtask",
+      },
+      categories: {
+        get: "get_category",
+        getAll: "get_categories",
+        create: "create_category",
+        update: "update_category",
+        delete: "delete_category",
+      },
+      chats: {
+        get: "get_chat",
+        getAll: "get_chats",
+        create: "create_chat",
+        update: "update_chat",
+        delete: "delete_chat",
+      },
+      comments: {
+        get: "get_comment",
+        getAll: "get_comments",
+        create: "create_comment",
+        update: "update_comment",
+        delete: "delete_comment",
+      },
+      profiles: {
+        get: "get_profile",
+        getAll: "get_profiles",
+        create: "create_profile",
+        update: "update_profile",
+        delete: "delete_profile",
+      },
+    };
+    return commands[table]?.[operation] || table;
   }
 }
 
-function getCurrentUserId(apiService: ApiService): string | null {
-  return apiService.currentUserId() || null;
+class TodoApi {
+  constructor(private api: ApiService) {}
+
+  get(id: string, visibility?: string): Observable<Todo> {
+    return new Observable((subscriber) => {
+      invoke<Response<Todo>>("get_todo", {
+        id,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Todo);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get todo", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+    todoId?: string;
+    taskId?: string;
+  }): Observable<Todo[]> {
+    const { page = 0, limit = 10, visibility = "all", filter, todoId, taskId } = options || {};
+    const actualFilter = { ...((filter as object) || {}) };
+    if (todoId) (actualFilter as any).todo_id = todoId;
+    if (taskId) (actualFilter as any).task_id = taskId;
+    return new Observable((subscriber) => {
+      invoke<Response<{ items: Todo[] }>>("get_todos", {
+        page,
+        limit,
+        visibility,
+        filter: actualFilter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any)?.items || [];
+            this.api.storageService.setCollection("todos", items);
+            subscriber.next(items as Todo[]);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get todos", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  create(data: Partial<Todo>): Observable<Todo> {
+    return new Observable((subscriber) => {
+      invoke<Response<Todo>>("create_todo", { data, token: this.api.jwtTokenService.getToken() })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("todos", "create", response.data);
+            subscriber.next(response.data as Todo);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to create todo", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update(id: string, data: Partial<Todo>, visibility?: string): Observable<Todo> {
+    return new Observable((subscriber) => {
+      invoke<Response<Todo>>("update_todo", {
+        id,
+        data,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("todos", "update", response.data);
+            subscriber.next(response.data as Todo);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to update todo", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_todo", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("todos", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to delete todo", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
 }
 
-class EntityApi<T extends HasId> {
-  private readonly userOwnedTables = [
-    "todos",
-    "tasks",
-    "subtasks",
-    "categories",
-    "comments",
-    "chats",
-  ];
+class TaskApi {
+  constructor(private api: ApiService) {}
 
-  constructor(
-    private apiService: ApiService,
-    private table: string
-  ) {}
-
-  getAll(options?: PaginatedOptions & { todoId?: string; taskId?: string }): Observable<T[]> {
-    const opts = this.buildOptions(options);
-    return this.apiService.getAll<T>(this.table, opts);
+  get(id: string, visibility?: string): Observable<Task> {
+    return new Observable((subscriber) => {
+      invoke<Response<Task>>("get_task", {
+        id,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Task);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get task", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  get(id: string, options?: CrudOptions): Observable<T> {
-    return this.apiService.get<T>(this.table, id, this.buildOptions(options));
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+    todoId?: string;
+    taskId?: string;
+  }): Observable<Task[]> {
+    const { page = 0, limit = 10, visibility = "all", filter, todoId, taskId } = options || {};
+    const actualFilter = { ...((filter as object) || {}) };
+    if (todoId) (actualFilter as any).todo_id = todoId;
+    if (taskId) (actualFilter as any).task_id = taskId;
+    return new Observable((subscriber) => {
+      invoke<Response<{ items: Task[] }>>("get_tasks", {
+        page,
+        limit,
+        visibility,
+        filter: actualFilter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any)?.items || [];
+            this.api.storageService.setCollection("tasks", items);
+            subscriber.next(items);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get tasks", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  create(data: Partial<T>, options?: CrudOptions): Observable<T> {
-    return this.apiService.create<T>(this.table, data as T, this.buildOptions(options));
+  create(data: Partial<Task>, visibility?: string): Observable<Task> {
+    return new Observable((subscriber) => {
+      invoke<Response<Task>>("create_task", {
+        data,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("tasks", "create", response.data);
+            subscriber.next(response.data as Task);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to create task", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  update(id: string, data: Partial<T>, options?: CrudOptions): Observable<T> {
-    return this.apiService.update<T>(this.table, id, data as T, this.buildOptions(options));
+  update(id: string, data: Partial<Task>, visibility?: string): Observable<Task> {
+    return new Observable((subscriber) => {
+      invoke<Response<Task>>("update_task", {
+        id,
+        data,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("tasks", "update", response.data);
+            subscriber.next(response.data as Task);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to update task", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  delete(id: string, options?: CrudOptions): Observable<void> {
-    return this.apiService.delete<T>(this.table, id, this.buildOptions(options));
+  delete(id: string, options?: { visibility?: string }): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_task", {
+        id,
+        visibility: options?.visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("tasks", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to delete task", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
+
+class SubtaskApi {
+  constructor(private api: ApiService) {}
+
+  get(id: string, visibility?: string): Observable<Subtask> {
+    return new Observable((subscriber) => {
+      invoke<Response<Subtask>>("get_subtask", {
+        id,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Subtask);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get subtask", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  loadMore(): Observable<T[]> {
-    return this.apiService.loadMore<T>(this.table);
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+    todoId?: string;
+    taskId?: string;
+  }): Observable<Subtask[]> {
+    const { page = 0, limit = 10, visibility = "all", filter, todoId, taskId } = options || {};
+    const actualFilter = { ...((filter as object) || {}) };
+    if (todoId) (actualFilter as any).todo_id = todoId;
+    if (taskId) (actualFilter as any).task_id = taskId;
+    return new Observable((subscriber) => {
+      invoke<Response<{ items: Subtask[] }>>("get_subtasks", {
+        page,
+        limit,
+        visibility,
+        filter: actualFilter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any)?.items || [];
+            this.api.storageService.setCollection("subtasks", items);
+            subscriber.next(items);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get subtasks", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  paginate(
-    options: PaginatedOptions & { todoId?: string; taskId?: string },
-    reset = false
-  ): Observable<PaginatedResult<T>> {
-    return this.apiService.paginate<T>(this.table, this.buildOptions(options), reset);
+  create(data: Partial<Subtask>, visibility?: string): Observable<Subtask> {
+    return new Observable((subscriber) => {
+      invoke<Response<Subtask>>("create_subtask", {
+        data,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("subtasks", "create", response.data);
+            subscriber.next(response.data as Subtask);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to create subtask", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 
-  private buildOptions(
-    options?: CrudOptions & { todoId?: string; taskId?: string }
-  ): PaginatedOptions {
-    if (!options) return { visibility: "all" };
+  update(id: string, data: Partial<Subtask>, visibility?: string): Observable<Subtask> {
+    return new Observable((subscriber) => {
+      invoke<Response<Subtask>>("update_subtask", {
+        id,
+        data,
+        visibility,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("subtasks", "update", response.data);
+            subscriber.next(response.data as Subtask);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to update subtask", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
 
-    const { todoId, taskId, ...rest } = options;
-    const visibility = options.visibility || "all";
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_subtask", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("subtasks", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to delete subtask", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
 
-    let filter = rest.filter ? { ...rest.filter } : {};
+class CategoryApi {
+  constructor(private api: ApiService) {}
 
-    if (todoId) {
-      filter = { ...filter, todo_id: todoId };
-    }
-    if (taskId) {
-      filter = { ...filter, task_id: taskId };
-    }
+  get(id: string): Observable<Category> {
+    return new Observable((subscriber) => {
+      invoke<Response<Category>>("get_category", { id, token: this.api.jwtTokenService.getToken() })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Category);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get category", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
 
-    if (this.userOwnedTables.includes(this.table)) {
-      const userId = getCurrentUserId(this.apiService);
-      if (userId && !filter["user_id"]) {
-        filter = { ...filter, user_id: userId };
-      }
-    }
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+  }): Observable<Category[]> {
+    const { page = 0, limit = 10, visibility = "all", filter } = options || {};
+    return new Observable((subscriber) => {
+      invoke<Response<Category[]>>("get_categories", {
+        page,
+        limit,
+        visibility,
+        filter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data) ? response.data : [];
+            this.api.storageService.setCollection("categories", items);
+            subscriber.next(items);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to get categories", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
 
-    return { ...rest, visibility, filter, limit: rest.limit || 10 };
+  create(data: Partial<Category>): Observable<Category> {
+    return new Observable((subscriber) => {
+      invoke<Response<Category>>("create_category", {
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("categories", "create", response.data);
+            subscriber.next(response.data as Category);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to create category", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update(id: string, data: Partial<Category>): Observable<Category> {
+    return new Observable((subscriber) => {
+      invoke<Response<Category>>("update_category", {
+        id,
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("categories", "update", response.data);
+            subscriber.next(response.data as Category);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to update category", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_category", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("categories", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to delete category", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
+
+class ChatApi {
+  constructor(private api: ApiService) {}
+
+  get(id: string): Observable<Chat> {
+    return new Observable((subscriber) => {
+      invoke<Response<Chat>>("get_chat", { id, token: this.api.jwtTokenService.getToken() })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Chat);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get chat", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+  }): Observable<Chat[]> {
+    const { page = 0, limit = 10, visibility = "all", filter } = options || {};
+    return new Observable((subscriber) => {
+      invoke<Response<Chat[]>>("get_chats", {
+        page,
+        limit,
+        visibility,
+        filter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data) ? response.data : [];
+            this.api.storageService.setCollection("chats", items);
+            subscriber.next(items);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get chats", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  create(data: Partial<Chat>): Observable<Chat> {
+    return new Observable((subscriber) => {
+      invoke<Response<Chat>>("create_chat", { data, token: this.api.jwtTokenService.getToken() })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("chats", "create", response.data);
+            subscriber.next(response.data as Chat);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to create chat", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update(id: string, data: Partial<Chat>): Observable<Chat> {
+    return new Observable((subscriber) => {
+      invoke<Response<Chat>>("update_chat", {
+        id,
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("chats", "update", response.data);
+            subscriber.next(response.data as Chat);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to update chat", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_chat", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("chats", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to delete chat", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
+
+class CommentApi {
+  constructor(private api: ApiService) {}
+
+  get(id: string): Observable<Comment> {
+    return new Observable((subscriber) => {
+      invoke<Response<Comment>>("get_comment", { id, token: this.api.jwtTokenService.getToken() })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Comment);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get comment", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  getAll(options?: {
+    page?: number;
+    limit?: number;
+    visibility?: string;
+    filter?: unknown;
+  }): Observable<Comment[]> {
+    const { page = 0, limit = 10, visibility = "all", filter } = options || {};
+    return new Observable((subscriber) => {
+      invoke<Response<Comment[]>>("get_comments", {
+        page,
+        limit,
+        visibility,
+        filter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data) ? response.data : [];
+            this.api.storageService.setCollection("comments", items);
+            subscriber.next(items);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get comments", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  create(data: Partial<Comment>): Observable<Comment> {
+    return new Observable((subscriber) => {
+      invoke<Response<Comment>>("create_comment", {
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("comments", "create", response.data);
+            subscriber.next(response.data as Comment);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to create comment", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update(id: string, data: Partial<Comment>): Observable<Comment> {
+    return new Observable((subscriber) => {
+      invoke<Response<Comment>>("update_comment", {
+        id,
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("comments", "update", response.data);
+            subscriber.next(response.data as Comment);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to update comment", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_comment", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.api.storageService.modify("comments", "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to delete comment", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
+
+class UserApi {
+  constructor(private api: ApiService) {}
+
+  getAll(options?: { visibility?: string; page?: number; limit?: number }): Observable<User[]> {
+    const { visibility = "private", page = 0, limit = 10 } = options || {};
+    return new Observable((subscriber) => {
+      invoke<Response<{ items: User[] }>>("get_users", {
+        visibility,
+        page,
+        limit,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next((response.data as any)?.items || []);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get users", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+}
+
+class ProfileApi {
+  constructor(private api: ApiService) {}
+
+  getAll(options?: { visibility?: string; filter?: unknown }): Observable<Profile[]> {
+    const { visibility = "all", filter } = options || {};
+    return new Observable((subscriber) => {
+      invoke<Response<Profile[]>>("get_profiles", {
+        visibility,
+        filter,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next((response.data as any)?.items || []);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || "Failed to get profiles", "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  create(data: Partial<Profile>): Observable<Profile> {
+    return new Observable((subscriber) => {
+      invoke<Response<Profile>>("create_profile", {
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Profile);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to create profile", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  update(id: string, data: Partial<Profile>): Observable<Profile> {
+    return new Observable((subscriber) => {
+      invoke<Response<Profile>>("update_profile", {
+        id,
+        data,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as Profile);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to update profile", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return new Observable((subscriber) => {
+      invoke<Response<{ deleted: boolean }>>("delete_profile", {
+        id,
+        token: this.api.jwtTokenService.getToken(),
+      })
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next();
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || "Failed to delete profile", "server")
+            );
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
   }
 }
 
 class AdminApi {
-  constructor(private apiService: ApiService) {}
+  constructor(private api: ApiService) {}
 
   getAllArchiveData(): Observable<unknown> {
-    return this.apiService.invokeCommand("get_all_archive_data", {});
+    return this.api.invokeCommand("get_all_archive_data", {
+      token: this.api.jwtTokenService.getToken(),
+    });
   }
 
   getAllAdminData(): Observable<unknown> {
-    return this.apiService.invokeCommand("get_all_admin_data", {});
+    return this.api.invokeCommand("get_all_admin_data", {});
   }
 
   adminGetAll(): Observable<unknown> {
-    return this.apiService.invokeCommand("admin_get_all", {});
+    return this.api.invokeCommand("admin_get_all", {});
   }
 
   adminGetPaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
-    return this.apiService.invokeCommand("admin_get_paginated", { dataType, skip, limit });
+    return this.api.invokeCommand("admin_get_paginated", { dataType, skip, limit });
   }
 
   adminToggleDelete(table: string, id: string): Observable<void> {
-    return this.apiService.invokeCommand("admin_toggle_delete", { table, id });
+    return this.api.invokeCommand("admin_toggle_delete", { table, id });
   }
 
   adminPermanentlyDelete(table: string, id: string): Observable<void> {
-    return this.apiService.invokeCommand("admin_permanently_delete", { table, id });
+    return this.api.invokeCommand("admin_permanently_delete", { table, id });
   }
 
   adminToggleDeleteLocal(table: string, id: string): Observable<void> {
-    return this.apiService.invokeCommand("admin_toggle_delete_local", { table, id });
+    return this.api.invokeCommand("admin_toggle_delete_local", { table, id });
   }
 
   adminPermanentlyDeleteLocal(table: string, id: string): Observable<void> {
-    return this.apiService.invokeCommand("admin_permanently_delete_local", { table, id });
+    return this.api.invokeCommand("admin_permanently_delete_local", { table, id });
   }
 
   adminGetAllArchive(): Observable<unknown> {
-    return this.apiService.invokeCommand("admin_get_all_archive", {});
+    return this.api.invokeCommand("admin_get_all_archive", {});
   }
 
   adminGetArchivePaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
-    return this.apiService.invokeCommand("admin_get_archive_paginated", { dataType, skip, limit });
+    return this.api.invokeCommand("admin_get_archive_paginated", { dataType, skip, limit });
   }
 
   batchSoftDelete(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.apiService.batchSoftDelete(table, ids) as unknown as Observable<CascadeResult>;
+    return this.api.batchSoftDelete(table, ids) as unknown as Observable<CascadeResult>;
   }
 
   batchHardDelete(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.apiService.batchHardDelete(table, ids) as unknown as Observable<CascadeResult>;
+    return this.api.batchHardDelete(table, ids) as unknown as Observable<CascadeResult>;
   }
 
   batchRestore(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.apiService.batchRestore(table, ids) as unknown as Observable<CascadeResult>;
+    return this.api.batchRestore(table, ids) as unknown as Observable<CascadeResult>;
   }
 }
 

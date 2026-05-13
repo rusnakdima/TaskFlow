@@ -150,7 +150,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   allTasksForTodo = computed(() => this.todoTasks());
 
   private loadInitialTodo(todoId: string): void {
-    this.apiService.todos.get(todoId, { visibility: this.visibilityParam() }).subscribe({
+    this.apiService.todos.get(todoId, this.visibilityParam()).subscribe({
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
@@ -205,14 +205,23 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.taskPagination.update((p) => ({ ...p, loading: true }));
-    this.storageService.ensureTasksLoaded();
-    this.taskPagination.update((p) => ({
-      ...p,
-      skip: cachedTasks.length,
-      total: cachedTasks.length,
-      hasMore: this.storageService.hasMoreTasks,
-      loading: false,
-    }));
+    const visibility = this.visibilityParam();
+    this.apiService.tasks.getAll({ visibility, limit: 10, todoId }).subscribe({
+      next: (tasks) => {
+        this.todoTasks.set(tasks);
+        this.taskPagination.update((p) => ({
+          ...p,
+          skip: tasks.length,
+          total: tasks.length,
+          hasMore: tasks.length >= 10,
+          loading: false,
+        }));
+      },
+      error: () => {
+        this.taskPagination.update((p) => ({ ...p, loading: false }));
+        this.notifyService.showError("Failed to load tasks");
+      },
+    });
   }
 
   loadMoreTasks() {
@@ -373,7 +382,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todo) return;
 
     this.apiService.tasks
-      .update(task.id, { ...task, status }, { visibility: todo.visibility || "private" })
+      .update(task.id, { ...task, status }, todo.visibility || "private")
       .subscribe({
         next: (updatedTask) => {
           this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
@@ -411,7 +420,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
     this.apiService.subtasks
-      .update(subtask.id, { status: newStatus }, { visibility: todo.visibility || "private" })
+      .update(subtask.id, { status: newStatus }, todo.visibility || "private")
       .subscribe({
         next: (updatedSubtask) => {
           this.storageService.modify("subtasks", "update", { ...updatedSubtask, id: subtask.id });
@@ -489,11 +498,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todo) return;
 
     this.apiService.tasks
-      .update(
-        event.task.id,
-        { [event.field]: event.value },
-        { visibility: todo.visibility || "private" }
-      )
+      .update(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
       .subscribe({
         next: (updatedTask) => {
           this.storageService.modify("tasks", "update", { ...updatedTask, id: event.task.id });
@@ -746,8 +751,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showSuccess(msg);
         }
       },
-      (id, data, options) =>
-        this.apiService.tasks.update(id, data, { visibility: options?.visibility })
+      (id, data, options) => this.apiService.tasks.update(id, data, options?.visibility)
     );
   }
 

@@ -631,7 +631,8 @@ export class StorageQueryService {
   }
 
   ensureTasksLoaded(visibility: string = "private", limit: number = 10, todoId?: string): void {
-    if (this._tasksLoading() || this._entityService.tasks().length > 0) return;
+    if (this._tasksLoading()) return;
+    if (!todoId && this._entityService.tasks().length > 0) return;
     this._tasksLoading.set(true);
     this.apiService.tasks.getAll({ visibility, limit, todoId }).subscribe({
       next: (tasks) => {
@@ -646,7 +647,8 @@ export class StorageQueryService {
   }
 
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10, taskId?: string): void {
-    if (this._subtasksLoading() || this._entityService.subtasks().length > 0) return;
+    if (this._subtasksLoading()) return;
+    if (!taskId && this._entityService.subtasks().length > 0) return;
     this._subtasksLoading.set(true);
     this.apiService.subtasks.getAll({ visibility, limit, taskId }).subscribe({
       next: (subtasks) => {
