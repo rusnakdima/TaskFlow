@@ -38,11 +38,6 @@ use routes::{
   },
   chat_route::{create_chat, delete_chat, get_chat, get_chats, update_chat},
   comment_route::{create_comment, delete_comment, get_comment, get_comments},
-  entity_routes::{
-    create_subtask, create_task, create_todo, delete_subtask, delete_task, delete_todo,
-    get_subtask, get_subtasks, get_task, get_tasks, get_todo, get_todos, update_subtask,
-    update_task, update_todo,
-  },
   github_route::{
     github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
@@ -53,6 +48,9 @@ use routes::{
   },
   profile_route::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   statistics_route::statistics_get,
+  subtask_route::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
+  task_route::{create_task, delete_task, get_task, get_tasks, update_task},
+  todo_route::{create_todo, delete_todo, get_todo, get_todos, update_todo},
   user_route::get_users,
 };
 
@@ -263,13 +261,34 @@ pub fn run() {
       ));
 
       let data_provider = DataProvider::Json(Arc::new(json_provider.clone()));
+      let mongo_data_provider: Option<DataProvider> = mongodb_provider
+        .as_ref()
+        .map(|p| DataProvider::Mongo(p.clone()));
 
-      let todo_service = Arc::new(TodoService::new(data_provider.clone()));
-      let task_service = Arc::new(TaskService::new(data_provider.clone()));
-      let subtask_service = Arc::new(SubtaskService::new(data_provider.clone()));
-      let comment_service = Arc::new(CommentService::new(data_provider.clone()));
-      let category_service = Arc::new(CategoryService::new(data_provider.clone()));
-      let chat_service = Arc::new(ChatService::new(data_provider.clone()));
+      let todo_service = Arc::new(TodoService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let task_service = Arc::new(TaskService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let subtask_service = Arc::new(SubtaskService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let comment_service = Arc::new(CommentService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let category_service = Arc::new(CategoryService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let chat_service = Arc::new(ChatService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
 
       let auth_service = Arc::new(AuthService::new(
         json_provider.clone(),

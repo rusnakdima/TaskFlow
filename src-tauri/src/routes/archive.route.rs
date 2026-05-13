@@ -56,7 +56,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|t| {
       let t_user_id = t.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      t_user_id == user_id_str
+      t_user_id == user_id_str && is_deleted(t)
     })
     .collect();
 

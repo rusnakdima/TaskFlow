@@ -1,8 +1,19 @@
 use crate::entities::response_entity::ResponseModel;
+use crate::helpers::auth_helper::extract_user_from_token;
+use crate::helpers::response_helper::err_response;
 use crate::shared::types::{TodoCreateRequest, TodoUpdateRequest};
 use crate::AppState;
-use crate::routes::crud_helpers as crud;
 use tauri::State;
+
+fn extract_user_id(
+  state: &AppState,
+  token: &Option<String>,
+) -> Result<Option<String>, ResponseModel> {
+  let user_id = token
+    .as_ref()
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
+  Ok(user_id)
+}
 
 #[tauri::command]
 pub async fn get_todo(
@@ -10,7 +21,9 @@ pub async fn get_todo(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_get(&state, "todos", id, None, None, token).await
+  let user_id = extract_user_id(&state, &token)?;
+  let user_id_str = user_id.as_deref().unwrap_or("");
+  state.todo_service.get_by_id(&id, user_id_str).await
 }
 
 #[tauri::command]
@@ -22,7 +35,19 @@ pub async fn get_todos(
   filter: Option<serde_json::Value>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_get_all(&state, "todos", page, limit, visibility, filter, None, token).await
+  let user_id = extract_user_id(&state, &token)?;
+  let visibility = visibility.unwrap_or_else(|| "private".to_string());
+  let user_id_str = user_id.as_deref().unwrap_or("");
+  state
+    .todo_service
+    .get_all(
+      user_id_str,
+      &visibility,
+      filter,
+      Some(page.unwrap_or(0) * limit.unwrap_or(10)),
+      limit,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -31,7 +56,27 @@ pub async fn create_todo(
   data: TodoCreateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_create(&state, "todos", data, None, token).await
+  let user_id = extract_user_id(&state, &token)?;
+  let visibility = data.visibility.clone();
+  let user_id_str = user_id.as_deref().unwrap_or("");
+
+  let mut doc = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
+
+  if let Some(obj) = doc.as_object_mut() {
+    obj.insert("user_id".to_string(), serde_json::json!(user_id_str));
+    obj.insert(
+      "created_at".to_string(),
+      serde_json::json!(chrono::Utc::now().to_rfc3339()),
+    );
+    obj.insert(
+      "updated_at".to_string(),
+      serde_json::json!(chrono::Utc::now().to_rfc3339()),
+    );
+    obj.insert("tasks_count".to_string(), serde_json::json!(0));
+    obj.insert("completed_tasks_count".to_string(), serde_json::json!(0));
+  }
+
+  state.todo_service.create(doc, &visibility).await
 }
 
 #[tauri::command]
@@ -41,7 +86,21 @@ pub async fn update_todo(
   data: TodoUpdateRequest,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_update(&state, "todos", id, data, None, token).await
+  let user_id = extract_user_id(&state, &token)?;
+  let user_id_str = user_id.as_deref().unwrap_or("");
+
+  let mut doc = serde_json::to_value(&data).map_err(|e| err_response(&e.to_string()))?;
+
+  if let Some(obj) = doc.as_object_mut() {
+    obj.insert(
+      "updated_at".to_string(),
+      serde_json::json!(chrono::Utc::now().to_rfc3339()),
+    );
+    obj.remove("user_id");
+    obj.remove("assignee_roles");
+  }
+
+  state.todo_service.update(&id, doc, user_id_str).await
 }
 
 #[tauri::command]
@@ -50,5 +109,7 @@ pub async fn delete_todo(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  crud::handle_delete(&state, "todos", id, None, token).await
+  let user_id = extract_user_id(&state, &token)?;
+  let user_id_str = user_id.as_deref().unwrap_or("");
+  state.todo_service.delete(&id, user_id_str).await
 }
