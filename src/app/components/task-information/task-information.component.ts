@@ -20,7 +20,7 @@ import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* components */
@@ -44,7 +44,7 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
 
   public showActions = signal(false);
@@ -106,8 +106,8 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
   }
 
   deleteTask() {
-    this.typedApiService
-      .deleteTask(this.task?.id ?? "", this.isPrivate ? "private" : "shared")
+    this.apiService.tasks
+      .delete(this.task?.id ?? "", { visibility: this.isPrivate ? "private" : "shared" })
       .subscribe({
         next: (_result: any) => {
           this.notifyService.showSuccess("Task deleted successfully");

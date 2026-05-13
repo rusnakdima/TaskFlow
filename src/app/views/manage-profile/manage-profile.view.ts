@@ -22,7 +22,7 @@ import { FormField, TypeField } from "@models/form-field.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
@@ -46,7 +46,7 @@ export class ManageProfileView implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private storageService = inject(StorageService);
   private profileRequiredService = inject(ProfileRequiredService);
 
@@ -140,7 +140,7 @@ export class ManageProfileView implements OnInit {
         const profile = this.storageService.profile();
         if (profile) {
           const { _id, ...updateData } = body;
-          const sub = this.typedApiService.updateProfile(profile.id, updateData).subscribe({
+          const sub = this.apiService.profiles.update(profile.id, updateData).subscribe({
             next: (updatedProfile) => {
               this.storageService.setCollection("profiles", updatedProfile);
               this.notifyService.showSuccess("Profile updated successfully");
@@ -155,7 +155,7 @@ export class ManageProfileView implements OnInit {
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
       } else {
-        const sub = this.typedApiService.createProfile(body).subscribe({
+        const sub = this.apiService.profiles.create(body).subscribe({
           next: (newProfile) => {
             this.storageService.setCollection("profiles", newProfile);
             this.notifyService.showSuccess("Profile created successfully");

@@ -33,7 +33,7 @@ export class TasksCommentsHelper {
         filter: { task_id: taskId },
         visibility: this._todoVisibility,
         skip: 0,
-        limit: 100,
+        limit: 10,
         load: ["user"],
       })
       .subscribe();

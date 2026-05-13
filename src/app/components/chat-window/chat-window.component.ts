@@ -20,7 +20,7 @@ import { Chat, Profile } from "@models/generated/api.types";
 /* services */
 import { StorageService } from "@services/storage.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
@@ -59,7 +59,7 @@ export class ChatWindowComponent {
 
   private storageService = inject(StorageService);
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
 
@@ -164,7 +164,7 @@ export class ChatWindowComponent {
       content,
     };
 
-    this.typedApiService.createChat(chatData).subscribe({
+    this.apiService.chats.create(chatData).subscribe({
       next: (chat) => {
         this.newMessage.set("");
         this.storageService.addChat(chat);

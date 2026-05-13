@@ -16,7 +16,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -86,7 +86,7 @@ export class SubtasksViewComponent extends BaseListView {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private appStateService = inject(AppStateService);
   private confirmDialogService = inject(ConfirmDialogService);
   private bulkService = inject(BulkActionService);
@@ -186,7 +186,7 @@ export class SubtasksViewComponent extends BaseListView {
       }
       this.loadInitialSubtasks();
     } else {
-      this.typedApiService.getTask(taskId).subscribe({
+      this.apiService.tasks.get(taskId).subscribe({
         next: (task) => {
           if (task) {
             this.storageService.modify("tasks", "create", task as any);
@@ -289,7 +289,7 @@ export class SubtasksViewComponent extends BaseListView {
         filter: { subtask_id: { $in: subtaskIds } },
         visibility: visibility as Visibility,
         skip: 0,
-        limit: 100,
+        limit: 10,
         load: ["user"],
       })
       .subscribe();
@@ -555,7 +555,7 @@ export class SubtasksViewComponent extends BaseListView {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.typedApiService.updateSubtask(subtask.id, { status: newStatus }, visibility).subscribe({
+    this.apiService.subtasks.update(subtask.id, { status: newStatus }, { visibility }).subscribe({
       next: () => {
         this.taskSubtasks.update((subtasks: Subtask[]) =>
           subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
@@ -572,8 +572,8 @@ export class SubtasksViewComponent extends BaseListView {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    this.typedApiService
-      .updateSubtask(event.subtask.id, { [event.field]: event.value }, visibility)
+    this.apiService.subtasks
+      .update(event.subtask.id, { [event.field]: event.value }, { visibility })
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -595,7 +595,7 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    this.typedApiService.deleteSubtask(id, visibility).subscribe({
+    this.apiService.subtasks.delete(id, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -712,7 +712,7 @@ export class SubtasksViewComponent extends BaseListView {
     const visibility = this.isPrivate() ? "private" : "shared";
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.typedApiService.updateSubtask(subtaskId, { status: status as any }, visibility)
+        this.apiService.subtasks.update(subtaskId, { status: status as any }, { visibility })
       );
     });
 
@@ -842,7 +842,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   onSubtaskCommentDelete(commentId: string): void {
     this.storageService.removeCommentFromAll(commentId);
-    this.typedApiService.deleteComment(commentId).subscribe();
+    this.apiService.comments.delete(commentId).subscribe();
   }
 
   onSubtaskCommentMarkAsRead(commentIds: string[]): void {
@@ -877,8 +877,8 @@ export class SubtasksViewComponent extends BaseListView {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
-    this.typedApiService
-      .updateSubtask(payload.item.id, { status: payload.status }, visibility)
+    this.apiService.subtasks
+      .update(payload.item.id, { status: payload.status }, { visibility })
       .subscribe({
         next: () => {
           this.taskSubtasks.update((subtasks: Subtask[]) =>
@@ -933,7 +933,7 @@ export class SubtasksViewComponent extends BaseListView {
       return;
     }
 
-    this.typedApiService.deleteSubtask(subtaskId, visibility).subscribe({
+    this.apiService.subtasks.delete(subtaskId, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask archived successfully");
         this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));

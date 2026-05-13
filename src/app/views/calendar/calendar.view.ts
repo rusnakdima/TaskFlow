@@ -74,9 +74,9 @@ export class CalendarView extends BaseListView implements OnInit {
 
   override ngOnInit(): void {
     super.ngOnInit();
-    this.storageService.ensureTasksLoaded("private", 500);
-    this.storageService.ensureTasksLoaded("shared", 500);
-    this.storageService.ensureTasksLoaded("public", 500);
+    this.storageService.ensureTasksLoaded("private", 10);
+    this.storageService.ensureTasksLoaded("shared", 10);
+    this.storageService.ensureTasksLoaded("public", 10);
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {

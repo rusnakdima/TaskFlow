@@ -32,7 +32,7 @@ import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -87,7 +87,7 @@ export class ManageItemPage implements OnInit {
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -245,11 +245,11 @@ export class ManageItemPage implements OnInit {
       return;
     }
 
-    this.typedApiService
-      .getProfiles({ visibility: "public" })
+    this.apiService.profiles
+      .getAll({ visibility: "public" })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (response) => this.assignees.set(response.items || []),
+        next: (response) => this.assignees.set(response || []),
         error: () => {
           this.assignees.set([]);
         },
@@ -362,11 +362,11 @@ export class ManageItemPage implements OnInit {
     try {
       let item: any;
       if (config.type === "todo") {
-        item = await firstValueFrom(this.typedApiService.getTodo(id));
+        item = await firstValueFrom(this.apiService.todos.get(id));
       } else if (config.type === "task") {
-        item = await firstValueFrom(this.typedApiService.getTask(id));
+        item = await firstValueFrom(this.apiService.tasks.get(id));
       } else {
-        item = await firstValueFrom(this.typedApiService.getSubtask(id));
+        item = await firstValueFrom(this.apiService.subtasks.get(id));
       }
 
       if (item) {
@@ -467,21 +467,21 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(this.typedApiService.updateTodo(id, payload, visibility));
+          await firstValueFrom(this.apiService.todos.update(id, payload, { visibility }));
         } else if (config.type === "task") {
-          await firstValueFrom(this.typedApiService.updateTask(id, payload, visibility));
+          await firstValueFrom(this.apiService.tasks.update(id, payload, { visibility }));
         } else {
-          await firstValueFrom(this.typedApiService.updateSubtask(id, payload, visibility));
+          await firstValueFrom(this.apiService.subtasks.update(id, payload, { visibility }));
         }
       } else {
         let result: any;
         if (config.type === "todo") {
-          result = await firstValueFrom(this.typedApiService.createTodo(payload));
+          result = await firstValueFrom(this.apiService.todos.create(payload));
         } else if (config.type === "task") {
-          result = await firstValueFrom(this.typedApiService.createTask(payload));
+          result = await firstValueFrom(this.apiService.tasks.create(payload));
           savedTaskId = result?.id || result?._id || null;
         } else {
-          result = await firstValueFrom(this.typedApiService.createSubtask(payload));
+          result = await firstValueFrom(this.apiService.subtasks.create(payload));
         }
       }
 
@@ -587,7 +587,7 @@ export class ManageItemPage implements OnInit {
       );
 
       if (toVisibility === "shared" || toVisibility === "public") {
-        this.typedApiService.getTodos({ visibility: toVisibility }).subscribe();
+        this.apiService.todos.getAll({ visibility: toVisibility }).subscribe();
       }
     } catch (error: any) {
       this.notifyService.showError(
@@ -618,7 +618,7 @@ export class ManageItemPage implements OnInit {
     const userId = this.authService.getValueByKey("id");
     this.newCategoryTitle.set("");
 
-    this.typedApiService.createCategory({ title, user_id: userId }).subscribe({
+    this.apiService.categories.create({ title, user_id: userId }).subscribe({
       next: (category: Category) => {
         this.categories.update((cats) => [...cats, category]);
         this.toggleCategorySelection(category.id);
