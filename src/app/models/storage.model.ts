@@ -24,7 +24,7 @@ export type ChatOperation = "set" | "add" | "update" | "delete" | "clear";
 
 export type ParentType = "tasks" | "subtasks" | "chats";
 
-export type ChildType = "todos" | "tasks" | "subtasks" | "comments" | "chats";
+export type ChildType = "todos" | "tasks" | "subtasks" | "categories" | "comments" | "chats";
 
 export interface EntityMap {
   todos: Todo;

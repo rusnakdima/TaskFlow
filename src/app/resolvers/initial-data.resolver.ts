@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
 
 /* services */
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/storage.service";
@@ -34,7 +34,7 @@ export class InitialDataResolver implements Resolve<unknown> {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
   private userValidationService = inject(UserValidationService);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
 
   private hasCachedData(): boolean {
     return (
@@ -59,14 +59,13 @@ export class InitialDataResolver implements Resolve<unknown> {
       return;
     }
 
-    this.typedApiService
-      .getProfiles({
+    this.apiService.profiles
+      .getAll({
         visibility: "private",
         filter: { user_id: userId },
       })
       .subscribe({
-        next: (response) => {
-          const profiles = response.items;
+        next: (profiles) => {
           if (profiles && profiles.length > 0) {
             this.storageService.setCollection("profiles", profiles[0]);
             this.storageService.setCollection("user", profiles[0].user || null);

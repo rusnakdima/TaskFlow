@@ -5,7 +5,7 @@ import { firstValueFrom, take } from "rxjs";
 
 /* services */
 import { REQUEST_SERVICE } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 
 /**
@@ -19,7 +19,7 @@ import { StorageService } from "@services/storage.service";
 })
 export class MainResolver implements Resolve<any> {
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private storageService = inject(StorageService);
 
   async resolve(
@@ -60,11 +60,11 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.typedApiService.getTodo(todoId).pipe(take(1))
+          this.apiService.todos.get(todoId).pipe(take(1))
         ).catch(() => null);
 
         let taskFromApi = await firstValueFrom(
-          this.typedApiService.getTask(taskId).pipe(take(1))
+          this.apiService.tasks.get(taskId).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi) {
@@ -90,7 +90,7 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.typedApiService.getTodo(todoId).pipe(take(1))
+          this.apiService.todos.get(todoId).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi) {
