@@ -31,7 +31,7 @@ import { RepeatInterval } from "@models/task-enums.model";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { Visibility } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -39,8 +39,6 @@ import { PromptDialogService } from "@services/core/prompt-dialog.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
-
-import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 /* helpers - tasks view */
 import { TasksKanbanHelper } from "@helpers/tasks-kanban.helper";
@@ -94,7 +92,7 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
 export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   @ViewChild("taskPlaceholder", { read: CdkDropList }) private taskPlaceholder!: CdkDropList;
 
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
@@ -152,7 +150,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   allTasksForTodo = computed(() => this.todoTasks());
 
   private loadInitialTodo(todoId: string): void {
-    this.typedApiService.getTodo(todoId, this.visibilityParam()).subscribe({
+    this.apiService.todos.get(todoId, { visibility: this.visibilityParam() }).subscribe({
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
@@ -193,9 +191,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
-    const isCacheValid = this.storageService.isCacheValid(DEFAULT_CACHE_TTL_MS);
 
-    if (cachedTasks.length > 0 && isCacheValid && !forceRefresh) {
+    if (cachedTasks.length > 0 && !forceRefresh) {
       this.todoTasks.set(cachedTasks);
       this.taskPagination.update((p) => ({
         ...p,
@@ -375,8 +372,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.typedApiService
-      .updateTask(task.id, { ...task, status }, todo.visibility || "private")
+    this.apiService.tasks
+      .update(task.id, { ...task, status }, { visibility: todo.visibility || "private" })
       .subscribe({
         next: (updatedTask) => {
           this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
@@ -413,8 +410,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.typedApiService
-      .updateSubtask(subtask.id, { status: newStatus }, todo.visibility || "private")
+    this.apiService.subtasks
+      .update(subtask.id, { status: newStatus }, { visibility: todo.visibility || "private" })
       .subscribe({
         next: (updatedSubtask) => {
           this.storageService.modify("subtasks", "update", { ...updatedSubtask, id: subtask.id });
@@ -469,7 +466,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.typedApiService.createTask(nextTask as any).subscribe({
+    this.apiService.tasks.create(nextTask as any).subscribe({
       next: () => {
         this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
       },
@@ -491,8 +488,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.typedApiService
-      .updateTask(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
+    this.apiService.tasks
+      .update(
+        event.task.id,
+        { [event.field]: event.value },
+        { visibility: todo.visibility || "private" }
+      )
       .subscribe({
         next: (updatedTask) => {
           this.storageService.modify("tasks", "update", { ...updatedTask, id: event.task.id });
@@ -597,7 +598,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onTaskCommentDelete(commentId: string): void {
     this.commentsHelper.onTaskCommentDelete(commentId);
-    this.typedApiService.deleteComment(commentId).subscribe();
+    this.apiService.comments.delete(commentId).subscribe();
   }
 
   onTaskCommentMarkAsRead(commentIds: string[]): void {
@@ -728,7 +729,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       priority,
       () => this.clearSelection(),
       (msg) => this.notifyService.showSuccess(msg),
-      (id, data) => this.typedApiService.updateTask(id, data)
+      (id, data) => this.apiService.tasks.update(id, data)
     );
   }
 
@@ -745,7 +746,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showSuccess(msg);
         }
       },
-      (id, data, options) => this.typedApiService.updateTask(id, data, options?.visibility)
+      (id, data, options) =>
+        this.apiService.tasks.update(id, data, { visibility: options?.visibility })
     );
   }
 
@@ -760,7 +762,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
           this.notifyService.showSuccess(msg);
         }
       },
-      (id) => this.typedApiService.deleteTask(id)
+      (id) => this.apiService.tasks.delete(id)
     );
   }
 

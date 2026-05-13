@@ -3,7 +3,7 @@ import { firstValueFrom } from "rxjs";
 import { Task, TaskStatus, Todo } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
@@ -17,7 +17,7 @@ import { TableFieldActionButton } from "@models/table-field.model";
 @Injectable({ providedIn: "root" })
 export class TasksActionsHelper {
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
   private adminService = inject(AdminService);
   private bulkActionHelper = inject(BulkActionHelper);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -41,7 +41,7 @@ export class TasksActionsHelper {
     });
     if (!confirmed) return;
 
-    this.typedApiService.deleteTask(taskId).subscribe({
+    this.apiService.tasks.delete(taskId).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));
@@ -78,7 +78,7 @@ export class TasksActionsHelper {
     }
 
     const visibility = (todo?.visibility || "private") as Visibility;
-    this.typedApiService.deleteTask(taskId, visibility).subscribe({
+    this.apiService.tasks.delete(taskId, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task archived successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));
