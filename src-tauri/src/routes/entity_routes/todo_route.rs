@@ -15,7 +15,7 @@ fn extract_user_id(
 ) -> Result<Option<String>, ResponseModel> {
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
   Ok(user_id)
 }
 
@@ -80,7 +80,7 @@ pub async fn get_todos(
   let user_id = extract_user_id(&state, &token)?;
   let visibility = visibility.unwrap_or_else(|| "private".to_string());
   let page = page.unwrap_or(0);
-  let limit = limit.unwrap_or(20);
+  let limit = std::cmp::min(limit.unwrap_or(10), 10);
   let skip = Some(page * limit);
 
   let mut final_filter = if let Some(uid) = &user_id {

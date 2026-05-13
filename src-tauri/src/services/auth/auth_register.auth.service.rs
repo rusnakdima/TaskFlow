@@ -146,7 +146,7 @@ impl AuthRegisterService {
       }
     }
 
-    let token = self.token_service.generate_token(&user_id, "", "")?;
+    let token = self.token_service.generate_token(&user_id, "", "", false)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

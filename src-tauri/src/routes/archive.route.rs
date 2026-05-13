@@ -14,7 +14,7 @@ fn extract_user_id(
 ) -> Result<Option<String>, ResponseModel> {
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
   Ok(user_id)
 }
 
@@ -56,7 +56,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|t| {
       let t_user_id = t.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      t_user_id == user_id_str && is_deleted(t)
+      t_user_id == user_id_str
     })
     .collect();
 
@@ -74,7 +74,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|t| {
       if let Some(todo_id) = t.get("todo_id").and_then(|v| v.as_str()) {
-        task_ids.contains(&todo_id.to_string()) && is_deleted(t)
+        task_ids.contains(&todo_id.to_string())
       } else {
         false
       }
@@ -95,7 +95,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|t| {
       if let Some(task_id) = t.get("task_id").and_then(|v| v.as_str()) {
-        subtask_task_ids.contains(&task_id.to_string()) && is_deleted(t)
+        subtask_task_ids.contains(&task_id.to_string())
       } else {
         false
       }
@@ -111,7 +111,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|c| {
       let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str && is_deleted(c)
+      c_user_id == user_id_str
     })
     .collect();
 
@@ -124,7 +124,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|c| {
       let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str && is_deleted(c)
+      c_user_id == user_id_str
     })
     .collect();
 
@@ -137,7 +137,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|c| {
       let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str && is_deleted(c)
+      c_user_id == user_id_str
     })
     .collect();
 

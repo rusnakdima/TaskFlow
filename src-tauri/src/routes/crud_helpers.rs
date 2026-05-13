@@ -15,7 +15,7 @@ pub async fn handle_get(
   let effective_visibility = visibility.as_deref().unwrap_or("private");
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
 
   state
     .repository_service
@@ -47,10 +47,10 @@ pub async fn handle_get_all(
 ) -> Result<ResponseModel, ResponseModel> {
   let effective_visibility = visibility.as_deref().unwrap_or("private");
   let page = page.unwrap_or(0);
-  let limit = limit.unwrap_or(20);
+  let limit = std::cmp::min(limit.unwrap_or(10), 10);
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
   let skip = Some(page * limit);
   let limit_opt = Some(limit);
   let result = state
@@ -97,7 +97,7 @@ pub async fn handle_create<T: serde::Serialize>(
   let effective_visibility = visibility.unwrap_or_else(|| "private".to_string());
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
 
   state
     .repository_service
@@ -129,7 +129,7 @@ pub async fn handle_update<T: serde::Serialize>(
   let effective_visibility = visibility.unwrap_or_else(|| "private".to_string());
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
 
   state
     .repository_service
@@ -159,7 +159,7 @@ pub async fn handle_delete(
   let effective_visibility = visibility.as_deref().unwrap_or("private");
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(&state.config_helper.jwt_secret, t).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
 
   state
     .repository_service

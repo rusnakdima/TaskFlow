@@ -66,7 +66,9 @@ impl AuthLoginService {
 
     let user_id = user.id().to_string();
 
-    let token = self.token_service.generate_token(&user_id, "", "")?;
+    let token = self
+      .token_service
+      .generate_token(&user_id, "", "", login_data.remember)?;
 
     let _ = self.auth_data_sync_service.on_user_login(&user_id).await;
 
