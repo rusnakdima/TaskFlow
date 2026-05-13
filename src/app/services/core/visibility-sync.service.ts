@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { REQUEST_SERVICE } from "@services/api.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { Todo } from "@models/generated/api.types";
 
 @Injectable({
@@ -9,7 +9,7 @@ import { Todo } from "@models/generated/api.types";
 })
 export class VisibilitySyncService {
   private requestService = inject(REQUEST_SERVICE);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
 
   async syncSingleTodoVisibilityChange(
     newVisibility: "private" | "shared",
@@ -17,7 +17,7 @@ export class VisibilitySyncService {
   ): Promise<void> {
     if (!todo_id) return;
 
-    const todo = await firstValueFrom(this.typedApiService.getTodo(todo_id));
+    const todo = await firstValueFrom(this.apiService.todos.get(todo_id));
     if (!todo) {
       throw new Error(`Todo with id ${todo_id} not found`);
     }

@@ -6,14 +6,14 @@ import { Observable, from } from "rxjs";
 /* models */
 import { Response } from "@models/response.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminService {
   private jwtTokenService = inject(JwtTokenService);
-  private typedApiService = inject(TypedApiService);
+  private apiService = inject(ApiService);
 
   constructor() {}
 
@@ -28,11 +28,11 @@ export class AdminService {
   }
 
   getAllArchiveData<R>(): Observable<Response<R>> {
-    return this.typedApiService.getAllArchiveData() as Observable<Response<R>>;
+    return this.apiService.admin.getAllArchiveData() as Observable<Response<R>>;
   }
 
   getAllAdminData<R>(): Observable<Response<R>> {
-    return this.typedApiService.getAllAdminData() as Observable<Response<R>>;
+    return this.apiService.admin.getAllAdminData() as Observable<Response<R>>;
   }
 
   async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {

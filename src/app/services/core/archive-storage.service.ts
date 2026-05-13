@@ -1,11 +1,11 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { from, Observable, of } from "rxjs";
+import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-import { invoke } from "@tauri-apps/api/core";
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
+import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@services/core/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
 import { StorageService } from "@services/storage.service";
@@ -16,6 +16,7 @@ import { StorageService } from "@services/storage.service";
 export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
   private storageService = inject(StorageService);
+  private apiService = inject(ApiService);
 
   /**
    * Load initial paginated data for a specific type
@@ -134,21 +135,14 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    */
   private loadAllArchiveDataFromRoute(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
-      from(
-        invoke<{ status: string; message: string; data: AdminDataWithRelations }>(
-          "get_all_archive_data",
-          {}
-        )
-      ).subscribe({
-        next: (response: { status: string; message: string; data: AdminDataWithRelations }) => {
-          if (response.status === "Success" && response.data) {
-            subscriber.next(response.data);
-            subscriber.complete();
-          } else {
-            subscriber.error(new Error(response.message || "Failed to load archive data"));
-          }
+      (this.apiService.admin.getAllArchiveData() as Observable<AdminDataWithRelations>).subscribe({
+        next: (data) => {
+          subscriber.next(data);
+          subscriber.complete();
         },
-        error: (err: Error) => subscriber.error(err),
+        error: (err) => {
+          subscriber.error(err);
+        },
       });
     });
   }

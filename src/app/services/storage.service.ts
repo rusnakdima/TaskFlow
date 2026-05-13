@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { Todo } from "@models/generated/api.types";
+import { Todo, User, Profile } from "@models/generated/api.types";
 import { Task, TaskStatus } from "@models/generated/api.types";
 import { Subtask } from "@models/generated/api.types";
 import { Comment } from "@models/generated/api.types";
@@ -47,6 +47,7 @@ export class StorageService {
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
     subtasks: { ...DEFAULT_PAGINATION },
+    categories: { ...DEFAULT_PAGINATION },
     comments: { ...DEFAULT_PAGINATION },
     chats: { ...DEFAULT_PAGINATION },
   });
@@ -740,6 +741,7 @@ export class StorageService {
       todos: { ...DEFAULT_PAGINATION },
       tasks: { ...DEFAULT_PAGINATION },
       subtasks: { ...DEFAULT_PAGINATION },
+      categories: { ...DEFAULT_PAGINATION },
       comments: { ...DEFAULT_PAGINATION },
       chats: { ...DEFAULT_PAGINATION },
     });
@@ -832,7 +834,7 @@ export class StorageService {
     return this._entityService.getCurrentUser();
   }
 
-  ensureTodosLoaded(visibility: string = "private", limit: number = 100): void {
+  ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
     const todos =
       visibility === "all"
         ? this.todos()
@@ -845,12 +847,12 @@ export class StorageService {
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
 
-  ensureTasksLoaded(visibility: string = "private", limit: number = 500): void {
+  ensureTasksLoaded(visibility: string = "private", limit: number = 10): void {
     if (this.tasks().length > 0) return;
     this._queryService.ensureTasksLoaded(visibility, limit);
   }
 
-  ensureSubtasksLoaded(visibility: string = "private", limit: number = 1000): void {
+  ensureSubtasksLoaded(visibility: string = "private", limit: number = 10): void {
     if (this.subtasks().length > 0) return;
     this._queryService.ensureSubtasksLoaded(visibility, limit);
   }
@@ -858,5 +860,120 @@ export class StorageService {
   ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
     if (this.categories().length > 0) return;
     this._queryService.ensureCategoriesLoaded(visibility, limit);
+  }
+
+  getTodos(visibility: string = "private"): Todo[] {
+    const todos =
+      visibility === "private"
+        ? this._entityService.privateTodos()
+        : visibility === "shared"
+          ? this._entityService.sharedTodos()
+          : visibility === "public"
+            ? this._entityService.publicTodos()
+            : [];
+    if (todos.length === 0 && !this._queryService.isEntityLoading("todos")) {
+      this._queryService.ensureTodosLoaded(visibility);
+    }
+    return todos;
+  }
+
+  loadMoreTodos(): void {
+    if (this._pagination().todos.hasMore && !this._queryService.isEntityLoading("todos")) {
+      this._queryService.loadMoreTodos();
+    }
+  }
+
+  getTasks(visibility: string = "private"): Task[] {
+    if (this._entityService.tasks().length === 0 && !this._queryService.isEntityLoading("tasks")) {
+      this._queryService.ensureTasksLoaded(visibility);
+    }
+    return this._entityService.tasks();
+  }
+
+  loadMoreTasks(): void {
+    if (this._pagination().tasks.hasMore && !this._queryService.isEntityLoading("tasks")) {
+      this._queryService.loadMoreTasks();
+    }
+  }
+
+  getSubtasks(visibility: string = "private"): Subtask[] {
+    if (
+      this._entityService.subtasks().length === 0 &&
+      !this._queryService.isEntityLoading("subtasks")
+    ) {
+      this._queryService.ensureSubtasksLoaded(visibility);
+    }
+    return this._entityService.subtasks();
+  }
+
+  loadMoreSubtasks(): void {
+    if (this._pagination().subtasks.hasMore && !this._queryService.isEntityLoading("subtasks")) {
+      this._queryService.loadMoreSubtasks();
+    }
+  }
+
+  getCategories(visibility: string = "private"): any[] {
+    if (
+      this._entityService.categories().length === 0 &&
+      !this._queryService.isEntityLoading("categories")
+    ) {
+      this._queryService.ensureCategoriesLoaded(visibility);
+    }
+    return this._entityService.categories();
+  }
+
+  loadMoreCategories(): void {
+    if (
+      this._pagination().categories.hasMore &&
+      !this._queryService.isEntityLoading("categories")
+    ) {
+      this._queryService.loadMoreCategories();
+    }
+  }
+
+  getChatsForVisibility(visibility: string = "private"): Chat[] {
+    if (this._entityService.chats().length === 0 && !this._queryService.isEntityLoading("chats")) {
+      this._queryService.ensureChatsLoaded(visibility);
+    }
+    return this._entityService.chats();
+  }
+
+  loadMoreChats(): void {
+    if (this._pagination().chats.hasMore && !this._queryService.isEntityLoading("chats")) {
+      this._queryService.loadMoreChats();
+    }
+  }
+
+  getComments(visibility: string = "private"): Comment[] {
+    if (
+      this._entityService.comments().length === 0 &&
+      !this._queryService.isEntityLoading("comments")
+    ) {
+      this._queryService.ensureCommentsLoaded(visibility);
+    }
+    return this._entityService.comments();
+  }
+
+  loadMoreComments(): void {
+    if (this._pagination().comments.hasMore && !this._queryService.isEntityLoading("comments")) {
+      this._queryService.loadMoreComments();
+    }
+  }
+
+  getUser(): User | null {
+    if (!this._queryService.user() && !this._queryService.isEntityLoading("user")) {
+      this._queryService.ensureUserLoaded();
+    }
+    return this._queryService.user();
+  }
+
+  getProfile(): Profile | null {
+    if (
+      !this._queryService.allProfiles()?.length &&
+      !this._queryService.isEntityLoading("profile")
+    ) {
+      this._queryService.ensureProfileLoaded();
+    }
+    return this._queryService.allProfiles()[0] || null;
   }
 }

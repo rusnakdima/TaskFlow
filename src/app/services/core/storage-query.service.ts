@@ -9,7 +9,7 @@ import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@model
 /* services */
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@models/admin.model";
-import { TypedApiService } from "@services/typed-api.service";
+import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* utils */
@@ -24,8 +24,8 @@ const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true 
 export class StorageQueryService {
   private readonly _injector = inject(Injector);
   private readonly _entityService = inject(StorageEntityService);
+  private _apiService: ApiService | null = null;
   private _adminService: AdminService | null = null;
-  private _typedApiService: TypedApiService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
 
   private readonly _loaded = signal(false);
@@ -48,6 +48,7 @@ export class StorageQueryService {
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
     subtasks: { ...DEFAULT_PAGINATION },
+    categories: { ...DEFAULT_PAGINATION },
     comments: { ...DEFAULT_PAGINATION },
     chats: { ...DEFAULT_PAGINATION },
   });
@@ -121,10 +122,9 @@ export class StorageQueryService {
     return this._adminService;
   }
 
-  private get typedApiService(): TypedApiService {
-    if (!this._typedApiService)
-      this._typedApiService = this._injector.get(TypedApiService) as TypedApiService;
-    return this._typedApiService;
+  private get apiService(): ApiService {
+    if (!this._apiService) this._apiService = this._injector.get(ApiService) as ApiService;
+    return this._apiService;
   }
 
   private get jwtTokenService(): JwtTokenService {
@@ -387,6 +387,37 @@ export class StorageQueryService {
     return this._loading();
   }
 
+  isEntityLoading(
+    entityType:
+      | "todos"
+      | "tasks"
+      | "subtasks"
+      | "categories"
+      | "chats"
+      | "comments"
+      | "user"
+      | "profile"
+  ): boolean {
+    switch (entityType) {
+      case "todos":
+        return this._todosLoading();
+      case "tasks":
+        return this._tasksLoading();
+      case "subtasks":
+        return this._subtasksLoading();
+      case "categories":
+        return this._categoriesLoading();
+      case "chats":
+        return this._chatsLoading();
+      case "comments":
+        return this._commentsLoading();
+      case "user":
+        return this._userLoading();
+      case "profile":
+        return this._profileLoading();
+    }
+  }
+
   setLoaded(loaded: boolean): void {
     this._loaded.set(loaded);
   }
@@ -584,12 +615,11 @@ export class StorageQueryService {
     return of(this.getAdminDataWithRelations());
   }
 
-  ensureTodosLoaded(visibility: string = "private", limit: number = 100): void {
+  ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._todosLoading() || this._entityService.privateTodos().length > 0) return;
     this._todosLoading.set(true);
-    this.typedApiService.getTodos({ visibility, limit }).subscribe({
-      next: (response) => {
-        const todos = response?.items || [];
+    this.apiService.todos.getAll({ visibility, limit }).subscribe({
+      next: (todos) => {
         this._entityService.privateTodos.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
       },
@@ -600,12 +630,11 @@ export class StorageQueryService {
     });
   }
 
-  ensureTasksLoaded(visibility: string = "private", limit: number = 500): void {
+  ensureTasksLoaded(visibility: string = "private", limit: number = 10, todoId?: string): void {
     if (this._tasksLoading() || this._entityService.tasks().length > 0) return;
     this._tasksLoading.set(true);
-    this.typedApiService.getTasks({ visibility, limit }).subscribe({
-      next: (response) => {
-        const tasks = response?.items || [];
+    this.apiService.tasks.getAll({ visibility, limit, todoId }).subscribe({
+      next: (tasks) => {
         this._entityService.tasks.set(tasks);
         this.updatePagination("tasks", 0, limit, tasks.length);
       },
@@ -616,12 +645,11 @@ export class StorageQueryService {
     });
   }
 
-  ensureSubtasksLoaded(visibility: string = "private", limit: number = 1000): void {
+  ensureSubtasksLoaded(visibility: string = "private", limit: number = 10, taskId?: string): void {
     if (this._subtasksLoading() || this._entityService.subtasks().length > 0) return;
     this._subtasksLoading.set(true);
-    this.typedApiService.getSubtasks({ visibility, limit }).subscribe({
-      next: (response) => {
-        const subtasks = response?.items || [];
+    this.apiService.subtasks.getAll({ visibility, limit, taskId }).subscribe({
+      next: (subtasks) => {
         this._entityService.subtasks.set(subtasks);
         this.updatePagination("subtasks", 0, limit, subtasks.length);
       },
@@ -632,12 +660,11 @@ export class StorageQueryService {
     });
   }
 
-  ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
+  ensureCategoriesLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._categoriesLoading() || this._entityService.categories().length > 0) return;
     this._categoriesLoading.set(true);
-    this.typedApiService.getCategories({ visibility, limit }).subscribe({
-      next: (response) => {
-        const categories = response?.items || [];
+    this.apiService.categories.getAll({ visibility, limit }).subscribe({
+      next: (categories) => {
         this._entityService.categories.set(categories);
       },
       error: () => {},
@@ -647,12 +674,11 @@ export class StorageQueryService {
     });
   }
 
-  ensureChatsLoaded(visibility: string = "private", limit: number = 500): void {
+  ensureChatsLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._chatsLoading() || this._entityService.chats().length > 0) return;
     this._chatsLoading.set(true);
-    this.typedApiService.getChats({ visibility, limit }).subscribe({
-      next: (response) => {
-        const chats = response?.items || [];
+    this.apiService.chats.getAll({ visibility, limit }).subscribe({
+      next: (chats) => {
         this._entityService.chats.set(chats);
         this.updatePagination("chats", 0, limit, chats.length);
       },
@@ -663,14 +689,109 @@ export class StorageQueryService {
     });
   }
 
-  ensureCommentsLoaded(visibility: string = "private", limit: number = 500): void {
+  ensureCommentsLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._commentsLoading() || this._entityService.comments().length > 0) return;
     this._commentsLoading.set(true);
-    this.typedApiService.getComments({ visibility, limit }).subscribe({
-      next: (response) => {
-        const comments = response?.items || [];
+    this.apiService.comments.getAll({ visibility, limit }).subscribe({
+      next: (comments) => {
         this._entityService.comments.set(comments);
         this.updatePagination("comments", 0, limit, comments.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._commentsLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreTodos(): void {
+    if (this._todosLoading()) return;
+    const currentPage = this._pagination().todos.skip / 10;
+    this._todosLoading.set(true);
+    this.apiService.todos.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (todos) => {
+        this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
+        this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._todosLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreTasks(): void {
+    if (this._tasksLoading()) return;
+    const currentPage = this._pagination().tasks.skip / 10;
+    this._tasksLoading.set(true);
+    this.apiService.tasks.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (tasks) => {
+        this._entityService.tasks.update((existing) => [...existing, ...tasks]);
+        this.updatePagination("tasks", (currentPage + 1) * 10, 10, tasks.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._tasksLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreSubtasks(): void {
+    if (this._subtasksLoading()) return;
+    const currentPage = this._pagination().subtasks.skip / 10;
+    this._subtasksLoading.set(true);
+    this.apiService.subtasks.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (subtasks) => {
+        this._entityService.subtasks.update((existing) => [...existing, ...subtasks]);
+        this.updatePagination("subtasks", (currentPage + 1) * 10, 10, subtasks.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._subtasksLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreCategories(): void {
+    if (this._categoriesLoading()) return;
+    const currentPage = this._pagination().categories.skip / 10;
+    this._categoriesLoading.set(true);
+    this.apiService.categories.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (categories) => {
+        this._entityService.categories.update((existing) => [...existing, ...categories]);
+        this.updatePagination("categories", (currentPage + 1) * 10, 10, categories.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._categoriesLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreChats(): void {
+    if (this._chatsLoading()) return;
+    const currentPage = this._pagination().chats.skip / 10;
+    this._chatsLoading.set(true);
+    this.apiService.chats.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (chats) => {
+        this._entityService.chats.update((existing) => [...existing, ...chats]);
+        this.updatePagination("chats", (currentPage + 1) * 10, 10, chats.length);
+      },
+      error: () => {},
+      complete: () => {
+        this._chatsLoading.set(false);
+      },
+    });
+  }
+
+  loadMoreComments(): void {
+    if (this._commentsLoading()) return;
+    const currentPage = this._pagination().comments.skip / 10;
+    this._commentsLoading.set(true);
+    this.apiService.comments.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+      next: (comments) => {
+        this._entityService.comments.update((existing) => [...existing, ...comments]);
+        this.updatePagination("comments", (currentPage + 1) * 10, 10, comments.length);
       },
       error: () => {},
       complete: () => {
@@ -754,6 +875,7 @@ export class StorageQueryService {
       todos: { ...DEFAULT_PAGINATION },
       tasks: { ...DEFAULT_PAGINATION },
       subtasks: { ...DEFAULT_PAGINATION },
+      categories: { ...DEFAULT_PAGINATION },
       comments: { ...DEFAULT_PAGINATION },
       chats: { ...DEFAULT_PAGINATION },
     });
@@ -781,14 +903,14 @@ export class StorageQueryService {
       this._profileLoading.set(false);
       return;
     }
-    this.typedApiService
-      .getProfiles({ visibility: "private", filter: { user_id: userId } })
+    this.apiService.profiles
+      .getAll({ visibility: "private", filter: { user_id: userId } })
       .subscribe({
-        next: (response) => {
-          if (response.items && response.items.length > 0) {
-            this.setCollection("profiles", response.items[0]);
-            if (response.items[0].user) {
-              this.setCollection("user", response.items[0].user);
+        next: (profiles) => {
+          if (profiles && profiles.length > 0) {
+            this.setCollection("profiles", profiles[0]);
+            if ((profiles[0] as any).user) {
+              this.setCollection("user", (profiles[0] as any).user);
             }
           }
         },
@@ -802,10 +924,10 @@ export class StorageQueryService {
   ensurePublicProfilesLoaded(): void {
     if (this._publicProfileLoading() || this._entityService.publicProfiles().length > 0) return;
     this._publicProfileLoading.set(true);
-    this.typedApiService.getProfiles({ visibility: "public" }).subscribe({
-      next: (response) => {
-        if (response.items && response.items.length > 0) {
-          this._entityService.publicProfiles.set(response.items);
+    this.apiService.profiles.getAll({ visibility: "public" }).subscribe({
+      next: (profiles) => {
+        if (profiles && profiles.length > 0) {
+          this._entityService.publicProfiles.set(profiles);
         }
       },
       error: () => {},
