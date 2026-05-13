@@ -5,17 +5,37 @@ use crate::services::permission_service::PermissionService;
 use serde_json::{json, Value};
 
 pub struct CategoryService {
-  provider: DataProvider,
+  json_provider: DataProvider,
+  mongo_provider: Option<DataProvider>,
 }
 
 impl CategoryService {
-  pub fn new(provider: DataProvider) -> Self {
-    Self { provider }
+  pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
+    Self {
+      json_provider,
+      mongo_provider,
+    }
+  }
+
+  fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
+    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
+    let use_json = visibility == "private" || offline || visibility == "all";
+
+    if use_json {
+      Ok(self.json_provider.clone())
+    } else {
+      match self.mongo_provider.clone() {
+        Some(p) => Ok(p),
+        None => Err(err_response(
+          "MongoDB not available - cannot access shared records.",
+        )),
+      }
+    }
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .provider
+      .json_provider
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
@@ -37,6 +57,7 @@ impl CategoryService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
+    let provider = self.get_provider(visibility)?;
     let permission_filter =
       PermissionService::get_category_filter_for_user(user_id, Some(visibility));
 
@@ -55,26 +76,55 @@ impl CategoryService {
       )
     };
 
-    let docs = self
-      .provider
+    let docs = provider
       .find_many("categories", final_filter.as_ref(), skip, limit, None, true)
       .await?;
+
     Ok(success_response(DataValue::Array(docs)))
   }
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
-    let doc = self.provider.insert("categories", data).await?;
+    let doc = self.json_provider.insert("categories", data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
-  pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
-    let doc = self.provider.update("categories", id, data).await?;
+  pub async fn update(
+    &self,
+    id: &str,
+    data: Value,
+    user_id: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let existing = self
+      .json_provider
+      .find_by_id("categories", id)
+      .await?
+      .ok_or_else(|| err_response("Category not found"))?;
+
+    if !PermissionService::can_edit_category(&existing, user_id) {
+      return Err(err_response(
+        "Unauthorized: You do not have permission to edit this category",
+      ));
+    }
+
+    let doc = self.json_provider.update("categories", id, data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
-  pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
+  pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
+    let existing = self
+      .json_provider
+      .find_by_id("categories", id)
+      .await?
+      .ok_or_else(|| err_response("Category not found"))?;
+
+    if !PermissionService::can_delete_category(&existing, user_id) {
+      return Err(err_response(
+        "Unauthorized: You do not have permission to delete this category",
+      ));
+    }
+
     let doc = self
-      .provider
+      .json_provider
       .update(
         "categories",
         id,

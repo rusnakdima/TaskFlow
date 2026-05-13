@@ -1,12 +1,6 @@
 #[path = "manage_db.route.rs"]
 pub mod manage_db_route;
 
-#[path = "crud_helpers.rs"]
-pub mod crud_helpers;
-
-#[path = "entity_routes/mod.rs"]
-pub mod entity_routes;
-
 #[path = "auth.route.rs"]
 pub mod auth_route;
 
@@ -42,3 +36,12 @@ pub mod chat_route;
 
 #[path = "comment.route.rs"]
 pub mod comment_route;
+
+#[path = "todo.route.rs"]
+pub mod todo_route;
+
+#[path = "task.route.rs"]
+pub mod task_route;
+
+#[path = "subtask.route.rs"]
+pub mod subtask_route;
