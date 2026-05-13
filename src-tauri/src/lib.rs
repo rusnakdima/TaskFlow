@@ -53,6 +53,7 @@ use routes::{
   },
   profile_route::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   statistics_route::statistics_get,
+  user_route::get_users,
 };
 
 /* services */
@@ -406,6 +407,7 @@ pub fn run() {
       create_chat,
       update_chat,
       delete_chat,
+      get_users,
       get_comment,
       get_comments,
       create_comment,

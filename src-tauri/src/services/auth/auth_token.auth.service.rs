@@ -53,11 +53,19 @@ impl AuthTokenService {
     user_id: &str,
     _username: &str,
     _role: &str,
+    remember: bool,
   ) -> Result<String, ResponseModel> {
-    let expiration = chrono::Utc::now()
-      .checked_add_signed(chrono::Duration::hours(24))
-      .expect("valid timestamp")
-      .timestamp() as usize;
+    let expiration = if remember {
+      chrono::Utc::now()
+        .checked_add_signed(chrono::Duration::days(30))
+        .expect("valid timestamp")
+        .timestamp() as usize
+    } else {
+      chrono::Utc::now()
+        .checked_add_signed(chrono::Duration::hours(24))
+        .expect("valid timestamp")
+        .timestamp() as usize
+    };
 
     let claims = Claims {
       id: user_id.to_owned(),

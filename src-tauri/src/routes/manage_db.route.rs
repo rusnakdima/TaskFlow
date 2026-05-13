@@ -60,8 +60,8 @@ pub async fn manage_data(
 
   let _op_for_log = operation.clone();
   let user_id = extract_user_from_token(
-    &state.config_helper.jwt_secret,
     token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
   )
   .ok();
   let result = state
