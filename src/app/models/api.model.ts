@@ -1,18 +1,21 @@
 export type Visibility = "private" | "shared" | "public" | "all";
 
 export interface CrudOptions {
-  visibility: Visibility;
+  visibility?: Visibility | string;
   offline?: boolean;
   filter?: Record<string, any>;
   skip?: number;
   limit?: number;
   load?: string[];
   sort?: { [key: string]: number };
+  page?: number;
 }
 
 export interface PaginatedOptions extends CrudOptions {
   limit?: number;
   skip?: number;
+  todoId?: string;
+  taskId?: string;
 }
 
 export interface PaginatedResult<T> {
