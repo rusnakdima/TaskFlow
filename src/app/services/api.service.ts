@@ -4,11 +4,19 @@ import { tap, map } from "rxjs/operators";
 import { invoke } from "@tauri-apps/api/core";
 
 import { Response, ResponseStatus } from "@models/response.model";
-import { Profile } from "@models/generated/api.types";
+import {
+  Todo,
+  Task,
+  Subtask,
+  Category,
+  Chat,
+  Comment,
+  User,
+  Profile,
+} from "@models/generated/api.types";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { TypedApiService } from "@services/typed-api.service";
 import {
   Visibility,
   CrudOptions,
@@ -40,12 +48,21 @@ export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
   private storageService = inject(StorageService);
   private jwtTokenService = inject(JwtTokenService);
-  private typedApiService = inject(TypedApiService);
 
   private pendingRequests = new Map<string, { controller: AbortController; timestamp: number }>();
   private readonly REQUEST_TTL = 30000;
   private readonly MAX_PENDING_REQUESTS = 100;
-  private readonly DEFAULT_PAGE_SIZE = 20;
+  private readonly DEFAULT_PAGE_SIZE = 10;
+
+  readonly todos = new EntityApi<Todo>(this, "todos");
+  readonly tasks = new EntityApi<Task>(this, "tasks");
+  readonly subtasks = new EntityApi<Subtask>(this, "subtasks");
+  readonly categories = new EntityApi<Category>(this, "categories");
+  readonly profiles = new EntityApi<Profile>(this, "profiles");
+  readonly comments = new EntityApi<Comment>(this, "comments");
+  readonly chats = new EntityApi<Chat>(this, "chats");
+  readonly users = new EntityApi<User>(this, "users");
+  readonly admin = new AdminApi(this);
 
   private paginationState = signal<Map<string, PaginationState>>(new Map());
 
@@ -359,7 +376,7 @@ export class ApiService {
           this.updatePaginationState(table, {
             skip: data.length,
             hasMore: data.length >= (pageOptions.limit || state.limit),
-            visibility: options.visibility,
+            visibility: options.visibility as Visibility,
             filter: options.filter,
           });
         }
@@ -450,25 +467,21 @@ export class ApiService {
 
   getProfile(): Observable<Profile | null> {
     const userId = this.currentUserId();
-    return this.typedApiService
-      .getProfiles({
-        visibility: "all",
-        filter: { user_id: userId },
-      })
-      .pipe(
-        tap((response) => {
-          if (response.items && response.items.length > 0) {
-            this.storageService.setCollection("profiles", response.items[0] as any);
-          }
-        }),
-        map((response) => response.items[0] || null)
-      );
+    return this.getAll<Profile>("profiles", {
+      visibility: "all",
+      filter: { user_id: userId },
+    }).pipe(
+      tap((profiles) => {
+        if (profiles && profiles.length > 0) {
+          this.storageService.setCollection("profiles", profiles[0] as any);
+        }
+      }),
+      map((profiles) => profiles?.[0] || null)
+    );
   }
 
   getPublicProfiles(): Observable<Profile[]> {
-    return this.typedApiService
-      .getProfiles({ visibility: "public" })
-      .pipe(map((response) => response.items));
+    return this.getAll<Profile>("profiles", { visibility: "public" });
   }
 
   invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
@@ -485,6 +498,141 @@ export class ApiService {
 
   async batchRestore(table: string, ids: string[]): Promise<CascadeResult[]> {
     return invoke<CascadeResult[]>("batch_restore_cascade", { table, ids });
+  }
+}
+
+function getCurrentUserId(apiService: ApiService): string | null {
+  return apiService.currentUserId() || null;
+}
+
+class EntityApi<T extends HasId> {
+  private readonly userOwnedTables = [
+    "todos",
+    "tasks",
+    "subtasks",
+    "categories",
+    "comments",
+    "chats",
+  ];
+
+  constructor(
+    private apiService: ApiService,
+    private table: string
+  ) {}
+
+  getAll(options?: PaginatedOptions & { todoId?: string; taskId?: string }): Observable<T[]> {
+    const opts = this.buildOptions(options);
+    return this.apiService.getAll<T>(this.table, opts);
+  }
+
+  get(id: string, options?: CrudOptions): Observable<T> {
+    return this.apiService.get<T>(this.table, id, this.buildOptions(options));
+  }
+
+  create(data: Partial<T>, options?: CrudOptions): Observable<T> {
+    return this.apiService.create<T>(this.table, data as T, this.buildOptions(options));
+  }
+
+  update(id: string, data: Partial<T>, options?: CrudOptions): Observable<T> {
+    return this.apiService.update<T>(this.table, id, data as T, this.buildOptions(options));
+  }
+
+  delete(id: string, options?: CrudOptions): Observable<void> {
+    return this.apiService.delete<T>(this.table, id, this.buildOptions(options));
+  }
+
+  loadMore(): Observable<T[]> {
+    return this.apiService.loadMore<T>(this.table);
+  }
+
+  paginate(
+    options: PaginatedOptions & { todoId?: string; taskId?: string },
+    reset = false
+  ): Observable<PaginatedResult<T>> {
+    return this.apiService.paginate<T>(this.table, this.buildOptions(options), reset);
+  }
+
+  private buildOptions(
+    options?: CrudOptions & { todoId?: string; taskId?: string }
+  ): PaginatedOptions {
+    if (!options) return { visibility: "all" };
+
+    const { todoId, taskId, ...rest } = options;
+    const visibility = options.visibility || "all";
+
+    let filter = rest.filter ? { ...rest.filter } : {};
+
+    if (todoId) {
+      filter = { ...filter, todo_id: todoId };
+    }
+    if (taskId) {
+      filter = { ...filter, task_id: taskId };
+    }
+
+    if (this.userOwnedTables.includes(this.table)) {
+      const userId = getCurrentUserId(this.apiService);
+      if (userId && !filter["user_id"]) {
+        filter = { ...filter, user_id: userId };
+      }
+    }
+
+    return { ...rest, visibility, filter, limit: rest.limit || 10 };
+  }
+}
+
+class AdminApi {
+  constructor(private apiService: ApiService) {}
+
+  getAllArchiveData(): Observable<unknown> {
+    return this.apiService.invokeCommand("get_all_archive_data", {});
+  }
+
+  getAllAdminData(): Observable<unknown> {
+    return this.apiService.invokeCommand("get_all_admin_data", {});
+  }
+
+  adminGetAll(): Observable<unknown> {
+    return this.apiService.invokeCommand("admin_get_all", {});
+  }
+
+  adminGetPaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
+    return this.apiService.invokeCommand("admin_get_paginated", { dataType, skip, limit });
+  }
+
+  adminToggleDelete(table: string, id: string): Observable<void> {
+    return this.apiService.invokeCommand("admin_toggle_delete", { table, id });
+  }
+
+  adminPermanentlyDelete(table: string, id: string): Observable<void> {
+    return this.apiService.invokeCommand("admin_permanently_delete", { table, id });
+  }
+
+  adminToggleDeleteLocal(table: string, id: string): Observable<void> {
+    return this.apiService.invokeCommand("admin_toggle_delete_local", { table, id });
+  }
+
+  adminPermanentlyDeleteLocal(table: string, id: string): Observable<void> {
+    return this.apiService.invokeCommand("admin_permanently_delete_local", { table, id });
+  }
+
+  adminGetAllArchive(): Observable<unknown> {
+    return this.apiService.invokeCommand("admin_get_all_archive", {});
+  }
+
+  adminGetArchivePaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
+    return this.apiService.invokeCommand("admin_get_archive_paginated", { dataType, skip, limit });
+  }
+
+  batchSoftDelete(table: string, ids: string[]): Observable<CascadeResult> {
+    return this.apiService.batchSoftDelete(table, ids) as unknown as Observable<CascadeResult>;
+  }
+
+  batchHardDelete(table: string, ids: string[]): Observable<CascadeResult> {
+    return this.apiService.batchHardDelete(table, ids) as unknown as Observable<CascadeResult>;
+  }
+
+  batchRestore(table: string, ids: string[]): Observable<CascadeResult> {
+    return this.apiService.batchRestore(table, ids) as unknown as Observable<CascadeResult>;
   }
 }
 
