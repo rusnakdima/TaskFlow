@@ -16,6 +16,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/utils/store-helpers";
 
 import { StorageEntityService } from "./storage-entity.service";
+import { ProfileRequiredService } from "./profile-required.service";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -27,6 +28,7 @@ export class StorageQueryService {
   private _apiService: ApiService | null = null;
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
+  private _profileRequiredService: ProfileRequiredService | null = null;
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -131,6 +133,14 @@ export class StorageQueryService {
     if (!this._jwtTokenService)
       this._jwtTokenService = this._injector.get(JwtTokenService) as JwtTokenService;
     return this._jwtTokenService;
+  }
+
+  private get profileRequiredService(): ProfileRequiredService {
+    if (!this._profileRequiredService)
+      this._profileRequiredService = this._injector.get(
+        ProfileRequiredService
+      ) as ProfileRequiredService;
+    return this._profileRequiredService;
   }
 
   private get activeTasks(): ReturnType<typeof computed<Task[]>> {
@@ -964,9 +974,13 @@ export class StorageQueryService {
             if ((profiles[0] as any).user) {
               this.setCollection("user", (profiles[0] as any).user);
             }
+          } else {
+            this.profileRequiredService.setProfileRequiredMode(true);
           }
         },
-        error: () => {},
+        error: () => {
+          this.profileRequiredService.setProfileRequiredMode(true);
+        },
         complete: () => {
           this._profileLoading.set(false);
         },

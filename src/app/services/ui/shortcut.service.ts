@@ -170,10 +170,6 @@ export class ShortcutService implements OnDestroy {
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/sync"]));
               break;
-            case "g":
-              event.preventDefault();
-              this.zone.run(() => this.router.navigate(["/shared-tasks"]));
-              break;
             case "a":
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/about"]));
