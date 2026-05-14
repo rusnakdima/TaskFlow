@@ -291,7 +291,7 @@ button:disabled {
 }
 
 .floating-bottom-nav {
-  @apply flex flex-row flex-nowrap items-center gap-1 rounded-full border border-gray-200/50 bg-white/5! px-3 py-0 shadow-lg shadow-black/20 backdrop-blur-lg! dark:border-zinc-700/50 dark:bg-zinc-800/90;
+  @apply flex flex-row flex-nowrap items-center gap-1 rounded-full border border-gray-200/50 bg-white/15 px-3 py-0 shadow-lg shadow-black/20 backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800/50;
 }
 
 .nav-item {
