@@ -27,6 +27,14 @@ import {
 
 export { ApiError, Visibility, HasId } from "@models/api.model";
 
+export interface EntityRoutes {
+  get: string;
+  getAll: string;
+  create: string;
+  update: string;
+  delete: string;
+}
+
 export interface CascadeResult {
   todo_count: number;
   task_count: number;
@@ -41,15 +49,57 @@ export class ApiService {
   storageService = inject(StorageService);
   jwtTokenService = inject(JwtTokenService);
 
-  readonly todos = new EntityApi<Todo>(this, "todos");
-  readonly tasks = new EntityApi<Task>(this, "tasks");
-  readonly subtasks = new EntityApi<Subtask>(this, "subtasks");
-  readonly categories = new EntityApi<Category>(this, "categories");
-  readonly profiles = new EntityApi<Profile>(this, "profiles");
-  readonly comments = new EntityApi<Comment>(this, "comments");
-  readonly chats = new EntityApi<Chat>(this, "chats");
+  readonly todos = new EntityApi<Todo>(this, {
+    get: "get_todo",
+    getAll: "get_todos",
+    create: "create_todo",
+    update: "update_todo",
+    delete: "delete_todo",
+  });
+  readonly tasks = new EntityApi<Task>(this, {
+    get: "get_task",
+    getAll: "get_tasks",
+    create: "create_task",
+    update: "update_task",
+    delete: "delete_task",
+  });
+  readonly subtasks = new EntityApi<Subtask>(this, {
+    get: "get_subtask",
+    getAll: "get_subtasks",
+    create: "create_subtask",
+    update: "update_subtask",
+    delete: "delete_subtask",
+  });
+  readonly categories = new EntityApi<Category>(this, {
+    get: "get_category",
+    getAll: "get_categories",
+    create: "create_category",
+    update: "update_category",
+    delete: "delete_category",
+  });
+  readonly profiles = new EntityApi<Profile>(this, {
+    get: "get_profile",
+    getAll: "get_profiles",
+    create: "create_profile",
+    update: "update_profile",
+    delete: "delete_profile",
+  });
+  readonly comments = new EntityApi<Comment>(this, {
+    get: "get_comment",
+    getAll: "get_comments",
+    create: "create_comment",
+    update: "update_comment",
+    delete: "delete_comment",
+  });
+  readonly chats = new EntityApi<Chat>(this, {
+    get: "get_chat",
+    getAll: "get_chats",
+    create: "create_chat",
+    update: "update_chat",
+    delete: "delete_chat",
+  });
   readonly admin = new AdminApi(this);
-  readonly users = new EntityApi<User>(this, "users");
+  readonly users = new EntityApi<User>(this, { get: "get_user", getAll: "get_users" });
 
   private paginationState = signal<Map<string, PaginationState>>(new Map());
 
@@ -167,186 +217,13 @@ export class ApiService {
     return from(invoke<Response<unknown>>("initialize_user_data", { userId }));
   }
 
-  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
-    return this.genericInvoke<T>(table, "get", { id, visibility: options.visibility });
-  }
-
-  getAll<T>(
-    table: string,
-    options: PaginatedOptions & { todoId?: string; taskId?: string } = { visibility: "all" }
-  ): Observable<T[]> {
-    return this.genericInvokeList<T>(table, "getAll", {
-      visibility: options.visibility,
-      filter: options.filter as Record<string, unknown>,
-      page: options.skip,
-      limit: options.limit,
-      todoId: options.todoId,
-      taskId: options.taskId,
-    });
-  }
-
-  create<T>(
-    table: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    return this.genericInvoke<T>(table, "create", { data, visibility: options.visibility });
-  }
-
-  update<T>(
-    table: string,
-    id: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    return this.genericInvoke<T>(table, "update", { id, data, visibility: options.visibility });
-  }
-
-  updateAll<T>(
-    table: string,
-    items: Partial<T>[],
-    options?: { visibility?: string; offline?: boolean }
-  ): Observable<T[]> {
-    return new Observable((subscriber) => {
-      Promise.all(
-        items.map((item) =>
-          (item as any).id
-            ? this.genericInvoke<T>(table, "update", {
-                id: (item as any).id,
-                data: item,
-                visibility: options?.visibility || "all",
-              }).toPromise()
-            : null
-        )
-      )
-        .then((responses) => {
-          const updatedItems = responses.filter((r) => r !== null) as T[];
-          updatedItems.forEach((item) => {
-            if ((item as any).id) this.storageService.modify(table as any, "update", item as any);
-          });
-          subscriber.next(updatedItems);
-          subscriber.complete();
-        })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
-    });
-  }
-
-  delete(table: string, id: string, options?: CrudOptions): Observable<void> {
-    return this.genericInvoke<void>(table, "delete", { id, visibility: options?.visibility });
-  }
-
-  genericInvoke<T>(
-    table: string,
-    operation: string,
-    params: {
-      id?: string;
-      data?: Partial<T>;
-      visibility?: string;
-      filter?: Record<string, unknown>;
-      load?: string[];
-      page?: number;
-      limit?: number;
-      todoId?: string;
-      taskId?: string;
-    } = {}
-  ): Observable<T> {
-    const token = this.jwtTokenService.getToken();
-
-    const args: Record<string, unknown> = {
-      operation,
-      table,
-      token,
-    };
-
-    if (params.id) args["id"] = params.id;
-    if (params.data) args["data"] = params.data;
-    if (params.visibility) args["visibility"] = params.visibility;
-    if (params.load) args["load"] = params.load;
-    if (params.page !== undefined) args["page"] = params.page;
-    if (params.limit !== undefined) args["limit"] = params.limit;
-
-    if (params.filter) {
-      const filter = { ...params.filter };
-      if (params.todoId) (filter as any).todo_id = params.todoId;
-      if (params.taskId) (filter as any).task_id = params.taskId;
-      args["filter"] = filter;
-    }
-
-    return new Observable((subscriber) => {
-      invoke<Response<T>>("process_queued_operation", args)
-        .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            subscriber.next(response.data as T);
-            subscriber.complete();
-          } else {
-            subscriber.error(new ApiError(response.message || `Failed to ${operation}`, "server"));
-          }
-        })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
-    });
-  }
-
-  genericInvokeList<T>(
-    table: string,
-    operation: string,
-    params: {
-      id?: string;
-      data?: Partial<T>;
-      visibility?: string;
-      filter?: Record<string, unknown>;
-      load?: string[];
-      page?: number;
-      limit?: number;
-      todoId?: string;
-      taskId?: string;
-    } = {}
-  ): Observable<T[]> {
-    const token = this.jwtTokenService.getToken();
-
-    const args: Record<string, unknown> = {
-      operation,
-      table,
-      token,
-    };
-
-    if (params.id) args["id"] = params.id;
-    if (params.data) args["data"] = params.data;
-    if (params.visibility) args["visibility"] = params.visibility;
-    if (params.load) args["load"] = params.load;
-    if (params.page !== undefined) args["page"] = params.page;
-    if (params.limit !== undefined) args["limit"] = params.limit;
-
-    if (params.filter) {
-      const filter = { ...params.filter };
-      if (params.todoId) (filter as any).todo_id = params.todoId;
-      if (params.taskId) (filter as any).task_id = params.taskId;
-      args["filter"] = filter;
-    }
-
-    return new Observable((subscriber) => {
-      invoke<Response<T[]>>("process_queued_operation", args)
-        .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const items = Array.isArray(response.data)
-              ? response.data
-              : (response.data as any)?.items || [];
-            this.storageService.setCollection(table as any, items as any);
-            subscriber.next(items as T[]);
-            subscriber.complete();
-          } else {
-            subscriber.error(new ApiError(response.message || `Failed to ${operation}`, "server"));
-          }
-        })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
-    });
-  }
-
   loadPage<T>(table: string, options: PaginatedOptions): Observable<T[]> {
-    return this.genericInvokeList<T>(table, "getAll", {
-      ...options,
-      page: 0,
-      limit: options.limit || 10,
-    });
+    const command = this.getCommand(table, "getAll");
+    if (!command)
+      return new Observable((s) => {
+        s.error(new ApiError(`Unknown table: ${table}`, "server"));
+      });
+    return this.crudList<T>(command, { page: 0, limit: options.limit || 10, ...options });
   }
 
   loadMore<T>(table: string): Observable<T[]> {
@@ -357,7 +234,12 @@ export class ApiService {
         observer.complete();
       });
     }
-    return this.genericInvokeList<T>(table, "getAll", {
+    const command = this.getCommand(table, "getAll");
+    if (!command)
+      return new Observable((s) => {
+        s.error(new ApiError(`Unknown table: ${table}`, "server"));
+      });
+    return this.crudList<T>(command, {
       visibility: state.visibility as Visibility,
       filter: state.filter,
       page: state.skip,
@@ -373,8 +255,13 @@ export class ApiService {
     const state = this.getPaginationState(table);
     const limit = options.limit || state.limit;
     const page = reset ? 0 : state.skip;
+    const command = this.getCommand(table, "getAll");
+    if (!command)
+      return new Observable((s) => {
+        s.error(new ApiError(`Unknown table: ${table}`, "server"));
+      });
     return new Observable((subscriber) => {
-      this.genericInvokeList<T>(table, "getAll", { ...options, page, limit }).subscribe({
+      this.crudList<T>(command, { ...options, page, limit }).subscribe({
         next: (items) => {
           this.updatePaginationState(table, {
             skip: page + items.length,
@@ -388,6 +275,157 @@ export class ApiService {
     });
   }
 
+  crud<T>(
+    route: string,
+    params: {
+      id?: string;
+      data?: Partial<T>;
+      visibility?: string;
+      filter?: Record<string, unknown>;
+      load?: string[];
+      page?: number;
+      limit?: number;
+      todoId?: string;
+      taskId?: string;
+    } = {}
+  ): Observable<T> {
+    const token = this.jwtTokenService.getToken();
+
+    const args: Record<string, unknown> = { token };
+
+    if (params.id) args["id"] = params.id;
+    if (params.data) args["data"] = params.data;
+    if (params.visibility) args["visibility"] = params.visibility;
+    if (params.load) args["load"] = params.load;
+    if (params.page !== undefined) args["page"] = params.page;
+    if (params.limit !== undefined) args["limit"] = params.limit;
+
+    if (params.filter) {
+      const filter = { ...params.filter };
+      if (params.todoId) (filter as any).todo_id = params.todoId;
+      if (params.taskId) (filter as any).task_id = params.taskId;
+      args["filter"] = filter;
+    }
+
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(route, args)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  crudList<T>(
+    route: string,
+    params: {
+      id?: string;
+      data?: Partial<T>;
+      visibility?: string;
+      filter?: Record<string, unknown>;
+      load?: string[];
+      page?: number;
+      limit?: number;
+      todoId?: string;
+      taskId?: string;
+    } = {}
+  ): Observable<T[]> {
+    const token = this.jwtTokenService.getToken();
+
+    const args: Record<string, unknown> = { token };
+
+    if (params.id) args["id"] = params.id;
+    if (params.data) args["data"] = params.data;
+    if (params.visibility) args["visibility"] = params.visibility;
+    if (params.load) args["load"] = params.load;
+    if (params.page !== undefined) args["page"] = params.page;
+    if (params.limit !== undefined) args["limit"] = params.limit;
+
+    if (params.filter) {
+      const filter = { ...params.filter };
+      if (params.todoId) (filter as any).todo_id = params.todoId;
+      if (params.taskId) (filter as any).task_id = params.taskId;
+      args["filter"] = filter;
+    }
+
+    return new Observable((subscriber) => {
+      invoke<Response<T[]>>(route, args)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            const items = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any)?.items || [];
+            subscriber.next(items as T[]);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+          }
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
+  private getCommand(table: string, operation: string): string {
+    const routes: Record<string, Record<string, string>> = {
+      todos: {
+        get: "get_todo",
+        getAll: "get_todos",
+        create: "create_todo",
+        update: "update_todo",
+        delete: "delete_todo",
+      },
+      tasks: {
+        get: "get_task",
+        getAll: "get_tasks",
+        create: "create_task",
+        update: "update_task",
+        delete: "delete_task",
+      },
+      subtasks: {
+        get: "get_subtask",
+        getAll: "get_subtasks",
+        create: "create_subtask",
+        update: "update_subtask",
+        delete: "delete_subtask",
+      },
+      categories: {
+        get: "get_category",
+        getAll: "get_categories",
+        create: "create_category",
+        update: "update_category",
+        delete: "delete_category",
+      },
+      chats: {
+        get: "get_chat",
+        getAll: "get_chats",
+        create: "create_chat",
+        update: "update_chat",
+        delete: "delete_chat",
+      },
+      comments: {
+        get: "get_comment",
+        getAll: "get_comments",
+        create: "create_comment",
+        update: "update_comment",
+        delete: "delete_comment",
+      },
+      profiles: {
+        get: "get_profile",
+        getAll: "get_profiles",
+        create: "create_profile",
+        update: "update_profile",
+        delete: "delete_profile",
+      },
+      users: { get: "get_user", getAll: "get_users" },
+    };
+    return routes[table]?.[operation] || "";
+  }
+
   getPublicProfiles(): Observable<Profile[]> {
     return this.profiles.getAll({ visibility: "public" });
   }
@@ -396,11 +434,11 @@ export class ApiService {
 class EntityApi<T> {
   constructor(
     private api: ApiService,
-    private table: string
+    private routes: EntityRoutes
   ) {}
 
   get(id: string, visibility?: string): Observable<T> {
-    return this.api.genericInvoke<T>(this.table, "get", { id, visibility });
+    return this.api.crud<T>(this.routes.get, { id, visibility });
   }
 
   getAll(options?: {
@@ -421,7 +459,7 @@ class EntityApi<T> {
       taskId,
       load,
     } = options || {};
-    return this.api.genericInvoke<T[]>(this.table, "getAll", {
+    return this.api.crudList<T>(this.routes.getAll, {
       page,
       limit,
       visibility,
@@ -433,18 +471,15 @@ class EntityApi<T> {
   }
 
   create(data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.genericInvoke<T>(this.table, "create", { data, visibility });
+    return this.api.crud<T>(this.routes.create, { data, visibility });
   }
 
   update(id: string, data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.genericInvoke<T>(this.table, "update", { id, data, visibility });
+    return this.api.crud<T>(this.routes.update, { id, data, visibility });
   }
 
   delete(id: string, options?: { visibility?: string }): Observable<void> {
-    return this.api.genericInvoke<void>(this.table, "delete", {
-      id,
-      visibility: options?.visibility,
-    });
+    return this.api.crud<void>(this.routes.delete, { id, visibility: options?.visibility });
   }
 }
 
