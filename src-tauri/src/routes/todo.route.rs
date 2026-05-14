@@ -15,6 +15,7 @@ fn extract_user_id(
   Ok(user_id)
 }
 
+#[deprecated(note = "Use process_queued_operation instead")]
 #[tauri::command]
 pub async fn get_todo(
   state: State<'_, AppState>,

@@ -57,7 +57,8 @@ pub struct TodoCreateModel {
   pub end_date: String,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
-  pub assignee_roles: HashMap<String, String>,
+  #[serde(default)]
+  pub assignee_roles: Option<HashMap<String, String>>,
   #[validate(not_empty)]
   pub visibility: String,
   pub priority: String,
@@ -81,7 +82,7 @@ impl From<TodoCreateModel> for TodoEntity {
       end_date: formatted_end_date,
       categories: value.categories,
       assignees: value.assignees,
-      assignee_roles: value.assignee_roles,
+      assignee_roles: value.assignee_roles.unwrap_or_default(),
       visibility: value.visibility,
       priority: value.priority,
       order: value.order,

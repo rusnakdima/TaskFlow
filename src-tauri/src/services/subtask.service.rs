@@ -223,7 +223,7 @@ impl SubtaskService {
       }
     }
 
-    let doc = provider.update("subtasks", id, data).await?;
+    let doc = provider.patch("subtasks", id, data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
