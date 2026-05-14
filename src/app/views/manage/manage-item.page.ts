@@ -355,17 +355,18 @@ export class ManageItemPage implements OnInit {
   private async loadExistingItem(params: RouteParams): Promise<void> {
     const config = this.currentConfig();
     const id = params.subtaskId || params.taskId || params.todoId;
+    const visibility = this.route.snapshot.queryParamMap.get("visibility") || undefined;
 
     if (!id) return;
 
     try {
       let item: any;
       if (config.type === "todo") {
-        item = await firstValueFrom(this.apiService.todos.get(id));
+        item = await firstValueFrom(this.apiService.todos.get(id, visibility));
       } else if (config.type === "task") {
-        item = await firstValueFrom(this.apiService.tasks.get(id));
+        item = await firstValueFrom(this.apiService.tasks.get(id, visibility));
       } else {
-        item = await firstValueFrom(this.apiService.subtasks.get(id));
+        item = await firstValueFrom(this.apiService.subtasks.get(id, visibility));
       }
 
       if (item) {

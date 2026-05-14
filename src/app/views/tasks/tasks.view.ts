@@ -276,7 +276,11 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         isActive: this.showFilter(),
       },
       newButton: {
-        onClick: () => this.router.navigate(["create_task"], { relativeTo: this.route }),
+        onClick: () =>
+          this.router.navigate(["create_task"], {
+            relativeTo: this.route,
+            queryParams: { visibility: this.todo()?.visibility },
+          }),
         label: "New Task",
         icon: "add",
       },
@@ -569,10 +573,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       (dependsOn) => this.checkDependenciesCompleted(dependsOn),
       this.router,
       this.route,
-      () => this.isOwner(),
-      () => this.isPrivate(),
-      (taskId) => this.deleteTask(taskId),
-      (taskId) => this.archiveTask(taskId),
+      (taskId, visibility) => this.deleteTask(taskId, visibility),
+      (taskId, visibility) => this.archiveTask(taskId, visibility),
       (task) => this.createOrUpdateGithubIssueFromTask(task)
     );
   }
@@ -606,17 +608,23 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.commentsHelper.onTaskSubtaskCommentAdd(event);
   }
 
-  async deleteTask(taskId?: string) {
-    await this.actionsHelper.deleteTask(taskId!, this.todoId(), (fn) => this.todoTasks.update(fn));
+  async deleteTask(taskId?: string, visibility?: string) {
+    await this.actionsHelper.deleteTask(
+      taskId!,
+      this.todoId(),
+      (fn) => this.todoTasks.update(fn),
+      visibility
+    );
   }
 
-  async archiveTask(taskId?: string) {
+  async archiveTask(taskId?: string, visibility?: string) {
     await this.actionsHelper.archiveTask(
       taskId!,
       this.todoId(),
       this.todo(),
       (fn) => this.todoTasks.update(fn),
-      () => this.isOffline()
+      () => this.isOffline(),
+      visibility
     );
   }
 

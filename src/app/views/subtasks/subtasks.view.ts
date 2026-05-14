@@ -434,7 +434,11 @@ export class SubtasksViewComponent extends BaseListView {
         isActive: this.showFilter(),
       },
       newButton: {
-        onClick: () => this.router.navigate(["create_subtask"], { relativeTo: this.route }),
+        onClick: () =>
+          this.router.navigate(["create_subtask"], {
+            relativeTo: this.route,
+            queryParams: { visibility: this.todo()?.visibility },
+          }),
         label: "New Subtask",
         icon: "add",
       },
@@ -583,7 +587,7 @@ export class SubtasksViewComponent extends BaseListView {
       });
   }
 
-  async deleteSubtask(id: string) {
+  async deleteSubtask(id: string, visibility?: string) {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Delete Subtask",
       message: "Are you sure you want to delete this subtask?",
@@ -592,7 +596,7 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    this.apiService.subtasks.delete(id).subscribe({
+    this.apiService.subtasks.delete(id, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask deleted successfully");
       },
@@ -809,14 +813,14 @@ export class SubtasksViewComponent extends BaseListView {
       case "edit":
         this.router.navigate([event.item.id, "edit_subtask"], {
           relativeTo: this.route,
-          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
+          queryParams: { visibility: this.todo()?.visibility },
         });
         break;
       case "delete":
-        this.deleteSubtask(event.item.id);
+        this.deleteSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "archive":
-        this.archiveSubtask(event.item.id);
+        this.archiveSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "toggle_status":
         this.toggleSubtaskCompletion(event.item);
@@ -856,16 +860,16 @@ export class SubtasksViewComponent extends BaseListView {
         this.toggleSubtaskCompletion(event.item);
         break;
       case "delete":
-        this.deleteSubtask(event.item.id);
+        this.deleteSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "edit":
         this.router.navigate([event.item.id, "edit_subtask"], {
           relativeTo: this.route,
-          queryParams: { isOwner: this.isOwner(), isPrivate: this.isPrivate() },
+          queryParams: { visibility: this.todo()?.visibility },
         });
         break;
       case "archive":
-        this.archiveSubtask(event.item.id);
+        this.archiveSubtask(event.item.id, this.todo()?.visibility);
         break;
     }
   }
@@ -911,7 +915,7 @@ export class SubtasksViewComponent extends BaseListView {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
 
-  async archiveSubtask(subtaskId: string): Promise<void> {
+  async archiveSubtask(subtaskId: string, visibility?: string): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Subtask",
       message: "Are you sure you want to archive this subtask?",
@@ -931,7 +935,7 @@ export class SubtasksViewComponent extends BaseListView {
       return;
     }
 
-    this.apiService.subtasks.delete(subtaskId).subscribe({
+    this.apiService.subtasks.delete(subtaskId, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Subtask archived successfully");
         this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
