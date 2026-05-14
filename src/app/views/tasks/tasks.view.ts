@@ -467,7 +467,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.apiService.tasks.create(nextTask as any).subscribe({
+    this.apiService.tasks.create(nextTask as any, this.todo()?.visibility || "private").subscribe({
       next: () => {
         this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
       },

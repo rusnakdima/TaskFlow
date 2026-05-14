@@ -475,12 +475,12 @@ export class ManageItemPage implements OnInit {
       } else {
         let result: any;
         if (config.type === "todo") {
-          result = await firstValueFrom(this.apiService.todos.create(payload));
+          result = await firstValueFrom(this.apiService.todos.create(payload, visibility));
         } else if (config.type === "task") {
-          result = await firstValueFrom(this.apiService.tasks.create(payload));
+          result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
           savedTaskId = result?.id || result?._id || null;
         } else {
-          result = await firstValueFrom(this.apiService.subtasks.create(payload));
+          result = await firstValueFrom(this.apiService.subtasks.create(payload, visibility));
         }
       }
 
