@@ -835,15 +835,25 @@ export class StorageService {
   }
 
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
-    const todos =
-      visibility === "all"
-        ? this.todos()
-        : visibility === "private"
-          ? this.privateTodos()
-          : visibility === "shared"
-            ? this.sharedTodos()
-            : this.publicTodos();
-    if (todos.length > 0) return;
+    if (visibility === "all") {
+      if (
+        this.privateTodos().length > 0 &&
+        this.sharedTodos().length > 0 &&
+        this.publicTodos().length > 0
+      )
+        return;
+      this._queryService.ensureTodosLoaded("private", limit);
+      this._queryService.ensureTodosLoaded("shared", limit);
+      this._queryService.ensureTodosLoaded("public", limit);
+      return;
+    }
+    const targetTodos =
+      visibility === "private"
+        ? this.privateTodos()
+        : visibility === "public"
+          ? this.publicTodos()
+          : this.sharedTodos();
+    if (targetTodos.length > 0) return;
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
 
