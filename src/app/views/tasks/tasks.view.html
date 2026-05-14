@@ -57,6 +57,7 @@
         (deleteComment)="onTaskCommentDelete($event)"
         (markAsRead)="onTaskCommentMarkAsRead($event)"
         (addSubtaskComment)="onTaskSubtaskCommentAdd($event)"
+        (toggleCommentsEvent)="onCommentToggle($event)"
       >
         <ng-template #expandTemplate let-item>
           <app-item-expand-details [item]="item" type="task" />

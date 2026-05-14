@@ -17,7 +17,6 @@ import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
 
 /* services */
-import { REQUEST_SERVICE } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
@@ -64,7 +63,7 @@ import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-dis
 export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private relationLoadingService = inject(RelationLoadingService);
 

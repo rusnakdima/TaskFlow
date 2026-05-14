@@ -17,7 +17,7 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
@@ -37,7 +37,7 @@ export class ProfileView implements OnInit, OnDestroy {
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService,
-    private requestService: REQUEST_SERVICE,
+    private requestService: ApiService,
     private storageService: StorageService,
     private confirmDialogService: ConfirmDialogService,
     private shortcutEmitters: ShortcutEmittersService

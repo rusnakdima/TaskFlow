@@ -21,7 +21,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { QrLoginService } from "@services/auth/qr-login.service";
 import { AuthCapabilityService } from "@services/auth/auth-capability.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { AuthStore } from "@stores/auth.store";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
@@ -44,7 +44,7 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
   private qrLoginService = inject(QrLoginService);
   private authCapabilityService = inject(AuthCapabilityService);
   private notifyService = inject(NotifyService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private sanitizer = inject(DomSanitizer);
   private router = inject(Router);
   private route = inject(ActivatedRoute);

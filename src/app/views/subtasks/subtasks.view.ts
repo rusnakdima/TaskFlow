@@ -15,8 +15,7 @@ import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { ApiService } from "@services/api.service";
+import { ApiService, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -85,7 +84,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private appStateService = inject(AppStateService);
   private confirmDialogService = inject(ConfirmDialogService);
@@ -892,6 +891,10 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskCommentToggle(subtaskId: string): void {
+    this.storageService.ensureSubtaskCommentsLoaded(
+      subtaskId,
+      this.todo()?.visibility || "private"
+    );
     this.commentExpandedSubtasks.update((set) => {
       const newSet = new Set(set);
       if (newSet.has(subtaskId)) {
