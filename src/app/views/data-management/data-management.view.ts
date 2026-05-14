@@ -27,6 +27,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
 import { StorageService } from "@services/storage.service";
+import { AdminStorageService } from "@services/core/admin-storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
@@ -97,7 +98,7 @@ export class DataManagementView implements OnInit {
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
 
-  protected adminStorageService = inject(StorageService);
+  protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
   protected storageService = inject(StorageService);
   protected notifyService = inject(NotifyService);

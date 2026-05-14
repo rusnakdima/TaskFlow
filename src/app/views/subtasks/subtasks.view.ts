@@ -377,8 +377,9 @@ export class SubtasksViewComponent extends BaseListView {
 
     const routeData = this.route.snapshot.data;
     if (routeData?.["task"]) {
-      const taskData = routeData["task"];
-      const todoData = routeData["todo"];
+      const resolvedData = routeData["task"];
+      const todoData = resolvedData?.todo;
+      const taskData = resolvedData?.task;
       if (todoData) {
         this.todoId.set(todoData.id);
         this.projectTitle.set(todoData.title);
@@ -718,7 +719,7 @@ export class SubtasksViewComponent extends BaseListView {
         this.clearSelection();
       })
       .catch((err) => {
-        this.notifyService.showError(err.message || "Failed to update subtasks");
+        this.notifyService.showError(String(err) || "Failed to update subtasks");
       });
   }
 

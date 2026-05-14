@@ -296,12 +296,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     { key: "title", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item) },
-    {
-      key: "subtasks",
-      label: "Subtasks",
-      type: "number",
-      getValue: (item) => item.subtasks_count || 0,
-    },
   ];
 
   override ngOnInit(): void {
