@@ -51,15 +51,13 @@
     }
   </div>
 
-  @if (subtasks.length > 0) {
-    <div class="mb-2 flex items-center gap-2 text-xs text-gray-500">
-      <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="list" />
-      <span>{{ getCompletedSubtasksCount() }}/{{ getSubtasksCount() }}</span>
-      <div class="flex-1">
-        <app-progress-bar [items]="subtasks" size="sm" />
-      </div>
+  <div class="mb-2 flex items-center gap-2 text-xs text-gray-500">
+    <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="list" />
+    <span>{{ getCompletedSubtasksCount() }}/{{ getSubtasksCount() }}</span>
+    <div class="flex-1">
+      <app-progress-bar [items]="getProgressItems()" size="sm" />
     </div>
-  }
+  </div>
 
   <div class="mt-auto flex items-center justify-end"></div>
 </div>

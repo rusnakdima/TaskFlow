@@ -136,6 +136,20 @@
       <div class="flex flex-row flex-wrap items-center gap-2">
         @for (config of line2Config; track trackByConfig($index, config)) {
           @switch (config.type) {
+            @case ("progress-bar") {
+              @if (itemType === "todo" || itemType === "task") {
+                <div class="mt-2 w-full">
+                  <app-progress-bar
+                    [items]="hasProgressCounts(config) ? [] : getProgressItems(config)"
+                    [completedCount]="getCompletedCount(config)"
+                    [totalCount]="getTotalCount(config)"
+                    [size]="getProgressSize(config)"
+                    [showLabel]="false"
+                    [showPercentage]="true"
+                  />
+                </div>
+              }
+            }
             @case ("badge-group") {
               <div class="flex flex-row flex-wrap items-center gap-2">
                 @for (badge of getBadgeGroupItems(); track trackByConfig($index, badge)) {

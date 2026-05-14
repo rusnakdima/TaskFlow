@@ -33,6 +33,7 @@ import { StorageService } from "@services/storage.service";
 /* components */
 
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
+import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 
 /* models */
 import { TableFieldActionButton, TableField } from "@models/table-field.model";
@@ -53,6 +54,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
     DragDropModule,
     CommentsComponent,
     StatusToggleComponent,
+    ProgressBarComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -459,5 +461,19 @@ export class TableViewComponent extends ItemRowBaseComponent {
       return field.colorConfig.default;
     }
     return undefined;
+  }
+
+  getProgressItemsForTable(item: any): Array<{ status: string }> {
+    if (this.itemType === "todo") {
+      return item.tasks || [];
+    }
+    if (this.itemType === "task") {
+      return item.subtasks || [];
+    }
+    return [];
+  }
+
+  getProgressSizeForTable(field: TableField | ItemDisplayConfig): "sm" | "md" | "lg" {
+    return (field as any).size || "sm";
   }
 }
