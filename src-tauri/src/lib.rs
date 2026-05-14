@@ -78,34 +78,39 @@ use services::{
 
 /* nosql_orm */
 use crate::entities::response_entity::ResponseModel;
+use crate::helpers::auth_helper::extract_user_from_token;
+use crate::helpers::response_helper::err_response;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
+
+fn extract_user_id(state: &AppState, token: &Option<String>) -> Result<Option<String>, String> {
+  let user_id = token
+    .as_ref()
+    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
+  Ok(user_id)
+}
 
 #[tauri::command]
 async fn process_queued_operation(
   state: State<'_, AppState>,
   operation: String,
   table: String,
-  data: serde_json::Value,
+  id: Option<String>,
+  data: Option<serde_json::Value>,
+  filter: Option<serde_json::Value>,
+  load: Option<String>,
   visibility: Option<String>,
-) -> Result<(), String> {
+  page: Option<u64>,
+  limit: Option<u64>,
+  token: Option<String>,
+) -> Result<ResponseModel, String> {
+  let user_id = extract_user_id(&state, &token)?;
   state
     .repository_service
     .execute(
-      operation,
-      table,
-      None,
-      Some(data),
-      None,
-      None,
-      visibility,
-      false,
-      None,
-      None,
-      None,
+      operation, table, id, data, filter, load, visibility, false, user_id, page, limit,
     )
     .await
-    .map_err(|e| e.message)?;
-  Ok(())
+    .map_err(|e| e.message)
 }
 
 #[tauri::command]

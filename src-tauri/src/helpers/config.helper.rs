@@ -56,24 +56,14 @@ fn load_env_from_file(path: &Path) -> bool {
     }
     return true;
   }
-  eprintln!("[ConfigHelper] Failed to read .env from path: {:?}", path);
+
   false
 }
 
 #[cfg(feature = "embedded_env")]
 fn load_embedded_env() {
-  eprintln!("[ConfigHelper] Loading embedded .env content");
   let vars = parse_env_content(ENV_CONTENT);
   for (key, value) in &vars {
-    eprintln!(
-      "[ConfigHelper] Setting env var: {}={}",
-      key,
-      if key == "MONGODB_URI" || key == "JWT_SECRET" || key == "SMTP_PASSWORD" {
-        "[REDACTED]"
-      } else {
-        value
-      }
-    );
     env::set_var(key, value);
   }
 }
@@ -88,21 +78,13 @@ impl ConfigHelper {
       Path::new("./resource/.env"),
     ];
 
-    eprintln!("[ConfigHelper] Attempting to load .env files...");
     load_embedded_env();
 
     for path in &fallback_env_paths {
-      eprintln!("[ConfigHelper] Trying fallback path: {:?}", path);
       if load_env_from_file(path) {
-        eprintln!("[ConfigHelper] Successfully loaded from: {:?}", path);
         break;
       }
     }
-
-    eprintln!(
-      "[ConfigHelper] MONGODB_URI being used: {}",
-      env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string())
-    );
 
     Self {
       name_app: env::var("NAME_APP").unwrap_or_else(|_| "TaskFlow".to_string()),
