@@ -626,11 +626,19 @@ export class StorageQueryService {
   }
 
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
-    if (this._todosLoading() || this._entityService.privateTodos().length > 0) return;
+    const targetSignal =
+      visibility === "private"
+        ? this._entityService.privateTodos
+        : visibility === "public"
+          ? this._entityService.publicTodos
+          : this._entityService.sharedTodos;
+
+    if (this._todosLoading() || targetSignal().length > 0) return;
+
     this._todosLoading.set(true);
     this.apiService.todos.getAll({ visibility, limit }).subscribe({
       next: (todos) => {
-        this._entityService.privateTodos.set(todos);
+        targetSignal.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: () => {},
