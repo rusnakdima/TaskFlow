@@ -247,13 +247,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
-    this.storageService.ensureTodosLoaded();
+    this.storageService.ensureTodosLoaded("all");
     this.todoPagination.update((p) => ({ ...p, loading: false }));
   }
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-    this.storageService.ensureTodosLoaded();
+    this.storageService.ensureTodosLoaded(this.stateService.activeVisibility());
   }
 
   onVisibilityChange(visibility: string): void {
@@ -314,7 +314,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return this.stateService.getFilteredCount(filter);
   }
 
-  async deleteTodoById(todoId?: string, _isOwner: boolean = true): Promise<void> {
+  async deleteTodoById(
+    todoId?: string,
+    visibility?: string,
+    _isOwner: boolean = true
+  ): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Delete Project",
       message: "Are you sure you want to delete this project?",
@@ -323,7 +327,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     if (!confirmed) return;
 
-    const sub = this.apiService.todos.delete(todoId!).subscribe({
+    const sub = this.apiService.todos.delete(todoId!, { visibility }).subscribe({
       next: () => {
         this.storageService.modify("todos", "delete", { id: todoId });
         this.notifyService.showSuccess("Todo deleted successfully");
@@ -462,7 +466,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.saveAsBlueprint(item);
         break;
       case "edit":
-        this.router.navigate(["/todos", item.id, "edit_todo"]);
+        this.router.navigate(["/todos", item.id, "edit_todo"], {
+          queryParams: { visibility: item.visibility },
+        });
         break;
       case "archive":
         const archiveConfirmed = await this.confirmDialogService.confirm({
@@ -472,19 +478,21 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           confirmClass: "bg-orange-600 hover:bg-orange-700",
         });
         if (archiveConfirmed) {
-          const sub = this.apiService.todos.delete(item.id).subscribe({
-            next: () => {
-              this.storageService.updateRecordDeleteStatusWithCascade("todos", item.id, true);
-              this.notifyService.showSuccess("Project archived successfully");
-            },
-            error: (err) =>
-              this.notifyService.showError(err.message || "Failed to archive project"),
-          });
+          const sub = this.apiService.todos
+            .delete(item.id, { visibility: item.visibility })
+            .subscribe({
+              next: () => {
+                this.storageService.updateRecordDeleteStatusWithCascade("todos", item.id, true);
+                this.notifyService.showSuccess("Project archived successfully");
+              },
+              error: (err) =>
+                this.notifyService.showError(err.message || "Failed to archive project"),
+            });
           this.destroyRef.onDestroy(() => sub.unsubscribe());
         }
         break;
       case "delete":
-        this.deleteTodoById(item.id, item.user_id === this.currentUserId);
+        this.deleteTodoById(item.id, item.visibility, item.user_id === this.currentUserId);
         break;
     }
   }
