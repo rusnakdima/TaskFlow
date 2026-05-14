@@ -30,9 +30,9 @@ export { ApiError, Visibility, HasId } from "@models/api.model";
 export interface EntityRoutes {
   get: string;
   getAll: string;
-  create: string;
-  update: string;
-  delete: string;
+  create?: string;
+  update?: string;
+  delete?: string;
 }
 
 export interface CascadeResult {
@@ -458,6 +458,30 @@ export class ApiService {
     return this.getEntityApi<T>(table).update(id, data, options.visibility);
   }
 
+  updateAll<T>(
+    table: string,
+    items: Partial<T>[],
+    options?: { visibility?: string; offline?: boolean }
+  ): Observable<T[]> {
+    return new Observable((subscriber) => {
+      Promise.all(
+        items.map((item) =>
+          (item as any).id
+            ? this.getEntityApi<T>(table)
+                .update((item as any).id, item, options?.visibility)
+                .toPromise()
+            : null
+        )
+      )
+        .then((responses) => {
+          const updatedItems = responses.filter((r) => r !== null) as T[];
+          subscriber.next(updatedItems);
+          subscriber.complete();
+        })
+        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+    });
+  }
+
   delete(table: string, id: string, options?: CrudOptions): Observable<void> {
     return this.getEntityApi<void>(table).delete(id, options);
   }
@@ -526,15 +550,15 @@ class EntityApi<T> {
   }
 
   create(data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.crud<T>(this.routes.create, { data, visibility });
+    return this.api.crud<T>(this.routes.create!, { data, visibility });
   }
 
   update(id: string, data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.crud<T>(this.routes.update, { id, data, visibility });
+    return this.api.crud<T>(this.routes.update!, { id, data, visibility });
   }
 
   delete(id: string, options?: { visibility?: string }): Observable<void> {
-    return this.api.crud<void>(this.routes.delete, { id, visibility: options?.visibility });
+    return this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility });
   }
 }
 
