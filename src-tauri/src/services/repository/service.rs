@@ -318,7 +318,6 @@ impl RepositoryService {
         (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing])),
         (Some(perm), None) => Some(perm),
         (None, existing) => existing,
-        (None, None) => None,
       }
     } else {
       filter_opt

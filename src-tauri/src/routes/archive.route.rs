@@ -21,10 +21,6 @@ fn get_json_provider(state: &AppState) -> DataProvider {
   DataProvider::Json(Arc::new(state.json_provider.clone()))
 }
 
-fn is_deleted(doc: &Value) -> bool {
-  doc.get("deleted_at").map(|v| !v.is_null()).unwrap_or(false)
-}
-
 #[tauri::command]
 pub async fn get_all_archive_data(
   state: State<'_, AppState>,
@@ -55,7 +51,7 @@ pub async fn get_all_archive_data(
     .into_iter()
     .filter(|t| {
       let t_user_id = t.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      t_user_id == user_id_str && is_deleted(t)
+      t_user_id == user_id_str
     })
     .collect();
 
@@ -140,10 +136,18 @@ pub async fn get_all_archive_data(
     })
     .collect();
 
-  let daily_activities = provider
+  let all_daily_activities = provider
     .find_many("daily_activities", None, None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
+
+  let user_daily_activities: Vec<Value> = all_daily_activities
+    .into_iter()
+    .filter(|da| {
+      let da_user_id = da.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+      da_user_id == user_id_str
+    })
+    .collect();
 
   let result = serde_json::json!({
     "todos": user_todos,
@@ -152,7 +156,7 @@ pub async fn get_all_archive_data(
     "comments": user_comments,
     "chats": user_chats,
     "categories": user_categories,
-    "daily_activities": daily_activities
+    "daily_activities": user_daily_activities
   });
 
   Ok(success_response(DataValue::Object(result)))
