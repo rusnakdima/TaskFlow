@@ -2,15 +2,16 @@ import { Component, Input, ChangeDetectionStrategy, signal, OnInit } from "@angu
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatChipsModule } from "@angular/material/chips";
-import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
 import { Observable } from "rxjs";
 
+import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+
 @Component({
   selector: "app-item-expand-details",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatChipsModule, MatProgressBarModule],
+  imports: [CommonModule, MatIconModule, MatChipsModule, ProgressBarComponent],
   templateUrl: "./item-expand-details.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,10 +68,7 @@ export class ItemExpandDetailsComponent implements OnInit {
   }
 
   get hasProgress(): boolean {
-    return (
-      (this.type === "todo" && this.item?.tasks_count > 0) ||
-      (this.type === "task" && this.item?.subtasks_count > 0)
-    );
+    return this.type === "todo" || this.type === "task";
   }
 
   get hasStartDate(): boolean {
@@ -221,6 +219,21 @@ export class ItemExpandDetailsComponent implements OnInit {
     if (percent === 100) return "bg-green-500";
     if (percent >= 50) return "bg-blue-500";
     return "bg-gray-400";
+  }
+
+  getProgressItems(): Array<{ status: string }> {
+    if (!this.item) return [];
+    if (this.type === "todo") {
+      const tasks = this.item.tasks || [];
+      if (tasks.length > 0) return tasks;
+      return [{ status: this.item.status || "pending" }];
+    }
+    if (this.type === "task") {
+      const subtasks = this.item.subtasks || [];
+      if (subtasks.length > 0) return subtasks;
+      return [{ status: this.item.status || "pending" }];
+    }
+    return [];
   }
 
   getFieldDisplayValue(field: TableField): string {

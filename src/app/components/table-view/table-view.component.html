@@ -204,6 +204,18 @@
                       {{ changeVal > 0 ? "+" : "" }}{{ changeVal }}%
                     </span>
                   }
+                  @case ("progress-bar") {
+                    @if (itemType === "todo" || itemType === "task") {
+                      <app-progress-bar
+                        [items]="getProgressItemsForTable(item)"
+                        [size]="getProgressSizeForTable(field)"
+                        [showLabel]="false"
+                        [showPercentage]="true"
+                      />
+                    } @else {
+                      -
+                    }
+                  }
                   @default {
                     {{ formatValue(item, field) }}
                   }

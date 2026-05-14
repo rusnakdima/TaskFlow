@@ -12,7 +12,7 @@
     }
 
     @if (hasProgress) {
-      <div class="space-y-1">
+      <div class="space-y-2">
         <div class="flex items-center justify-between text-sm">
           <div class="flex items-center gap-2">
             <mat-icon class="h-4! w-4! text-base! text-gray-500" fontIcon="check_circle" />
@@ -20,13 +20,13 @@
               {{ completedCount }}/{{ totalCount }} completed
             </span>
           </div>
-          <span class="font-medium">{{ progressPercent }}%</span>
         </div>
-        <mat-progress-bar
-          mode="determinate"
-          [value]="progressPercent"
-          class="h-2! rounded-full"
-        ></mat-progress-bar>
+        <app-progress-bar
+          [items]="getProgressItems()"
+          size="sm"
+          [showLabel]="false"
+          [showPercentage]="true"
+        />
       </div>
     }
 

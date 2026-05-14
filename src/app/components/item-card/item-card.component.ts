@@ -20,6 +20,7 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
 import { CommentsComponent } from "@components/comments/comments.component";
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
+import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
 import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
 import { DisplayMode } from "@models/item-display.types";
 import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/generated/api.types";
@@ -42,6 +43,7 @@ import { StorageService } from "@services/storage.service";
     CommentsToggleComponent,
     CommentsComponent,
     StatusToggleComponent,
+    ProgressBarComponent,
   ],
   templateUrl: "./item-card.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,5 +246,66 @@ export class ItemCardComponent {
 
   onStatusToggle(status: TaskStatus): void {
     this.statusToggle.emit({ item: this.item, status });
+  }
+
+  getProgressItems(config: ItemDisplayConfig): Array<{ status: string }> {
+    if (!this.item) return [];
+    if (config.type !== "progress-bar") return [];
+
+    if (this.itemType === "todo") {
+      const tasks = (this.item as Todo).tasks;
+      if (tasks && tasks.length > 0) {
+        return tasks;
+      }
+      return [];
+    }
+    if (this.itemType === "task") {
+      const subtasks = (this.item as Task).subtasks;
+      if (subtasks && subtasks.length > 0) {
+        return subtasks;
+      }
+      return [{ status: (this.item as Task).status || "pending" }];
+    }
+    return [];
+  }
+
+  hasProgressCounts(config: ItemDisplayConfig): boolean {
+    if (!this.item || config.type !== "progress-bar") return false;
+
+    if (this.itemType === "todo") {
+      return (this.item as Todo).tasks_count > 0;
+    }
+    if (this.itemType === "task") {
+      return (this.item as Task).subtasks_count > 0;
+    }
+    return false;
+  }
+
+  getCompletedCount(config: ItemDisplayConfig): number {
+    if (!this.item || config.type !== "progress-bar") return 0;
+
+    if (this.itemType === "todo") {
+      return (this.item as Todo).completed_tasks_count || 0;
+    }
+    if (this.itemType === "task") {
+      return (this.item as Task).completed_subtasks_count || 0;
+    }
+    return 0;
+  }
+
+  getTotalCount(config: ItemDisplayConfig): number {
+    if (!this.item || config.type !== "progress-bar") return 0;
+
+    if (this.itemType === "todo") {
+      return (this.item as Todo).tasks_count || 0;
+    }
+    if (this.itemType === "task") {
+      return (this.item as Task).subtasks_count || 0;
+    }
+    return 0;
+  }
+
+  getProgressSize(config: ItemDisplayConfig): "sm" | "md" | "lg" {
+    return (config as any).size || "sm";
   }
 }

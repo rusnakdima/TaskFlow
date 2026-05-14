@@ -106,6 +106,11 @@ export class KanbanTaskCardComponent {
     ).length;
   }
 
+  getProgressItems(): Array<{ status: string }> {
+    if (this.subtasks.length > 0) return this.subtasks;
+    return [{ status: this.task.status || "pending" }];
+  }
+
   formatDate = DateHelper.formatDateShort;
 
   onStatusCycleClick(event: MouseEvent): void {
