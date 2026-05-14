@@ -32,6 +32,7 @@ export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
       PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || "",
     line: 2,
   },
+  { key: "progress-bar", type: "progress-bar", line: 2, size: "sm" as const },
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
     key: "menu",
@@ -95,6 +96,7 @@ export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
     line: 2,
   },
   { key: "status-toggle", type: "status-toggle", width: "32px", line: 1 },
+  { key: "progress-bar", type: "progress-bar", line: 2, size: "sm" as const },
   { key: "comment-toggle", type: "comment-toggle", width: "32px", line: 3 },
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   {
@@ -130,12 +132,6 @@ export const TASK_TABLE_CONFIG: ItemDisplayConfig[] = [
     key: "status",
     type: "status-badge",
     getChipColor: (item: Task) => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || "",
-  },
-  {
-    key: "subtasks-count",
-    type: "number",
-    getDisplayValue: (item: Task) =>
-      `${item.subtasks?.filter((s: Subtask) => s.status === TaskStatus.COMPLETED).length || 0}/${item.subtasks?.length || 0}`,
   },
   {
     key: "actions",

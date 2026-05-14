@@ -15,7 +15,8 @@ export type TableFieldType =
   | "select"
   | "change"
   | "user"
-  | "array-count";
+  | "array-count"
+  | "progress-bar";
 
 export interface TableFieldColorConfig {
   bgClass?: string;
@@ -53,4 +54,5 @@ export interface TableField {
   colorConfig?: TableFieldColorConfig & { default?: string };
   onClick?: (item: any) => void;
   actionButtons?: TableFieldActionButton[];
+  size?: "sm" | "md" | "lg";
 }

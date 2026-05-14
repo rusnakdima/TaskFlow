@@ -6,6 +6,7 @@ export type ItemDisplayType =
   | "status-badge"
   | "status-toggle"
   | "progress"
+  | "progress-bar"
   | "date"
   | "datetime"
   | "avatar-stack"
@@ -55,6 +56,7 @@ export interface ItemDisplayConfig {
         icon?: string;
         position?: "left" | "right";
       };
+  size?: "sm" | "md" | "lg";
 }
 
 export interface ItemDisplayAction {
