@@ -65,7 +65,7 @@ export class TodosListComponent {
   @Input() dragRef: any;
   @Input() isAllSelected = false;
 
-  @Output() todoDeleted = new EventEmitter<{ id: string; isOwner: boolean }>();
+  @Output() todoDeleted = new EventEmitter<{ id: string; isOwner: boolean; visibility?: string }>();
   @Output() todoArchived = new EventEmitter<string>();
   @Output() todoRestored = new EventEmitter<string>();
   @Output() todoSavedAsBlueprint = new EventEmitter<Todo>();
@@ -264,7 +264,11 @@ export class TodosListComponent {
         this.todoSavedAsBlueprint.emit(event.item);
         break;
       case "delete":
-        this.todoDeleted.emit({ id: event.item.id, isOwner: event.item.user_id === this.userId });
+        this.todoDeleted.emit({
+          id: event.item.id,
+          isOwner: event.item.user_id === this.userId,
+          visibility: event.item.visibility,
+        });
         break;
       default:
         this.tableAction.emit(event);
@@ -301,7 +305,11 @@ export class TodosListComponent {
         this.todoSavedAsBlueprint.emit(todo);
         break;
       case "delete":
-        this.todoDeleted.emit({ id: todo.id, isOwner: todo.user_id === this.userId });
+        this.todoDeleted.emit({
+          id: todo.id,
+          isOwner: todo.user_id === this.userId,
+          visibility: todo.visibility,
+        });
         break;
       default:
         this.tableAction.emit({ action: event.action, item: todo });
