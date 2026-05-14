@@ -8,14 +8,12 @@ import { AdminService } from "@services/data/admin.service";
 import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@services/core/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
-import { StorageService } from "@services/storage.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
-  private storageService = inject(StorageService);
   private apiService = inject(ApiService);
 
   /**
@@ -78,7 +76,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    * Only fetches if cache is expired or force is true
    */
   loadArchiveData(force: boolean = false): Observable<AdminDataWithRelations> {
-    if (!force && this.isCacheValid()) {
+    if (!force && this.isCacheValid() && this.hasArchiveData()) {
       return of(this.getArchiveDataWithRelations());
     }
 
@@ -89,7 +87,8 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     this.loadingSignal.set(true);
 
     return this.loadAllArchiveDataFromRoute().pipe(
-      tap((data: AdminDataWithRelations) => {
+      tap((response: any) => {
+        const data = response?.data || response;
         this.todosSignal.set(data["todos"] || []);
         this.tasksSignal.set(data["tasks"] || []);
         this.subtasksSignal.set(data["subtasks"] || []);
@@ -97,26 +96,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.chatsSignal.set(data["chats"] || []);
         this.categoriesSignal.set(data["categories"] || []);
         this.dailyActivitiesSignal.set(data["daily_activities"] || []);
-        console.log(
-          "[DailyActivities] loadAllAdminData - loaded",
-          data["daily_activities"]?.length || 0,
-          "activities"
-        );
-
-        this.extractUsersAndProfiles(data);
-
-        this.storageService.setCollection("privateTodos", data["todos"] || []);
-        this.storageService.setCollection("tasks", data["tasks"] || []);
-        this.storageService.setCollection("subtasks", data["subtasks"] || []);
-        this.storageService.setCollection("comments", data["comments"] || []);
-        this.storageService.setCollection("chats", data["chats"] || []);
-        this.storageService.setCollection("categories", data["categories"] || []);
-        this.storageService.setCollection("dailyActivities", data["daily_activities"] || []);
-        console.log(
-          '[DailyActivities] loadAllAdminData - setCollection "dailyActivities" with',
-          data["daily_activities"]?.length || 0
-        );
-        this.storageService.setCollection("users", data["users"] || []);
 
         this.loadingSignal.set(false);
         this.loadedSignal.set(true);
@@ -126,7 +105,32 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         this.loadingSignal.set(false);
         return of(this.getArchiveDataWithRelations());
       }),
-      map(() => this.getArchiveDataWithRelations())
+      map((response: any) => {
+        const data = response?.data || response;
+        return {
+          todos: data["todos"] || [],
+          tasks: data["tasks"] || [],
+          subtasks: data["subtasks"] || [],
+          comments: data["comments"] || [],
+          chats: data["chats"] || [],
+          categories: data["categories"] || [],
+          daily_activities: data["daily_activities"] || [],
+          users: [],
+          profiles: [],
+        };
+      })
+    );
+  }
+
+  private hasArchiveData(): boolean {
+    return (
+      this.todosSignal().length > 0 ||
+      this.tasksSignal().length > 0 ||
+      this.subtasksSignal().length > 0 ||
+      this.commentsSignal().length > 0 ||
+      this.chatsSignal().length > 0 ||
+      this.categoriesSignal().length > 0 ||
+      this.dailyActivitiesSignal().length > 0
     );
   }
 
@@ -135,9 +139,9 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    */
   private loadAllArchiveDataFromRoute(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
-      (this.apiService.admin.getAllArchiveData() as Observable<AdminDataWithRelations>).subscribe({
-        next: (data) => {
-          subscriber.next(data);
+      (this.apiService.admin.getAllArchiveData() as Observable<any>).subscribe({
+        next: (response) => {
+          subscriber.next(response);
           subscriber.complete();
         },
         error: (err) => {

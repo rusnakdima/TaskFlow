@@ -146,8 +146,19 @@ export class NotifyService implements OnDestroy {
   /**
    * Show an error toast notification
    */
-  showError(message: string) {
-    this.showNotify(ResponseStatus.ERROR, message);
+  showError(message: string | object) {
+    if (message == null) {
+      message = "Unknown error";
+    } else if (typeof message !== "string") {
+      if ("message" in message && typeof (message as any).message === "string") {
+        message = (message as any).message;
+      } else if ("status" in message && "message" in message) {
+        message = (message as any).message;
+      } else {
+        message = JSON.stringify(message);
+      }
+    }
+    this.showNotify(ResponseStatus.ERROR, message as string);
   }
 
   // ==================== SETTINGS METHODS ====================

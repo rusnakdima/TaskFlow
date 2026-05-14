@@ -956,7 +956,7 @@ export class StorageQueryService {
       return;
     }
     this.apiService.profiles
-      .getAll({ visibility: "private", filter: { user_id: userId } })
+      .getAll({ visibility: "private", filter: { user_id: userId }, load: ["user"] })
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
