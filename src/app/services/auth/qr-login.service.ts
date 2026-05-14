@@ -1,14 +1,14 @@
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable, Subject } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@models/security.model";
 
 @Injectable({
   providedIn: "root",
 })
 export class QrLoginService implements OnDestroy {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private jwtTokenService = inject(JwtTokenService);
 
   private pollSubscription: Subscription | null = null;

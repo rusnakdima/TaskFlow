@@ -2,14 +2,14 @@ import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@models/auth-forms.model";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { TotpSetupResult } from "@models/security.model";
 
 @Injectable({
   providedIn: "root",
 })
 export class TotpService {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private jwtTokenService = inject(JwtTokenService);
 
   isTotpEnabledForCurrentUser(): boolean {

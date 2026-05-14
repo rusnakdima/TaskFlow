@@ -3,14 +3,14 @@ import { Observable, of } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
 /* services */
-import { REQUEST_SERVICE, HasId } from "@services/api.service";
+import { ApiService, HasId } from "@services/api.service";
 import { RelationLoadingStats } from "@models/relation.model";
 
 @Injectable({
   providedIn: "root",
 })
 export class RelationLoadingService {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   private stats: RelationLoadingStats = {
     totalQueries: 0,

@@ -4,7 +4,6 @@ import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/r
 import { firstValueFrom, take } from "rxjs";
 
 /* services */
-import { REQUEST_SERVICE } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 
@@ -18,7 +17,7 @@ import { StorageService } from "@services/storage.service";
   providedIn: "root",
 })
 export class MainResolver implements Resolve<any> {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private storageService = inject(StorageService);
 

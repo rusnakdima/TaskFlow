@@ -3,7 +3,7 @@ import { ProjectTemplate, TemplateService, TemplateTask } from "./template.servi
 import { StorageService } from "@services/storage.service";
 import { Todo } from "@models/generated/api.types";
 import { Observable, of } from "rxjs";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
@@ -11,7 +11,7 @@ import { REQUEST_SERVICE, Visibility } from "@services/api.service";
 export class TodosBlueprintService {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   showBlueprintDialog = signal(false);
   showCreateBlueprintDialog = signal(false);

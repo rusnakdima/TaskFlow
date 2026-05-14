@@ -8,13 +8,13 @@ export { TotpSetupResult, UserSecurityStatus } from "@models/security.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@models/auth-forms.model";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class SecurityService {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private jwtTokenService = inject(JwtTokenService);
 
   getUsername(): string {
