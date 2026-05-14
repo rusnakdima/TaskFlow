@@ -19,29 +19,11 @@ pub mod cascade_route;
 #[path = "admin.route.rs"]
 pub mod admin_route;
 
+#[path = "macros.rs"]
+pub mod macros;
+
+#[path = "crud_routes.rs"]
+pub mod crud_routes;
+
 #[path = "archive.route.rs"]
 pub mod archive_route;
-
-#[path = "user.route.rs"]
-pub mod user_route;
-
-#[path = "profile.route.rs"]
-pub mod profile_route;
-
-#[path = "category.route.rs"]
-pub mod category_route;
-
-#[path = "chat.route.rs"]
-pub mod chat_route;
-
-#[path = "comment.route.rs"]
-pub mod comment_route;
-
-#[path = "todo.route.rs"]
-pub mod todo_route;
-
-#[path = "task.route.rs"]
-pub mod task_route;
-
-#[path = "subtask.route.rs"]
-pub mod subtask_route;
