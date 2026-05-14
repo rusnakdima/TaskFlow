@@ -2,8 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { Task, TaskStatus, Todo } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
-import { ApiService } from "@services/api.service";
+import { ApiService, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
@@ -16,7 +15,7 @@ import { TableFieldActionButton } from "@models/table-field.model";
 
 @Injectable({ providedIn: "root" })
 export class TasksActionsHelper {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private adminService = inject(AdminService);
   private bulkActionHelper = inject(BulkActionHelper);
@@ -108,7 +107,7 @@ export class TasksActionsHelper {
       .update<Task>(
         "tasks",
         task.id,
-        { ...task, status: newStatus },
+        { status: newStatus },
         { visibility: (todo.visibility || "private") as Visibility, offline: true }
       )
       .subscribe({
