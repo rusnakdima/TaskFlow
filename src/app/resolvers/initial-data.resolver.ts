@@ -63,12 +63,15 @@ export class InitialDataResolver implements Resolve<unknown> {
       .getAll({
         visibility: "private",
         filter: { user_id: userId },
+        load: ["user"],
       })
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
             this.storageService.setCollection("profiles", profiles[0]);
-            this.storageService.setCollection("user", profiles[0].user || null);
+            if ((profiles[0] as any).user) {
+              this.storageService.setCollection("user", (profiles[0] as any).user);
+            }
           }
         },
         error: () => {},

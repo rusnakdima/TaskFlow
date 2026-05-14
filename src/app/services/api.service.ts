@@ -173,7 +173,26 @@ export class ApiService {
   }
 
   invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
-    return from(invoke<T>(command, args) as Promise<T>);
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(command, args)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || `Command failed: ${command}`, "server")
+            );
+          }
+        })
+        .catch((err) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as any).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
+    });
   }
 
   async batchSoftDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
@@ -296,7 +315,7 @@ export class ApiService {
     if (params.id) args["id"] = params.id;
     if (params.data) args["data"] = params.data;
     if (params.visibility) args["visibility"] = params.visibility;
-    if (params.load) args["load"] = params.load;
+    if (params.load) args["load"] = JSON.stringify(params.load);
     if (params.page !== undefined) args["page"] = params.page;
     if (params.limit !== undefined) args["limit"] = params.limit;
 
@@ -317,7 +336,13 @@ export class ApiService {
             subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
           }
         })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+        .catch((err) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as any).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
     });
   }
 
@@ -342,7 +367,7 @@ export class ApiService {
     if (params.id) args["id"] = params.id;
     if (params.data) args["data"] = params.data;
     if (params.visibility) args["visibility"] = params.visibility;
-    if (params.load) args["load"] = params.load;
+    if (params.load) args["load"] = JSON.stringify(params.load);
     if (params.page !== undefined) args["page"] = params.page;
     if (params.limit !== undefined) args["limit"] = params.limit;
 
@@ -366,7 +391,13 @@ export class ApiService {
             subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
           }
         })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+        .catch((err) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as any).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
     });
   }
 
@@ -478,7 +509,13 @@ export class ApiService {
           subscriber.next(updatedItems);
           subscriber.complete();
         })
-        .catch((err) => subscriber.error(new ApiError(err?.message || String(err), "network")));
+        .catch((err) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as any).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
     });
   }
 
@@ -516,8 +553,8 @@ class EntityApi<T> {
     private routes: EntityRoutes
   ) {}
 
-  get(id: string, visibility?: string): Observable<T> {
-    return this.api.crud<T>(this.routes.get, { id, visibility });
+  get(id: string, visibility?: string, load?: string[]): Observable<T> {
+    return this.api.crud<T>(this.routes.get, { id, visibility, load });
   }
 
   getAll(options?: {
@@ -572,7 +609,9 @@ class AdminApi {
   }
 
   getAllAdminData(): Observable<unknown> {
-    return this.api.invokeCommand("get_all_admin_data", {});
+    return this.api.invokeCommand("get_all_admin_data", {
+      token: this.api.jwtTokenService.getToken(),
+    });
   }
 
   adminGetAll(): Observable<unknown> {
