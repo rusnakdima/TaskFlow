@@ -32,7 +32,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { AdminCascadeService } from "@services/admin/admin-cascade.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
 /* helpers */
@@ -105,7 +105,7 @@ export class DataManagementView implements OnInit {
   protected adminCascadeService = inject(AdminCascadeService);
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionHelper);
-  protected requestService = inject(REQUEST_SERVICE);
+  protected requestService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
 
   private archiveLoadedSignal = signal<{ [type: string]: boolean }>({});

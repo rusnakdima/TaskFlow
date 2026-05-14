@@ -12,7 +12,7 @@ import { ChatWindowComponent } from "@components/chat-window/chat-window.compone
 import { Chat } from "@models/generated/api.types";
 
 /* services */
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -23,7 +23,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
   templateUrl: "./chat.view.html",
 })
 export class ChatView implements OnInit {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private storageService = inject(StorageService);
   private destroyRef = inject(DestroyRef);
 

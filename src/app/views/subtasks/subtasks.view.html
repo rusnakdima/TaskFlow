@@ -75,6 +75,7 @@
           (addComment)="onSubtaskCommentAdd($event)"
           (deleteComment)="onSubtaskCommentDelete($event)"
           (markAsRead)="onSubtaskCommentMarkAsRead($event)"
+          (toggleCommentsEvent)="onSubtaskCommentToggle($event)"
         >
           <ng-template #expandTemplate let-item>
             <app-item-expand-details [item]="item" type="subtask" />

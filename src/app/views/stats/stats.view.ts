@@ -18,7 +18,7 @@ import {
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
@@ -41,7 +41,7 @@ import {
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   constructor(
     private authService: AuthService,

@@ -31,7 +31,6 @@ import { StorageService } from "@services/storage.service";
 import { GithubService } from "@services/github/github.service";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
@@ -86,7 +85,7 @@ export class ManageItemPage implements OnInit {
   private githubService = inject(GithubService);
   private destroyRef = inject(DestroyRef);
   private mongoConnectionService = inject(MongoConnectionService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
 
   form!: FormGroup;

@@ -381,19 +381,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.apiService.tasks
-      .update(task.id, { ...task, status }, todo.visibility || "private")
-      .subscribe({
-        next: (updatedTask) => {
-          this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
-          this.todoTasks.update((tasks) =>
-            tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
-          );
-        },
-        error: () => {
-          this.notifyService.showError("Failed to update task status");
-        },
-      });
+    this.apiService.tasks.update(task.id, { status }, todo.visibility || "private").subscribe({
+      next: (updatedTask) => {
+        this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
+        this.todoTasks.update((tasks) =>
+          tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
+        );
+      },
+      error: () => {
+        this.notifyService.showError("Failed to update task status");
+      },
+    });
   }
 
   toggleExpandTask(task: Task) {
