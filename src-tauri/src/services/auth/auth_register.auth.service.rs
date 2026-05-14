@@ -101,9 +101,10 @@ impl AuthRegisterService {
     }
 
     if self.mongodb_provider.is_some() {
-      let _ = profile_sync_service
-        .export_profile_to_mongo(&new_profile)
-        .await;
+      let sync_status = profile_sync_service.ensure_profile_in_both(&user_id).await;
+      if sync_status.is_err() {
+        return Err(sync_status.unwrap_err());
+      }
     }
 
     let new_user = UserEntity {
@@ -153,7 +154,7 @@ impl AuthRegisterService {
       message: "User registered successfully".to_string(),
       data: DataValue::Object(serde_json::json!({
         "token": token,
-        "needsProfile": false,
+        "needsProfile": true,
         "profile": new_profile,
         "user_id": user_id
       })),

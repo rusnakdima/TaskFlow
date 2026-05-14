@@ -68,6 +68,15 @@ impl CountService {
     delta: i32,
     offline: bool,
   ) {
+    if let Err(e) = self
+      .increment_count(&self.json_provider, collection, id, field, delta)
+      .await
+    {
+      eprintln!(
+        "Failed to increment count in JSON (collection={}, id={}, field={}): {}",
+        collection, id, field, e
+      );
+    }
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
@@ -79,17 +88,7 @@ impl CountService {
             collection, id, field, e
           );
         }
-        return;
       }
-    }
-    if let Err(e) = self
-      .increment_count(&self.json_provider, collection, id, field, delta)
-      .await
-    {
-      eprintln!(
-        "Failed to increment count in JSON (collection={}, id={}, field={}): {}",
-        collection, id, field, e
-      );
     }
   }
 
@@ -101,6 +100,15 @@ impl CountService {
     delta: i32,
     offline: bool,
   ) {
+    if let Err(e) = self
+      .decrement_count(&self.json_provider, collection, id, field, delta)
+      .await
+    {
+      eprintln!(
+        "Failed to decrement count in JSON (collection={}, id={}, field={}): {}",
+        collection, id, field, e
+      );
+    }
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
@@ -112,17 +120,7 @@ impl CountService {
             collection, id, field, e
           );
         }
-        return;
       }
-    }
-    if let Err(e) = self
-      .decrement_count(&self.json_provider, collection, id, field, delta)
-      .await
-    {
-      eprintln!(
-        "Failed to decrement count in JSON (collection={}, id={}, field={}): {}",
-        collection, id, field, e
-      );
     }
   }
 
