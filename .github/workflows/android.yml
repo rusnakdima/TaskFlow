@@ -209,13 +209,18 @@ jobs:
           name: android-aab
           path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab
 
+      - name: Prepare versioned artifacts
+        run: |
+          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk taskflow_${{ env.VERSION }}_universal.apk
+          cp src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab taskflow_${{ env.VERSION }}_universal.aab
+
       - name: Upload to Existing Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk
-            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab
+            taskflow_${{ env.VERSION }}_universal.apk
+            taskflow_${{ env.VERSION }}_universal.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
