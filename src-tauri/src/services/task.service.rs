@@ -179,7 +179,7 @@ impl TaskService {
       }
     }
 
-    let doc = provider.update("tasks", id, data).await?;
+    let doc = provider.patch("tasks", id, data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 

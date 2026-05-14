@@ -48,7 +48,6 @@ pub struct CategoryUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
 pub struct CommentCreateRequest {
   pub user_id: String,
   pub content: String,
@@ -63,10 +62,9 @@ pub struct CommentUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SubtaskCreateRequest {
   pub task_id: String,
-  pub user_id: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -74,7 +72,7 @@ pub struct SubtaskCreateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SubtaskUpdateRequest {
   pub title: Option<String>,
   pub description: Option<String>,
@@ -84,10 +82,9 @@ pub struct SubtaskUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TaskCreateRequest {
   pub todo_id: String,
-  pub user_id: String,
   pub title: String,
   pub description: Option<String>,
   pub priority: String,
@@ -97,7 +94,7 @@ pub struct TaskCreateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TaskUpdateRequest {
   pub title: Option<String>,
   pub description: Option<String>,
@@ -109,9 +106,8 @@ pub struct TaskUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TodoCreateRequest {
-  pub user_id: String,
   pub title: String,
   pub description: Option<String>,
   pub start_date: Option<String>,
@@ -126,7 +122,7 @@ pub struct TodoCreateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TodoUpdateRequest {
   pub title: Option<String>,
   pub description: Option<String>,
