@@ -14,6 +14,7 @@ export class CropModalComponent {
 
   @Output() cropped: EventEmitter<string> = new EventEmitter<string>();
   @Output() cancelled: EventEmitter<void> = new EventEmitter<void>();
+  @Output() error: EventEmitter<string> = new EventEmitter<string>();
 
   @ViewChild("canvas") canvasRef!: ElementRef<HTMLCanvasElement>;
 
@@ -46,6 +47,7 @@ export class CropModalComponent {
     if (!this.imageSource) return;
 
     const img = new Image();
+    const isDataUrl = this.imageSource.startsWith("data:");
 
     img.onload = () => {
       this.img = img;
@@ -64,10 +66,12 @@ export class CropModalComponent {
       setTimeout(() => this.redrawCanvas(), 0);
     };
 
-    img.onerror = () => {};
+    img.onerror = () => {
+      this.error.emit("Failed to load image. Please try another image.");
+    };
 
     try {
-      img.crossOrigin = "anonymous";
+      img.crossOrigin = isDataUrl ? "" : "anonymous";
       img.src = this.imageSource;
     } catch (e) {
       img.crossOrigin = "";
@@ -351,14 +355,14 @@ export class CropModalComponent {
             };
             reader.readAsDataURL(blob);
           } else {
-            this.cropped.emit(this.imageSource);
+            this.error.emit("Failed to process image. Please try another image.");
           }
         },
         "image/jpeg",
         0.9
       );
     } catch (e) {
-      this.cropped.emit(this.imageSource);
+      this.error.emit("Failed to crop image. Please try another image.");
     }
   }
 

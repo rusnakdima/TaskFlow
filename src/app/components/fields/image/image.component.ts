@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, inject } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
@@ -11,6 +11,9 @@ import { MatButtonModule } from "@angular/material/button";
 
 /* models */
 import { ImageField } from "@models/form-field.model";
+
+/* services */
+import { NotifyService } from "@services/notifications/notify.service";
 
 /* components */
 import { CropModalComponent } from "./crop-modal/crop-modal.component";
@@ -36,6 +39,8 @@ export class ImageComponent {
   @Input() field!: ImageField;
 
   @Output() imageCropped: EventEmitter<string> = new EventEmitter<string>();
+
+  private notifyService = inject(NotifyService);
 
   showCropModal: boolean = false;
   cropImageSource: string = "";
@@ -90,6 +95,11 @@ export class ImageComponent {
 
   onCropCancelled() {
     this.showCropModal = false;
+  }
+
+  onCropError(message: string) {
+    this.showCropModal = false;
+    this.notifyService.showError(message);
   }
 
   onReCropOriginal() {
