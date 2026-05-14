@@ -9,7 +9,7 @@ import org.gradle.api.tasks.TaskAction
 open class BuildTask : DefaultTask() {
     @Input
     var rootDirRel: String? = null
-    @Input
+    @Internal
     var target: String? = null
     @Input
     var release: Boolean? = null

@@ -74,7 +74,7 @@ android {
         buildConfig = true
     }
     base {
-        archivesName.set("${rootProject.name}-${project.version}")
+        archivesName.set("app")
     }
 }
 
