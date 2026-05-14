@@ -1,9 +1,8 @@
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::auth_helper::extract_user_from_token;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::AppState;
-use nosql_orm::query::Filter;
 use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
