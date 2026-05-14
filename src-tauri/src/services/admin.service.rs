@@ -48,28 +48,6 @@ impl AdminManager {
     ];
     let mut all_data = HashMap::new();
 
-    let users = self
-      .json_provider
-      .find_all("users")
-      .await
-      .map_err(|e| ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error getting users: {}", e),
-        data: DataValue::String("".to_string()),
-      })?;
-    all_data.insert("users".to_string(), users);
-
-    let profiles = self
-      .json_provider
-      .find_all("profiles")
-      .await
-      .map_err(|e| ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error getting profiles: {}", e),
-        data: DataValue::String("".to_string()),
-      })?;
-    all_data.insert("profiles".to_string(), profiles);
-
     for table in tables {
       let docs = self
         .json_provider
@@ -124,17 +102,6 @@ impl AdminManager {
       "daily_activities",
     ];
     let mut all_data = HashMap::new();
-
-    let users = self
-      .mongodb_provider
-      .find_all("users")
-      .await
-      .map_err(|e| ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Error getting users: {}", e),
-        data: DataValue::String("".to_string()),
-      })?;
-    all_data.insert("users".to_string(), users);
 
     for table in tables {
       let docs = self
