@@ -177,6 +177,7 @@ export const routes: Routes = [
               breadcrumb: async (route: ActivatedRouteSnapshot) => route.data,
             },
             resolve: {
+              todo: MainResolver,
               task: MainResolver,
             },
           },
