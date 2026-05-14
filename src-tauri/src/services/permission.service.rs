@@ -129,27 +129,36 @@ impl PermissionService {
   pub fn get_todo_filter_for_user(user_id: &str, visibility: Option<&str>) -> Value {
     match visibility.unwrap_or("private") {
       "private" => {
-        json!({ "user_id": user_id })
+        json!({
+            "visibility": "private",
+            "user_id": user_id
+        })
       }
       "shared" => {
         json!({
+            "visibility": "shared",
             "$or": [
                 { "user_id": user_id },
-                { "visibility": "shared", "assignees": { "$in": [user_id] } }
+                { "assignees": { "$in": [user_id] } }
             ]
         })
       }
       "public" => {
         json!({
+            "visibility": "public"
+        })
+      }
+      "all" => {
+        json!({
             "$or": [
-                { "user_id": user_id },
+                { "visibility": "private", "user_id": user_id },
                 { "visibility": "shared", "assignees": { "$in": [user_id] } },
                 { "visibility": "public" }
             ]
         })
       }
       _ => {
-        json!({ "user_id": user_id })
+        json!({ "visibility": "private", "user_id": user_id })
       }
     }
   }
