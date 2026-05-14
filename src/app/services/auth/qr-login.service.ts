@@ -29,7 +29,7 @@ export class QrLoginService implements OnDestroy {
     return new Observable((observer) => {
       this.requestService.invokeCommand<any>("qr_generate", {}).subscribe({
         next: (response) => {
-          const data = response?.data;
+          const data = response;
           this.currentQrData.set({
             token: data?.token,
             qrCode: data?.qrCode,
@@ -56,7 +56,7 @@ export class QrLoginService implements OnDestroy {
         .invokeCommand<any>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
           next: (response) => {
-            const data = response?.data;
+            const data = response;
             this.currentQrData.set({
               token: data?.token,
               qrCode: data?.qrCode,
@@ -98,12 +98,12 @@ export class QrLoginService implements OnDestroy {
     this.requestService
       .invokeCommand<{
         status: string;
-        message: string;
-        data: { status: string; username?: string; approved_by?: string };
+        username?: string;
+        approved_by?: string;
       }>("qr_status", { token })
       .subscribe({
         next: (response) => {
-          const innerStatus = response.data?.status;
+          const innerStatus = response?.status;
           this.qrStatus.set(innerStatus as QrStatus);
           this.qrStatusData.set(response as any);
 
