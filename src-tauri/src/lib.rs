@@ -12,8 +12,6 @@ use tauri::{Manager, State};
 
 use crate::providers::data_provider::DataProvider;
 
-/* global re-export for nosql_orm Entity trait */
-
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
@@ -33,11 +31,14 @@ use routes::{
     verify_login_totp,
   },
   cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
-  category_route::{
-    create_category, delete_category, get_categories, get_category, update_category,
+  crud_routes::{
+    create_category, create_chat, create_comment, create_profile, create_subtask, create_task,
+    create_todo, delete_category, delete_chat, delete_comment, delete_profile, delete_subtask,
+    delete_task, delete_todo, get_categories, get_category, get_chat, get_chats, get_comment,
+    get_comments, get_profile, get_profiles, get_subtask, get_subtasks, get_task, get_tasks,
+    get_todo, get_todos, get_user, get_users, update_category, update_chat, update_comment,
+    update_profile, update_subtask, update_task, update_todo,
   },
-  chat_route::{create_chat, delete_chat, get_chat, get_chats, update_chat},
-  comment_route::{create_comment, delete_comment, get_comment, get_comments},
   github_route::{
     github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
@@ -46,12 +47,7 @@ use routes::{
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
   },
-  profile_route::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   statistics_route::statistics_get,
-  subtask_route::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
-  task_route::{create_task, delete_task, get_task, get_tasks, update_task},
-  todo_route::{create_todo, delete_todo, get_todo, get_todos, update_todo},
-  user_route::get_users,
 };
 
 /* services */
@@ -78,40 +74,7 @@ use services::{
 
 /* nosql_orm */
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
-use crate::helpers::response_helper::err_response;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-
-fn extract_user_id(state: &AppState, token: &Option<String>) -> Result<Option<String>, String> {
-  let user_id = token
-    .as_ref()
-    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
-  Ok(user_id)
-}
-
-#[tauri::command]
-async fn process_queued_operation(
-  state: State<'_, AppState>,
-  operation: String,
-  table: String,
-  id: Option<String>,
-  data: Option<serde_json::Value>,
-  filter: Option<serde_json::Value>,
-  load: Option<String>,
-  visibility: Option<String>,
-  page: Option<u64>,
-  limit: Option<u64>,
-  token: Option<String>,
-) -> Result<ResponseModel, String> {
-  let user_id = extract_user_id(&state, &token)?;
-  state
-    .repository_service
-    .execute(
-      operation, table, id, data, filter, load, visibility, false, user_id, page, limit,
-    )
-    .await
-    .map_err(|e| e.message)
-}
 
 #[tauri::command]
 async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<ResponseModel, String> {
@@ -399,8 +362,6 @@ pub fn run() {
       github_start_device_flow,
       github_check_device_flow,
       github_update_issue,
-      process_queued_operation,
-      sync_data,
       get_todo,
       get_todos,
       create_todo,
@@ -416,11 +377,6 @@ pub fn run() {
       create_subtask,
       update_subtask,
       delete_subtask,
-      get_profile,
-      get_profiles,
-      create_profile,
-      update_profile,
-      delete_profile,
       get_category,
       get_categories,
       create_category,
@@ -431,11 +387,19 @@ pub fn run() {
       create_chat,
       update_chat,
       delete_chat,
-      get_users,
       get_comment,
       get_comments,
       create_comment,
+      update_comment,
       delete_comment,
+      get_profile,
+      get_profiles,
+      create_profile,
+      update_profile,
+      delete_profile,
+      get_user,
+      get_users,
+      sync_data,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
