@@ -41,6 +41,7 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 })
 export class ManageProfileView implements OnInit {
   isEditMode: boolean = false;
+  isProfileRequired: boolean = false;
   private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -99,6 +100,7 @@ export class ManageProfileView implements OnInit {
     }
 
     this.form.controls["user_id"].setValue(userId);
+    this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
 
     this.storageService.ensureProfileLoaded();
     this.storageService.ensureUserLoaded();
@@ -122,6 +124,15 @@ export class ManageProfileView implements OnInit {
     } else if (profile.user_id === userId) {
       this.isEditMode = true;
       this.form.patchValue(profile);
+    }
+  }
+
+  onCancel() {
+    if (this.isProfileRequired) {
+      this.profileRequiredService.setProfileRequiredMode(false);
+      this.router.navigate(["/dashboard"]);
+    } else {
+      this.router.navigate(["/profile"]);
     }
   }
 

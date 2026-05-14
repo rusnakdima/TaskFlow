@@ -65,12 +65,6 @@ export const routes: Routes = [
         data: { breadcrumb: "Chat" },
       },
       {
-        path: "shared-tasks",
-        component: TodosView,
-        title: "Shared Projects",
-        data: { breadcrumb: "Shared Projects", mode: "shared" },
-      },
-      {
         path: "about",
         loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
         title: "About",

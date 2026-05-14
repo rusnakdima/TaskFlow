@@ -24,6 +24,22 @@
       <app-template-form [parentForm]="form" [form]="form" [formFields]="formFields" />
     </div>
 
+    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <button
+        *ngIf="!isProfileRequired"
+        (click)="onCancel()"
+        class="styleButDanger flex items-center justify-center gap-2"
+      >
+        <mat-icon class="h-5! w-5!" fontIcon="close" />
+        Cancel
+      </button>
+
+      <button (click)="onSubmit()" class="styleButInfo flex items-center justify-center gap-2">
+        <mat-icon class="h-5! w-5!" fontIcon="check" />
+        {{ isEditMode ? "Update" : "Create" }}
+      </button>
+    </div>
+
     <div class="mt-6 border-t border-gray-200 pt-4 text-center dark:border-zinc-600">
       <button [routerLink]="['/profile']" class="styleLinkRedir">
         <mat-icon class="mr-1 h-5! w-5! min-w-5 text-xl!" fontIcon="arrow_back" />
