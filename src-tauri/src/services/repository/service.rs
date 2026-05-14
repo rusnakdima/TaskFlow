@@ -469,7 +469,13 @@ impl RepositoryService {
 
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let visibility_str = if visibility.is_some() {
+      self.resolve_visibility_for_offline(visibility, offline)
+    } else if let Some(serde_json::Value::String(vis_from_data)) = data_val.get("visibility") {
+      vis_from_data.clone()
+    } else {
+      self.resolve_visibility_for_offline(visibility, offline)
+    };
 
     if table == "todos" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
