@@ -28,7 +28,8 @@ export class TasksActionsHelper {
   async deleteTask(
     taskId: string,
     todoId: string | null,
-    updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void
+    updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void,
+    visibility?: string
   ): Promise<void> {
     if (!todoId || !taskId) return;
 
@@ -40,7 +41,7 @@ export class TasksActionsHelper {
     });
     if (!confirmed) return;
 
-    this.apiService.tasks.delete(taskId).subscribe({
+    this.apiService.tasks.delete(taskId, { visibility }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task deleted successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));
@@ -53,7 +54,8 @@ export class TasksActionsHelper {
     todoId: string | null,
     todo: Todo | null,
     updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void,
-    isOfflineFn: () => boolean
+    isOfflineFn: () => boolean,
+    visibility?: string
   ): Promise<void> {
     if (!todoId || !taskId) return;
 
@@ -76,8 +78,8 @@ export class TasksActionsHelper {
       return;
     }
 
-    const visibility = (todo?.visibility || "private") as Visibility;
-    this.apiService.tasks.delete(taskId, { visibility }).subscribe({
+    const vis = visibility || todo?.visibility || "private";
+    this.apiService.tasks.delete(taskId, { visibility: vis }).subscribe({
       next: () => {
         this.notifyService.showSuccess("Task archived successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));
@@ -138,24 +140,23 @@ export class TasksActionsHelper {
     checkDependenciesCompletedFn: (dependsOn: string[]) => boolean,
     router: any,
     route: any,
-    isOwnerFn: () => boolean,
-    isPrivateFn: () => boolean,
-    deleteTaskFn: (taskId: string) => Promise<void>,
-    archiveTaskFn: (taskId: string) => Promise<void>,
+    deleteTaskFn: (taskId: string, visibility?: string) => Promise<void>,
+    archiveTaskFn: (taskId: string, visibility?: string) => Promise<void>,
     createOrUpdateGithubIssueFromTaskFn: (task: Task) => void
   ): void {
+    const visibility = todo?.visibility;
     switch (event.action) {
       case "edit":
         router.navigate([event.item.id, "edit_task"], {
           relativeTo: route,
-          queryParams: { isOwner: isOwnerFn(), isPrivate: isPrivateFn() },
+          queryParams: { visibility },
         });
         break;
       case "delete":
-        deleteTaskFn(event.item.id);
+        deleteTaskFn(event.item.id, visibility);
         break;
       case "archive":
-        archiveTaskFn(event.item.id);
+        archiveTaskFn(event.item.id, visibility);
         break;
       case "toggle":
       case "toggle_status":
