@@ -218,14 +218,15 @@ export class ProfileView implements OnInit, OnDestroy {
 
     this.requestService
       .invokeCommand<{
-        status: string;
-        message: string;
-        data: { token: string; needsProfile: boolean; profile: any; userId: string };
+        token: string;
+        needsProfile: boolean;
+        profile: any;
+        userId: string;
       }>("qr_login_complete", { token })
       .subscribe({
         next: (response) => {
-          if (response?.data?.token) {
-            TokenStorageHelper.setToken(response.data.token, true);
+          if (response?.token) {
+            TokenStorageHelper.setToken(response.token, true);
             this.notifyService.showSuccess("Login successful on desktop!");
             setTimeout(() => {
               this.router.navigate(["/dashboard"]);
@@ -255,9 +256,8 @@ export class ProfileView implements OnInit, OnDestroy {
         }>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
           next: (response: any) => {
-            const data = response?.data;
-            this.myQrCode.set(data?.qrCode);
-            this.myQrToken.set(data?.token);
+            this.myQrCode.set(response?.qrCode);
+            this.myQrToken.set(response?.token);
             this.showMyQr.set(true);
             this.notifyService.showInfo("Show this QR code to login from desktop");
           },

@@ -308,26 +308,22 @@ export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {
     try {
       const authResponse = await firstValueFrom(
         this.requestService.invokeCommand<{
-          status: string;
-          message: string;
-          data: {
-            token: string;
-            needsProfile: boolean;
-            profile: any;
-            userId: string;
-          };
+          token: string;
+          needsProfile: boolean;
+          profile: any;
+          userId: string;
         }>("qr_login_complete", { token })
       );
 
-      if (authResponse?.data?.token) {
+      if (authResponse?.token) {
         LoginCompletionHelper.completeLogin(
           {
-            token: authResponse.data.token,
+            token: authResponse.token,
             remember: true,
           },
           this.router
         );
-        this.authStore.setAuthenticated(authResponse.data.token);
+        this.authStore.setAuthenticated(authResponse.token);
       } else {
         this.notifyService.showError("Authentication failed - no token received");
         this.cancelQrLogin();
