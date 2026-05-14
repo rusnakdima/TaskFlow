@@ -429,6 +429,61 @@ export class ApiService {
   getPublicProfiles(): Observable<Profile[]> {
     return this.profiles.getAll({ visibility: "public" });
   }
+
+  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
+    return this.getEntityApi<T>(table).get(id, options.visibility);
+  }
+
+  getAll<T>(
+    table: string,
+    options: PaginatedOptions & { todoId?: string; taskId?: string } = { visibility: "all" }
+  ): Observable<T[]> {
+    return this.getEntityApi<T>(table).getAll(options);
+  }
+
+  create<T>(
+    table: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    return this.getEntityApi<T>(table).create(data, options.visibility);
+  }
+
+  update<T>(
+    table: string,
+    id: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    return this.getEntityApi<T>(table).update(id, data, options.visibility);
+  }
+
+  delete(table: string, id: string, options?: CrudOptions): Observable<void> {
+    return this.getEntityApi<void>(table).delete(id, options);
+  }
+
+  private getEntityApi<T>(table: string): EntityApi<T> {
+    switch (table) {
+      case "todos":
+        return this.todos as unknown as EntityApi<T>;
+      case "tasks":
+        return this.tasks as unknown as EntityApi<T>;
+      case "subtasks":
+        return this.subtasks as unknown as EntityApi<T>;
+      case "categories":
+        return this.categories as unknown as EntityApi<T>;
+      case "profiles":
+        return this.profiles as unknown as EntityApi<T>;
+      case "comments":
+        return this.comments as unknown as EntityApi<T>;
+      case "chats":
+        return this.chats as unknown as EntityApi<T>;
+      case "users":
+        return this.users as unknown as EntityApi<T>;
+      default:
+        throw new ApiError(`Unknown table: ${table}`, "server");
+    }
+  }
 }
 
 class EntityApi<T> {
