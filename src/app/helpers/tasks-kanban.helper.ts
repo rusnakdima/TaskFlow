@@ -2,11 +2,11 @@ import { Injectable, inject } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Task, TaskStatus, Todo } from "@models/generated/api.types";
 import { BaseKanbanHelper, KanbanColumn } from "@helpers/base-kanban.helper";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@services/api.service";
 
 @Injectable({ providedIn: "root" })
 export class TasksKanbanHelper extends BaseKanbanHelper<Task> {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   getEntityName(): string {
     return "task";

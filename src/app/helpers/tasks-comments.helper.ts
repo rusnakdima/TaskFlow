@@ -3,7 +3,7 @@ import { CommentService } from "@services/features/comment.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { Visibility } from "@services/api.service";
 
 @Injectable({ providedIn: "root" })
 export class TasksCommentsHelper {
@@ -11,7 +11,6 @@ export class TasksCommentsHelper {
   private notifyService = inject(NotifyService);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private requestService = inject(REQUEST_SERVICE);
 
   private _highlightCommentId = signal<string | null>(null);
   private _todoVisibility: Visibility = "private";
@@ -23,20 +22,8 @@ export class TasksCommentsHelper {
   onCommentToggle(taskId?: string): void {
     this._highlightCommentId.set(null);
     if (taskId) {
-      this.loadCommentsForTask(taskId);
+      this.storageService.ensureTaskCommentsLoaded(taskId, this._todoVisibility);
     }
-  }
-
-  private loadCommentsForTask(taskId: string): void {
-    this.requestService
-      .loadPage("comments", {
-        filter: { task_id: taskId },
-        visibility: this._todoVisibility,
-        skip: 0,
-        limit: 10,
-        load: ["user"],
-      })
-      .subscribe();
   }
 
   onTaskCommentAdd(event: { content: string; itemId: string }): void {

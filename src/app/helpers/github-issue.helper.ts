@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { GithubService } from "@services/github/github.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Task, Todo } from "@models/generated/api.types";
 
@@ -9,7 +9,7 @@ import { Task, Todo } from "@models/generated/api.types";
 })
 export class GithubIssueHelper {
   private githubService = inject(GithubService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private notifyService = inject(NotifyService);
 
   createOrUpdateGithubIssue(task: Task, currentTodo: Todo | null): void {
