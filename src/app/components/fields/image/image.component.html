@@ -59,6 +59,7 @@
       [imageSource]="cropImageSource"
       (cropped)="onCropCompleted($event)"
       (cancelled)="onCropCancelled()"
+      (error)="onCropError($event)"
     />
   }
 </div>
