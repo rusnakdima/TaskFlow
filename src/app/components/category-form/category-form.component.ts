@@ -21,7 +21,7 @@ import { Category } from "@models/generated/api.types";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 
 @Component({
   selector: "app-category-form",
@@ -32,7 +32,7 @@ import { REQUEST_SERVICE } from "@services/api.service";
 export class CategoryFormComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;

@@ -19,7 +19,6 @@ import { Chat, Profile } from "@models/generated/api.types";
 
 /* services */
 import { StorageService } from "@services/storage.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -58,7 +57,7 @@ export class ChatWindowComponent {
   @Output() conversationSelected = new EventEmitter<string>();
 
   private storageService = inject(StorageService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
