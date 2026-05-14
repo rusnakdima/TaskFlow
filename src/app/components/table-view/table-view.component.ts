@@ -99,6 +99,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
     itemId: string;
   }>();
   @Output() deleteItemEvent = new EventEmitter<string>();
+  @Output() toggleCommentsEvent = new EventEmitter<string>();
 
   currentItem = signal<any>(null);
 
@@ -302,6 +303,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   toggleCommentsById(id: string): void {
+    this.toggleCommentsEvent.emit(id);
     const item = this.data.find((d) => d.id === id);
     if (item) queueMicrotask(() => this.setCurrentItem(item));
     queueMicrotask(() => {

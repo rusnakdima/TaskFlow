@@ -19,7 +19,6 @@ import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { REQUEST_SERVICE } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 
@@ -43,7 +42,7 @@ import { countByStatus } from "@helpers/array.helper";
 export class TaskInformationComponent extends ItemInfoBaseComponent implements OnChanges {
   private notifyService = inject(NotifyService);
   private router = inject(Router);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
 
