@@ -5,7 +5,7 @@ import { catchError, map, tap } from "rxjs/operators";
 import { GithubRepo, GithubConnection } from "@models/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { Response } from "@models/response.model";
 
 interface GithubOAuthResult {
@@ -47,7 +47,7 @@ interface GithubCommentResult {
   providedIn: "root",
 })
 export class GithubService {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private notifyService = inject(NotifyService);
   private jwtTokenService = inject(JwtTokenService);
 

@@ -6,14 +6,14 @@ import { Todo, Task, Subtask, Comment, Chat } from "@models/generated/api.types"
 
 /* services */
 import { StorageService } from "@services/storage.service";
-import { REQUEST_SERVICE, CascadeResult } from "@services/api.service";
+import { ApiService, CascadeResult } from "@services/api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AdminCascadeService {
   private dataStore = inject(StorageService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;

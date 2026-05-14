@@ -4,13 +4,13 @@ import { StorageService } from "@services/storage.service";
 import { Observable, map } from "rxjs";
 import { Comment } from "@models/generated/api.types";
 import { CommentPayload, MarkCommentsResult } from "@models/comment-ext.model";
-import { REQUEST_SERVICE, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@services/api.service";
 
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
 
   createComment(
     content: string,

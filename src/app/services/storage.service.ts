@@ -863,6 +863,26 @@ export class StorageService {
     this._queryService.ensureCategoriesLoaded(visibility, limit);
   }
 
+  ensureTaskCommentsLoaded(
+    taskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): void {
+    const existing = this.commentsByTaskId().get(taskId) || [];
+    if (existing.length > 0) return;
+    this._queryService.ensureTaskCommentsLoaded(taskId, visibility, limit);
+  }
+
+  ensureSubtaskCommentsLoaded(
+    subtaskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): void {
+    const existing = this.commentsBySubtaskId().get(subtaskId) || [];
+    if (existing.length > 0) return;
+    this._queryService.ensureSubtaskCommentsLoaded(subtaskId, visibility, limit);
+  }
+
   getTodos(visibility: string = "private"): Todo[] {
     const todos =
       visibility === "private"

@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
@@ -10,7 +10,7 @@ import { OrderCalculationService, Orderable } from "./order-calculation.service"
   providedIn: "root",
 })
 export class DragDropOrderService {
-  private requestService = inject(REQUEST_SERVICE);
+  private requestService = inject(ApiService);
   private notifyService = inject(NotifyService);
   private orderCalculationService = inject(OrderCalculationService);
 

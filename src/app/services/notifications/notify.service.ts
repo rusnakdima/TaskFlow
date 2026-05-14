@@ -5,7 +5,7 @@ import { firstValueFrom } from "rxjs";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
@@ -86,8 +86,8 @@ export class NotifyService implements OnDestroy {
     });
   }
 
-  private getRequestService(): REQUEST_SERVICE {
-    return this.injector.get(REQUEST_SERVICE);
+  private getRequestService(): ApiService {
+    return this.injector.get(ApiService);
   }
 
   private async fetchEntityTitle(table: string, id: string): Promise<string> {

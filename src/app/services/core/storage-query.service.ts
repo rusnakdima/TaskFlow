@@ -802,6 +802,56 @@ export class StorageQueryService {
     });
   }
 
+  ensureTaskCommentsLoaded(
+    taskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): void {
+    const existingComments = this.commentsByTaskId().get(taskId) || [];
+    if (existingComments.length > 0) return;
+    this._commentsLoading.set(true);
+    this.apiService.comments
+      .getAll({ visibility, limit, filter: { task_id: taskId }, load: ["user"] })
+      .subscribe({
+        next: (comments) => {
+          this._entityService.comments.update((existing) => {
+            const merged = new Map(existing.map((c) => [c.id, c]));
+            comments.forEach((c) => merged.set(c.id, c));
+            return Array.from(merged.values());
+          });
+        },
+        error: () => {},
+        complete: () => {
+          this._commentsLoading.set(false);
+        },
+      });
+  }
+
+  ensureSubtaskCommentsLoaded(
+    subtaskId: string,
+    visibility: string = "private",
+    limit: number = 10
+  ): void {
+    const existingComments = this.commentsBySubtaskId().get(subtaskId) || [];
+    if (existingComments.length > 0) return;
+    this._commentsLoading.set(true);
+    this.apiService.comments
+      .getAll({ visibility, limit, filter: { subtask_id: subtaskId }, load: ["user"] })
+      .subscribe({
+        next: (comments) => {
+          this._entityService.comments.update((existing) => {
+            const merged = new Map(existing.map((c) => [c.id, c]));
+            comments.forEach((c) => merged.set(c.id, c));
+            return Array.from(merged.values());
+          });
+        },
+        error: () => {},
+        complete: () => {
+          this._commentsLoading.set(false);
+        },
+      });
+  }
+
   getTodosByVisibility(visibility?: string): Todo[] {
     if (!visibility || visibility === "all") return this.todos();
     if (visibility === "private") return this.privateTodos();

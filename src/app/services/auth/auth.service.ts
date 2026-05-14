@@ -12,7 +12,7 @@ import { NetworkErrorHelper } from "@helpers/network-error.helper";
 
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { REQUEST_SERVICE } from "@services/api.service";
+import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { Router } from "@angular/router";
@@ -24,15 +24,15 @@ import { Router } from "@angular/router";
   providedIn: "root",
 })
 export class AuthService {
-  private _requestService: REQUEST_SERVICE | null = null;
+  private _requestService: ApiService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _notifyService: NotifyService | null = null;
   private _router: Router | null = null;
   private _userValidationService: UserValidationService | null = null;
   private _injector = inject(Injector);
 
-  private get requestService(): REQUEST_SERVICE {
-    if (!this._requestService) this._requestService = this._injector.get(REQUEST_SERVICE);
+  private get requestService(): ApiService {
+    if (!this._requestService) this._requestService = this._injector.get(ApiService);
     return this._requestService;
   }
   private get jwtTokenService(): JwtTokenService {
