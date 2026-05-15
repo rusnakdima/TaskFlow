@@ -3,7 +3,7 @@
   [ngClass]="{
     'animate-pulse bg-green-100': highlight,
     'opacity-60 grayscale': item?.deleted_at,
-    'ring-2 ring-blue-500 dark:ring-blue-400': isSelected,
+    'card-selected': isSelected,
     'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item?.deleted_at,
   }"
   (click)="onCardClick($event)"

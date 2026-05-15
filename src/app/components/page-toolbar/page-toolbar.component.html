@@ -1,7 +1,7 @@
 <div class="flex flex-wrap items-center justify-end gap-2">
   @if (config?.selectAll && config?.viewMode?.mode !== "table") {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.selectAll!.onToggle()"
     >
       <app-checkbox
@@ -30,7 +30,7 @@
 
   @if (config?.stats) {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.stats!.onToggle()"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
@@ -40,7 +40,7 @@
 
   @if (config?.filter) {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="onToggleFilter()"
     >
       <mat-icon
@@ -53,7 +53,7 @@
 
   @if (config?.newButton) {
     <button
-      class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
+      class="btn-accent flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
       (click)="config!.newButton!.onClick()"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="config!.newButton!.icon || 'add'" />
@@ -63,7 +63,7 @@
 
   @if (config?.newButtonWithMenu) {
     <button
-      class="styleButSuccess flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
+      class="btn-accent flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
       [matMenuTriggerFor]="newMenu"
     >
       <mat-icon
@@ -87,7 +87,7 @@
 
   @if (config?.infoToggle) {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.infoToggle!.onToggle()"
       [title]="config!.infoToggle!.isActive ? 'Hide Info' : 'Show Info'"
     >
@@ -102,7 +102,7 @@
 
   @if (config?.refresh) {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.refresh!.onClick()"
       [disabled]="config!.refresh!.loading"
     >
@@ -117,7 +117,7 @@
 
   @if (config?.sortMenu && config?.viewMode?.mode !== "table") {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="sortMenuDropdown"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sort" />
@@ -148,7 +148,7 @@
 
   @if (config?.sortOrder && config?.viewMode?.mode !== "table") {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.sortOrder!.onToggle()"
     >
       <mat-icon
@@ -160,7 +160,7 @@
 
   @if (config?.search) {
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="searchMenu"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="search" />

@@ -63,11 +63,10 @@
           cdkDragLockAxis="y"
           [style.cursor]="dragEnabled ? 'default' : 'default'"
           class="hover:bg-gray-50 dark:hover:bg-zinc-800"
-          [class.bg-green-100]="isHighlighted(item.id)"
-          [class.dark:bg-green-900/20]="isHighlighted(item.id)"
+          [class.bg-yellow-200]="isHighlighted(item.id)"
+          [class.dark:bg-yellow-900/40]="isHighlighted(item.id)"
           [class.animate-pulse]="isHighlighted(item.id)"
-          [class.bg-blue-50]="!isHighlighted(item.id) && isItemSelected(item.id)"
-          [class.dark:bg-blue-900/20]="!isHighlighted(item.id) && isItemSelected(item.id)"
+          [class.table-row-selected]="!isHighlighted(item.id) && isItemSelected(item.id)"
           (click)="onRowClick($event, item)"
         >
           @if (dragEnabled) {
