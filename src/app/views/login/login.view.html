@@ -4,7 +4,17 @@
   <div
     class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
   >
-    <div class="mb-4 flex items-center justify-end">
+    <div class="mb-4 flex items-center justify-between">
+      <button
+        class="h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+        (click)="toggleTheme()"
+        title="Toggle theme"
+      >
+        <mat-icon
+          class="h-6! w-6! min-w-6 text-2xl!"
+          [fontIcon]="isDarkTheme() ? 'light_mode' : 'dark_mode'"
+        />
+      </button>
       <app-connection-status />
     </div>
 
@@ -43,13 +53,13 @@
 
           <div class="flex gap-2">
             <button
-              class="styleButInfo flex-1"
+              class="btn-accent flex-1"
               (click)="verifyTotpAndLogin()"
               [disabled]="totpCode().length !== 6"
             >
               Verify
             </button>
-            <button class="styleButDanger flex-1" (click)="showTotpInput.set(false)">Cancel</button>
+            <button class="btn-cancel flex-1" (click)="showTotpInput.set(false)">Cancel</button>
           </div>
         </div>
       </div>
@@ -111,7 +121,7 @@
           <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>
         </div>
 
-        <button class="styleButInfo" (click)="submitted() == false && send()">
+        <button class="btn-accent" (click)="submitted() == false && send()">
           @if (submitted()) {
             <span>...Loading</span>
           } @else {
