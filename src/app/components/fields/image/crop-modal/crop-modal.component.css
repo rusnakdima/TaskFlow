@@ -34,16 +34,3 @@ canvas {
 .modal-actions {
   @apply flex justify-end gap-2.5;
 }
-
-.btn-cancel,
-.btn-crop {
-  @apply cursor-pointer rounded-md border-none px-5 py-2 text-sm font-medium;
-}
-
-.btn-cancel {
-  @apply bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600;
-}
-
-.btn-crop {
-  @apply bg-purple-600 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-purple-400;
-}
