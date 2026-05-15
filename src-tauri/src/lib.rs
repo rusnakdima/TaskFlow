@@ -30,7 +30,10 @@ use routes::{
     register, request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
     verify_login_totp,
   },
-  cascade_route::{batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade},
+  cascade_route::{
+    batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade, hard_remove_data,
+    soft_remove_data,
+  },
   crud_routes::{
     create_category, create_chat, create_comment, create_profile, create_subtask, create_task,
     create_todo, delete_category, delete_chat, delete_comment, delete_profile, delete_subtask,
@@ -351,6 +354,8 @@ pub fn run() {
       batch_soft_delete_cascade,
       batch_hard_delete_cascade,
       batch_restore_cascade,
+      soft_remove_data,
+      hard_remove_data,
       initialize_user_data,
       github_oauth_url,
       github_oauth_callback,

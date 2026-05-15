@@ -159,6 +159,7 @@ impl ManageDbService {
     &self,
     table: String,
     id: String,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let manager = match self.admin_manager.lock() {
       Ok(guard) => guard.clone(),
@@ -171,7 +172,11 @@ impl ManageDbService {
       }
     };
     match manager {
-      Some(manager) => manager.permanently_delete_record(table, id).await,
+      Some(manager) => {
+        manager
+          .permanently_delete_record(table, id, visibility)
+          .await
+      }
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
@@ -209,6 +214,7 @@ impl ManageDbService {
     &self,
     table: String,
     id: String,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let manager = match self.admin_manager.lock() {
       Ok(guard) => guard.clone(),
@@ -221,7 +227,7 @@ impl ManageDbService {
       }
     };
     match manager {
-      Some(manager) => manager.toggle_delete_status(table, id).await,
+      Some(manager) => manager.toggle_delete_status(table, id, visibility).await,
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
