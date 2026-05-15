@@ -2,9 +2,9 @@
   <div class="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-700">
     <button
       (click)="setActiveTab('notifications')"
-      [class]="
+      [ngClass]="
         activeTab() === 'notifications'
-          ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
           : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
@@ -14,9 +14,9 @@
     </button>
     <button
       (click)="setActiveTab('security')"
-      [class]="
+      [ngClass]="
         activeTab() === 'security'
-          ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
           : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
@@ -26,15 +26,27 @@
     </button>
     <button
       (click)="setActiveTab('integrations')"
-      [class]="
+      [ngClass]="
         activeTab() === 'integrations'
-          ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
           : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
     >
       <mat-icon class="mr-1 align-middle text-lg!" fontIcon="extension"></mat-icon>
       Integrations
+    </button>
+    <button
+      (click)="setActiveTab('appearance')"
+      [ngClass]="
+        activeTab() === 'appearance'
+          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
+          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+      "
+      class="px-4 py-2 text-sm font-medium transition-colors"
+    >
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="palette"></mat-icon>
+      Appearance
     </button>
   </div>
 
@@ -74,11 +86,9 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30"
-              >
+              <div class="flex h-8 w-8 items-center justify-center rounded-full">
                 <mat-icon
-                  class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
+                  class="h-5! w-5! min-w-5 text-xl! text-[var(--accent-color)] dark:text-[var(--accent-400)]"
                   fontIcon="chat"
                 />
               </div>
@@ -125,9 +135,7 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30"
-              >
+              <div class="flex h-8 w-8 items-center justify-center rounded-full">
                 <mat-icon
                   class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
                   fontIcon="forum"
@@ -176,11 +184,9 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
-              >
+              <div class="flex h-8 w-8 items-center justify-center rounded-full">
                 <mat-icon
-                  class="h-5! w-5! min-w-5 text-xl! text-green-600 dark:text-green-400"
+                  class="h-5! w-5! min-w-5 text-xl! text-[var(--accent-color)] dark:text-[var(--accent-400)]"
                   fontIcon="notifications"
                 />
               </div>
@@ -228,7 +234,7 @@
       <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
         <button
           (click)="saveSettings()"
-          class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
+          class="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 font-medium text-white transition-colors hover:opacity-90"
         >
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Settings
@@ -272,7 +278,7 @@
           @if (!totpEnabled() && !totpSetupInProgress()) {
             <button
               (click)="setupTotp()"
-              class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+              class="btn-accent flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
             >
               <mat-icon class="h-5! w-5! text-xl!" fontIcon="add"></mat-icon>
               Enable Google Authenticator
@@ -303,7 +309,7 @@
                 <div class="flex gap-2">
                   <button
                     (click)="verifyAndEnableTotp()"
-                    class="flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+                    class="btn-accent flex-1 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
                   >
                     Verify & Enable
                   </button>
@@ -493,6 +499,192 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (activeTab() === "appearance") {
+    <div
+      class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+    >
+      <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+        <div class="mb-2 flex items-center gap-3">
+          <mat-icon
+            class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
+            fontIcon="palette"
+          />
+          <h2 class="textNormal text-xl font-semibold">Appearance</h2>
+        </div>
+        <p class="textMuted text-sm">Customize the look and feel of your TaskFlow experience</p>
+      </div>
+
+      <div class="space-y-6 p-6">
+        <div>
+          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">
+            Theme Presets
+          </h3>
+          <div class="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            @for (preset of themePresets; track preset.id) {
+              <button
+                (click)="selectPreset(preset)"
+                [class]="
+                  activePreset().id === preset.id
+                    ? 'ring-2 ring-offset-2 dark:ring-offset-zinc-800'
+                    : ''
+                "
+                [style.--tw-ring-color]="preset.accentColor"
+                class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 p-3 transition-all hover:border-gray-300 dark:border-zinc-700 dark:hover:border-zinc-600"
+                [style.ring-color]="preset.accentColor"
+              >
+                <div
+                  class="h-8 w-8 rounded-full shadow-sm"
+                  [style.background-color]="preset.accentColor"
+                ></div>
+                <span class="textMuted text-xs">{{ preset.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">Mode</h3>
+          <div class="flex gap-4">
+            @for (m of themeModes; track m.value) {
+              <label
+                class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700/50"
+                [class]="
+                  activeMode() === m.value
+                    ? 'border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
+                    : ''
+                "
+              >
+                <input
+                  type="radio"
+                  name="themeMode"
+                  [value]="m.value"
+                  [checked]="activeMode() === m.value"
+                  (change)="selectMode(m.value)"
+                  class="sr-only"
+                />
+                <mat-icon class="h-5! w-5! text-lg!" [fontIcon]="m.icon"></mat-icon>
+                <span class="textNormal text-sm font-medium">{{ m.label }}</span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <div>
+          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">Gradients</h3>
+          <div class="flex gap-3">
+            @for (intensity of gradientIntensities; track intensity.value) {
+              <button
+                (click)="selectGradientIntensity(intensity.value)"
+                [class]="
+                  activeGradientIntensity() === intensity.value
+                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600'
+                "
+                class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              >
+                {{ intensity.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">Preview</h3>
+          <div
+            class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <div class="flex flex-col gap-3">
+              <div
+                class="flex items-center gap-3 rounded-lg p-3"
+                [ngClass]="
+                  activeGradientIntensity() === 'none'
+                    ? 'bg-[var(--accent-100)] dark:bg-[var(--accent-900)]'
+                    : 'gradient-header-bg'
+                "
+                [class]="activePreset().id + '-header'"
+              >
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                  <mat-icon class="h-5! w-5! text-lg! text-white" fontIcon="menu"></mat-icon>
+                </div>
+                <span class="font-medium text-white">Header Preview</span>
+              </div>
+
+              <div class="flex gap-3">
+                <div
+                  class="flex h-20 w-20 items-center justify-center rounded-lg border-l-2"
+                  [ngClass]="
+                    activeGradientIntensity() === 'none'
+                      ? 'border-[var(--accent-color)] bg-white dark:bg-zinc-800'
+                      : 'gradient-card'
+                  "
+                  [class]="activePreset().id + '-card'"
+                >
+                  <mat-icon
+                    class="h-8! w-8! text-3xl!"
+                    [class]="
+                      activeGradientIntensity() === 'none'
+                        ? 'text-[var(--accent-color)]'
+                        : 'text-gray-400'
+                    "
+                    fontIcon="description"
+                  ></mat-icon>
+                </div>
+                <div
+                  class="flex flex-1 items-center justify-center rounded-lg border-l-2"
+                  [ngClass]="
+                    activeGradientIntensity() === 'none'
+                      ? 'border-[var(--accent-color)] bg-white dark:bg-zinc-800'
+                      : 'gradient-card'
+                  "
+                  [class]="activePreset().id + '-card'"
+                >
+                  <span class="textMuted text-sm">Card Preview</span>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <button
+                  class="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+                  [ngClass]="
+                    activeGradientIntensity() === 'none'
+                      ? 'bg-[var(--accent-color)]'
+                      : 'gradient-button'
+                  "
+                  [class]="activePreset().id + '-button'"
+                >
+                  <mat-icon class="h-4! w-4! text-base!" fontIcon="add"></mat-icon>
+                  Button Preview
+                </button>
+                <button
+                  class="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
+                >
+                  Secondary
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
+        <button
+          (click)="saveAppearance()"
+          class="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 font-medium text-white transition-colors hover:opacity-90"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save"></mat-icon>
+          Save Appearance
+        </button>
+        <button
+          (click)="resetAppearance()"
+          class="textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh"></mat-icon>
+          Reset to Defaults
+        </button>
       </div>
     </div>
   }

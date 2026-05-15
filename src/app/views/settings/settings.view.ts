@@ -19,7 +19,9 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService } from "@services/auth/security.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { GithubService } from "@services/github/github.service";
+import { ThemeService } from "@services/ui/theme.service";
 import { Response, ResponseStatus } from "@models/response.model";
+import { ThemePreset, THEME_PRESETS, GradientIntensity } from "@models/theme.model";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 @Component({
@@ -36,13 +38,30 @@ export class SettingsView implements OnInit, OnDestroy {
   private jwtTokenService = inject(JwtTokenService);
   private sanitizer = inject(DomSanitizer);
   private cdr = inject(ChangeDetectorRef);
+  private themeService = inject(ThemeService);
 
   chatNotificationVolume = signal(50);
   commentNotificationVolume = signal(50);
   generalNotificationVolume = signal(50);
   enableNotificationSounds = signal(true);
 
-  activeTab = signal<"notifications" | "security" | "integrations">("notifications");
+  activeTab = signal<"notifications" | "security" | "integrations" | "appearance">("notifications");
+
+  themePresets = THEME_PRESETS;
+  themeModes = [
+    { value: "light" as const, label: "Light", icon: "light_mode" },
+    { value: "dark" as const, label: "Dark", icon: "dark_mode" },
+    { value: "system" as const, label: "System", icon: "settings_suggest" },
+  ];
+  gradientIntensities = [
+    { value: "none" as const, label: "None" },
+    { value: "subtle" as const, label: "Subtle" },
+    { value: "bold" as const, label: "Bold" },
+  ];
+
+  activePreset = signal<ThemePreset>(this.themeService.preset());
+  activeMode = signal<"light" | "dark" | "system">(this.themeService.mode());
+  activeGradientIntensity = signal<GradientIntensity>(this.themeService.gradients().sidebar);
 
   totpEnabled = signal(false);
   totpSetupInProgress = signal(false);
@@ -75,7 +94,7 @@ export class SettingsView implements OnInit, OnDestroy {
     this.loadGithubStatus();
   }
 
-  setActiveTab(tab: "notifications" | "security" | "integrations"): void {
+  setActiveTab(tab: "notifications" | "security" | "integrations" | "appearance"): void {
     this.activeTab.set(tab);
   }
 
@@ -330,6 +349,33 @@ export class SettingsView implements OnInit, OnDestroy {
   closeQrModal(): void {
     this.totpQrCode.set(null);
     this.totpSetupInProgress.set(false);
+  }
+
+  selectPreset(preset: ThemePreset): void {
+    this.activePreset.set(preset);
+    this.themeService.setPreset(preset);
+  }
+
+  selectMode(mode: "light" | "dark" | "system"): void {
+    this.activeMode.set(mode);
+    this.themeService.setMode(mode);
+  }
+
+  selectGradientIntensity(intensity: GradientIntensity): void {
+    this.activeGradientIntensity.set(intensity);
+    this.themeService.setGradientIntensity(intensity);
+  }
+
+  saveAppearance(): void {
+    this.notifyService.showSuccess("Appearance settings saved!");
+  }
+
+  resetAppearance(): void {
+    this.themeService.resetToDefaults();
+    this.activePreset.set(this.themeService.preset());
+    this.activeMode.set(this.themeService.mode());
+    this.activeGradientIntensity.set(this.themeService.gradients().sidebar);
+    this.notifyService.showSuccess("Appearance reset to defaults!");
   }
 
   ngOnDestroy(): void {
