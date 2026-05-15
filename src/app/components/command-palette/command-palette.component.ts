@@ -12,6 +12,7 @@ import {
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
+import { ThemeService } from "@services/ui/theme.service";
 
 interface CommandItem {
   id: string;
@@ -151,7 +152,10 @@ export class CommandPaletteComponent implements OnInit {
     },
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private themeService: ThemeService
+  ) {}
 
   ngOnInit() {
     this.allItems = [...this.pages, ...this.actions];
@@ -269,11 +273,7 @@ export class CommandPaletteComponent implements OnInit {
   }
 
   private toggleTheme() {
-    const html = document.querySelector("html");
-    const currentTheme = html?.getAttribute("class") || "";
-    const newTheme = currentTheme === "dark" ? "" : "dark";
-    html?.setAttribute("class", newTheme);
-    localStorage.setItem("theme", newTheme);
+    this.themeService.toggleMode();
   }
 
   onBackdropClick(event: MouseEvent) {

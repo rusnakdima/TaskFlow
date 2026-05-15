@@ -217,8 +217,8 @@ export class ItemCardComponent {
     this.dropped.emit(event);
   }
 
-  trackByConfig(_index: number, config: ItemDisplayConfig): string {
-    return config.key;
+  trackByConfig(index: number, config: ItemDisplayConfig): string {
+    return config.key || `config-${index}`;
   }
 
   getComments(): Comment[] {
