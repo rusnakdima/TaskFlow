@@ -1,6 +1,7 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
+import { Observable, lastValueFrom } from "rxjs";
 
 /* services */
 import { ApiService } from "@services/api.service";
@@ -49,39 +50,59 @@ export class InitialDataResolver implements Resolve<unknown> {
     return !!profile?.user_id;
   }
 
-  private loadProfileInBackground(): void {
-    if (this.hasValidProfile()) {
-      return;
-    }
+  private loadProfileInBackground(): Observable<boolean> {
+    return new Observable((observer) => {
+      if (this.hasValidProfile()) {
+        observer.next(true);
+        observer.complete();
+        return;
+      }
 
-    const userId = this.authService.getValueByKey("id");
-    if (!userId) {
-      return;
-    }
+      const userId = this.authService.getValueByKey("id");
+      if (!userId) {
+        observer.next(false);
+        observer.complete();
+        return;
+      }
 
-    this.apiService.profiles
-      .getAll({
-        visibility: "private",
-        filter: { user_id: userId },
-        load: ["user"],
-      })
-      .subscribe({
-        next: (profiles) => {
-          if (profiles && profiles.length > 0) {
-            this.storageService.setCollection("profiles", profiles[0]);
-            if ((profiles[0] as any).user) {
-              this.storageService.setCollection("user", (profiles[0] as any).user);
+      this.apiService.profiles
+        .getAll({
+          visibility: "private",
+          filter: { user_id: userId },
+          load: ["user"],
+        })
+        .subscribe({
+          next: (profiles) => {
+            if (profiles && profiles.length > 0) {
+              this.storageService.setCollection("profiles", profiles[0]);
+              if ((profiles[0] as any).user) {
+                this.storageService.setCollection("user", (profiles[0] as any).user);
+              }
+              observer.next(true);
+            } else {
+              observer.next(false);
             }
-          }
-        },
-        error: () => {},
-      });
+            observer.complete();
+          },
+          error: () => {
+            observer.next(false);
+            observer.complete();
+          },
+        });
+    });
   }
 
   async resolve(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
     const targetUrl = state.url || this.router.url;
 
     if (targetUrl.startsWith("/profile")) {
+      if (targetUrl === "/profile/manage") {
+        const hasProfile = await lastValueFrom(this.loadProfileInBackground());
+        if (hasProfile) {
+          this.router.navigate(["/profile"]);
+          return { loaded: true, redirectToProfile: true };
+        }
+      }
       return { loaded: true, isProfileRoute: true };
     }
 
@@ -92,11 +113,15 @@ export class InitialDataResolver implements Resolve<unknown> {
       return { loaded: false, redirectToLogin: true };
     }
 
-    this.loadProfileInBackground();
+    const hasProfile = await lastValueFrom(this.loadProfileInBackground());
+
+    if (!hasProfile && !targetUrl.startsWith("/profile")) {
+      this.router.navigate(["/profile/manage"]);
+    }
 
     return {
       loaded: true,
-      hasProfile: this.hasValidProfile(),
+      hasProfile,
       fromCache: this.hasCachedData(),
       isEmpty: !this.hasCachedData(),
     };
