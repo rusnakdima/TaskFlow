@@ -608,10 +608,11 @@ export class DataManagementView implements OnInit {
     if (!confirmed) return;
 
     const table = this.selectedType();
+    const visibility = this.mode === "admin" ? "public" : "private";
     try {
       const response =
         this.mode === "admin"
-          ? await this.adminService.permanentlyDeleteRecord(table, record.id)
+          ? await this.adminService.permanentlyDeleteRecord(table, record.id, visibility)
           : await this.adminService.permanentlyDeleteRecordLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
@@ -626,9 +627,10 @@ export class DataManagementView implements OnInit {
   async toggleDeleteStatus(record: any) {
     try {
       const table = this.selectedType();
+      const visibility = this.mode === "admin" ? "public" : "private";
       const response =
         this.mode === "admin"
-          ? await this.adminService.toggleDeleteStatus(table, record.id)
+          ? await this.adminService.toggleDeleteStatus(table, record.id, visibility)
           : await this.adminService.toggleDeleteStatusLocal(table, record.id);
 
       if (response.status === ResponseStatus.SUCCESS) {
@@ -644,11 +646,12 @@ export class DataManagementView implements OnInit {
     const selectedIds = Array.from(this.selectedRecords());
     const allSelected = this.getCurrentData().filter((item) => selectedIds.includes(item.id));
     const allArchived = allSelected.every((item) => item.deleted_at);
+    const visibility = this.mode === "admin" ? "public" : "private";
 
     if (allArchived) {
-      await this.adminCascadeService.restoreBatch(this.selectedType(), selectedIds);
+      await this.adminCascadeService.restoreBatch(this.selectedType(), selectedIds, visibility);
     } else {
-      await this.adminCascadeService.softDeleteBatch(this.selectedType(), selectedIds);
+      await this.adminCascadeService.softDeleteBatch(this.selectedType(), selectedIds, visibility);
     }
     this.selectedRecords.set(new Set());
     this.loadData(true);
@@ -662,10 +665,12 @@ export class DataManagementView implements OnInit {
       confirmText: "Delete Permanently",
     });
     if (!confirmed) return;
+    const visibility = this.mode === "admin" ? "public" : "private";
 
     await this.adminCascadeService.hardDeleteBatch(
       this.selectedType(),
-      Array.from(this.selectedRecords())
+      Array.from(this.selectedRecords()),
+      visibility
     );
     this.selectedRecords.set(new Set());
     this.loadData(true);
