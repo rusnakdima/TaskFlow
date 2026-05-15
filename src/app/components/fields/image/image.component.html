@@ -2,17 +2,13 @@
   <label class="styleLabel">{{ label }}</label>
 
   <div class="flex flex-row gap-x-2">
-    <button type="button" class="styleButInfo flex items-center gap-1" (click)="onUploadClick()">
+    <button type="button" class="btn-accent flex items-center gap-1" (click)="onUploadClick()">
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="upload" />
       Upload
     </button>
 
     @if (form.get("original_image_url")?.value) {
-      <button
-        type="button"
-        class="styleButInfo flex items-center gap-1"
-        (click)="onReCropOriginal()"
-      >
+      <button type="button" class="btn-accent flex items-center gap-1" (click)="onReCropOriginal()">
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="crop" />
         Crop
       </button>
@@ -29,7 +25,7 @@
     />
     <button
       type="button"
-      class="styleButInfo"
+      class="btn-accent"
       (click)="onLoadUrlClick()"
       [disabled]="!urlInput.trim()"
     >
