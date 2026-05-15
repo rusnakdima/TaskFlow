@@ -550,8 +550,8 @@
 
     <!-- Actions -->
     <div class="flex justify-end gap-3 pt-6">
-      <button type="button" class="styleButDanger" (click)="back()">Cancel</button>
-      <button type="submit" class="styleButInfo" [disabled]="form.invalid || isSubmitting()">
+      <button type="button" class="btn-cancel" (click)="back()">Cancel</button>
+      <button type="submit" class="btn-accent" [disabled]="form.invalid || isSubmitting()">
         @if (isSubmitting()) {
           <div
             class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
