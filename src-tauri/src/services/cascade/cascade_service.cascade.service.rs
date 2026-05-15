@@ -346,6 +346,11 @@ impl CascadeService {
           .await
           .map_err(|e| err_response_formatted("Delete comment failed", &e.to_string()))?;
       }
+      "categories" | "chats" | "users" | "profiles" => {
+        provider.delete(table, id).await.map_err(|e| {
+          err_response_formatted(&format!("Delete {} failed", table), &e.to_string())
+        })?;
+      }
       _ => {
         return Err(err_response_formatted(
           "Unknown table for cascade delete",
