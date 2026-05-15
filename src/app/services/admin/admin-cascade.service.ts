@@ -103,20 +103,28 @@ export class AdminCascadeService {
     }
   }
 
-  async softDeleteBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
-    const results = await this.requestService.batchSoftDelete(table, ids);
+  async softDeleteBatch(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchSoftDelete(table, ids, visibility);
     this.updateSignalsFromCascadeResults();
     return results;
   }
 
-  async hardDeleteBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
-    const results = await this.requestService.batchHardDelete(table, ids);
+  async hardDeleteBatch(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchHardDelete(table, ids, visibility);
     this.updateSignalsFromCascadeResults();
     return results;
   }
 
-  async restoreBatch(table: string, ids: string[]): Promise<CascadeResult[]> {
-    const results = await this.requestService.batchRestore(table, ids);
+  async restoreBatch(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
+    const results = await this.requestService.batchRestore(table, ids, visibility);
     this.updateSignalsFromCascadeResults();
     return results;
   }

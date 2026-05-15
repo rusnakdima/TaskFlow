@@ -35,9 +35,18 @@ export class AdminService {
     return this.apiService.admin.getAllAdminData() as Observable<Response<R>>;
   }
 
-  async permanentlyDeleteRecord(table: string, id: string): Promise<Response<void>> {
+  async permanentlyDeleteRecord(
+    table: string,
+    id: string,
+    visibility?: string
+  ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<void>>("admin_permanently_delete", { table, id, token });
+    return await invoke<Response<void>>("admin_permanently_delete", {
+      table,
+      id,
+      token,
+      visibility,
+    });
   }
 
   async permanentlyDeleteRecordLocal(table: string, id: string): Promise<Response<void>> {
@@ -45,9 +54,13 @@ export class AdminService {
     return await invoke<Response<void>>("admin_permanently_delete_local", { table, id, token });
   }
 
-  async toggleDeleteStatus(table: string, id: string): Promise<Response<boolean>> {
+  async toggleDeleteStatus(
+    table: string,
+    id: string,
+    visibility?: string
+  ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("admin_toggle_delete", { table, id, token });
+    return await invoke<Response<boolean>>("admin_toggle_delete", { table, id, token, visibility });
   }
 
   async toggleDeleteStatusLocal(table: string, id: string): Promise<Response<boolean>> {
