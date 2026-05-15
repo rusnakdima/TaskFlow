@@ -5,6 +5,7 @@ import { firstValueFrom, take } from "rxjs";
 
 /* services */
 import { ApiService } from "@services/api.service";
+import { CrudOptions } from "@models/api.model";
 import { StorageService } from "@services/storage.service";
 
 /**
@@ -28,6 +29,9 @@ export class MainResolver implements Resolve<any> {
     const paramsMap = route.paramMap;
 
     try {
+      const visibility = route.queryParamMap.get("visibility") || "private";
+      const options: CrudOptions = { visibility };
+
       if (paramsMap.get("taskId")) {
         const taskId = paramsMap.get("taskId") ?? "";
         const todoId = paramsMap.get("todoId") ?? "";
@@ -41,7 +45,7 @@ export class MainResolver implements Resolve<any> {
         if (todoFromStorage || taskFromStorage) {
           if (!todoFromStorage) {
             this.requestService
-              .get("todos", todoId)
+              .get("todos", todoId, options)
               .pipe(take(1))
               .subscribe((todo) => {
                 if (todo) this.storageService.modify("todos", "create", todo as any);
@@ -49,7 +53,7 @@ export class MainResolver implements Resolve<any> {
           }
           if (!taskFromStorage) {
             this.requestService
-              .get("tasks", taskId)
+              .get("tasks", taskId, options)
               .pipe(take(1))
               .subscribe((task) => {
                 if (task) this.storageService.modify("tasks", "create", task as any);
@@ -59,11 +63,11 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.apiService.todos.get(todoId).pipe(take(1))
+          this.apiService.todos.get(todoId, visibility).pipe(take(1))
         ).catch(() => null);
 
         let taskFromApi = await firstValueFrom(
-          this.apiService.tasks.get(taskId).pipe(take(1))
+          this.apiService.tasks.get(taskId, visibility).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi) {
@@ -89,7 +93,7 @@ export class MainResolver implements Resolve<any> {
         }
 
         let todoFromApi = await firstValueFrom(
-          this.apiService.todos.get(todoId).pipe(take(1))
+          this.apiService.todos.get(todoId, visibility).pipe(take(1))
         ).catch(() => null);
 
         if (todoFromApi) {
