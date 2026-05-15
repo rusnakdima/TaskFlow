@@ -79,31 +79,104 @@
   }
 
   .styleLinkRedir {
-    @apply cursor-pointer! text-blue-600! underline! decoration-blue-600! decoration-dashed! decoration-1! underline-offset-4! dark:text-lime-500! dark:decoration-lime-500!;
+    @apply cursor-pointer! text-[var(--accent-color)]! underline! decoration-[var(--accent-color)]! decoration-dashed! decoration-1! underline-offset-4! dark:text-[var(--accent-400)]! dark:decoration-[var(--accent-400)]!;
   }
 
   .styleBottomNavItems {
     @apply flex! cursor-pointer! flex-col! items-center! text-center!;
   }
 
-  .styleBut {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
+  /* ---- Unified 3D Buttons ---- */
+  .btn-accent {
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    background-color: var(--accent-color) !important;
+    border-top-color: var(--accent-700) !important;
+    border-left-color: var(--accent-700) !important;
+    border-right-color: var(--accent-700) !important;
+    border-bottom-color: var(--accent-900) !important;
+  }
+  .dark .btn-accent {
+    border-top-color: var(--accent-600) !important;
+    border-left-color: var(--accent-600) !important;
+    border-right-color: var(--accent-600) !important;
+    border-bottom-color: var(--accent-900) !important;
   }
 
-  .styleButInfo {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-blue-900! bg-blue-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
+  .btn-cancel {
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! active:mt-0.5! active:border-b-0!;
+    background-color: #6b7280 !important;
+    border-top-color: #9ca3af !important;
+    border-left-color: #9ca3af !important;
+    border-right-color: #9ca3af !important;
+    border-bottom-color: #4b5563 !important;
+  }
+  .dark .btn-cancel {
+    background-color: #52525b !important;
+    border-top-color: #71717a !important;
+    border-left-color: #71717a !important;
+    border-right-color: #71717a !important;
+    border-bottom-color: #3f3f46 !important;
   }
 
-  .styleButWarn {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-yellow-900! bg-yellow-500! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
+  .btn-danger {
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    background-color: #dc2626 !important;
+    border-top-color: #f87171 !important;
+    border-left-color: #f87171 !important;
+    border-right-color: #f87171 !important;
+    border-bottom-color: #991b1b !important;
+  }
+  .dark .btn-danger {
+    border-top-color: #f87171 !important;
+    border-left-color: #f87171 !important;
+    border-right-color: #f87171 !important;
+    border-bottom-color: #7f1d1d !important;
   }
 
-  .styleButDanger {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-red-900! bg-red-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
+  .btn-warning {
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    background-color: #f59e0b !important;
+    border-top-color: #fcd34d !important;
+    border-left-color: #fcd34d !important;
+    border-right-color: #fcd34d !important;
+    border-bottom-color: #b45309 !important;
+  }
+  .dark .btn-warning {
+    border-top-color: #fcd34d !important;
+    border-left-color: #fcd34d !important;
+    border-right-color: #fcd34d !important;
+    border-bottom-color: #92400e !important;
   }
 
-  .styleButSuccess {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! border-green-900! bg-green-600! px-4! py-2! text-center! text-white! active:mt-1! active:border-0! dark:text-white!;
+  .btn-success {
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    background-color: #16a34a !important;
+    border-top-color: #4ade80 !important;
+    border-left-color: #4ade80 !important;
+    border-right-color: #4ade80 !important;
+    border-bottom-color: #14532d !important;
+  }
+  .dark .btn-success {
+    border-top-color: #4ade80 !important;
+    border-left-color: #4ade80 !important;
+    border-right-color: #4ade80 !important;
+    border-bottom-color: #166534 !important;
+  }
+
+  /* ---- Card Selected State ---- */
+  .card-selected {
+    @apply ring-2! ring-[var(--accent-color)]!;
+  }
+  .dark .card-selected {
+    @apply ring-[var(--accent-400)]!;
+  }
+
+  /* ---- Table Row Selected State ---- */
+  .table-row-selected {
+    @apply bg-[var(--accent-100)]!;
+  }
+  .dark .table-row-selected {
+    @apply bg-[var(--accent-900)]!;
   }
 
   .styleFloatBut {
@@ -131,19 +204,31 @@
   }
 
   .styleElem {
-    @apply rounded-lg border border-gray-400 bg-slate-300 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
+    @apply rounded-lg border border-gray-400 bg-slate-300 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+  }
+  .styleElem:focus {
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
   }
 
   .styleField {
-    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
+    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+  }
+  .styleField:focus {
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
   }
 
   .styleTextarea {
-    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
+    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+  }
+  .styleTextarea:focus {
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
   }
 
   .styleFileInput {
-    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500;
+    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+  }
+  .styleFileInput:focus {
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
   }
 
   .styleCheckbox {
@@ -160,7 +245,7 @@
   }
 
   .styleCheckbox:checked + .checkmark::before {
-    @apply border-blue-500 bg-blue-600;
+    @apply border-[var(--accent-color)] bg-[var(--accent-color)];
   }
 
   .styleCheckbox:checked + .checkmark::after {
@@ -169,15 +254,24 @@
   }
 
   .styleCheckbox:focus + .checkmark::before {
-    @apply ring-2! ring-blue-500/30!;
+    @apply ring-2! ring-[var(--accent-300)]!;
   }
 
   .styleToggle {
-    @apply relative! h-6! w-11! rounded-full! bg-gray-200! peer-checked:bg-blue-600! peer-focus:ring-4! peer-focus:ring-blue-300! peer-focus:outline-none! after:absolute! after:start-[2px]! after:top-[2px]! after:h-5! after:w-5! after:rounded-full! after:border! after:border-gray-300! after:bg-white! after:transition-all! after:content-['']! peer-checked:after:translate-x-full! peer-checked:after:border-white! rtl:peer-checked:after:-translate-x-full! dark:border-gray-600! dark:bg-gray-700! dark:peer-focus:ring-blue-800!;
+    @apply relative! h-6! w-11! rounded-full! bg-gray-200! peer-focus:ring-4! peer-focus:outline-none! after:absolute! after:start-[2px]! after:top-[2px]! after:h-5! after:w-5! after:rounded-full! after:border! after:border-gray-300! after:bg-white! after:transition-all! after:content-['']! peer-checked:after:translate-x-full! peer-checked:after:border-white! rtl:peer-checked:after:-translate-x-full! dark:border-gray-600! dark:bg-gray-700! dark:peer-focus:ring-[var(--accent-800)]!;
+  }
+  .styleToggle:checked {
+    @apply bg-[var(--accent-color)]!;
   }
 
   .styleRadio {
-    @apply h-6! w-6! border-gray-500! bg-gray-300! text-blue-600! focus:ring-2! focus:ring-blue-600! dark:border-gray-600! dark:bg-gray-700! dark:text-green-500! dark:ring-offset-gray-800! dark:focus:ring-green-500!;
+    @apply h-6! w-6! border-gray-500! bg-gray-300! focus:ring-2! dark:border-gray-600! dark:bg-gray-700! dark:ring-offset-gray-800!;
+  }
+  .styleRadio:checked {
+    @apply border-[var(--accent-color)]! bg-[var(--accent-color)]!;
+  }
+  .styleRadio:focus:checked {
+    @apply ring-[var(--accent-color)]!;
   }
 
   .styleRadio:disabled {
@@ -585,7 +679,7 @@ div.mdc-checkbox {
   @apply relative! inline-flex! h-5! w-5! cursor-pointer! items-center! justify-center! rounded! border-2! border-gray-400! bg-transparent! transition-colors! duration-150! dark:border-gray-600!;
 }
 .checkbox--checked {
-  @apply border-blue-500! bg-blue-500!;
+  @apply border-[var(--accent-color)]! bg-[var(--accent-color)]!;
 }
 .checkbox--indeterminate {
   @apply border-yellow-500! bg-yellow-500!;
@@ -603,7 +697,7 @@ div.mdc-checkbox {
   @apply relative! inline-flex! h-5! w-5! cursor-pointer! items-center! justify-center! rounded-full! border-2! border-gray-400! bg-transparent! transition-colors! duration-150! dark:border-gray-600!;
 }
 .radio--checked {
-  @apply border-blue-500! bg-blue-500!;
+  @apply border-[var(--accent-color)]! bg-[var(--accent-color)]!;
 }
 .radio__dot {
   @apply h-2! w-2! rounded-full! bg-white!;
@@ -752,4 +846,565 @@ td[role="presentation"] {
 /* Global bottom padding so floating nav never overlaps content */
 .shell-visible {
   padding-bottom: 72px !important;
+}
+
+/* ============================================
+   THEME SYSTEM - CSS Variables & Gradient Classes
+   ============================================ */
+
+:root {
+  --accent-color: #ec4899;
+  --accent-50: rgba(236, 72, 153, 0.05);
+  --accent-100: rgba(236, 72, 153, 0.1);
+  --accent-200: rgba(236, 72, 153, 0.2);
+  --accent-300: rgba(236, 72, 153, 0.3);
+  --accent-400: rgba(236, 72, 153, 0.4);
+  --accent-500: #ec4899;
+  --accent-600: rgba(236, 72, 153, 0.85);
+  --accent-700: rgba(236, 72, 153, 0.7);
+  --accent-800: rgba(236, 72, 153, 0.55);
+  --accent-900: rgba(236, 72, 153, 0.45);
+
+  --gradient-overlay: transparent;
+  --gradient-bg-start: transparent;
+  --gradient-bg-end: transparent;
+  --gradient-card-start: transparent;
+  --gradient-card-end: transparent;
+  --gradient-button-start: #ec4899;
+  --gradient-button-end: rgba(236, 72, 153, 0.8);
+}
+
+/* Theme preset classes */
+html[data-theme="pink-dream"] {
+  --accent-color: #ec4899;
+  --accent-500: #ec4899;
+  --accent-600: #db2777;
+}
+html[data-theme="ocean-blue"] {
+  --accent-color: #3b82f6;
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+}
+html[data-theme="forest-green"] {
+  --accent-color: #10b981;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+}
+html[data-theme="royal-purple"] {
+  --accent-color: #8b5cf6;
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+}
+html[data-theme="sunset-orange"] {
+  --accent-color: #f97316;
+  --accent-500: #f97316;
+  --accent-600: #ea580c;
+}
+html[data-theme="cyan-wave"] {
+  --accent-color: #06b6d4;
+  --accent-500: #06b6d4;
+  --accent-600: #0891b2;
+}
+
+/* ============================================
+   GRADIENT INTENSITY SYSTEM
+   ============================================ */
+
+/* Floating Bottom Nav & Overlays */
+html[data-gradient-intensity="none"] .gradient-overlay {
+  background: transparent !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-overlay {
+  background: linear-gradient(135deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-overlay {
+  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* Header Background */
+html[data-gradient-intensity="none"] .gradient-header-bg {
+  background-color: var(--accent-50) !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-header-bg {
+  background: linear-gradient(180deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-header-bg {
+  background: linear-gradient(180deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* Cards - accent border always, gradient optional */
+.gradient-card {
+  border-left: 3px solid var(--accent-color) !important;
+}
+html[data-gradient-intensity="none"] .gradient-card {
+  background: white !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-card {
+  background: linear-gradient(145deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-card {
+  background: linear-gradient(145deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* Gradient buttons */
+html[data-gradient-intensity="none"] .gradient-button,
+html[data-gradient-intensity="subtle"] .gradient-button,
+html[data-gradient-intensity="bold"] .gradient-button {
+  background: var(--accent-color) !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-button {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-600) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-button {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-700) 100%) !important;
+}
+
+/* Page Background */
+html[data-gradient-intensity="none"] .gradient-page-bg {
+  background: transparent !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-page-bg {
+  background: linear-gradient(180deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-page-bg {
+  background: linear-gradient(180deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* Grouped Blocks - accent border always, gradient optional */
+.gradient-grouped-block {
+  border-left: 3px solid var(--accent-color) !important;
+}
+html[data-gradient-intensity="none"] .gradient-grouped-block {
+  background: white !important;
+}
+html[data-gradient-intensity="subtle"] .gradient-grouped-block {
+  background: linear-gradient(135deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+}
+html[data-gradient-intensity="bold"] .gradient-grouped-block {
+  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* Accent color utilities */
+.text-accent {
+  color: var(--accent-color) !important;
+}
+.bg-accent {
+  background-color: var(--accent-color) !important;
+}
+.border-accent {
+  border-color: var(--accent-color) !important;
+}
+.ring-accent {
+  --tw-ring-color: var(--accent-color) !important;
+}
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-600) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Accent hover effects */
+.hover-accent:hover {
+  color: var(--accent-color) !important;
+  background-color: var(--accent-100) !important;
+}
+
+/* Sidebar/nav gradient area */
+.gradient-sidebar {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-500), 0.05) 0%,
+    rgba(var(--accent-500), 0.15) 100%
+  ) !important;
+}
+
+/* Info panels with accent borders */
+.info-panel-accent {
+  border-left: 3px solid var(--accent-color) !important;
+}
+
+/* Badge with accent background */
+.badge-accent {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-600) !important;
+}
+
+/* Progress bars with accent */
+.progress-accent::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-600) 100%) !important;
+}
+
+/* Focus rings with accent */
+.focus-ring-accent:focus {
+  --tw-ring-color: var(--accent-color) !important;
+  --tw-ring-offset-color: var(--accent-100) !important;
+}
+
+/* ---- Buttons with Accent ---- */
+.btn-accent {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: white !important;
+}
+.btn-accent:hover {
+  background-color: var(--accent-600) !important;
+  border-color: var(--accent-600) !important;
+}
+.btn-accent-soft {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+}
+.btn-accent-soft:hover {
+  background-color: var(--accent-200) !important;
+}
+.btn-accent-outline {
+  border: 2px solid var(--accent-color) !important;
+  color: var(--accent-color) !important;
+  background-color: transparent !important;
+}
+.btn-accent-outline:hover {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+}
+
+/* ---- Links with Accent (Dark Mode Fixed) ---- */
+.link-accent {
+  color: var(--accent-color) !important;
+}
+.link-accent:hover {
+  color: var(--accent-600) !important;
+}
+.dark .link-accent {
+  color: var(--accent-400) !important;
+}
+.dark .link-accent:hover {
+  color: var(--accent-300) !important;
+}
+
+/* ---- Icon Accent (Dark Mode Fixed) ---- */
+.icon-accent {
+  color: var(--accent-color) !important;
+}
+.dark .icon-accent {
+  color: var(--accent-400) !important;
+}
+.icon-accent-hover:hover {
+  color: var(--accent-600) !important;
+}
+.dark .icon-accent-hover:hover {
+  color: var(--accent-300) !important;
+}
+
+/* ---- Soft Button Accent (Dark Mode Fixed) ---- */
+.btn-accent-soft {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+}
+.btn-accent-soft:hover {
+  background-color: var(--accent-200) !important;
+}
+.dark .btn-accent-soft {
+  background-color: var(--accent-900) !important;
+  color: var(--accent-300) !important;
+}
+.dark .btn-accent-soft:hover {
+  background-color: var(--accent-800) !important;
+}
+
+/* ---- Checkbox/Radio Accent ---- */
+.checkbox-accent:checked {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+}
+.radio-accent:checked {
+  border-color: var(--accent-color) !important;
+  background-color: var(--accent-color) !important;
+}
+
+/* ---- Toggle Accent ---- */
+.toggle-accent:checked {
+  background-color: var(--accent-color) !important;
+}
+.toggle-accent:focus:not(:focus-visible) {
+  --tw-ring-color: var(--accent-color) !important;
+}
+
+/* ---- Tab Accent ---- */
+.tab-accent {
+  border-bottom: 2px solid var(--accent-color) !important;
+  color: var(--accent-color) !important;
+}
+
+/* ---- Notification Type Badges (Dark Mode Fixed) ---- */
+.badge-todo {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+}
+.badge-task {
+  background-color: var(--accent-200) !important;
+  color: var(--accent-800) !important;
+}
+.badge-subtask {
+  background-color: var(--accent-300) !important;
+  color: var(--accent-900) !important;
+}
+.dark .badge-todo {
+  background-color: var(--accent-900) !important;
+  color: var(--accent-300) !important;
+}
+.dark .badge-task {
+  background-color: var(--accent-800) !important;
+  color: var(--accent-200) !important;
+}
+.dark .badge-subtask {
+  background-color: var(--accent-700) !important;
+  color: var(--accent-100) !important;
+}
+
+/* ---- Nav Item Active ---- */
+.nav-item-active {
+  background-color: transparent !important;
+}
+.nav-item-active mat-icon,
+.nav-item-active span {
+  color: var(--accent-300) !important;
+}
+.dark .nav-item-active mat-icon,
+.dark .nav-item-active span {
+  color: var(--accent-400) !important;
+}
+
+/* ---- Icon Accent (Lighter for visibility) ---- */
+.icon-accent {
+  color: var(--accent-400) !important;
+}
+.dark .icon-accent {
+  color: var(--accent-300) !important;
+}
+.icon-accent-hover:hover {
+  color: var(--accent-500) !important;
+}
+.dark .icon-accent-hover:hover {
+  color: var(--accent-200) !important;
+}
+
+/* ---- Grouped Block with Accent ---- */
+.gradient-grouped-block {
+  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+  border-left: 3px solid var(--accent-color) !important;
+}
+
+/* ---- Page Background Gradient ---- */
+.gradient-page-bg {
+  background: linear-gradient(
+    180deg,
+    var(--gradient-bg-start) 0%,
+    var(--gradient-bg-end) 100%
+  ) !important;
+}
+
+/* ---- Sidebar Area Gradient ---- */
+.gradient-sidebar-area {
+  background: linear-gradient(180deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+}
+
+/* ---- Selection Highlight ---- */
+.selection-accent::selection {
+  background-color: var(--accent-200) !important;
+  color: var(--accent-900) !important;
+}
+
+/* ---- Range Slider Accent ---- */
+.slider-accent::-webkit-slider-thumb {
+  appearance: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background-color: var(--accent-color) !important;
+  cursor: grab !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+.slider-accent::-webkit-slider-thumb:hover {
+  background-color: var(--accent-600) !important;
+}
+.slider-accent::-webkit-slider-thumb:active {
+  cursor: grabbing !important;
+  background-color: var(--accent-700) !important;
+}
+.slider-accent::-moz-range-thumb {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background-color: var(--accent-color) !important;
+  cursor: grab !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ---- Custom Select Accent ---- */
+.select-accent {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='var(--accent-color)' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  padding-right: 36px !important;
+}
+.select-accent:focus {
+  border-color: var(--accent-color) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--accent-100) !important;
+}
+
+/* ---- Icon Accent ---- */
+.icon-accent {
+  color: var(--accent-color) !important;
+}
+.icon-accent-hover:hover {
+  color: var(--accent-600) !important;
+}
+
+/* ---- Divider Accent ---- */
+.divider-accent {
+  border-color: var(--accent-200) !important;
+}
+
+/* ---- Scrollbar Accent ---- */
+.scrollbar-accent::-webkit-scrollbar-thumb {
+  background-color: var(--accent-400) !important;
+}
+.scrollbar-accent::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-500) !important;
+}
+
+/* ---- Avatar Accent Border ---- */
+.avatar-accent {
+  border: 2px solid var(--accent-color) !important;
+}
+
+/* ---- Loading Spinner Accent ---- */
+.spinner-accent {
+  border-color: var(--accent-100) !important;
+  border-top-color: var(--accent-color) !important;
+}
+
+/* ---- Tooltip Accent ---- */
+.tooltip-accent {
+  background-color: var(--accent-700) !important;
+  color: white !important;
+}
+
+/* ---- Popover Accent ---- */
+.popover-accent {
+  border-color: var(--accent-200) !important;
+  background-color: var(--accent-50) !important;
+}
+
+/* ---- Dialog/Modal Accent Header ---- */
+.modal-header-accent {
+  border-bottom: 2px solid var(--accent-color) !important;
+}
+
+/* ---- Table Row Hover Accent ---- */
+.row-hover-accent:hover {
+  background-color: var(--accent-50) !important;
+}
+
+/* ---- Pagination Accent ---- */
+.pagination-accent .current {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: white !important;
+}
+.pagination-accent a:hover {
+  background-color: var(--accent-100) !important;
+}
+
+/* ---- Tag/Chip Accent ---- */
+.tag-accent {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+  border: 1px solid var(--accent-200) !important;
+}
+.tag-accent:hover {
+  background-color: var(--accent-200) !important;
+}
+
+/* ---- Input Group Accent ---- */
+.input-group-accent:focus-within {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px var(--accent-100) !important;
+}
+
+/* ---- Dropdown Accent ---- */
+.dropdown-accent .dropdown-item:hover {
+  background-color: var(--accent-50) !important;
+}
+.dropdown-accent .dropdown-item.active {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+}
+
+/* ---- Tabs Pills Accent ---- */
+.tab-pills-accent {
+  background-color: var(--accent-100) !important;
+  color: var(--accent-700) !important;
+}
+.tab-pills-accent:hover {
+  background-color: var(--accent-200) !important;
+}
+.tab-pills-accent.active {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+}
+
+/* ---- Card Hover Accent ---- */
+.card-hover-accent:hover {
+  border-color: var(--accent-300) !important;
+  box-shadow: 0 4px 12px var(--accent-100) !important;
+}
+
+/* ---- Image Filter Accent ---- */
+.img-filter-accent {
+  filter: drop-shadow(0 0 4px var(--accent-300));
+}
+
+/* ---- Shadow Accent ---- */
+.shadow-accent {
+  box-shadow: 0 4px 14px var(--accent-200) !important;
+}
+
+/* ---- Ring Focus Accent ---- */
+.ring-accent {
+  --tw-ring-color: var(--accent-color) !important;
+  --tw-ring-offset-color: var(--accent-100) !important;
+}
+.ring-accent:focus-visible {
+  --tw-ring-color: var(--accent-color) !important;
+  outline: 2px solid var(--accent-500) !important;
+  outline-offset: 2px !important;
+}
+
+/* ---- Accent Opacity Utilities ---- */
+.bg-accent-5 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+.bg-accent-10 {
+  background-color: var(--accent-100) !important;
+}
+.bg-accent-20 {
+  background-color: var(--accent-200) !important;
+}
+.text-accent-50 {
+  color: var(--accent-500) !important;
+}
+.text-accent-70 {
+  color: var(--accent-700) !important;
+}
+.border-accent-light {
+  border-color: var(--accent-200) !important;
+}
+.border-accent-dark {
+  border-color: var(--accent-600) !important;
 }
