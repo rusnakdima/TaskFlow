@@ -507,6 +507,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   onRowClick(event: { event: MouseEvent; item: any } | any): void {
     const task = event.item || event;
+    if (!task?.id) return;
+
     const mouseEvent = event.event;
 
     if (mouseEvent?.shiftKey) {
