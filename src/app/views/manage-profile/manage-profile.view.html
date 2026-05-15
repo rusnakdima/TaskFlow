@@ -28,13 +28,13 @@
       <button
         *ngIf="!isProfileRequired"
         (click)="onCancel()"
-        class="styleButDanger flex items-center justify-center gap-2"
+        class="btn-cancel flex items-center justify-center gap-2"
       >
         <mat-icon class="h-5! w-5!" fontIcon="close" />
         Cancel
       </button>
 
-      <button (click)="onSubmit()" class="styleButInfo flex items-center justify-center gap-2">
+      <button (click)="onSubmit()" class="btn-accent flex items-center justify-center gap-2">
         <mat-icon class="h-5! w-5!" fontIcon="check" />
         {{ isEditMode ? "Update" : "Create" }}
       </button>

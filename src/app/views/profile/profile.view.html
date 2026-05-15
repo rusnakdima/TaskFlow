@@ -26,7 +26,7 @@
           </div>
           @if (isMyProfile()) {
             <button
-              class="styleButInfo absolute -right-2 -bottom-2 h-9! rounded-full p-2 shadow-lg"
+              class="btn-accent absolute -right-2 -bottom-2 h-9! rounded-full p-2 shadow-lg"
               routerLink="/profile/manage"
             >
               <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
@@ -171,7 +171,7 @@
                   This code expires in 90 seconds
                 </div>
 
-                <button class="styleButDanger w-full" (click)="closeMyQrCode()">Close</button>
+                <button class="btn-cancel w-full" (click)="closeMyQrCode()">Close</button>
               </div>
             </div>
           }
@@ -207,11 +207,9 @@
           >
             <mat-icon
               class="h-5! w-5! min-w-5 text-xl!"
-              [fontIcon]="themeVal() === 'dark' ? 'light_mode' : 'dark_mode'"
+              [fontIcon]="isDarkTheme() ? 'light_mode' : 'dark_mode'"
             />
-            <span class="font-medium">{{
-              themeVal() === "dark" ? "Light Mode" : "Dark Mode"
-            }}</span>
+            <span class="font-medium">{{ isDarkTheme() ? "Light Mode" : "Dark Mode" }}</span>
           </button>
 
           <button
@@ -267,7 +265,7 @@
       </div>
       <h2 class="textNormal mb-2 text-xl font-semibold">Welcome to TaskFlow</h2>
       <p class="textMuted mb-6">Please log in to view your profile</p>
-      <button routerLink="/login" class="styleButInfo gap-2 px-8 py-3 text-lg">
+      <button routerLink="/login" class="btn-accent gap-2 px-8 py-3 text-lg">
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="login" />
         Login
       </button>
