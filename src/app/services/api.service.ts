@@ -402,10 +402,10 @@ export class ApiService {
     if (params.page !== undefined) args["page"] = params.page;
     if (params.limit !== undefined) args["limit"] = params.limit;
 
-    if (params.filter) {
-      const filter = { ...params.filter };
-      if (params.todoId) (filter as any).todo_id = params.todoId;
-      if (params.taskId) (filter as any).task_id = params.taskId;
+    const filter = params.filter ? { ...params.filter } : {};
+    if (params.todoId) (filter as any).todo_id = params.todoId;
+    if (params.taskId) (filter as any).task_id = params.taskId;
+    if (Object.keys(filter).length > 0) {
       args["filter"] = filter;
     }
 
@@ -579,10 +579,65 @@ export class ApiService {
 }
 
 class EntityApi<T> {
+  private static readonly ROUTE_TO_ENTITY: Record<string, string> = {
+    // Todos
+    'create_todo': 'todos',
+    'get_todo': 'todos',
+    'get_todos': 'todos',
+    'update_todo': 'todos',
+    'delete_todo': 'todos',
+    // Tasks
+    'create_task': 'tasks',
+    'get_task': 'tasks',
+    'get_tasks': 'tasks',
+    'update_task': 'tasks',
+    'delete_task': 'tasks',
+    // Subtasks
+    'create_subtask': 'subtasks',
+    'get_subtask': 'subtasks',
+    'get_subtasks': 'subtasks',
+    'update_subtask': 'subtasks',
+    'delete_subtask': 'subtasks',
+    // Categories
+    'create_category': 'categories',
+    'get_category': 'categories',
+    'get_categories': 'categories',
+    'update_category': 'categories',
+    'delete_category': 'categories',
+    // Profiles
+    'create_profile': 'profiles',
+    'get_profile': 'profiles',
+    'get_profiles': 'profiles',
+    'update_profile': 'profiles',
+    'delete_profile': 'profiles',
+    // Comments
+    'create_comment': 'comments',
+    'get_comment': 'comments',
+    'get_comments': 'comments',
+    'update_comment': 'comments',
+    'delete_comment': 'comments',
+    // Chats
+    'create_chat': 'chats',
+    'get_chat': 'chats',
+    'get_chats': 'chats',
+    'update_chat': 'chats',
+    'delete_chat': 'chats',
+    // Users
+    'get_user': 'users',
+    'get_users': 'users',
+  };
+
   constructor(
     private api: ApiService,
     private routes: EntityRoutes
   ) {}
+
+  private getEntityType(operation: 'create' | 'update' | 'delete'): string {
+    const route = operation === 'create' ? this.routes.create
+      : operation === 'update' ? this.routes.update
+      : this.routes.delete;
+    return EntityApi.ROUTE_TO_ENTITY[route!] || '';
+  }
 
   get(id: string, visibility?: string, load?: string[]): Observable<T> {
     return this.api.crud<T>(this.routes.get, { id, visibility, load });
@@ -622,7 +677,7 @@ class EntityApi<T> {
       this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
         next: (result) => {
           this.api.storageService.modify(
-            this.routes.create!.replace("create_", "") as any,
+            this.getEntityType('create') as any,
             "create",
             result
           );
@@ -639,7 +694,7 @@ class EntityApi<T> {
       this.api.crud<T>(this.routes.update!, { id, data, visibility }).subscribe({
         next: (result) => {
           this.api.storageService.modify(
-            this.routes.update!.replace("update_", "") as any,
+            this.getEntityType('update') as any,
             "update",
             result
           );
@@ -652,11 +707,11 @@ class EntityApi<T> {
   }
 
   delete(id: string, options?: { visibility?: string }): Observable<void> {
-    const table = this.routes.delete!.replace("delete_", "");
+    const entityType = this.getEntityType('delete');
     return new Observable((subscriber) => {
       this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility }).subscribe({
         next: () => {
-          this.api.storageService.modify(table as any, "delete", { id });
+          this.api.storageService.modify(entityType as any, "delete", { id });
           subscriber.next();
           subscriber.complete();
         },
@@ -689,52 +744,44 @@ class AdminApi {
     }) as Observable<CascadeResult>;
   }
 
-  getAllArchiveData(): Observable<unknown> {
-    return this.api.invokeCommand("get_all_archive_data", {
-      token: this.api.jwtTokenService.getToken(),
-    });
-  }
-
   getAllAdminData(): Observable<unknown> {
     return this.api.invokeCommand("get_all_admin_data", {
       token: this.api.jwtTokenService.getToken(),
     });
   }
 
-  adminGetAll(): Observable<unknown> {
-    return this.api.invokeCommand("admin_get_all", {});
-  }
-
-  adminGetPaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
-    return this.api.invokeCommand("admin_get_paginated", { dataType, skip, limit });
+  getAllAdminPaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
+    return this.api.invokeCommand("get_all_admin_paginated", { dataType, skip, limit });
   }
 
   adminToggleDelete(table: string, id: string, visibility?: string): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
-    return this.api.invokeCommand("admin_toggle_delete", { table, id, token, visibility });
+    return this.api.invokeCommand("soft_delete", { table, id, token, visibility });
   }
 
   adminPermanentlyDelete(table: string, id: string, visibility?: string): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
-    return this.api.invokeCommand("admin_permanently_delete", { table, id, token, visibility });
+    return this.api.invokeCommand("permanent_delete", { table, id, token, visibility });
   }
 
-  adminToggleDeleteLocal(table: string, id: string): Observable<void> {
+  adminToggleDeleteLocal(table: string, id: string, visibility: string = "private"): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
-    return this.api.invokeCommand("admin_toggle_delete_local", { table, id, token });
+    return this.api.invokeCommand("soft_delete", { table, id, token, visibility });
   }
 
-  adminPermanentlyDeleteLocal(table: string, id: string): Observable<void> {
+  adminPermanentlyDeleteLocal(table: string, id: string, visibility: string = "private"): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
-    return this.api.invokeCommand("admin_permanently_delete_local", { table, id, token });
+    return this.api.invokeCommand("permanent_delete", { table, id, token, visibility });
   }
 
-  adminGetAllArchive(): Observable<unknown> {
-    return this.api.invokeCommand("admin_get_all_archive", {});
+  getAllArchiveData(): Observable<unknown> {
+    return this.api.invokeCommand("get_all_archive_data", {
+      token: this.api.jwtTokenService.getToken(),
+    });
   }
 
-  adminGetArchivePaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
-    return this.api.invokeCommand("admin_get_archive_paginated", { dataType, skip, limit });
+  getAllArchivePaginated(dataType: string, skip: number, limit: number): Observable<unknown> {
+    return this.api.invokeCommand("get_all_archive_paginated", { dataType, skip, limit });
   }
 
   batchSoftDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {

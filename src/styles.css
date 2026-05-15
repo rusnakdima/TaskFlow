@@ -88,18 +88,10 @@
 
   /* ---- Unified 3D Buttons ---- */
   .btn-accent {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
-    background-color: var(--accent-color) !important;
-    border-top-color: var(--accent-700) !important;
-    border-left-color: var(--accent-700) !important;
-    border-right-color: var(--accent-700) !important;
-    border-bottom-color: var(--accent-900) !important;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0! border-b-black/50! bg-(--accent-color)!;
   }
   .dark .btn-accent {
-    border-top-color: var(--accent-600) !important;
-    border-left-color: var(--accent-600) !important;
-    border-right-color: var(--accent-600) !important;
-    border-bottom-color: var(--accent-900) !important;
+    @apply border-b-black/50! bg-(--accent-color)!
   }
 
   .btn-cancel {
@@ -173,10 +165,10 @@
 
   /* ---- Table Row Selected State ---- */
   .table-row-selected {
-    @apply bg-[var(--accent-100)]!;
+    @apply bg-[var(--accent-400)]/30;
   }
   .dark .table-row-selected {
-    @apply bg-[var(--accent-900)]!;
+    @apply bg-[var(--accent-900)]/30!;
   }
 
   .styleFloatBut {
@@ -285,13 +277,7 @@
   .styleDetails {
     @apply mx-1!;
   }
-}
 
-button:disabled {
-  @apply cursor-not-allowed hover:bg-red-500! dark:hover:bg-red-500!;
-}
-
-@layer components {
   .styleSummary {
     list-style: none;
   }
@@ -310,7 +296,7 @@ button:disabled {
   }
 }
 
-@keyframes slideInRight {
+button:disabled {
   from {
     transform: translateX(100%);
     opacity: 0;
@@ -363,8 +349,7 @@ button:disabled {
 }
 
 .floating-bottom-nav-container {
-  @apply fixed bottom-3 left-1/2 z-40;
-  transform: translateX(-50%);
+  @apply fixed bottom-3 left-1/2 z-40 -translate-x-1/2;
   transition:
     transform 0.3s ease-in-out,
     opacity 0.3s ease-in-out;
@@ -379,13 +364,11 @@ button:disabled {
 }
 
 .floating-bottom-nav-container.hidden {
-  transform: translateX(-50%) translateY(calc(100% + 60px));
-  opacity: 0;
-  pointer-events: none;
+  @apply -translate-x-1/2 translate-y-[calc(100%+60px)] opacity-0 pointer-events-none;
 }
 
 .floating-bottom-nav {
-  @apply flex flex-row flex-nowrap items-center gap-1 rounded-full border border-gray-200/50 bg-white/15 px-3 py-0 shadow-lg shadow-black/20 backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800/50;
+  @apply flex flex-row flex-nowrap items-center gap-1 rounded-full border border-gray-200/50 bg-white px-3 py-0 shadow-lg shadow-black/20 backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800;
 }
 
 .nav-item {
@@ -397,16 +380,10 @@ button:disabled {
 }
 
 mat-icon {
-  @apply h-6! w-6! min-w-6! text-2xl!;
-  line-height: 1 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  vertical-align: middle !important;
+  @apply h-6! w-6! min-w-6! text-2xl! leading-none! inline-flex! items-center! justify-center! align-middle! overflow-hidden!;
   font-family:
     "Material Icons", "Material Icons Outlined", "Material Icons Round", "Material Icons Sharp",
     sans-serif !important;
-  overflow: hidden !important;
 }
 
 pre {
@@ -638,13 +615,7 @@ div.mdc-checkbox {
  */
 
 .cdk-drag-preview {
-  box-sizing: border-box;
-  border-radius: 0.75rem;
-  box-shadow:
-    0 10px 30px -5px rgba(0, 0, 0, 0.3),
-    0 4px 12px rgba(0, 0, 0, 0.2);
-  opacity: 0.85;
-  cursor: grabbing !important;
+  @apply box-border rounded-xl shadow-xl opacity-[.85] cursor-grabbing!;
 }
 
 /* Placeholder is invisible — it just reserves space in the flex layout */
@@ -711,20 +682,17 @@ div.mdc-checkbox {
 }
 
 .todos-drop-list-placeholder {
-  box-sizing: border-box;
-  flex-shrink: 0;
-  pointer-events: none;
+  @apply box-border shrink-0 pointer-events-none;
 }
 
-/* Each todo wrapper and placeholder: same column widths as before */
 .todos-drop-list > .todos-drop-list-item,
 .todos-drop-list > .todos-drop-list-placeholder {
-  box-sizing: border-box;
-  width: calc(25% - 1.125rem); /* 4 cols: gap*(3/4) = 1.5*0.75 */
+  @apply box-border;
+  width: calc(25% - 1.125rem);
 }
 
 .todos-drop-list > .todos-drop-list-item > app-todo {
-  width: 100%;
+  @apply w-full;
 }
 
 @media (max-width: 1279px) {
@@ -756,19 +724,17 @@ div.mdc-checkbox {
 }
 
 .tasks-drop-list-placeholder {
-  box-sizing: border-box;
-  flex-shrink: 0;
-  pointer-events: none;
+  @apply box-border shrink-0 pointer-events-none;
 }
 
 .tasks-drop-list > .tasks-drop-list-item,
 .tasks-drop-list > .tasks-drop-list-placeholder {
-  box-sizing: border-box;
-  width: calc(50% - 0.75rem); /* 2 cols */
+  @apply box-border;
+  width: calc(50% - 0.75rem);
 }
 
 .tasks-drop-list > .tasks-drop-list-item > app-task {
-  width: 100%;
+  @apply w-full;
 }
 
 @media (max-width: 1023px) {
@@ -912,7 +878,7 @@ html[data-theme="cyan-wave"] {
 
 /* Floating Bottom Nav & Overlays */
 html[data-gradient-intensity="none"] .gradient-overlay {
-  background: transparent !important;
+  @apply bg-white/25 dark:bg-black/25;
 }
 html[data-gradient-intensity="subtle"] .gradient-overlay {
   background: linear-gradient(135deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
@@ -1042,15 +1008,9 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
 }
 
 /* ---- Buttons with Accent ---- */
-.btn-accent {
-  background-color: var(--accent-color) !important;
-  border-color: var(--accent-color) !important;
-  color: white !important;
-}
-.btn-accent:hover {
-  background-color: var(--accent-600) !important;
-  border-color: var(--accent-600) !important;
-}
+/* .btn-accent:hover {
+  @apply bg-(--accent-600)! border-(--accent-600) border-b-black/10!;
+} */
 .btn-accent-soft {
   background-color: var(--accent-100) !important;
   color: var(--accent-700) !important;
@@ -1073,10 +1033,10 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
   color: var(--accent-color) !important;
 }
 .link-accent:hover {
-  color: var(--accent-600) !important;
+  color: var(--accent-700) !important;
 }
 .dark .link-accent {
-  color: var(--accent-400) !important;
+  color: var(--accent-500) !important;
 }
 .dark .link-accent:hover {
   color: var(--accent-300) !important;
@@ -1094,22 +1054,6 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
 }
 .dark .icon-accent-hover:hover {
   color: var(--accent-300) !important;
-}
-
-/* ---- Soft Button Accent (Dark Mode Fixed) ---- */
-.btn-accent-soft {
-  background-color: var(--accent-100) !important;
-  color: var(--accent-700) !important;
-}
-.btn-accent-soft:hover {
-  background-color: var(--accent-200) !important;
-}
-.dark .btn-accent-soft {
-  background-color: var(--accent-900) !important;
-  color: var(--accent-300) !important;
-}
-.dark .btn-accent-soft:hover {
-  background-color: var(--accent-800) !important;
 }
 
 /* ---- Checkbox/Radio Accent ---- */
@@ -1164,35 +1108,15 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
 
 /* ---- Nav Item Active ---- */
 .nav-item-active {
-  background-color: transparent !important;
+  @apply bg-transparent!;
 }
 .nav-item-active mat-icon,
 .nav-item-active span {
-  color: var(--accent-300) !important;
+  color: var(--accent-600);
 }
 .dark .nav-item-active mat-icon,
 .dark .nav-item-active span {
-  color: var(--accent-400) !important;
-}
-
-/* ---- Icon Accent (Lighter for visibility) ---- */
-.icon-accent {
-  color: var(--accent-400) !important;
-}
-.dark .icon-accent {
-  color: var(--accent-300) !important;
-}
-.icon-accent-hover:hover {
-  color: var(--accent-500) !important;
-}
-.dark .icon-accent-hover:hover {
-  color: var(--accent-200) !important;
-}
-
-/* ---- Grouped Block with Accent ---- */
-.gradient-grouped-block {
-  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
-  border-left: 3px solid var(--accent-color) !important;
+  color: var(--accent-600) !important;
 }
 
 /* ---- Page Background Gradient ---- */
@@ -1255,14 +1179,6 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
   border-color: var(--accent-color) !important;
   outline: none !important;
   box-shadow: 0 0 0 2px var(--accent-100) !important;
-}
-
-/* ---- Icon Accent ---- */
-.icon-accent {
-  color: var(--accent-color) !important;
-}
-.icon-accent-hover:hover {
-  color: var(--accent-600) !important;
 }
 
 /* ---- Divider Accent ---- */

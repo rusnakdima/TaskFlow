@@ -921,9 +921,9 @@ export class StorageService {
     return this._entityService.tasks();
   }
 
-  loadMoreTasks(): void {
+  loadMoreTasks(todoId?: string): void {
     if (this._pagination().tasks.hasMore && !this._queryService.isEntityLoading("tasks")) {
-      this._queryService.loadMoreTasks();
+      this._queryService.loadMoreTasks(todoId);
     }
   }
 
@@ -937,9 +937,9 @@ export class StorageService {
     return this._entityService.subtasks();
   }
 
-  loadMoreSubtasks(): void {
+  loadMoreSubtasks(taskId?: string): void {
     if (this._pagination().subtasks.hasMore && !this._queryService.isEntityLoading("subtasks")) {
-      this._queryService.loadMoreSubtasks();
+      this._queryService.loadMoreSubtasks(taskId);
     }
   }
 
