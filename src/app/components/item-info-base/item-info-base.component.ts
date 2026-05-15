@@ -34,26 +34,10 @@ export abstract class ItemInfoBaseComponent {
   protected formatDate = DateHelper.formatDateShort;
 
   protected headerClass(): string {
-    const scheme = this.colorScheme();
-    switch (scheme) {
-      case ItemInfoColorScheme.GREEN:
-        return "bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700";
-      case ItemInfoColorScheme.BLUE:
-        return "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700";
-      default:
-        return "bg-linear-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700";
-    }
+    return "bg-[var(--accent-color)] dark:bg-[var(--accent-600)]";
   }
 
   protected accentColorClass(): string {
-    const scheme = this.colorScheme();
-    switch (scheme) {
-      case ItemInfoColorScheme.GREEN:
-        return "text-green-100";
-      case ItemInfoColorScheme.BLUE:
-        return "text-blue-100";
-      default:
-        return "text-green-100";
-    }
+    return "text-white/80";
   }
 }
