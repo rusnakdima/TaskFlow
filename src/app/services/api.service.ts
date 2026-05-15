@@ -195,16 +195,45 @@ export class ApiService {
     });
   }
 
-  async batchSoftDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_soft_delete_cascade", { table, ids });
+  async batchSoftDelete(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Promise<CascadeResult[]> {
+    const token = this.jwtTokenService.getToken();
+    const response = await invoke<Response<CascadeResult[]>>("batch_soft_delete_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
+    return response.data as CascadeResult[];
   }
 
-  async batchHardDelete(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_hard_delete_cascade", { table, ids });
+  async batchHardDelete(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Promise<CascadeResult[]> {
+    const token = this.jwtTokenService.getToken();
+    const response = await invoke<Response<CascadeResult[]>>("batch_hard_delete_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
+    return response.data as CascadeResult[];
   }
 
-  async batchRestore(table: string, ids: string[]): Promise<CascadeResult[]> {
-    return invoke<CascadeResult[]>("batch_restore_cascade", { table, ids });
+  async batchRestore(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
+    const token = this.jwtTokenService.getToken();
+    const response = await invoke<Response<CascadeResult[]>>("batch_restore_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
+    return response.data as CascadeResult[];
   }
 
   resetPagination(table: string): void {
@@ -312,7 +341,9 @@ export class ApiService {
 
     const args: Record<string, unknown> = { token };
 
-    if (params.id) args["id"] = params.id;
+    if (params.id !== undefined && params.id !== null) {
+      args["id"] = params.id;
+    }
     if (params.data) args["data"] = params.data;
     if (params.visibility) args["visibility"] = params.visibility;
     if (params.load) args["load"] = JSON.stringify(params.load);
@@ -587,20 +618,76 @@ class EntityApi<T> {
   }
 
   create(data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.crud<T>(this.routes.create!, { data, visibility });
+    return new Observable((subscriber) => {
+      this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
+        next: (result) => {
+          this.api.storageService.modify(
+            this.routes.create!.replace("create_", "") as any,
+            "create",
+            result
+          );
+          subscriber.next(result);
+          subscriber.complete();
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
   }
 
   update(id: string, data: Partial<T>, visibility?: string): Observable<T> {
-    return this.api.crud<T>(this.routes.update!, { id, data, visibility });
+    return new Observable((subscriber) => {
+      this.api.crud<T>(this.routes.update!, { id, data, visibility }).subscribe({
+        next: (result) => {
+          this.api.storageService.modify(
+            this.routes.update!.replace("update_", "") as any,
+            "update",
+            result
+          );
+          subscriber.next(result);
+          subscriber.complete();
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
   }
 
   delete(id: string, options?: { visibility?: string }): Observable<void> {
-    return this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility });
+    const table = this.routes.delete!.replace("delete_", "");
+    return new Observable((subscriber) => {
+      this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility }).subscribe({
+        next: () => {
+          this.api.storageService.modify(table as any, "delete", { id });
+          subscriber.next();
+          subscriber.complete();
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
   }
 }
 
 class AdminApi {
   constructor(private api: ApiService) {}
+
+  softRemoveData(table: string, id: string, visibility?: string): Observable<CascadeResult> {
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("soft_remove_data", {
+      table,
+      id,
+      token,
+      visibility,
+    }) as Observable<CascadeResult>;
+  }
+
+  hardRemoveData(table: string, id: string, visibility?: string): Observable<CascadeResult> {
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("hard_remove_data", {
+      table,
+      id,
+      token,
+      visibility,
+    }) as Observable<CascadeResult>;
+  }
 
   getAllArchiveData(): Observable<unknown> {
     return this.api.invokeCommand("get_all_archive_data", {
@@ -622,20 +709,24 @@ class AdminApi {
     return this.api.invokeCommand("admin_get_paginated", { dataType, skip, limit });
   }
 
-  adminToggleDelete(table: string, id: string): Observable<void> {
-    return this.api.invokeCommand("admin_toggle_delete", { table, id });
+  adminToggleDelete(table: string, id: string, visibility?: string): Observable<void> {
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("admin_toggle_delete", { table, id, token, visibility });
   }
 
-  adminPermanentlyDelete(table: string, id: string): Observable<void> {
-    return this.api.invokeCommand("admin_permanently_delete", { table, id });
+  adminPermanentlyDelete(table: string, id: string, visibility?: string): Observable<void> {
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("admin_permanently_delete", { table, id, token, visibility });
   }
 
   adminToggleDeleteLocal(table: string, id: string): Observable<void> {
-    return this.api.invokeCommand("admin_toggle_delete_local", { table, id });
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("admin_toggle_delete_local", { table, id, token });
   }
 
   adminPermanentlyDeleteLocal(table: string, id: string): Observable<void> {
-    return this.api.invokeCommand("admin_permanently_delete_local", { table, id });
+    const token = this.api.jwtTokenService.getToken();
+    return this.api.invokeCommand("admin_permanently_delete_local", { table, id, token });
   }
 
   adminGetAllArchive(): Observable<unknown> {
@@ -646,15 +737,15 @@ class AdminApi {
     return this.api.invokeCommand("admin_get_archive_paginated", { dataType, skip, limit });
   }
 
-  batchSoftDelete(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.api.batchSoftDelete(table, ids) as unknown as Observable<CascadeResult>;
+  batchSoftDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
+    return this.api.batchSoftDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 
-  batchHardDelete(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.api.batchHardDelete(table, ids) as unknown as Observable<CascadeResult>;
+  batchHardDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
+    return this.api.batchHardDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 
-  batchRestore(table: string, ids: string[]): Observable<CascadeResult> {
-    return this.api.batchRestore(table, ids) as unknown as Observable<CascadeResult>;
+  batchRestore(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
+    return this.api.batchRestore(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 }
