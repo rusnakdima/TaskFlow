@@ -23,7 +23,7 @@ fn validate_table_name(table: &str) -> Result<(), ResponseModel> {
 }
 
 #[tauri::command]
-pub async fn admin_get_all(
+pub async fn get_all_admin_data(
   state: State<'_, AppState>,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -38,7 +38,7 @@ pub async fn admin_get_all(
 }
 
 #[tauri::command]
-pub async fn admin_get_paginated(
+pub async fn get_all_admin_paginated(
   state: State<'_, AppState>,
   token: String,
   data_type: String,
@@ -142,55 +142,4 @@ pub async fn admin_permanently_delete_local(
     .manage_db_service
     .permanently_delete_record_local(table, id)
     .await
-}
-
-#[tauri::command]
-pub async fn admin_get_all_archive(
-  state: State<'_, AppState>,
-  token: String,
-) -> Result<ResponseModel, ResponseModel> {
-  validate_admin_role(
-    &token,
-    &state.config_helper.jwt_secret,
-    &state.manage_db_service.json_provider,
-    state.manage_db_service.get_mongodb_provider().as_ref(),
-  )
-  .await?;
-  state.manage_db_service.get_all_data_for_archive().await
-}
-
-#[tauri::command]
-pub async fn admin_get_archive_paginated(
-  state: State<'_, AppState>,
-  token: String,
-  data_type: String,
-  skip: u64,
-  limit: u64,
-) -> Result<ResponseModel, ResponseModel> {
-  validate_admin_role(
-    &token,
-    &state.config_helper.jwt_secret,
-    &state.manage_db_service.json_provider,
-    state.manage_db_service.get_mongodb_provider().as_ref(),
-  )
-  .await?;
-  state
-    .manage_db_service
-    .get_archive_data_paginated(data_type, skip, limit)
-    .await
-}
-
-#[tauri::command]
-pub async fn get_all_admin_data(
-  state: State<'_, AppState>,
-  token: String,
-) -> Result<ResponseModel, ResponseModel> {
-  validate_admin_role(
-    &token,
-    &state.config_helper.jwt_secret,
-    &state.manage_db_service.json_provider,
-    state.manage_db_service.get_mongodb_provider().as_ref(),
-  )
-  .await?;
-  state.manage_db_service.get_all_data_for_admin().await
 }
