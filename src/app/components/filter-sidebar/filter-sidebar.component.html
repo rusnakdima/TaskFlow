@@ -1,5 +1,5 @@
 @if (isOpen) {
-  <div class="filter-sidebar-overlay" (click)="close()"></div>
+  <div class="filter-sidebar-overlay gradient-overlay" (click)="close()"></div>
 }
 <div class="filter-sidebar" [class.open]="isOpen">
   <div class="filter-sidebar-content">
@@ -7,9 +7,7 @@
     <div class="filter-sidebar-header">
       <div class="flex w-full items-center justify-between">
         <div class="flex items-center gap-2">
-          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
-            >filter_list</mat-icon
-          >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!">filter_list</mat-icon>
           <h3 class="textNormal text-lg font-semibold">{{ title }}</h3>
         </div>
         <button
@@ -40,7 +38,7 @@
                     [ngModel]="getFilterValue(filter.key)"
                     (ngModelChange)="onFilterChange(filter.key, $event)"
                     [placeholder]="filter.placeholder || ''"
-                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
                   />
                 }
                 @case ("select") {
@@ -61,7 +59,7 @@
                     type="date"
                     [ngModel]="getFilterValue(filter.key)"
                     (ngModelChange)="onFilterChange(filter.key, $event)"
-                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+                    class="textNormal w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
                   />
                 }
               }
@@ -75,18 +73,12 @@
 
     <!-- Footer Actions -->
     <div class="filter-sidebar-actions">
-      <button
-        type="button"
-        (click)="close()"
-        class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-      >
-        Done
-      </button>
+      <button type="button" (click)="close()" class="btn-accent w-full">Done</button>
       @if (hasActiveFilters) {
         <button
           type="button"
           (click)="clearAll()"
-          class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
+          class="btn-cancel mt-2 flex w-full items-center justify-center gap-2"
         >
           <mat-icon class="h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
           Clear All Filters

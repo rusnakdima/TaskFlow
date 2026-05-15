@@ -6,8 +6,10 @@
     @for (option of options; track option.id) {
       <button
         class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-        [class.bg-blue-600]="active === option.id"
-        [class.text-white]="active === option.id"
+        [class.bg-[var(--accent-100)]]="active === option.id"
+        [class.dark:bg-[var(--accent-900)]]="active === option.id"
+        [class.text-black]="active === option.id"
+        [class.dark:text-white]="active === option.id"
         [class.text-gray-700]="active !== option.id"
         [class.dark:text-gray-300]="active !== option.id"
         [class.hover:bg-gray-100]="active !== option.id"
@@ -15,7 +17,13 @@
         (click)="onSelect(option.id)"
       >
         @if (option.icon) {
-          <mat-icon class="h-4! w-4! min-w-4 text-base!" [fontIcon]="option.icon" />
+          <mat-icon
+            class="h-4! w-4! min-w-4 text-base!"
+            [class.text-black]="active === option.id"
+            [class.dark:text-white]="active === option.id"
+            [class.text-gray-400]="active !== option.id"
+            [fontIcon]="option.icon"
+          />
         }
         {{ option.label }}
       </button>
@@ -42,12 +50,14 @@
           mat-menu-item
           (click)="onSelect(option.id)"
           class="flex w-full items-center gap-3"
-          [ngClass]="active === option.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+          [class.badge-accent]="active === option.id"
         >
           @if (option.icon) {
             <mat-icon
               class="size-5! min-w-5 text-xl!"
-              [ngClass]="active === option.id ? 'text-blue-500!' : 'text-gray-400!'"
+              [class.text-black]="active === option.id"
+              [class.dark:text-white]="active === option.id"
+              [class.text-gray-400]="active !== option.id"
               [fontIcon]="option.icon"
             />
           }

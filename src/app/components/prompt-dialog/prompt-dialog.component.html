@@ -28,17 +28,13 @@
         <p class="mb-3 text-sm text-red-500">{{ inputError() }}</p>
       }
       <div class="flex justify-end gap-3">
-        <button
-          type="button"
-          class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-700"
-          (click)="onCancel()"
-        >
+        <button type="button" class="btn-cancel" (click)="onCancel()">
           {{ promptService.config()?.cancelText || "Cancel" }}
         </button>
         <button
           type="button"
-          class="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-          [class]="promptService.config()?.confirmClass || 'bg-blue-600 hover:bg-blue-700'"
+          class="btn-accent"
+          [class]="promptService.config()?.confirmClass || 'btn-accent'"
           (click)="onConfirm()"
         >
           {{ promptService.config()?.confirmText || "OK" }}
