@@ -71,7 +71,13 @@ export class App implements OnInit, OnDestroy {
   );
   showInfoBlock = this.appStateService.showInfoBlock;
 
-  private authRoutes = ["/login", "/signup", "/reset-password", "/change-password"];
+  private authRoutes = [
+    "/login",
+    "/signup",
+    "/reset-password",
+    "/change-password",
+    "/profile/manage",
+  ];
   private connectionCheckInterval: any;
 
   ngOnInit(): void {
@@ -86,9 +92,6 @@ export class App implements OnInit, OnDestroy {
     this.shortcutService.focusSearch$.subscribe(() => {
       this.commandPalette?.open();
     });
-
-    const theme = localStorage.getItem("theme") ?? "";
-    document.querySelector("html")!.setAttribute("class", theme);
 
     this.updateShowComponents();
 

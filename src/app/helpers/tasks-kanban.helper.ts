@@ -93,6 +93,11 @@ export class TasksKanbanHelper extends BaseKanbanHelper<Task> {
     todo: Todo | null,
     updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void
   ): void {
+    if (!taskId) {
+      this.notifyService.showError("Invalid task ID");
+      return;
+    }
+
     if (this._isUpdatingKanban()) {
       this.notifyService.showWarning("Please wait for previous operation to complete");
       return;

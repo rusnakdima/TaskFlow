@@ -37,12 +37,12 @@ export class KanbanDragDropService {
     task?: Task;
     newStatus?: TaskStatus;
   } {
-    return this.handleKanbanDrop<Task>(
-      event as any,
-      targetStatus,
-      isUpdatingOrder,
-      onMoveTask
-    ) as any;
+    const result = this.handleKanbanDrop<Task>(event, targetStatus, isUpdatingOrder, onMoveTask);
+    return {
+      moved: result.moved,
+      task: result.item as Task | undefined,
+      newStatus: result.newStatus,
+    };
   }
 
   /**
