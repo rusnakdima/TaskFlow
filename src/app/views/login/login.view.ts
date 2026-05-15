@@ -3,6 +3,7 @@ import {
   OnDestroy,
   inject,
   signal,
+  computed,
   ChangeDetectionStrategy,
   DestroyRef,
 } from "@angular/core";
@@ -30,6 +31,7 @@ import { SecurityService } from "@services/auth/security.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 import { ApiService } from "@services/api.service";
+import { ThemeService } from "@services/ui/theme.service";
 
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 import { LoginCompletionHelper } from "@helpers/login-completion.helper";
@@ -74,6 +76,7 @@ export class LoginView implements OnDestroy {
   hasLocalUsers = signal(false);
   isShowPassword = signal(false);
   submitted = signal(false);
+  isDarkTheme = computed(() => this.themeService.getEffectiveMode() === "dark");
 
   showTotpInput = signal(false);
   totpCode = signal("");
@@ -84,7 +87,8 @@ export class LoginView implements OnDestroy {
     private fb: FormBuilder,
     private authService: AuthService,
     public securityService: SecurityService,
-    private notifyService: NotifyService
+    private notifyService: NotifyService,
+    private themeService: ThemeService
   ) {
     this.loginForm = this.fb.group({
       username: ["", [Validators.required, Validators.pattern("[a-zA-Z0-9]*")]],
@@ -129,6 +133,10 @@ export class LoginView implements OnDestroy {
     if (this.keydownHandler) {
       document.removeEventListener("keydown", this.keydownHandler);
     }
+  }
+
+  toggleTheme() {
+    this.themeService.toggleMode();
   }
 
   get f() {
