@@ -93,7 +93,7 @@ export class TasksActionsHelper {
     updateTasksFn: (updateFn: (tasks: Task[]) => Task[]) => void,
     checkDependenciesCompletedFn: (dependsOn: string[]) => boolean
   ): void {
-    if (!todo) return;
+    if (!todo || !task || !task.id) return;
 
     if (
       task.status === TaskStatus.PENDING &&
@@ -147,6 +147,7 @@ export class TasksActionsHelper {
     const visibility = todo?.visibility;
     switch (event.action) {
       case "edit":
+        if (!event.item.id) break;
         router.navigate([event.item.id, "edit_task"], {
           relativeTo: route,
           queryParams: { visibility },

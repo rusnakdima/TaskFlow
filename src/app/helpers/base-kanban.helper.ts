@@ -47,8 +47,8 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
     _todo: Todo | null,
     updateItemFn: (itemId: string, newStatus: TaskStatus) => void
   ): void {
-    this.kanbanDragDropService.handleTaskDrop(
-      event as any,
+    this.kanbanDragDropService.handleKanbanDrop<T>(
+      event,
       targetStatus,
       this._isUpdatingKanban(),
       (newStatus, itemId) => {
