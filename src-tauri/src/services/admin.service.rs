@@ -127,25 +127,35 @@ impl AdminManager {
     &self,
     table: String,
     id: String,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    if table == "todos" || table == "tasks" || table == "subtasks" {
-      if self.cascade_service.mongodb_provider.is_some() {
+    let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
+
+    if use_json {
+      if table == "todos" || table == "tasks" || table == "subtasks" {
         self
           .cascade_service
-          .permanent_delete_cascade_mongo(&table, &id)
+          .permanent_delete_cascade_json(&table, &id)
           .await?;
+      } else {
+        let _ = self.json_provider.delete(&table, &id).await;
       }
-      let _ = self
-        .cascade_service
-        .permanent_delete_cascade_json(&table, &id)
-        .await;
-    } else if let Some(ref mongo) = self.cascade_service.mongodb_provider {
-      let _ = mongo.delete(&table, &id).await;
+    } else {
+      if table == "todos" || table == "tasks" || table == "subtasks" {
+        if self.cascade_service.mongodb_provider.is_some() {
+          self
+            .cascade_service
+            .permanent_delete_cascade_mongo(&table, &id)
+            .await?;
+        }
+      } else if let Some(ref mongo) = self.cascade_service.mongodb_provider {
+        let _ = mongo.delete(&table, &id).await;
+      }
     }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: "Record and all children permanently deleted from MongoDB".to_string(),
+      message: "Record and all children permanently deleted".to_string(),
       data: DataValue::String(id),
     })
   }
@@ -175,21 +185,41 @@ impl AdminManager {
     &self,
     table: String,
     id: String,
+    visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let record = self
-      .mongodb_provider
-      .find_by_id(&table, &id)
-      .await
-      .map_err(|e| ResponseModel {
-        status: ResponseStatus::Error,
-        message: format!("Record not found in MongoDB: {}", e),
-        data: DataValue::String("".to_string()),
-      })?
-      .ok_or_else(|| ResponseModel {
-        status: ResponseStatus::Error,
-        message: "Record not found".to_string(),
-        data: DataValue::String("".to_string()),
-      })?;
+    let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
+
+    let record = if use_json {
+      self
+        .json_provider
+        .find_by_id(&table, &id)
+        .await
+        .map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Record not found in local database: {}", e),
+          data: DataValue::String("".to_string()),
+        })?
+        .ok_or_else(|| ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Record not found".to_string(),
+          data: DataValue::String("".to_string()),
+        })?
+    } else {
+      self
+        .mongodb_provider
+        .find_by_id(&table, &id)
+        .await
+        .map_err(|e| ResponseModel {
+          status: ResponseStatus::Error,
+          message: format!("Record not found in MongoDB: {}", e),
+          data: DataValue::String("".to_string()),
+        })?
+        .ok_or_else(|| ResponseModel {
+          status: ResponseStatus::Error,
+          message: "Record not found".to_string(),
+          data: DataValue::String("".to_string()),
+        })?
+    };
 
     let is_deleted = record
       .get("deleted_at")
@@ -198,20 +228,34 @@ impl AdminManager {
       .unwrap_or(false);
 
     if !is_deleted {
-      self
-        .cascade_service
-        .soft_delete_cascade_mongo(&table, &id)
-        .await?;
+      if use_json {
+        self
+          .cascade_service
+          .soft_delete_cascade_json(&table, &id)
+          .await?;
+      } else {
+        self
+          .cascade_service
+          .soft_delete_cascade_mongo(&table, &id)
+          .await?;
+      }
     } else {
-      self
-        .cascade_service
-        .restore_cascade_mongo(&table, &id)
-        .await?;
+      if use_json {
+        self
+          .cascade_service
+          .restore_cascade_json(&table, &id)
+          .await?;
+      } else {
+        self
+          .cascade_service
+          .restore_cascade_mongo(&table, &id)
+          .await?;
+      }
     }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: format!("Record delete status toggled to {} in MongoDB", !is_deleted),
+      message: format!("Record delete status toggled to {}", !is_deleted),
       data: DataValue::Bool(!is_deleted),
     })
   }

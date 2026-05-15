@@ -64,6 +64,7 @@ pub async fn admin_toggle_delete(
   token: String,
   table: String,
   id: String,
+  visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   validate_table_name(&table)?;
   validate_admin_role(
@@ -75,7 +76,7 @@ pub async fn admin_toggle_delete(
   .await?;
   state
     .manage_db_service
-    .toggle_delete_status(table, id)
+    .toggle_delete_status(table, id, visibility)
     .await
 }
 
@@ -85,6 +86,7 @@ pub async fn admin_permanently_delete(
   token: String,
   table: String,
   id: String,
+  visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   validate_table_name(&table)?;
   validate_admin_role(
@@ -96,7 +98,7 @@ pub async fn admin_permanently_delete(
   .await?;
   state
     .manage_db_service
-    .permanently_delete_record(table, id)
+    .permanently_delete_record(table, id, visibility)
     .await
 }
 
