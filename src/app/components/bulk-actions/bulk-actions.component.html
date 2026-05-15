@@ -7,7 +7,7 @@
         <!-- Selection Info -->
         <div class="flex items-center gap-2 border-r border-gray-700 pr-3">
           <div
-            class="flex items-center gap-1.5 rounded-full bg-blue-600 px-2.5 py-1 whitespace-nowrap"
+            class="flex items-center gap-1.5 rounded-full bg-[var(--accent-color)] px-2.5 py-1 whitespace-nowrap"
           >
             <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">check_circle</mat-icon>
             <span class="text-xs font-semibold whitespace-nowrap"
@@ -28,7 +28,7 @@
             <!-- Archive Button -->
             <button
               color="warn"
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Toggle Archive Status"
             >
@@ -39,7 +39,7 @@
             <!-- Hard Delete Button -->
             <button
               color="warn"
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-red-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-red-900 bg-red-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-red-700 active:mt-0.5 active:border-b-0"
               (click)="onHardDelete()"
               matTooltip="Permanently Delete"
             >
@@ -53,7 +53,7 @@
         @if (mode === "todos") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >
@@ -67,7 +67,7 @@
         @if (mode === "categories") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Archive selected categories"
             >
@@ -82,7 +82,7 @@
           <div class="flex items-center gap-1.5">
             <!-- Status Buttons -->
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-gray-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-gray-600 bg-gray-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-gray-700 active:mt-0.5 active:border-b-0"
               (click)="onSetStatus('pending')"
               matTooltip="Mark as Pending"
             >
@@ -91,7 +91,7 @@
             </button>
 
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-green-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-green-900 bg-green-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-green-700 active:mt-0.5 active:border-b-0"
               (click)="onSetStatus('completed')"
               matTooltip="Mark as Completed"
             >
@@ -100,7 +100,7 @@
             </button>
 
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-yellow-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-yellow-900 bg-yellow-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-yellow-700 active:mt-0.5 active:border-b-0"
               (click)="onSetStatus('skipped')"
               matTooltip="Mark as Skipped"
             >
@@ -109,7 +109,7 @@
             </button>
 
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-red-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-red-900 bg-red-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-red-700 active:mt-0.5 active:border-b-0"
               (click)="onSetStatus('failed')"
               matTooltip="Mark as Failed"
             >
@@ -120,7 +120,7 @@
             <!-- Archive Button -->
             <button
               color="warn"
-              class="flex min-h-8! items-center gap-1 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >

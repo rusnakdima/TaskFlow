@@ -4,7 +4,7 @@
   [class.show-animation]="isShowing()"
   [class.hide-animation]="isHiding()"
 >
-  <div class="floating-bottom-nav">
+  <div class="floating-bottom-nav gradient-overlay">
     @for (nav of listNavs; track $index) {
       <div class="flex flex-col items-center justify-center">
         @if (nav.url === "/profile" && hasProfileImage() && !isChildProfileRoute()) {
@@ -12,11 +12,11 @@
             class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-1.5 transition-all duration-300"
             [routerLink]="nav.url"
             [queryParams]="nav.query"
-            [ngClass]="
-              isActiveRoute(nav)
-                ? 'bg-green-200/70 dark:bg-green-700/15'
-                : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
-            "
+            [class.nav-item-active]="isActiveRoute(nav)"
+            [class.bg-[var(--accent-100)]]="isActiveRoute(nav)"
+            [class.dark:bg-[var(--accent-900)]]="isActiveRoute(nav)"
+            [class.hover:bg-[var(--accent-color)]/30]="!isActiveRoute(nav)"
+            [class.dark:hover:bg-[var(--accent-color)]/20]="!isActiveRoute(nav)"
           >
             <img
               [src]="getProfileImage()"
@@ -25,11 +25,9 @@
             />
             <span
               class="mt-0.5 text-xs font-medium transition-colors"
-              [ngClass]="
-                isActiveRoute(nav)
-                  ? 'text-green-700! dark:text-green-600!'
-                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
-              "
+              [class.icon-accent]="isActiveRoute(nav)"
+              [class.text-gray-500]="!isActiveRoute(nav)"
+              [class.dark:text-gray-400]="!isActiveRoute(nav)"
             >
               {{ getLabel(nav) }}
             </span>
@@ -39,28 +37,26 @@
             class="nav-item group flex cursor-pointer flex-col items-center justify-center rounded-full p-1.5 transition-all duration-300"
             [routerLink]="nav.url"
             [queryParams]="nav.query"
-            [ngClass]="
-              isActiveRoute(nav)
-                ? 'bg-green-200/70 dark:bg-green-700/15'
-                : 'hover:bg-gray-100 dark:hover:bg-zinc-700/50'
-            "
+            [class.nav-item-active]="isActiveRoute(nav)"
+            [class.bg-[var(--accent-100)]]="isActiveRoute(nav)"
+            [class.dark:bg-[var(--accent-900)]]="isActiveRoute(nav)"
+            [class.hover:bg-[var(--accent-color)]/30]="!isActiveRoute(nav)"
+            [class.dark:hover:bg-[var(--accent-color)]/20]="!isActiveRoute(nav)"
           >
             <mat-icon
               class="h-5! w-5! min-w-5 text-xl! transition-colors"
               [fontIcon]="getIcon(nav)"
-              [ngClass]="
-                isActiveRoute(nav)
-                  ? 'text-green-700! dark:text-green-600!'
-                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
-              "
+              [class.text-black]="isActiveRoute(nav)"
+              [class.dark:text-white]="isActiveRoute(nav)"
+              [class.text-gray-500]="!isActiveRoute(nav)"
+              [class.dark:text-gray-400]="!isActiveRoute(nav)"
             />
             <span
               class="mt-0.5 text-xs font-medium transition-colors"
-              [ngClass]="
-                isActiveRoute(nav)
-                  ? 'text-green-700! dark:text-green-600!'
-                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
-              "
+              [class.text-black]="isActiveRoute(nav)"
+              [class.dark:text-white]="isActiveRoute(nav)"
+              [class.text-gray-500]="!isActiveRoute(nav)"
+              [class.dark:text-gray-400]="!isActiveRoute(nav)"
             >
               {{ getLabel(nav) }}
             </span>
