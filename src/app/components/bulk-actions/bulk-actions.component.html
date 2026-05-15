@@ -1,7 +1,7 @@
 @if (showBulkActions) {
-  <div class="pointer-events-auto fixed bottom-20 left-1/2 z-50 -translate-x-1/2">
+  <div class="fixed bottom-20 left-1/2 z-50 -translate-x-1/2">
     <div
-      class="rounded-2xl border border-gray-700/50 bg-gray-900/95 px-5 py-3 text-white shadow-2xl backdrop-blur-sm dark:bg-gray-800/95"
+      class="rounded-2xl border border-gray-600 bg-white/30 px-5 py-3 text-white shadow-2xl backdrop-blur-sm dark:bg-gray-800/50"
     >
       <div class="flex items-center gap-3">
         <!-- Selection Info -->
@@ -15,7 +15,7 @@
             >
           </div>
           <button
-            class="min-w-0! px-2! py-1! font-medium text-gray-300 transition-colors hover:text-white"
+            class="min-w-0! px-2! py-1! font-medium text-gray-700 dark:text-gray-300 transition-colors"
             (click)="onSelectAll()"
           >
             {{ isAllSelected ? "Deselect All" : "Select All" }}
@@ -28,7 +28,7 @@
             <!-- Archive Button -->
             <button
               color="warn"
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Toggle Archive Status"
             >
@@ -53,7 +53,7 @@
         @if (mode === "todos") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >
@@ -67,7 +67,7 @@
         @if (mode === "categories") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Archive selected categories"
             >
@@ -120,7 +120,7 @@
             <!-- Archive Button -->
             <button
               color="warn"
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >
@@ -135,7 +135,7 @@
 
         <!-- Cancel Button -->
         <button
-          class="h-8! w-8! min-w-8! text-gray-400 transition-colors hover:text-white"
+          class="h-8! w-8! min-w-8! text-gray-700 dark:text-gray-400 transition-colors hover:text-white"
           (click)="onCancel()"
           matTooltip="Cancel Selection"
         >
