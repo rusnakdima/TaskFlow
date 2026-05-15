@@ -226,7 +226,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
-    this.storageService.ensureTasksLoaded();
+    const todoId = this.todoId();
+    if (!todoId) return;
+    this.storageService.ensureTasksLoaded(this.visibilityParam(), 10, todoId);
   }
 
   listTasks = computed(() => {

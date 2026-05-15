@@ -19,12 +19,12 @@ export class AdminService {
 
   getAllDataForAdmin<R>(): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(invoke<Response<R>>("admin_get_all", { token }));
+    return from(invoke<Response<R>>("get_all_admin_data", { token }));
   }
 
   getAllDataForArchive<R>(): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(invoke<Response<R>>("admin_get_all_archive", { token }));
+    return from(invoke<Response<R>>("get_all_archive_data", { token }));
   }
 
   getAllArchiveData<R>(): Observable<Response<R>> {
@@ -49,9 +49,9 @@ export class AdminService {
     });
   }
 
-  async permanentlyDeleteRecordLocal(table: string, id: string): Promise<Response<void>> {
+  async permanentlyDeleteRecordLocal(table: string, id: string, visibility: string = "private"): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<void>>("admin_permanently_delete_local", { table, id, token });
+    return await invoke<Response<void>>("permanent_delete", { table, id, token, visibility });
   }
 
   async toggleDeleteStatus(
@@ -60,25 +60,25 @@ export class AdminService {
     visibility?: string
   ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("admin_toggle_delete", { table, id, token, visibility });
+    return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
   }
 
-  async toggleDeleteStatusLocal(table: string, id: string): Promise<Response<boolean>> {
+  async toggleDeleteStatusLocal(table: string, id: string, visibility: string = "private"): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("admin_toggle_delete_local", { table, id, token });
+    return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
   }
 
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("admin_get_paginated", { data_type: type, skip, limit, token })
+      invoke<Response<R>>("get_all_admin_paginated", { data_type: type, skip, limit, token })
     );
   }
 
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("admin_get_archive_paginated", { data_type: type, skip, limit, token })
+      invoke<Response<R>>("get_all_archive_paginated", { data_type: type, skip, limit, token })
     );
   }
 }

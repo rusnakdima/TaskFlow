@@ -724,11 +724,11 @@ export class StorageQueryService {
     });
   }
 
-  loadMoreTodos(): void {
+  loadMoreTodos(todoId?: string): void {
     if (this._todosLoading()) return;
     const currentPage = this._pagination().todos.skip / 10;
     this._todosLoading.set(true);
-    this.apiService.todos.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+    this.apiService.todos.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (todos) => {
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
@@ -740,11 +740,11 @@ export class StorageQueryService {
     });
   }
 
-  loadMoreTasks(): void {
+  loadMoreTasks(todoId?: string): void {
     if (this._tasksLoading()) return;
     const currentPage = this._pagination().tasks.skip / 10;
     this._tasksLoading.set(true);
-    this.apiService.tasks.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+    this.apiService.tasks.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (tasks) => {
         this._entityService.tasks.update((existing) => [...existing, ...tasks]);
         this.updatePagination("tasks", (currentPage + 1) * 10, 10, tasks.length);
@@ -756,11 +756,11 @@ export class StorageQueryService {
     });
   }
 
-  loadMoreSubtasks(): void {
+  loadMoreSubtasks(taskId?: string): void {
     if (this._subtasksLoading()) return;
     const currentPage = this._pagination().subtasks.skip / 10;
     this._subtasksLoading.set(true);
-    this.apiService.subtasks.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
+    this.apiService.subtasks.getAll({ page: currentPage + 1, limit: 10, taskId }).subscribe({
       next: (subtasks) => {
         this._entityService.subtasks.update((existing) => [...existing, ...subtasks]);
         this.updatePagination("subtasks", (currentPage + 1) * 10, 10, subtasks.length);
