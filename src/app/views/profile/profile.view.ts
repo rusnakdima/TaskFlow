@@ -21,6 +21,7 @@ import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
+import { ThemeService } from "@services/ui/theme.service";
 
 @Component({
   selector: "app-profile",
@@ -40,7 +41,8 @@ export class ProfileView implements OnInit, OnDestroy {
     private requestService: ApiService,
     private storageService: StorageService,
     private confirmDialogService: ConfirmDialogService,
-    private shortcutEmitters: ShortcutEmittersService
+    private shortcutEmitters: ShortcutEmittersService,
+    private themeService: ThemeService
   ) {}
 
   userId: string = "";
@@ -50,7 +52,7 @@ export class ProfileView implements OnInit, OnDestroy {
   currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
   role = computed(() => this.storageService.user()?.role || "");
 
-  themeVal = signal("");
+  isDarkTheme = computed(() => this.themeService.getEffectiveMode() === "dark");
 
   // Offline auth signals
   canExportData = signal(false);
@@ -67,7 +69,6 @@ export class ProfileView implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
-    this.themeVal.set(localStorage.getItem("theme") ?? "");
     this.storageService.ensureUserLoaded();
     this.storageService.ensureProfileLoaded();
     this.canExportData.set(!!this.userId);
@@ -79,14 +80,11 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   setTheme(theme: string) {
-    document.querySelector("html")!.setAttribute("class", theme);
-    localStorage.setItem("theme", theme);
-    this.themeVal.set(theme);
+    this.themeService.setMode(theme ? "dark" : "light");
   }
 
   toggleTheme() {
-    const newTheme = this.themeVal() === "dark" ? "" : "dark";
-    this.setTheme(newTheme);
+    this.themeService.toggleMode();
   }
 
   showShortcuts() {

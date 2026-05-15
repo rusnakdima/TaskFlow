@@ -102,9 +102,6 @@ export class ManageProfileView implements OnInit {
     this.form.controls["user_id"].setValue(userId);
     this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
 
-    this.storageService.ensureProfileLoaded();
-    this.storageService.ensureUserLoaded();
-
     let profile = this.storageService.profile();
 
     if (!profile) {
