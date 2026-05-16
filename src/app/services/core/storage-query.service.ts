@@ -633,7 +633,7 @@ export class StorageQueryService {
           ? this._entityService.publicTodos
           : this._entityService.sharedTodos;
 
-    if (this._todosLoading() || targetSignal().length > 0) return;
+    if (targetSignal().length > 0) return;
 
     this._todosLoading.set(true);
     this.apiService.todos.getAll({ visibility, limit }).subscribe({
@@ -854,7 +854,7 @@ export class StorageQueryService {
     if (existingComments.length > 0) return;
     this._commentsLoading.set(true);
     this.apiService.comments
-      .getAll({ visibility, limit, filter: { subtask_id: subtaskId }, load: ["user"] })
+      .getAll({ visibility, limit, filter: { subtask_id: { $in: [subtaskId] } }, load: ["user"] })
       .subscribe({
         next: (comments) => {
           this._entityService.comments.update((existing) => {

@@ -28,14 +28,16 @@ export class TasksCommentsHelper {
 
   onTaskCommentAdd(event: { content: string; itemId: string }): void {
     if (!event.content.trim()) return;
-    this.commentService.createComment(event.content, { taskId: event.itemId }).subscribe({
-      next: (comment) => {
-        this.storageService.addCommentToTask(comment, event.itemId);
-      },
-      error: () => {
-        this.notifyService.showError("Failed to add comment");
-      },
-    });
+    this.commentService
+      .createComment(event.content, { taskId: event.itemId, visibility: this._todoVisibility })
+      .subscribe({
+        next: (comment) => {
+          this.storageService.addCommentToTask(comment, event.itemId);
+        },
+        error: () => {
+          this.notifyService.showError("Failed to add comment");
+        },
+      });
   }
 
   onTaskCommentDelete(commentId: string): void {
@@ -51,14 +53,19 @@ export class TasksCommentsHelper {
 
   onTaskSubtaskCommentAdd(event: { content: string; subtask_id: string; itemId: string }): void {
     if (!event.content.trim()) return;
-    this.commentService.createComment(event.content, { subtaskId: event.subtask_id }).subscribe({
-      next: (comment) => {
-        this.storageService.addCommentToSubtask(comment, event.subtask_id);
-      },
-      error: (err) => {
-        console.error("[TasksView] Failed to add subtask comment:", err);
-        this.notifyService.showError("Failed to add comment");
-      },
-    });
+    this.commentService
+      .createComment(event.content, {
+        subtaskId: event.subtask_id,
+        visibility: this._todoVisibility,
+      })
+      .subscribe({
+        next: (comment) => {
+          this.storageService.addCommentToSubtask(comment, event.subtask_id);
+        },
+        error: (err) => {
+          console.error("[TasksView] Failed to add subtask comment:", err);
+          this.notifyService.showError("Failed to add comment");
+        },
+      });
   }
 }
