@@ -1,9 +1,7 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import {
-  Profile,
-  ProfileSelectorComponent,
-} from "@components/profile-selector/profile-selector.component";
+import { ProfileSelectorComponent } from "@components/profile-selector/profile-selector.component";
+import { Profile } from "@models/generated/api.types";
 
 @Component({
   selector: "app-transfer-ownership-dialog",
