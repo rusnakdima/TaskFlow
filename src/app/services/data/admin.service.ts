@@ -41,15 +41,14 @@ export class AdminService {
     visibility?: string
   ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<void>>("admin_permanently_delete", {
-      table,
-      id,
-      token,
-      visibility,
-    });
+    return await invoke<Response<void>>("permanent_delete", { table, id, token, visibility });
   }
 
-  async permanentlyDeleteRecordLocal(table: string, id: string, visibility: string = "private"): Promise<Response<void>> {
+  async permanentlyDeleteRecordLocal(
+    table: string,
+    id: string,
+    visibility: string = "private"
+  ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
     return await invoke<Response<void>>("permanent_delete", { table, id, token, visibility });
   }
@@ -63,7 +62,11 @@ export class AdminService {
     return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
   }
 
-  async toggleDeleteStatusLocal(table: string, id: string, visibility: string = "private"): Promise<Response<boolean>> {
+  async toggleDeleteStatusLocal(
+    table: string,
+    id: string,
+    visibility: string = "private"
+  ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
     return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
   }

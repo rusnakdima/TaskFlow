@@ -1,31 +1,18 @@
 <div class="flex flex-wrap items-center justify-end gap-2">
   @if (config?.selectAll && config?.viewMode?.mode !== "table") {
-    <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-      (click)="config!.selectAll!.onToggle()"
-    >
-      <app-checkbox
-        [checked]="config!.selectAll!.isAllSelected"
-        [indeterminate]="config!.selectAll!.count > 0 && !config!.selectAll!.isAllSelected"
-        [highlight]="config!.selectAll!.highlight"
-      />
-      @if (config!.selectAll!.count > 0) {
-        <span
-          class="hidden text-sm font-medium lg:inline"
-          [ngClass]="
-            config!.selectAll!.highlight ? 'text-yellow-700 dark:text-yellow-400' : 'textNormal'
-          "
-        >
-          {{
-            config!.selectAll!.isAllSelected
-              ? "Deselect All"
-              : config!.selectAll!.count > 0
-                ? "Clear Selection"
-                : "Select All"
-          }}
-        </span>
-      }
-    </button>
+    <app-section-select-all
+      [checked]="config!.selectAll!.isAllSelected"
+      [indeterminate]="config!.selectAll!.count > 0 && !config!.selectAll!.isAllSelected"
+      [highlight]="config!.selectAll!.highlight"
+      [label]="
+        config!.selectAll!.isAllSelected
+          ? 'Deselect All'
+          : config!.selectAll!.count > 0
+            ? 'Clear Selection'
+            : 'Select All'
+      "
+      (toggleChange)="config!.selectAll!.onToggle()"
+    />
   }
 
   @if (config?.stats) {

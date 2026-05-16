@@ -88,10 +88,10 @@
 
   /* ---- Unified 3D Buttons ---- */
   .btn-accent {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0! border-b-black/50! bg-(--accent-color)!;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! border-b-black/50! bg-(--accent-color)! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
   }
   .dark .btn-accent {
-    @apply border-b-black/50! bg-(--accent-color)!
+    @apply border-b-black/50! bg-(--accent-color)!;
   }
 
   .btn-cancel {
@@ -364,7 +364,7 @@ button:disabled {
 }
 
 .floating-bottom-nav-container.hidden {
-  @apply -translate-x-1/2 translate-y-[calc(100%+60px)] opacity-0 pointer-events-none;
+  @apply pointer-events-none -translate-x-1/2 translate-y-[calc(100%+60px)] opacity-0;
 }
 
 .floating-bottom-nav {
@@ -380,7 +380,7 @@ button:disabled {
 }
 
 mat-icon {
-  @apply h-6! w-6! min-w-6! text-2xl! leading-none! inline-flex! items-center! justify-center! align-middle! overflow-hidden!;
+  @apply inline-flex! h-6! w-6! min-w-6! items-center! justify-center! overflow-hidden! align-middle! text-2xl! leading-none!;
   font-family:
     "Material Icons", "Material Icons Outlined", "Material Icons Round", "Material Icons Sharp",
     sans-serif !important;
@@ -615,7 +615,7 @@ div.mdc-checkbox {
  */
 
 .cdk-drag-preview {
-  @apply box-border rounded-xl shadow-xl opacity-[.85] cursor-grabbing!;
+  @apply box-border cursor-grabbing! rounded-xl opacity-[.85] shadow-xl;
 }
 
 /* Placeholder is invisible — it just reserves space in the flex layout */
@@ -659,7 +659,8 @@ div.mdc-checkbox {
 .checkbox--highlight.checkbox--indeterminate {
   @apply ring-2! ring-yellow-400! ring-offset-1! dark:ring-yellow-500! dark:ring-offset-zinc-800!;
 }
-.checkbox svg {
+.checkbox svg,
+.checkbox div {
   @apply absolute!;
 }
 
@@ -682,7 +683,7 @@ div.mdc-checkbox {
 }
 
 .todos-drop-list-placeholder {
-  @apply box-border shrink-0 pointer-events-none;
+  @apply pointer-events-none box-border shrink-0;
 }
 
 .todos-drop-list > .todos-drop-list-item,
@@ -724,7 +725,7 @@ div.mdc-checkbox {
 }
 
 .tasks-drop-list-placeholder {
-  @apply box-border shrink-0 pointer-events-none;
+  @apply pointer-events-none box-border shrink-0;
 }
 
 .tasks-drop-list > .tasks-drop-list-item,

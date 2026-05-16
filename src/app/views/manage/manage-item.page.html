@@ -423,6 +423,95 @@
       </div>
     }
 
+    @if (showPermissionsSection() && itemType() === "todo") {
+      <div
+        class="rounded-xl border border-purple-200 bg-purple-50/30 p-6 shadow-lg dark:border-purple-700 dark:bg-purple-900/10"
+      >
+        <div class="mb-6 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
+            >
+              <mat-icon
+                class="h-5! w-5! min-w-5 text-xl! text-purple-600 dark:text-purple-400"
+                fontIcon="admin_panel_settings"
+              />
+            </div>
+            <div>
+              <h3 class="textNormal text-lg font-semibold">Assignee Permissions</h3>
+              <p class="textMuted text-sm">Set permission levels for each assignee</p>
+            </div>
+          </div>
+          @if (isOwner()) {
+            <button
+              type="button"
+              (click)="onTransferOwnership()"
+              class="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            >
+              Transfer Ownership
+            </button>
+          }
+        </div>
+
+        <div class="mb-4 space-y-3">
+          @for (profileId of selectedAssigneeIds(); track profileId) {
+            <div
+              class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800"
+            >
+              <div class="flex items-center gap-3">
+                @if (getProfileById(profileId); as profile) {
+                  @if (profile.image_url) {
+                    <img
+                      [src]="profile.image_url"
+                      class="h-8 w-8 rounded-full object-cover"
+                      [alt]="profile.name"
+                    />
+                  } @else {
+                    <div
+                      class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
+                    >
+                      {{ (profile.name || profile.last_name || "U").charAt(0).toUpperCase() }}
+                    </div>
+                  }
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                      >{{ profile.name }} {{ profile.last_name }}</span
+                    >
+                    @if (profile.user?.email) {
+                      <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
+                    }
+                  </div>
+                }
+              </div>
+              <select
+                [value]="assigneeRoles()[profileId] || 'viewer'"
+                (change)="setAssigneeRole(profileId, $any($event.target).value)"
+                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          }
+          @if (selectedAssigneeIds().size === 0) {
+            <div class="text-center text-sm text-gray-500">
+              No assignees selected. Select assignees above to set permissions.
+            </div>
+          }
+        </div>
+
+        <button
+          type="button"
+          (click)="savePermissions()"
+          [disabled]="selectedAssigneeIds().size === 0"
+          class="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-zinc-600"
+        >
+          Save Permissions
+        </button>
+      </div>
+    }
+
     @if (itemType() === "todo") {
       <div
         class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"

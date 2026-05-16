@@ -32,6 +32,11 @@ export abstract class BaseAdminStorageService extends BaseStorageService {
   protected usersSignal = signal<User[]>([]);
   protected profilesSignal = signal<Profile[]>([]);
 
+  // Loading state signals
+  protected loadingSignal = signal<boolean>(false);
+  protected loadedSignal = signal<boolean>(false);
+  protected lastLoadedSignal = signal<Date | null>(null);
+
   // Cache expiry: 5 minutes
   protected readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
 
@@ -77,8 +82,10 @@ export abstract class BaseAdminStorageService extends BaseStorageService {
   /**
    * Check if cache is valid (not expired)
    */
-  public override isCacheValid(): boolean {
-    return super.isCacheValid(this.CACHE_EXPIRY_MS);
+  public override isCacheValid(lastLoaded: Date | null = null): boolean {
+    const last = lastLoaded ?? this.lastLoadedSignal();
+    if (!last) return false;
+    return Date.now() - last.getTime() < this.CACHE_EXPIRY_MS;
   }
 
   /**

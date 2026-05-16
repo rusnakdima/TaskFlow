@@ -474,8 +474,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.apiService.tasks.create(nextTask as any, this.todo()?.visibility || "private").subscribe({
-      next: () => {
+      next: (createdTask) => {
         this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+        if (createdTask?.todo_id) {
+          const parentTodo = this.todo();
+          if (parentTodo) {
+            this.storageService.modify("todos", "update", {
+              id: createdTask.todo_id,
+              tasks_count: (parentTodo.tasks_count || 0) + 1,
+            });
+          }
+        }
       },
       error: () => {
         this.notifyService.showError("Failed to create recurring task");

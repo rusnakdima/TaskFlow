@@ -1,45 +1,72 @@
-/* sys lib */
-import { signal } from "@angular/core";
+import { Injectable, WritableSignal } from "@angular/core";
+import { Observable } from "rxjs";
+import { EntityType, PaginationState } from "@models/storage.model";
+import { ErrorHelper } from "./error.helper";
 
-/**
- * Base class for storage services with common loading state management
- */
-export abstract class BaseStorageService {
-  protected loadingSignal = signal(false);
-  protected loadedSignal = signal(false);
-  protected lastLoadedSignal = signal<Date | null>(null);
+const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
-  /**
-   * Check if cache is valid (not expired)
-   */
-  public isCacheValid(cacheExpiryMs: number): boolean {
-    if (!this.loadedSignal()) return false;
-    const lastLoaded = this.lastLoadedSignal();
+@Injectable({ providedIn: "root" })
+export class BaseStorageService {
+  protected isCacheValid(lastLoaded: Date | null, cacheExpiryMs: number = DEFAULT_TTL_MS): boolean {
     if (!lastLoaded) return false;
-    return new Date().getTime() - lastLoaded.getTime() < cacheExpiryMs;
+    return Date.now() - lastLoaded.getTime() < cacheExpiryMs;
   }
 
-  setLoading(isLoading: boolean): void {
-    this.loadingSignal.set(isLoading);
+  ensureLoaded<T>(
+    _entity: EntityType,
+    targetSignal: WritableSignal<T[]>,
+    apiCall: () => Observable<T[]>
+  ): Observable<T[]> {
+    return new Observable((subscriber) => {
+      if (targetSignal().length > 0) {
+        subscriber.next(targetSignal());
+        subscriber.complete();
+        return;
+      }
+      apiCall().subscribe({
+        next: (items) => {
+          targetSignal.set(items);
+          subscriber.next(items);
+          subscriber.complete();
+        },
+        error: ErrorHelper.handleApiError<T[]>(subscriber),
+      });
+    });
   }
 
-  setLoaded(isLoaded: boolean): void {
-    this.loadedSignal.set(isLoaded);
+  loadMore<T>(
+    _entity: EntityType,
+    targetSignal: WritableSignal<T[]>,
+    paginationState: PaginationState,
+    apiCall: (skip: number) => Observable<T[]>
+  ): Observable<T[]> {
+    return new Observable((subscriber) => {
+      if (!paginationState.hasMore) {
+        subscriber.next([]);
+        subscriber.complete();
+        return;
+      }
+      const nextSkip = paginationState.skip;
+      apiCall(nextSkip).subscribe({
+        next: (items) => {
+          targetSignal.update((existing) => [...existing, ...items]);
+          subscriber.next(items);
+          subscriber.complete();
+        },
+        error: ErrorHelper.handleApiError<T[]>(subscriber),
+      });
+    });
   }
 
-  setLastLoaded(date: Date | null): void {
-    this.lastLoadedSignal.set(date);
+  updatePagination(paginationState: PaginationState, receivedCount: number): PaginationState {
+    return {
+      skip: paginationState.skip + receivedCount,
+      limit: paginationState.limit,
+      hasMore: receivedCount >= paginationState.limit,
+    };
   }
 
-  get loading() {
-    return this.loadingSignal.asReadonly();
-  }
-
-  get loaded() {
-    return this.loadedSignal.asReadonly();
-  }
-
-  get lastLoaded() {
-    return this.lastLoadedSignal.asReadonly();
+  resetPagination(): PaginationState {
+    return { skip: 0, limit: 20, hasMore: true };
   }
 }

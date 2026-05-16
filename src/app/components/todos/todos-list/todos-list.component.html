@@ -34,7 +34,7 @@
               [highlightedId]="highlightTodoId"
               [highlightIdPrefix]="'todo-'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit($event)"
+              (selectAll)="selectAll.emit({ selectAll: $event, section: 'private' })"
               (rowClick)="onRowClick($event)"
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
@@ -66,7 +66,7 @@
               [highlightedId]="highlightTodoId"
               [highlightIdPrefix]="'todo-'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit($event)"
+              (selectAll)="selectAll.emit({ selectAll: $event, section: 'shared' })"
               (rowClick)="onRowClick($event)"
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
@@ -98,7 +98,7 @@
               [highlightedId]="highlightTodoId"
               [highlightIdPrefix]="'todo-'"
               (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit($event)"
+              (selectAll)="selectAll.emit({ selectAll: $event, section: 'public' })"
               (rowClick)="onRowClick($event)"
               (rangeSelect)="rangeSelect.emit($event)"
               (additiveSelect)="additiveSelect.emit($event)"
@@ -122,9 +122,21 @@
         >
           @if (stateService.groupedTodos().private.length > 0) {
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Private ({{ stateService.groupedTodos().private.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('private')"
+                  [indeterminate]="
+                    getSelectedCountInSection('private') > 0 && !isAllSelectedInSection('private')
+                  "
+                  (toggleChange)="onSectionSelectAll('private', $event)"
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">lock</mat-icon>
+                  Private ({{ stateService.groupedTodos().private.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -159,9 +171,21 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Shared ({{ stateService.groupedTodos().shared.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('shared')"
+                  [indeterminate]="
+                    getSelectedCountInSection('shared') > 0 && !isAllSelectedInSection('shared')
+                  "
+                  (toggleChange)="onSectionSelectAll('shared', $event)"
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">group</mat-icon>
+                  Shared ({{ stateService.groupedTodos().shared.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -199,9 +223,21 @@
               <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
             }
             <div class="col-span-full">
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Public ({{ stateService.groupedTodos().public.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('public')"
+                  [indeterminate]="
+                    getSelectedCountInSection('public') > 0 && !isAllSelectedInSection('public')
+                  "
+                  (toggleChange)="onSectionSelectAll('public', $event)"
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">public</mat-icon>
+                  Public ({{ stateService.groupedTodos().public.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -245,9 +281,21 @@
         >
           @if (stateService.groupedTodos().private.length > 0) {
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Private ({{ stateService.groupedTodos().private.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('private')"
+                  [indeterminate]="
+                    getSelectedCountInSection('private') > 0 && !isAllSelectedInSection('private')
+                  "
+                  (toggleChange)="onSectionSelectAll('private', $event)"
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">lock</mat-icon>
+                  Private ({{ stateService.groupedTodos().private.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().private; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -282,9 +330,21 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Shared ({{ stateService.groupedTodos().shared.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('shared')"
+                  [indeterminate]="
+                    getSelectedCountInSection('shared') > 0 && !isAllSelectedInSection('shared')
+                  "
+                  (toggleChange)="onSectionSelectAll('shared', $event)"
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">group</mat-icon>
+                  Shared ({{ stateService.groupedTodos().shared.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().shared; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -322,9 +382,22 @@
               <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
             }
             <div>
-              <h3 class="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
-                Public ({{ stateService.groupedTodos().public.length }})
-              </h3>
+              <div class="mb-2 flex items-center gap-3">
+                <app-section-select-all
+                  [checked]="isAllSelectedInSection('public')"
+                  [indeterminate]="
+                    getSelectedCountInSection('public') > 0 && !isAllSelectedInSection('public')
+                  "
+                  (toggleChange)="onSectionSelectAll('public', $event)"
+                />
+                />
+                <h3
+                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  <mat-icon class="text-base">public</mat-icon>
+                  Public ({{ stateService.groupedTodos().public.length }})
+                </h3>
+              </div>
             </div>
             @for (todo of stateService.groupedTodos().public; track todo.id) {
               <div cdkDrag [cdkDragData]="todo">
@@ -391,7 +464,7 @@
             [highlightedId]="highlightTodoId"
             [highlightIdPrefix]="'todo-'"
             (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-            (selectAll)="selectAll.emit($event)"
+            (selectAll)="selectAll.emit({ selectAll: $event })"
             (rowClick)="onRowClick($event)"
             (actionClick)="tableAction.emit($event)"
             (dropped)="onTodoDrop($any($event))"
@@ -502,7 +575,7 @@
       [selectedCount]="selectedTodos().size"
       [isAllSelected]="isAllSelected"
       mode="todos"
-      (selectAllEvent)="selectAll.emit()"
+      (selectAllEvent)="selectAll.emit({ selectAll: true })"
       (softDeleteEvent)="bulkArchive.emit()"
       (cancelEvent)="clearSelection.emit()"
     />

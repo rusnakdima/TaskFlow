@@ -111,6 +111,8 @@ export class ManageItemPage implements OnInit {
   selectedCategoryIds = signal<Set<string>>(new Set());
   assigneeSearchQuery = signal("");
   selectedAssigneeIds = signal<Set<string>>(new Set());
+  assigneeRoles = signal<Record<string, string>>({});
+  showPermissionsSection = signal(false);
 
   filteredCategories = computed(() => {
     const query = this.categorySearchQuery().toLowerCase();
@@ -414,7 +416,11 @@ export class ManageItemPage implements OnInit {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken());
     this.isOwner.set(item.user_id === userId);
 
-    if (item.visibility === "shared" && item.user_id !== userId) {
+    const isAdminAssignee =
+      userId && item.assignee_roles && item.assignee_roles[userId] === "admin";
+    this.showPermissionsSection.set(this.isOwner() || !!isAdminAssignee);
+
+    if (item.visibility === "shared" && item.user_id !== userId && !isAdminAssignee) {
       this.notifyService.showError("Only owner can manage project settings");
       setTimeout(() => this.location.back(), 500);
       return;
@@ -422,12 +428,15 @@ export class ManageItemPage implements OnInit {
     if (
       item.visibility === "public" &&
       item.user_id !== userId &&
-      !this.isUserAssignee(item, userId ?? null)
+      !this.isUserAssignee(item, userId ?? null) &&
+      !isAdminAssignee
     ) {
       this.notifyService.showError("You don't have permission to manage this project");
       setTimeout(() => this.location.back(), 500);
       return;
     }
+
+    this.loadAssigneeRoles(item);
   }
 
   isUserAssignee(item: any, userId?: string | null): boolean {
@@ -480,6 +489,15 @@ export class ManageItemPage implements OnInit {
         } else if (config.type === "task") {
           result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
           savedTaskId = result?.id || result?._id || null;
+          if (result?.todo_id) {
+            const parentTodo = this.todos().find((t) => t.id === result.todo_id);
+            if (parentTodo) {
+              this.storageService.modify("todos", "update", {
+                id: result.todo_id,
+                tasks_count: (parentTodo.tasks_count || 0) + 1,
+              });
+            }
+          }
         } else {
           result = await firstValueFrom(this.apiService.subtasks.create(payload, visibility));
         }
@@ -678,6 +696,73 @@ export class ManageItemPage implements OnInit {
 
   isAssigneeSelectedById(assigneeId: string): boolean {
     return this.selectedAssigneeIds().has(assigneeId);
+  }
+
+  isAssigneeHasAdminRole(assigneeId: string): boolean {
+    const roles = this.assigneeRoles();
+    return roles[assigneeId] === "admin";
+  }
+
+  setAssigneeRole(assigneeId: string, role: string): void {
+    this.assigneeRoles.update((roles) => ({ ...roles, [assigneeId]: role }));
+  }
+
+  savePermissions(): void {
+    const todoId = this.form.get("id")?.value || this.form.get("_id")?.value;
+    if (!todoId) return;
+
+    const visibility = this.form.get("visibility")?.value || "private";
+    this.requestService
+      .invokeCommand("update_todo_permissions", {
+        todo_id: todoId,
+        assignee_roles: this.assigneeRoles(),
+        visibility,
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Permissions updated successfully");
+        },
+        error: (err: Error) => {
+          this.notifyService.showError(err.message || "Failed to update permissions");
+        },
+      });
+  }
+
+  onTransferOwnership(): void {
+    const todoId = this.form.get("id")?.value || this.form.get("_id")?.value;
+    const newOwnerId = prompt("Enter the user ID of the new owner:");
+    if (!newOwnerId || !todoId) return;
+
+    const visibility = this.form.get("visibility")?.value || "private";
+    this.requestService
+      .invokeCommand("transfer_todo_ownership", {
+        todo_id: todoId,
+        new_user_id: newOwnerId,
+        visibility,
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Ownership transferred successfully");
+          this.location.back();
+        },
+        error: (err: Error) => {
+          this.notifyService.showError(err.message || "Failed to transfer ownership");
+        },
+      });
+  }
+
+  loadAssigneeRoles(item: any): void {
+    const roles: Record<string, string> = {};
+    if (item.assignee_roles && typeof item.assignee_roles === "object") {
+      Object.entries(item.assignee_roles).forEach(([key, value]) => {
+        roles[key] = typeof value === "string" ? value : "viewer";
+      });
+    }
+    this.assigneeRoles.set(roles);
+  }
+
+  getProfileById(profileId: string): Profile | undefined {
+    return this.assignees().find((p: Profile) => p.user_id === profileId);
   }
 
   private async handleGithubIssueForTask(taskId: string, formValue: any): Promise<void> {
