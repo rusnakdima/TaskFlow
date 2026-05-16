@@ -17,6 +17,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { ApiService, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { ResponseStatus } from "@models/response.model";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
@@ -42,9 +43,13 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-import { ChatFabComponent } from "@components/chat-fab/chat-fab.component";
+
 import { KanbanSubtaskCardComponent } from "@components/kanban-subtask-card/kanban-subtask-card.component";
 import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 interface QueryParams {
   highlightSubtask?: string;
@@ -69,8 +74,10 @@ interface QueryParams {
     ItemCardComponent,
     ItemExpandDetailsComponent,
     TableViewComponent,
-    ChatFabComponent,
+
     KanbanSubtaskCardComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
   ],
   templateUrl: "./subtasks.view.html",
 })
@@ -96,8 +103,11 @@ export class SubtasksViewComponent extends BaseListView {
   private commentService = inject(CommentService);
 
   kanbanHelper = inject(SubtasksKanbanHelper);
+  private syncService = inject(UnifiedSyncService);
 
-  showChat = signal(false);
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
+
   showMobileInfo = signal(false);
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
   todoId = signal("");
@@ -422,6 +432,18 @@ export class SubtasksViewComponent extends BaseListView {
         this.toggleFilter();
       })
     );
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.subscriptions.add(refreshSub);
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -494,10 +516,6 @@ export class SubtasksViewComponent extends BaseListView {
 
   private _activeFilters = signal<Record<string, string | string[] | any>>({});
 
-  override getUnreadCount(): number {
-    return super.getUnreadCount(this.chats);
-  }
-
   getUnreadCountForSubtask(subtaskId: string): number {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
@@ -507,10 +525,6 @@ export class SubtasksViewComponent extends BaseListView {
     return comments.filter(
       (c) => c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
     ).length;
-  }
-
-  toggleChat() {
-    this.showChat.update((v) => !v);
   }
 
   toggleInfoBlock() {

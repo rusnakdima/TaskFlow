@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, inject } from "@angular/core";
+import { Component, OnInit, signal, inject, DestroyRef } from "@angular/core";
 import { RouterModule } from "@angular/router";
 
 /* materials */
@@ -19,6 +19,8 @@ import {
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
@@ -27,6 +29,10 @@ import {
   SegmentSelectorComponent,
   SegmentOption,
 } from "@components/segment-selector/segment-selector.component";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 @Component({
   selector: "app-stats",
@@ -37,11 +43,19 @@ import {
     MatIconModule,
     TableViewComponent,
     SegmentSelectorComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
   ],
   templateUrl: "./stats.view.html",
 })
 export class StatsView implements OnInit {
   private requestService = inject(ApiService);
+  private syncService = inject(UnifiedSyncService);
+  private shortcutService = inject(ShortcutService);
+  private destroyRef = inject(DestroyRef);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   constructor(
     private authService: AuthService,
@@ -106,6 +120,18 @@ export class StatsView implements OnInit {
   ngOnInit(): void {
     // Data is already loaded in app.ts, just load statistics
     this.loadStatistics();
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   loadStatistics(): void {

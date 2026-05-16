@@ -95,7 +95,7 @@
   }
 
   .btn-cancel {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! active:mt-0.5! active:border-b-0!;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! active:mt-0.5! active:border-b-0!;
     background-color: #6b7280 !important;
     border-top-color: #9ca3af !important;
     border-left-color: #9ca3af !important;
@@ -111,7 +111,7 @@
   }
 
   .btn-danger {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
     background-color: #dc2626 !important;
     border-top-color: #f87171 !important;
     border-left-color: #f87171 !important;
@@ -126,7 +126,7 @@
   }
 
   .btn-warning {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
     background-color: #f59e0b !important;
     border-top-color: #fcd34d !important;
     border-left-color: #fcd34d !important;
@@ -141,7 +141,7 @@
   }
 
   .btn-success {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-4! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
+    @apply flex! flex-row! items-center! justify-center! rounded-lg! border-b-6! border-solid! px-4! py-2! text-center! font-medium! text-white! transition-all! hover:opacity-90! active:mt-0.5! active:border-b-0!;
     background-color: #16a34a !important;
     border-top-color: #4ade80 !important;
     border-left-color: #4ade80 !important;
@@ -328,22 +328,22 @@ button:disabled {
 
 @keyframes slideUpNav {
   from {
-    transform: translateX(-50%) translateY(100%);
+    transform: translateY(100%);
     opacity: 0;
   }
   to {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
 
 @keyframes slideDownNav {
   from {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
     opacity: 1;
   }
   to {
-    transform: translateX(-50%) translateY(100%);
+    transform: translateY(100%);
     opacity: 0;
   }
 }
