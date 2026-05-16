@@ -24,3 +24,12 @@ pub mod security_helper;
 pub mod timestamp_helper;
 #[path = "user_sync.helper.rs"]
 pub mod user_sync_helper;
+
+#[path = "soft_delete.helper.rs"]
+pub mod soft_delete_helper;
+
+#[path = "visibility.helper.rs"]
+pub mod visibility_helper;
+
+#[path = "parse.helper.rs"]
+pub mod parse_helper;

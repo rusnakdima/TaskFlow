@@ -16,6 +16,9 @@ pub mod github_route;
 #[path = "cascade.route.rs"]
 pub mod cascade_route;
 
+#[path = "todo_permissions.route.rs"]
+pub mod todo_permissions_route;
+
 #[path = "admin.route.rs"]
 pub mod admin_route;
 

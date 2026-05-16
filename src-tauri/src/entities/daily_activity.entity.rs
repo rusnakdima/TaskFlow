@@ -8,7 +8,7 @@ use crate::helpers::timestamp_helper::get_current_datetime;
 
 use nosql_orm::Model;
 
-#[derive(Debug, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("daily_activities")]
 #[many_to_one("user", "users", "user_id")]
 #[timestamp]

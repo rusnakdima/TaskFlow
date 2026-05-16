@@ -349,7 +349,7 @@ pub async fn soft_delete(
   let _user_id = extract_user_id(&state, &token)?;
   state
     .manage_db_service
-    .toggle_delete_status_local(table, id)
+    .toggle_delete_status(table, id, visibility)
     .await
 }
 
@@ -364,6 +364,6 @@ pub async fn permanent_delete(
   let _user_id = extract_user_id(&state, &token)?;
   state
     .manage_db_service
-    .permanently_delete_record_local(table, id)
+    .permanently_delete_record(table, id, visibility)
     .await
 }

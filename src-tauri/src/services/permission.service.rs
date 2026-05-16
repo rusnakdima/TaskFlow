@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
-use std::collections::HashMap;
+
+use crate::entities::permission_entity::{TodoPermission, ASSIGNEE_DEFAULT_ROLE};
 
 #[derive(Debug, Clone)]
 pub struct PermissionService {}
@@ -9,34 +10,58 @@ impl PermissionService {
     Self {}
   }
 
-  fn is_admin_assignee(todo: &Value, user_id: &str) -> bool {
-    let assignees = todo.get("assignees").and_then(|v| v.as_array());
-    let assignee_roles = todo.get("assignee_roles").and_then(|v| {
-      if let Some(obj) = v.as_object() {
-        Some(obj)
-      } else {
-        None
-      }
-    });
+  pub fn get_todo_permission(todo: &Value, user_id: &str) -> Option<TodoPermission> {
+    let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
 
-    if let (Some(arr), Some(roles)) = (assignees, assignee_roles) {
-      for (i, assignee) in arr.iter().enumerate() {
-        if assignee.as_str() == Some(user_id) {
-          let key = i.to_string();
-          if let Some(role) = roles.get(&key) {
-            if role.as_str() == Some("admin") {
-              return true;
-            }
-          }
+    if owner_id == user_id {
+      return Some(TodoPermission::OWNER);
+    }
+
+    let assignees = todo.get("assignees").and_then(|v| v.as_array())?;
+    let assignee_roles = todo.get("assignee_roles").and_then(|v| v.as_object());
+
+    for assignee_id in assignees {
+      let assignee_str = assignee_id.as_str()?;
+
+      let role = assignee_roles
+        .and_then(|r| r.get(assignee_str))
+        .and_then(|v| v.as_str())
+        .unwrap_or(ASSIGNEE_DEFAULT_ROLE);
+
+      if assignee_str == user_id {
+        return Some(TodoPermission::from_str(role));
+      }
+    }
+
+    let visibility = todo
+      .get("visibility")
+      .and_then(|v| v.as_str())
+      .unwrap_or("private");
+    match visibility {
+      "public" => Some(TodoPermission::VIEWER),
+      "shared" => {
+        if assignees.iter().any(|a| a.as_str() == Some(user_id)) {
+          Some(TodoPermission::VIEWER)
+        } else {
+          None
         }
       }
+      _ => None,
+    }
+  }
+
+  pub fn is_admin_assignee(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission == TodoPermission::ADMIN;
     }
     false
   }
 
-  fn is_owner_or_admin(todo: &Value, user_id: &str) -> bool {
-    let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-    owner_id == user_id || Self::is_admin_assignee(todo, user_id)
+  pub fn is_owner_or_admin(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission == TodoPermission::ADMIN || permission == TodoPermission::OWNER;
+    }
+    false
   }
 
   pub fn can_view_todo(todo: &Value, user_id: &str) -> bool {
@@ -65,10 +90,16 @@ impl PermissionService {
   }
 
   pub fn can_delete_todo(todo: &Value, user_id: &str) -> bool {
-    Self::is_owner_or_admin(todo, user_id)
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission.can_delete_todo();
+    }
+    false
   }
 
   pub fn can_add_task_to_todo(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission.can_create_task();
+    }
     Self::can_view_todo(todo, user_id)
   }
 
@@ -124,6 +155,20 @@ impl PermissionService {
 
   pub fn can_delete_comment(comment: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
     Self::can_edit_comment(comment, task, todo, user_id)
+  }
+
+  pub fn can_manage_permissions(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission.can_manage_assignees();
+    }
+    false
+  }
+
+  pub fn can_transfer_ownership(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission.can_transfer_ownership();
+    }
+    false
   }
 
   pub fn get_todo_filter_for_user(user_id: &str, visibility: Option<&str>) -> Value {

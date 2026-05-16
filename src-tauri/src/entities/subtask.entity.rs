@@ -13,6 +13,7 @@ use nosql_orm::Validate;
 #[table_name("subtasks")]
 #[soft_delete]
 #[one_to_many("comments", "comments", "subtask_id", "Cascade")]
+#[counter("comments")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]

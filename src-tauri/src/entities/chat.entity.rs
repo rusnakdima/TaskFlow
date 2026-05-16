@@ -8,7 +8,7 @@ use crate::helpers::timestamp_helper::get_current_datetime;
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("chats")]
 #[soft_delete]
 #[timestamp]
