@@ -1,6 +1,9 @@
 /* sys lib */
 use serde::{Deserialize, Serialize};
 
+use crate::helpers::response_helper::err_response_formatted;
+use nosql_orm::error::OrmError;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ResponseStatus {
   Success,
@@ -90,5 +93,11 @@ impl From<String> for DataValue {
 impl From<serde_json::Value> for DataValue {
   fn from(v: serde_json::Value) -> DataValue {
     DataValue::Object(v)
+  }
+}
+
+impl From<OrmError> for ResponseModel {
+  fn from(err: OrmError) -> Self {
+    err_response_formatted("Database error", &err.to_string())
   }
 }

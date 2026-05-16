@@ -2,9 +2,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -63,8 +60,6 @@ pub struct SubtaskCreateModel {
 
 impl From<SubtaskCreateModel> for SubtaskEntity {
   fn from(value: SubtaskCreateModel) -> Self {
-    let now = get_current_datetime();
-
     SubtaskEntity {
       id: None,
       task_id: value.task_id,
@@ -76,8 +71,8 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       order: value.order,
       comments_count: 0,
       deleted_at: None,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
       start_date: None,
       end_date: None,
     }

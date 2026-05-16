@@ -2,9 +2,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -38,14 +35,13 @@ pub struct CategoryCreateModel {
 
 impl From<CategoryCreateModel> for CategoryEntity {
   fn from(value: CategoryCreateModel) -> Self {
-    let now = get_current_datetime();
     CategoryEntity {
       id: None,
       title: value.title,
       user_id: value.user_id,
       deleted_at: None,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }

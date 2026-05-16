@@ -8,7 +8,7 @@ use nosql_orm::Model;
 use nosql_orm::Validate;
 
 /* helpers */
-use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime};
+use crate::helpers::common::format_date;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("todos")]
@@ -70,7 +70,6 @@ pub struct TodoCreateModel {
 
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
-    let now = get_current_datetime();
     let formatted_start_date = format_date(&value.start_date);
     let formatted_end_date = format_date(&value.end_date);
 
@@ -92,8 +91,8 @@ impl From<TodoCreateModel> for TodoEntity {
       tasks_count: 0,
       completed_tasks_count: 0,
       deleted_at: None,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }

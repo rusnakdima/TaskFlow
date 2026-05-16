@@ -2,9 +2,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -50,14 +47,12 @@ pub struct CommentCreateModel {
 
 impl From<CommentCreateModel> for CommentEntity {
   fn from(value: CommentCreateModel) -> Self {
-    let now = get_current_datetime();
-
     CommentEntity {
       id: None,
       user_id: value.user_id,
       content: value.content,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
       task_id: value.task_id,
       subtask_id: value.subtask_id,
       read_by: vec![],

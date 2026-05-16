@@ -1,10 +1,6 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
-use mongodb::bson::Uuid;
 use serde::{Deserialize, Serialize};
-
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
 
 use nosql_orm::Model;
 
@@ -51,10 +47,8 @@ pub struct DailyActivityCreateModel {
 
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
-    let now = get_current_datetime();
-
     DailyActivityModel {
-      id: Some(Uuid::new().to_string()),
+      id: Some(nosql_orm::utils::generate_id()),
       user_id: value.user_id,
       date: value.date,
       todos_created: 0,
@@ -75,8 +69,8 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
       total_tasks: 0,
       completed_tasks: 0,
       productivity_score: 0,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }
@@ -111,8 +105,6 @@ pub struct DailyActivityUpdateModel {
 
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
-    let now = get_current_datetime();
-
     DailyActivityModel {
       id: Some(value.id),
       user_id: value.user_id,
@@ -135,12 +127,8 @@ impl From<DailyActivityUpdateModel> for DailyActivityModel {
       total_tasks: value.total_tasks,
       completed_tasks: value.completed_tasks,
       productivity_score: value.productivity_score,
-      created_at: Some(
-        chrono::DateTime::parse_from_rfc3339(&value.created_at)
-          .map(|dt| dt.with_timezone(&Utc))
-          .unwrap_or_else(|_| now),
-      ),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }

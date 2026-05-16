@@ -2,9 +2,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
-
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
 
@@ -40,13 +37,12 @@ pub struct ChatCreateModel {
 
 impl From<ChatCreateModel> for ChatEntity {
   fn from(create: ChatCreateModel) -> Self {
-    let now = get_current_datetime();
     ChatEntity {
       id: None,
       user_id: create.user_id.clone(),
       content: create.content,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
       deleted_at: None,
       read_by: vec![create.user_id],
     }
