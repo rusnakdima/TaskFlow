@@ -6,7 +6,6 @@ use tokio::time::{timeout, Duration};
 /* providers */
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use nosql_orm::query::Filter;
 
 /* models */
 use crate::entities::{
@@ -22,6 +21,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
   pub id: String,
+  pub profile_id: Option<String>,
   pub exp: usize,
 }
 
@@ -36,6 +36,22 @@ pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, 
     err_response("Invalid token")
   })?;
   Ok(token_data.claims.id)
+}
+
+pub fn extract_profile_from_token(token: &str, jwt_secret: &str) -> Result<String, ResponseModel> {
+  let token_data = decode::<Claims>(
+    token,
+    &DecodingKey::from_secret(jwt_secret.as_ref()),
+    &Validation::default(),
+  )
+  .map_err(|e| {
+    eprintln!("JWT decode failed: {:?}", e);
+    err_response("Invalid token")
+  })?;
+  token_data
+    .claims
+    .profile_id
+    .ok_or_else(|| err_response("Profile ID not found in token"))
 }
 
 pub fn validate_user_owns_data(

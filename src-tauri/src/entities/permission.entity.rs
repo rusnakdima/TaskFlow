@@ -21,33 +21,7 @@ impl TodoPermission {
     }
   }
 
-  pub fn as_str(&self) -> &'static str {
-    match self {
-      TodoPermission::VIEWER => "viewer",
-      TodoPermission::EDITOR => "editor",
-      TodoPermission::ADMIN => "admin",
-      TodoPermission::MODERATOR => "moderator",
-      TodoPermission::OWNER => "owner",
-    }
-  }
-
-  pub fn can_edit_todo(&self) -> bool {
-    matches!(self, TodoPermission::ADMIN | TodoPermission::OWNER)
-  }
-
   pub fn can_delete_todo(&self) -> bool {
-    matches!(self, TodoPermission::OWNER)
-  }
-
-  pub fn can_manage_assignees(&self) -> bool {
-    matches!(self, TodoPermission::OWNER)
-  }
-
-  pub fn can_transfer_ownership(&self) -> bool {
-    matches!(self, TodoPermission::OWNER)
-  }
-
-  pub fn can_manage_gh_repo(&self) -> bool {
     matches!(self, TodoPermission::OWNER)
   }
 
@@ -72,16 +46,6 @@ impl TodoPermission {
   }
 
   pub fn can_delete_task(&self) -> bool {
-    matches!(
-      self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
-    )
-  }
-
-  pub fn can_create_subtask(&self) -> bool {
     matches!(
       self,
       TodoPermission::EDITOR
@@ -139,10 +103,6 @@ impl TodoPermission {
         | TodoPermission::MODERATOR
         | TodoPermission::OWNER
     )
-  }
-
-  pub fn can_view_todo(&self) -> bool {
-    true
   }
 }
 

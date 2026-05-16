@@ -24,7 +24,6 @@ use crate::helpers::common::format_date;
 #[index("visibility", 1)]
 #[index("github_repo_id", 1)]
 #[frontend_exclude("tasks", "user")]
-#[counter("tasks")]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,
