@@ -907,20 +907,40 @@ impl RepositoryService {
     let validated_data = validate_model(&table, &data_val, false, visibility.clone())
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
 
+    let new_visibility = validated_data
+      .get("visibility")
+      .and_then(|v| v.as_str())
+      .map(|s| s.to_string());
+
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
-    let existing_record = provider
-      .find_by_id(&table, &id_str)
-      .await?
-      .ok_or_else(|| err_response("Document not found"))?;
+    let provider_visibility = if new_visibility.is_some() {
+      None
+    } else {
+      Some(visibility_str.as_str())
+    };
+    let provider = self.get_provider(&table, provider_visibility, offline)?;
 
+    let mut existing_record = provider.find_by_id(&table, &id_str).await.ok().flatten();
+
+    if existing_record.is_none() && new_visibility.is_some() {
+      let fallback_provider = self.get_provider(&table, Some("shared"), false)?;
+      existing_record = fallback_provider
+        .find_by_id(&table, &id_str)
+        .await
+        .ok()
+        .flatten();
+    }
+
+    let existing_record = existing_record.ok_or_else(|| err_response("Document not found"))?;
+
+    let old_visibility = existing_record.get("visibility").and_then(|v| v.as_str());
     let old_status = existing_record.get("status").and_then(|v| v.as_str());
 
     let mut validated_data = validated_data;
     Self::merge_immutable_fields(&existing_record, &mut validated_data);
 
-    let merged_data = if let (Some(existing_obj), Some(update_obj)) =
+    let mut merged_data = if let (Some(existing_obj), Some(update_obj)) =
       (existing_record.as_object(), validated_data.as_object())
     {
       let mut merged = existing_obj.clone();
@@ -932,6 +952,33 @@ impl RepositoryService {
     } else {
       validated_data.clone()
     };
+
+    if table == "todos" {
+      let is_sharing =
+        new_visibility.as_deref() == Some("shared") || new_visibility.as_deref() == Some("public");
+      let visibility_changed = old_visibility != new_visibility.as_deref();
+
+      if is_sharing && visibility_changed {
+        if let Some(owner_id) = merged_data.get("user_id").and_then(|v| v.as_str()) {
+          let assignees = merged_data
+            .get("assignees")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.to_vec())
+            .unwrap_or_default();
+
+          if !assignees.iter().any(|a| a.as_str() == Some(owner_id)) {
+            let mut new_assignees = assignees;
+            new_assignees.push(serde_json::Value::String(owner_id.to_string()));
+            if let Some(obj) = merged_data.as_object_mut() {
+              obj.insert(
+                "assignees".to_string(),
+                serde_json::Value::Array(new_assignees),
+              );
+            }
+          }
+        }
+      }
+    }
 
     let updated_record = provider.update(&table, &id_str, merged_data).await?;
 
@@ -981,17 +1028,22 @@ impl RepositoryService {
     if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
       if new_vis != old_vis {
         if Self::use_json_provider_for_visibility(new_vis) {
-          self
-            .cascade_service
-            .import_todo_cascade_to_json(&id_str)
-            .await?;
+          self.cascade_service.move_todo_to_json(&id_str).await?;
         } else {
-          self
-            .cascade_service
-            .export_todo_cascade_to_mongo(&id_str)
-            .await?;
+          self.cascade_service.migrate_todo_to_mongo(&id_str).await?;
         }
       }
+    }
+
+    if table == "todos" && old_visibility != Some("private") && old_status != new_status {
+      self.cascade_service.backup_todo_to_json(&id_str).await?;
+    }
+
+    if table == "todos" && old_visibility == Some("private") && old_status != new_status {
+      self
+        .cascade_service
+        .sync_entity_to_mongo(&table, &id_str)
+        .await?;
     }
 
     self.cache_service.invalidate_collection(&table).await;
