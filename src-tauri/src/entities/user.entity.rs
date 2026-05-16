@@ -4,12 +4,11 @@ use serde::{Deserialize, Serialize};
 
 /* crate */
 use crate::entities::profile_entity::ProfileEntity;
-use crate::helpers::timestamp_helper::get_current_datetime;
 
 /* nosql_orm */
-use nosql_orm::Model;
+use nosql_orm::{Model, Validate};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("users")]
 #[soft_delete]
 #[timestamp]
@@ -107,8 +106,6 @@ pub struct UserCreateModel {
 
 impl From<UserCreateModel> for UserEntity {
   fn from(value: UserCreateModel) -> Self {
-    let now = get_current_datetime();
-
     UserEntity {
       id: None,
       email: value.email,
@@ -118,8 +115,8 @@ impl From<UserCreateModel> for UserEntity {
       temporary_code: value.temporary_code,
       code_expires_at: value.code_expires_at,
       profile_id: value.profile_id,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
       deleted_at: None,
       profile: None,
       totp_enabled: value.totp_enabled,

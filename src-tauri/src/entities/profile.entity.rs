@@ -2,9 +2,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
@@ -43,8 +40,6 @@ pub struct ProfileCreateModel {
 
 impl From<ProfileCreateModel> for ProfileEntity {
   fn from(value: ProfileCreateModel) -> Self {
-    let now = get_current_datetime();
-
     ProfileEntity {
       id: None,
       name: value.name.unwrap_or_default(),
@@ -52,8 +47,8 @@ impl From<ProfileCreateModel> for ProfileEntity {
       bio: value.bio.unwrap_or_default(),
       image_url: value.image_url.unwrap_or_default(),
       user_id: value.user_id,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* helpers */
-use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime};
+use crate::helpers::common::format_date;
 
 /* nosql_orm */
 use nosql_orm::Model;
@@ -94,7 +94,6 @@ pub struct TaskCreateModel {
 
 impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
-    let now = get_current_datetime();
     let formatted_start_date = format_date(&value.start_date);
     let formatted_end_date = format_date(&value.end_date);
 
@@ -113,8 +112,8 @@ impl From<TaskCreateModel> for TaskEntity {
       completed_subtasks_count: 0,
       comments_count: 0,
       deleted_at: None,
-      created_at: Some(now),
-      updated_at: Some(now),
+      created_at: None,
+      updated_at: None,
     }
   }
 }
