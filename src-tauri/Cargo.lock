@@ -2930,7 +2930,7 @@ dependencies = [
 [[package]]
 name = "nosql_orm"
 version = "0.9.0"
-source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#26d80411eb7130266b3465256c237e9393fb5879"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#cec70850e20c4af4fb3f7be8c1f4cb3d11973b1c"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2954,7 +2954,7 @@ dependencies = [
 [[package]]
 name = "nosql_orm_derive"
 version = "0.1.0"
-source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#26d80411eb7130266b3465256c237e9393fb5879"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#cec70850e20c4af4fb3f7be8c1f4cb3d11973b1c"
 dependencies = [
  "chrono",
  "proc-macro2",
