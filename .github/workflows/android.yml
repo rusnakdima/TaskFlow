@@ -17,21 +17,6 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
-    env:
-      NAME_APP: taskflow
-      APP_HOME_FOLDER: TaskFlow
-      MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      MONGODB_NAME: TaskFlow
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      JSONDB_NAME: task_flow_db
-      SMTP_USERNAME: rusnakdima03@gmail.com
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      SMTP_SERVER: smtp.gmail.com
-      SMTP_PORT: 587
-      RESET_TOKEN_EXPIRY_HOURS: 1
-      CLIENT_ID_GITHUB: ${{ secrets.CLIENT_ID_GITHUB }}
-      CLIENT_SECRET_GITHUB: ${{ secrets.CLIENT_SECRET_GITHUB }}
-      CALLBACK_URL_GITHUB: ${{ secrets.CALLBACK_URL_GITHUB }}
 
     steps:
       - uses: actions/checkout@v4
@@ -40,23 +25,6 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Create .env file
-        run: |
-          echo "NAME_APP=taskflow" > src-tauri/.env
-          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
-          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
-          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
-          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
-          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
-          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
-          echo "SMTP_PORT=587" >> src-tauri/.env
-          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
-          echo "CLIENT_ID_GITHUB=${{ secrets.CLIENT_ID_GITHUB }}" >> src-tauri/.env
-          echo "CLIENT_SECRET_GITHUB=${{ secrets.CLIENT_SECRET_GITHUB }}" >> src-tauri/.env
-          echo "CALLBACK_URL_GITHUB=${{ secrets.CALLBACK_URL_GITHUB }}" >> src-tauri/.env
 
       - name: Free up disk space
         run: |
@@ -81,11 +49,32 @@ jobs:
           distribution: "temurin"
           cache: gradle
 
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: Install system packages (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf lib32z1 lib32stdc++6 unzip wget
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf lib32z1 lib32stdc++6 unzip wget libssl-dev
+
+      - name: Set OpenSSL environment for Android
+        run: |
+          echo "OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include/openssl" >> $GITHUB_ENV
+
+      - name: Create .env file
+        run: |
+          echo "NAME_APP=taskflow" > src-tauri/.env
+          echo "APP_HOME_FOLDER=TaskFlow" >> src-tauri/.env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> src-tauri/.env
+          echo "MONGODB_NAME=TaskFlow" >> src-tauri/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> src-tauri/.env
+          echo "JSONDB_NAME=task_flow_db" >> src-tauri/.env
+          echo "SMTP_USERNAME=rusnakdima03@gmail.com" >> src-tauri/.env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> src-tauri/.env
+          echo "SMTP_SERVER=smtp.gmail.com" >> src-tauri/.env
+          echo "SMTP_PORT=587" >> src-tauri/.env
+          echo "RESET_TOKEN_EXPIRY_HOURS=1" >> src-tauri/.env
+          echo "CLIENT_ID_GITHUB=${{ secrets.CLIENT_ID_GITHUB }}" >> src-tauri/.env
+          echo "CLIENT_SECRET_GITHUB=${{ secrets.CLIENT_SECRET_GITHUB }}" >> src-tauri/.env
+          echo "CALLBACK_URL_GITHUB=${{ secrets.CALLBACK_URL_GITHUB }}" >> src-tauri/.env
 
       - name: Install Android SDK
         run: |
@@ -156,6 +145,13 @@ jobs:
           rm -rf src-tauri/target/release/
           df -h
 
+      - name: Require Tauri Android project
+        run: |
+          if [ ! -f "src-tauri/gen/android/gradlew" ]; then
+            echo "::error::Run locally: npx tauri android init — then commit src-tauri/gen/android."
+            exit 1
+          fi
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./src-tauri/gen/android/gradlew
 
@@ -197,25 +193,45 @@ jobs:
           chmod +x ./scripts/build-optimized.sh
           FORCE_BUILD=true ./scripts/build-optimized.sh build android release
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk
-
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-aab
-          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab
-
-      - name: Prepare versioned artifacts
+      - name: Find and Prepare Artifacts
+        id: prepare-artifacts
         run: |
-          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/taskflow-${{ env.VERSION }}.apk taskflow_${{ env.VERSION }}_universal.apk
-          cp src-tauri/gen/android/app/build/outputs/bundle/universalRelease/taskflow-${{ env.VERSION }}.aab taskflow_${{ env.VERSION }}_universal.aab
+          echo "=== Finding APK files ==="
+          find src-tauri/gen/android -name "*.apk" 2>/dev/null || true
+          echo "=== Finding AAB files ==="
+          find src-tauri/gen/android -name "*.aab" 2>/dev/null || true
+
+          APK_PATH=$(find src-tauri/gen/android -name "app-universal-release.apk" -path "*/release/*" | head -1)
+          AAB_PATH=$(find src-tauri/gen/android -name "app-universal-release.aab" -path "*/universalRelease/*" | head -1)
+
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: Could not find app-universal-release.apk"
+            exit 1
+          fi
+          if [ -z "$AAB_PATH" ]; then
+            echo "Error: Could not find app-universal-release.aab"
+            exit 1
+          fi
+
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+          echo "AAB_PATH=$AAB_PATH" >> $GITHUB_ENV
+          echo "Found APK: $APK_PATH"
+          echo "Found AAB: $AAB_PATH"
+
+          cp "$APK_PATH" "taskflow_${{ env.VERSION }}_universal.apk"
+          cp "$AAB_PATH" "taskflow_${{ env.VERSION }}_universal.aab"
+          ls -la taskflow_${{ env.VERSION }}_universal.apk taskflow_${{ env.VERSION }}_universal.aab
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: |
+            taskflow_${{ env.VERSION }}_universal.apk
+            taskflow_${{ env.VERSION }}_universal.aab
 
       - name: Upload to Existing Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ github.ref_name }}
