@@ -234,8 +234,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
   loadInitialTodos() {
-    const hasTodos = this.storageService.todos().length > 0;
-    if (hasTodos) {
+    const hasAllTodos =
+      this.storageService.privateTodos().length > 0 &&
+      this.storageService.sharedTodos().length > 0 &&
+      this.storageService.publicTodos().length > 0;
+    if (hasAllTodos) {
       this.todoPagination.update((p) => ({
         ...p,
         skip: this.storageService.todos().length,
