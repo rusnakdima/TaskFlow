@@ -1,0 +1,22 @@
+@if (show) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-800">
+      <h3 class="mb-4 text-xl font-bold">Transfer Ownership</h3>
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Select a new owner for this todo. The new owner will have full permissions.
+        </p>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Select User</label>
+          <app-profile-selector [active]="selectedUserId" (select)="onUserSelected($event)" />
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-2">
+        <button class="btn-cancel px-4 py-2" (click)="onCancel()">Cancel</button>
+        <button class="btn-accent px-4 py-2" [disabled]="!selectedUserId" (click)="onConfirm()">
+          Transfer Ownership
+        </button>
+      </div>
+    </div>
+  </div>
+}
