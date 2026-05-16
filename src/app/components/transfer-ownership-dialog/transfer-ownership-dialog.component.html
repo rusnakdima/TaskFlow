@@ -8,7 +8,11 @@
         </p>
         <div>
           <label class="mb-1 block text-sm font-medium">Select User</label>
-          <app-profile-selector [active]="selectedUserId" (select)="onUserSelected($event)" />
+          <app-profile-selector
+            [active]="selectedUserId"
+            [profiles]="availableProfiles"
+            (select)="onUserSelected($event)"
+          />
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-2">

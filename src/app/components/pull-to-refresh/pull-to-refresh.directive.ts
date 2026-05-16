@@ -31,16 +31,14 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   private touchStartY = 0;
   private touchStartX = 0;
   private isPulling = false;
+  private isPastTop = false;
 
-  private lastDeltaY = 0;
-  private lastDeltaTime = 0;
   private hasPassedMinThreshold = false;
 
-  private readonly THRESHOLD = 80;
+  private readonly THRESHOLD = 150;
   private readonly MIN_MOVEMENT = 30;
-  private readonly MAX_PULL = 150;
+  private readonly MAX_PULL = 200;
   private readonly COOLDOWN_MS = 500;
-  private readonly VELOCITY_THRESHOLD = 0.5;
 
   private lastRefreshTime = 0;
 
@@ -51,35 +49,38 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   @HostListener("touchstart", ["$event"])
   onTouchStart(event: TouchEvent): void {
     if (this.pullToRefreshDisabled || this.state() === "refreshing") return;
-    if (this.el.nativeElement.scrollTop > 0) return;
 
     const touch = event.touches[0];
     this.touchStartY = touch.clientY;
     this.touchStartX = touch.clientX;
     this.isPulling = false;
+    this.isPastTop = false;
     this.hasPassedMinThreshold = false;
-    this.lastDeltaY = 0;
-    this.lastDeltaTime = Date.now();
   }
 
   @HostListener("touchmove", ["$event"])
   onTouchMove(event: TouchEvent): void {
     if (this.pullToRefreshDisabled || this.state() === "refreshing") return;
-    if (this.el.nativeElement.scrollTop > 0) return;
+
+    const touch = event.touches[0];
+    const scrollTop = this.el.nativeElement.scrollTop;
+    const deltaY = touch.clientY - this.touchStartY;
+
+    if (scrollTop <= 0 && deltaY > 0 && !this.isPastTop) {
+      this.isPastTop = true;
+      this.touchStartY = touch.clientY;
+      this.hasPassedMinThreshold = false;
+    }
+
+    if (!this.isPastTop) return;
 
     if (Date.now() - this.lastRefreshTime < this.COOLDOWN_MS) return;
 
-    const touch = event.touches[0];
-    const deltaY = touch.clientY - this.touchStartY;
     const deltaX = touch.clientX - this.touchStartX;
 
     if (deltaX > 30 && Math.abs(deltaY) < Math.abs(deltaX)) {
       return;
     }
-
-    const now = Date.now();
-    const dt = now - this.lastDeltaTime;
-    const instantaneousVelocity = dt > 0 ? Math.abs(deltaY - this.lastDeltaY) / dt : 0;
 
     const distance = Math.min(Math.abs(deltaY), this.MAX_PULL);
 
@@ -87,54 +88,32 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
       this.hasPassedMinThreshold = true;
     }
 
-    const isSlowScroll = instantaneousVelocity < this.VELOCITY_THRESHOLD;
-    const distanceThreshold = isSlowScroll ? this.THRESHOLD : this.THRESHOLD;
-
-    if (
-      deltaY > 0 &&
-      this.hasPassedMinThreshold &&
-      distance >= distanceThreshold &&
-      !this.isPulling
-    ) {
+    if (this.hasPassedMinThreshold && distance >= this.THRESHOLD && !this.isPulling) {
       this.isPulling = true;
       this.triggerHaptic();
       this.triggerRefresh();
       this.lastRefreshTime = Date.now();
-      return;
     }
 
-    if (distance >= this.MIN_MOVEMENT && this.state() !== "idle") {
-      this.pullDistance.set(distance);
-      this.distanceChange.emit(distance);
+    this.pullDistance.set(distance);
+    this.distanceChange.emit(distance);
 
-      const newState: PullToRefreshState = distance >= this.THRESHOLD ? "triggered" : "pulling";
-      if (this.state() !== newState) {
-        this.state.set(newState);
-        this.stateChange.emit(newState);
-      }
+    const newState: PullToRefreshState = distance >= this.THRESHOLD ? "triggered" : "pulling";
+    if (this.state() !== newState) {
+      this.state.set(newState);
+      this.stateChange.emit(newState);
     }
-
-    this.lastDeltaY = deltaY;
-    this.lastDeltaTime = now;
   }
 
   @HostListener("touchend")
   onTouchEnd(): void {
-    if (this.pullToRefreshDisabled) return;
-
-    if (this.isPulling || this.pullDistance() >= this.THRESHOLD) {
-      if (this.pullDistance() >= this.THRESHOLD) {
-        this.triggerRefresh();
-      } else {
-        this.reset();
-      }
-    }
-
+    this.isPastTop = false;
     this.isPulling = false;
   }
 
   @HostListener("touchcancel")
   onTouchCancel(): void {
+    this.isPastTop = false;
     this.reset();
   }
 

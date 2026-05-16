@@ -26,17 +26,20 @@ export class ProfileSelectorComponent {
 
   @Input() active = "";
   @Input() excludeCurrentUser = true;
+  @Input() profiles: Profile[] | null = null;
   @Output() select = new EventEmitter<ProfileOption>();
 
-  profiles = this.storageService.allProfiles;
+  get allProfiles(): Profile[] {
+    return this.profiles ?? this.storageService.allProfiles();
+  }
 
   getActiveProfile(): Profile | undefined {
-    return this.profiles().find((p) => p.id === this.active);
+    return this.allProfiles.find((p) => p.id === this.active);
   }
 
   getFilteredProfiles(): Profile[] {
     const currentUserId = this.storageService.profile()?.user_id;
-    let filtered = this.profiles();
+    let filtered = this.allProfiles;
     if (this.excludeCurrentUser && currentUserId) {
       filtered = filtered.filter((p) => p.user_id !== currentUserId);
     }
