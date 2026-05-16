@@ -48,6 +48,9 @@
       @if (indeterminate) {
         <div class="h-0.5 w-2.5 bg-white"></div>
       }
+      @if (!checked && !indeterminate) {
+        <div class="h-0.5 w-2 bg-gray-400 dark:bg-gray-500"></div>
+      }
     </div>
     @if (label) {
       <span class="text-sm font-medium whitespace-nowrap">{{ label }}</span>

@@ -21,6 +21,7 @@ import { EmptyStateComponent } from "@components/empty-state/empty-state.compone
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
+import { SectionSelectAllComponent } from "@components/section-select-all/section-select-all.component";
 import { TODO_TABLE_CONFIG, TODO_CARD_CONFIG } from "@constants/item-display.constants";
 import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -40,6 +41,7 @@ import { TABLE_ACTIONS } from "@constants/table-field.constants";
     ItemExpandDetailsComponent,
     BulkActionsComponent,
     ItemCardComponent,
+    SectionSelectAllComponent,
   ],
   templateUrl: "./todos-list.component.html",
 })
@@ -73,7 +75,10 @@ export class TodosListComponent {
   @Output() todoUpdated = new EventEmitter<{ todo: Todo; event: { field: string; value: any } }>();
   @Output() todoCardClicked = new EventEmitter<{ event: MouseEvent; id: string }>();
   @Output() selectionChanged = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() selectAll = new EventEmitter<boolean>();
+  @Output() selectAll = new EventEmitter<{
+    selectAll: boolean;
+    section?: "private" | "shared" | "public";
+  }>();
   @Output() clearSelection = new EventEmitter<void>();
   @Output() bulkArchive = new EventEmitter<void>();
   @Output() rangeSelect = new EventEmitter<{ anchorId: string; targetId: string }>();
@@ -353,5 +358,26 @@ export class TodosListComponent {
 
   isCommentsExpanded(todoId: string): boolean {
     return this.expandedCommentsIds().has(todoId);
+  }
+
+  getGroupedTodos() {
+    return this.stateService.groupedTodos();
+  }
+
+  getSelectedCountInSection(section: "private" | "shared" | "public"): number {
+    const sectionTodos = this.stateService.groupedTodos()[section];
+    return sectionTodos.filter((todo: Todo) => this.selectedTodos().has(todo.id)).length;
+  }
+
+  isAllSelectedInSection(section: "private" | "shared" | "public"): boolean {
+    const sectionTodos = this.stateService.groupedTodos()[section];
+    return (
+      sectionTodos.length > 0 &&
+      sectionTodos.every((todo: Todo) => this.selectedTodos().has(todo.id))
+    );
+  }
+
+  onSectionSelectAll(section: "private" | "shared" | "public", checked: boolean): void {
+    this.selectAll.emit({ selectAll: checked, section });
   }
 }

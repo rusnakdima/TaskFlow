@@ -4,7 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
-import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { SectionSelectAllComponent } from "@components/section-select-all/section-select-all.component";
 import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
@@ -21,7 +21,7 @@ export { PageToolbarConfig } from "@models/ui.model";
     MatIconModule,
     MatButtonModule,
     MatMenuModule,
-    CheckboxComponent,
+    SectionSelectAllComponent,
     ViewModeSwitcherComponent,
     FilterSidebarComponent,
   ],

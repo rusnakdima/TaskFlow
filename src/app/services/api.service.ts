@@ -581,50 +581,50 @@ export class ApiService {
 class EntityApi<T> {
   private static readonly ROUTE_TO_ENTITY: Record<string, string> = {
     // Todos
-    'create_todo': 'todos',
-    'get_todo': 'todos',
-    'get_todos': 'todos',
-    'update_todo': 'todos',
-    'delete_todo': 'todos',
+    create_todo: "todos",
+    get_todo: "todos",
+    get_todos: "todos",
+    update_todo: "todos",
+    delete_todo: "todos",
     // Tasks
-    'create_task': 'tasks',
-    'get_task': 'tasks',
-    'get_tasks': 'tasks',
-    'update_task': 'tasks',
-    'delete_task': 'tasks',
+    create_task: "tasks",
+    get_task: "tasks",
+    get_tasks: "tasks",
+    update_task: "tasks",
+    delete_task: "tasks",
     // Subtasks
-    'create_subtask': 'subtasks',
-    'get_subtask': 'subtasks',
-    'get_subtasks': 'subtasks',
-    'update_subtask': 'subtasks',
-    'delete_subtask': 'subtasks',
+    create_subtask: "subtasks",
+    get_subtask: "subtasks",
+    get_subtasks: "subtasks",
+    update_subtask: "subtasks",
+    delete_subtask: "subtasks",
     // Categories
-    'create_category': 'categories',
-    'get_category': 'categories',
-    'get_categories': 'categories',
-    'update_category': 'categories',
-    'delete_category': 'categories',
+    create_category: "categories",
+    get_category: "categories",
+    get_categories: "categories",
+    update_category: "categories",
+    delete_category: "categories",
     // Profiles
-    'create_profile': 'profiles',
-    'get_profile': 'profiles',
-    'get_profiles': 'profiles',
-    'update_profile': 'profiles',
-    'delete_profile': 'profiles',
+    create_profile: "profiles",
+    get_profile: "profiles",
+    get_profiles: "profiles",
+    update_profile: "profiles",
+    delete_profile: "profiles",
     // Comments
-    'create_comment': 'comments',
-    'get_comment': 'comments',
-    'get_comments': 'comments',
-    'update_comment': 'comments',
-    'delete_comment': 'comments',
+    create_comment: "comments",
+    get_comment: "comments",
+    get_comments: "comments",
+    update_comment: "comments",
+    delete_comment: "comments",
     // Chats
-    'create_chat': 'chats',
-    'get_chat': 'chats',
-    'get_chats': 'chats',
-    'update_chat': 'chats',
-    'delete_chat': 'chats',
+    create_chat: "chats",
+    get_chat: "chats",
+    get_chats: "chats",
+    update_chat: "chats",
+    delete_chat: "chats",
     // Users
-    'get_user': 'users',
-    'get_users': 'users',
+    get_user: "users",
+    get_users: "users",
   };
 
   constructor(
@@ -632,11 +632,14 @@ class EntityApi<T> {
     private routes: EntityRoutes
   ) {}
 
-  private getEntityType(operation: 'create' | 'update' | 'delete'): string {
-    const route = operation === 'create' ? this.routes.create
-      : operation === 'update' ? this.routes.update
-      : this.routes.delete;
-    return EntityApi.ROUTE_TO_ENTITY[route!] || '';
+  private getEntityType(operation: "create" | "update" | "delete"): string {
+    const route =
+      operation === "create"
+        ? this.routes.create
+        : operation === "update"
+          ? this.routes.update
+          : this.routes.delete;
+    return EntityApi.ROUTE_TO_ENTITY[route!] || "";
   }
 
   get(id: string, visibility?: string, load?: string[]): Observable<T> {
@@ -676,11 +679,7 @@ class EntityApi<T> {
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
         next: (result) => {
-          this.api.storageService.modify(
-            this.getEntityType('create') as any,
-            "create",
-            result
-          );
+          this.api.storageService.modify(this.getEntityType("create") as any, "create", result);
           subscriber.next(result);
           subscriber.complete();
         },
@@ -693,11 +692,7 @@ class EntityApi<T> {
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.update!, { id, data, visibility }).subscribe({
         next: (result) => {
-          this.api.storageService.modify(
-            this.getEntityType('update') as any,
-            "update",
-            result
-          );
+          this.api.storageService.modify(this.getEntityType("update") as any, "update", result);
           subscriber.next(result);
           subscriber.complete();
         },
@@ -707,7 +702,7 @@ class EntityApi<T> {
   }
 
   delete(id: string, options?: { visibility?: string }): Observable<void> {
-    const entityType = this.getEntityType('delete');
+    const entityType = this.getEntityType("delete");
     return new Observable((subscriber) => {
       this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility }).subscribe({
         next: () => {
@@ -764,12 +759,20 @@ class AdminApi {
     return this.api.invokeCommand("permanent_delete", { table, id, token, visibility });
   }
 
-  adminToggleDeleteLocal(table: string, id: string, visibility: string = "private"): Observable<void> {
+  adminToggleDeleteLocal(
+    table: string,
+    id: string,
+    visibility: string = "private"
+  ): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
     return this.api.invokeCommand("soft_delete", { table, id, token, visibility });
   }
 
-  adminPermanentlyDeleteLocal(table: string, id: string, visibility: string = "private"): Observable<void> {
+  adminPermanentlyDeleteLocal(
+    table: string,
+    id: string,
+    visibility: string = "private"
+  ): Observable<void> {
     const token = this.api.jwtTokenService.getToken();
     return this.api.invokeCommand("permanent_delete", { table, id, token, visibility });
   }

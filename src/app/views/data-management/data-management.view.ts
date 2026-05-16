@@ -480,12 +480,15 @@ export class DataManagementView implements OnInit {
     }
 
     return {
-      selectAll: {
-        onToggle: () => this.onBulkSelectAll(),
-        isAllSelected: this.isAllSelected(),
-        count: this.selectedRecords().size,
-        highlight: this.selectedRecords().size > 0 && !this.isAllSelected(),
-      },
+      ...(this.mode !== "admin" &&
+        this.mode !== "archive" && {
+          selectAll: {
+            onToggle: () => this.onBulkSelectAll(),
+            isAllSelected: this.isAllSelected(),
+            count: this.selectedRecords().size,
+            highlight: this.selectedRecords().size > 0 && !this.isAllSelected(),
+          },
+        }),
       sortMenu: {
         sortBy: this.sortBy(),
         sortOrder: this.sortOrder(),

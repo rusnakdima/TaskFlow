@@ -555,13 +555,23 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     );
   }
 
-  onTableSelectAll(selectAll: boolean): void {
+  onTableSelectAll(event: { selectAll: boolean; section?: "private" | "shared" | "public" }): void {
+    const { selectAll, section } = event;
     this.selectedItems.update((todoIds) => {
       const newSelected = new Set(todoIds);
-      if (selectAll) {
-        this.stateService.listTodos().forEach((todo) => newSelected.add(todo.id));
+      if (section) {
+        const sectionTodos = this.stateService.groupedTodos()[section];
+        if (selectAll) {
+          sectionTodos.forEach((todo: Todo) => newSelected.add(todo.id));
+        } else {
+          sectionTodos.forEach((todo: Todo) => newSelected.delete(todo.id));
+        }
       } else {
-        this.stateService.listTodos().forEach((todo) => newSelected.delete(todo.id));
+        if (selectAll) {
+          this.stateService.listTodos().forEach((todo: Todo) => newSelected.add(todo.id));
+        } else {
+          this.stateService.listTodos().forEach((todo: Todo) => newSelected.delete(todo.id));
+        }
       }
       return newSelected;
     });
