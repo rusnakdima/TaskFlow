@@ -56,6 +56,7 @@ export class TodosListComponent {
   @Input() viewMode: "card" | "grid" | "table" | "list" | "kanban" = "grid";
   @Input() highlightTodoId: string | null = null;
   @Input() userId: string = "";
+  @Input() activeVisibility: string = "private";
   @Input() showBulkActions = true;
   @Input() todoPlaceholder: any;
   @Input() dragSource: any;
@@ -208,7 +209,7 @@ export class TodosListComponent {
     this.dragDropService.handleDrop(event, todos, "todos", "todos").subscribe();
   }
 
-  onCardClick(event: { event: MouseEvent; id: string }): void {
+  onCardClick(event: { event: MouseEvent; id: string; visibility?: string }): void {
     if (event.event.shiftKey) {
       const anchorId = this.lastSelectedId();
       if (anchorId) {
@@ -222,7 +223,9 @@ export class TodosListComponent {
     }
 
     this.lastSelectedId.set(event.id);
-    this.router.navigate(["/todos", event.id, "tasks"]);
+    this.router.navigate(["/todos", event.id, "tasks"], {
+      queryParams: { visibility: event.visibility || this.activeVisibility },
+    });
   }
 
   onRowClick(event: { event: MouseEvent; item: any } | any): void {
@@ -242,7 +245,9 @@ export class TodosListComponent {
     }
 
     this.lastSelectedId.set(item.id);
-    this.router.navigate(["/todos", item.id, "tasks"]);
+    this.router.navigate(["/todos", item.id, "tasks"], {
+      queryParams: { visibility: item.visibility || this.activeVisibility },
+    });
   }
 
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
@@ -275,7 +280,7 @@ export class TodosListComponent {
     }
   }
 
-  onTodoCardClick(event: { event: MouseEvent; id: string }): void {
+  onTodoCardClick(event: { event: MouseEvent; id: string; visibility?: string }): void {
     if (event.event.shiftKey) {
       const anchorId = this.lastSelectedId();
       if (anchorId) {
@@ -289,7 +294,9 @@ export class TodosListComponent {
     }
 
     this.lastSelectedId.set(event.id);
-    this.router.navigate(["/todos", event.id, "tasks"]);
+    this.router.navigate(["/todos", event.id, "tasks"], {
+      queryParams: { visibility: event.visibility || this.activeVisibility },
+    });
   }
 
   onTodoCardAction(event: { action: string; item: Todo }): void {

@@ -48,6 +48,7 @@ export class CropModalComponent {
 
     const img = new Image();
     const isDataUrl = this.imageSource.startsWith("data:");
+    const isBlobUrl = this.imageSource.startsWith("blob:");
 
     img.onload = () => {
       this.img = img;
@@ -71,7 +72,7 @@ export class CropModalComponent {
     };
 
     try {
-      img.crossOrigin = isDataUrl ? "" : "anonymous";
+      img.crossOrigin = isDataUrl || isBlobUrl ? "" : "anonymous";
       img.src = this.imageSource;
     } catch (e) {
       img.crossOrigin = "";

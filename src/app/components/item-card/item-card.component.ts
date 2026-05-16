@@ -71,7 +71,7 @@ export class ItemCardComponent {
   @Input() onExpandRequest?: (item: any) => Observable<any>;
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string }>();
+  @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string; visibility?: string }>();
   @Output() itemAction = new EventEmitter<{ action: string; item: any }>();
   @Output() dropped = new EventEmitter<CdkDragDrop<any>>();
   @Output() toggleComments = new EventEmitter<string>();
@@ -188,7 +188,7 @@ export class ItemCardComponent {
   }
 
   onCardClick(event: MouseEvent): void {
-    this.cardClick.emit({ event, id: this.itemId });
+    this.cardClick.emit({ event, id: this.itemId, visibility: (this.item as any)?.visibility });
   }
 
   onFieldClick(config: ItemDisplayConfig, event: MouseEvent): void {
