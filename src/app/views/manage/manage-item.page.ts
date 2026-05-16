@@ -36,6 +36,7 @@ import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
 
 type ItemType = "todo" | "task" | "subtask";
 
@@ -89,6 +90,7 @@ export class ManageItemPage implements OnInit {
   private mongoConnectionService = inject(MongoConnectionService);
   private requestService = inject(ApiService);
   private apiService = inject(ApiService);
+  private permissionService = inject(PermissionService);
 
   form!: FormGroup;
   isEdit = signal(false);
@@ -96,6 +98,7 @@ export class ManageItemPage implements OnInit {
   itemType = signal<ItemType>("todo");
   isOwner = signal(false);
   originalVisibility = signal<string>("");
+  userPermission = signal<TodoPermission>(TodoPermission.VIEWER);
 
   todos = signal<Todo[]>([]);
   tasks = signal<Task[]>([]);
@@ -122,6 +125,25 @@ export class ManageItemPage implements OnInit {
     return isTodo && isSharedOrPublic && (this.isOwner() || isAdmin);
   });
   showTransferOwnershipDialog = signal(false);
+
+  canEditTodoFields = computed(() =>
+    [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      this.userPermission()
+    )
+  );
+
+  canManageAssignees = computed(() => this.userPermission() === TodoPermission.OWNER);
+  canManageGhRepo = computed(() => this.userPermission() === TodoPermission.OWNER);
+  canDeleteTodo = computed(() => this.userPermission() === TodoPermission.OWNER);
+  canTransferOwnership = computed(() => this.userPermission() === TodoPermission.OWNER);
+  canCreateTask = computed(() =>
+    [
+      TodoPermission.EDITOR,
+      TodoPermission.ADMIN,
+      TodoPermission.MODERATOR,
+      TodoPermission.OWNER,
+    ].includes(this.userPermission())
+  );
 
   getCurrentUserId(): string {
     return this.authService.getValueByKey("id");
@@ -386,10 +408,31 @@ export class ManageItemPage implements OnInit {
 
       if (item) {
         this.applyItemToForm(item);
+        if (config.type === "todo") {
+          await this.loadAndSetUserPermission(item, visibility);
+        }
       }
     } catch (err) {
       this.notifyService.showError("Failed to load item");
     }
+  }
+
+  private async loadAndSetUserPermission(item: any, visibility: string | undefined): Promise<void> {
+    const userId = this.getCurrentUserId();
+    if (item.user_id === userId) {
+      this.userPermission.set(TodoPermission.OWNER);
+      return;
+    }
+
+    const token = this.jwtTokenService.getToken() || "";
+    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
+      item.id,
+      visibility || "private",
+      token
+    );
+    this.assigneeRoles.set(assigneeRoles);
+    const role = assigneeRoles[userId] || "viewer";
+    this.userPermission.set(this.permissionService.fromStr(role));
   }
 
   private applyItemToForm(item: any): void {

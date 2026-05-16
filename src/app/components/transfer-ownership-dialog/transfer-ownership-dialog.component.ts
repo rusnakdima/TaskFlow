@@ -1,12 +1,14 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ProfileSelectorComponent } from "@components/profile-selector/profile-selector.component";
+import { MatIconModule } from "@angular/material/icon";
+import { MatButtonModule } from "@angular/material/button";
+import { MatMenuModule } from "@angular/material/menu";
 import { Profile } from "@models/generated/api.types";
 
 @Component({
   selector: "app-transfer-ownership-dialog",
   standalone: true,
-  imports: [CommonModule, ProfileSelectorComponent],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatMenuModule],
   templateUrl: "./transfer-ownership-dialog.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -19,7 +21,16 @@ export class TransferOwnershipDialogComponent {
 
   selectedUserId: string = "";
 
-  onUserSelected(profile: { id: string; user_id: string }): void {
+  getSelectedProfile(): Profile | undefined {
+    if (!this.selectedUserId) return undefined;
+    return this.availableProfiles.find((p) => p.user_id === this.selectedUserId);
+  }
+
+  getProfileById(userId: string): Profile | undefined {
+    return this.availableProfiles.find((p) => p.user_id === userId);
+  }
+
+  onUserSelected(profile: Profile): void {
     this.selectedUserId = profile.user_id;
   }
 
