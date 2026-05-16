@@ -48,6 +48,7 @@ use routes::{
   },
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
+    sync_visibility_to_provider,
   },
   statistics_route::statistics_get,
 };
@@ -339,6 +340,7 @@ pub fn run() {
       get_tasks_by_month,
       check_mongodb_connection,
       import_to_local,
+      sync_visibility_to_provider,
       get_all_admin_data,
       get_all_admin_paginated,
       get_all_archive_data,

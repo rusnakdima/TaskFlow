@@ -129,6 +129,37 @@ pub async fn check_mongodb_connection(
   })
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub async fn sync_visibility_to_provider(
+  state: State<'_, AppState>,
+  todo_id: String,
+  source_provider: String,
+  target_provider: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let _user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  );
+  let cascade_service = state.cascade_service.clone();
+
+  if source_provider == "Mongo" && target_provider == "Json" {
+    cascade_service
+      .sync_entity_to_json("todos", &todo_id)
+      .await?;
+  } else if source_provider == "Json" && target_provider == "Mongo" {
+    cascade_service
+      .sync_entity_to_mongo("todos", &todo_id)
+      .await?;
+  }
+
+  Ok(ResponseModel {
+    status: ResponseStatus::Success,
+    message: "Visibility synced".to_string(),
+    data: DataValue::String("".to_string()),
+  })
+}
+
 // ==================== CALENDAR ENDPOINTS ====================
 
 #[tauri::command]
