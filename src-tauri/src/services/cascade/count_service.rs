@@ -35,12 +35,27 @@ impl CountService {
     id: &str,
     field: &str,
     delta: i32,
+    is_json: bool,
   ) -> OrmResult<()>
   where
     P: Clone + nosql_orm::provider::DatabaseProvider,
   {
-    let update = json!({ "$inc": { field: delta } });
-    provider.patch(collection, id, update).await?;
+    if is_json {
+      let current = provider.find_by_id(collection, id).await?;
+      if let Some(mut doc) = current {
+        if let Some(obj) = doc.as_object_mut() {
+          let current_val = obj.get(field).and_then(|v| v.as_i64()).unwrap_or(0);
+          obj.insert(
+            field.to_string(),
+            serde_json::json!(current_val + delta as i64),
+          );
+          provider.update(collection, id, doc).await?;
+        }
+      }
+    } else {
+      let update = json!({ "$inc": { field: delta } });
+      provider.patch(collection, id, update).await?;
+    }
     Ok(())
   }
 
@@ -51,12 +66,13 @@ impl CountService {
     id: &str,
     field: &str,
     delta: i32,
+    is_json: bool,
   ) -> OrmResult<()>
   where
     P: Clone + nosql_orm::provider::DatabaseProvider,
   {
     self
-      .increment_count(provider, collection, id, field, -delta)
+      .increment_count(provider, collection, id, field, -delta, is_json)
       .await
   }
 
@@ -69,7 +85,7 @@ impl CountService {
     offline: bool,
   ) {
     if let Err(e) = self
-      .increment_count(&self.json_provider, collection, id, field, delta)
+      .increment_count(&self.json_provider, collection, id, field, delta, true)
       .await
     {
       eprintln!(
@@ -80,7 +96,7 @@ impl CountService {
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
-          .increment_count(mongo.as_ref(), collection, id, field, delta)
+          .increment_count(mongo.as_ref(), collection, id, field, delta, false)
           .await
         {
           eprintln!(
@@ -101,7 +117,7 @@ impl CountService {
     offline: bool,
   ) {
     if let Err(e) = self
-      .decrement_count(&self.json_provider, collection, id, field, delta)
+      .decrement_count(&self.json_provider, collection, id, field, delta, true)
       .await
     {
       eprintln!(
@@ -112,7 +128,7 @@ impl CountService {
     if !offline {
       if let Some(mongo) = self.mongodb_provider.as_ref() {
         if let Err(e) = self
-          .decrement_count(mongo.as_ref(), collection, id, field, delta)
+          .decrement_count(mongo.as_ref(), collection, id, field, delta, false)
           .await
         {
           eprintln!(

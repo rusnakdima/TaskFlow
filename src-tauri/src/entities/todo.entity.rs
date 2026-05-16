@@ -10,7 +10,7 @@ use nosql_orm::Validate;
 /* helpers */
 use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime};
 
-#[derive(Debug, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("todos")]
 #[soft_delete]
 #[timestamp]
@@ -24,6 +24,7 @@ use crate::helpers::{common::format_date, timestamp_helper::get_current_datetime
 #[index("visibility", 1)]
 #[index("github_repo_id", 1)]
 #[frontend_exclude("tasks", "user")]
+#[counter("tasks")]
 pub struct TodoEntity {
   pub id: Option<String>,
   pub user_id: String,

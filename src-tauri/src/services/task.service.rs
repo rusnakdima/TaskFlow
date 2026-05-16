@@ -1,54 +1,37 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, success_response};
+use crate::helpers::soft_delete_helper::create_soft_delete_payload;
+use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
+use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
 use crate::services::permission_service::PermissionService;
 use serde_json::{json, Value};
 
 pub struct TaskService {
-  json_provider: DataProvider,
-  mongo_provider: Option<DataProvider>,
+  base: BaseCrudService,
 }
 
 impl TaskService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      json_provider,
-      mongo_provider,
-    }
-  }
-
-  fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
-    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
-    let use_json = visibility == "private" || offline || visibility == "all";
-
-    if use_json {
-      Ok(self.json_provider.clone())
-    } else {
-      match self.mongo_provider.clone() {
-        Some(p) => Ok(p),
-        None => Err(err_response(
-          "MongoDB not available - cannot access shared/team records.",
-        )),
-      }
+      base: BaseCrudService::new(json_provider, mongo_provider),
     }
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
 
     let todo_id = doc.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
-
-    let visibility = doc
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
+    let visibility = get_visibility(&doc);
 
     if !todo_id.is_empty() {
       if let Some(todo) = self
+        .base
         .get_provider(visibility)?
         .find_by_id("todos", todo_id)
         .await?
@@ -72,7 +55,7 @@ impl TaskService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.get_provider(visibility)?;
+    let provider = self.base.get_provider(visibility)?;
 
     let todos_filter = PermissionService::get_todo_filter_for_user(user_id, Some(visibility));
 
@@ -127,7 +110,7 @@ impl TaskService {
     visibility: &str,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.get_provider(visibility)?;
+    let provider = self.base.get_provider(visibility)?;
 
     let todo_id = data.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
 
@@ -152,17 +135,15 @@ impl TaskService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
 
-    let visibility = existing
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
+    let visibility = get_visibility(&existing);
 
-    let provider = self.get_provider(visibility)?;
+    let provider = self.base.get_provider(visibility)?;
 
     let todo_id = existing
       .get("todo_id")
@@ -185,17 +166,15 @@ impl TaskService {
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
 
-    let visibility = existing
-      .get("visibility")
-      .and_then(|v| v.as_str())
-      .unwrap_or("private");
+    let visibility = get_visibility(&existing);
 
-    let provider = self.get_provider(visibility)?;
+    let provider = self.base.get_provider(visibility)?;
 
     let todo_id = existing
       .get("todo_id")
@@ -213,11 +192,7 @@ impl TaskService {
     }
 
     let doc = provider
-      .update(
-        "tasks",
-        id,
-        json!({ "deleted_at": chrono::Utc::now().to_rfc3339() }),
-      )
+      .update("tasks", id, create_soft_delete_payload())
       .await?;
     Ok(success_response(DataValue::Object(doc)))
   }

@@ -51,6 +51,9 @@ use routes::{
     sync_visibility_to_provider,
   },
   statistics_route::statistics_get,
+  todo_permissions_route::{
+    get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
+  },
 };
 
 /* services */
@@ -402,6 +405,9 @@ pub fn run() {
       get_user,
       get_users,
       sync_data,
+      get_todo_permissions,
+      update_todo_permissions,
+      transfer_todo_ownership,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

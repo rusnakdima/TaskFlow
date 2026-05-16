@@ -9,7 +9,7 @@ use crate::helpers::timestamp_helper::get_current_datetime;
 use nosql_orm::Model;
 use nosql_orm::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("categories")]
 #[many_to_one("user", "users", "user_id")]
 #[soft_delete]
