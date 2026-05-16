@@ -3,28 +3,24 @@ use base32::Alphabet;
 use rand::Rng;
 use std::sync::Arc;
 
-/* tokio */
-use tokio::time::{timeout, Duration};
-
 /* providers */
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 use nosql_orm::query::Filter;
+use nosql_orm::repository::Repository;
 
 /* models */
 use crate::entities::{
   profile_entity::ProfileEntity,
   response_entity::{DataValue, ResponseModel, ResponseStatus},
-  table_entity::TableModelType,
   user_entity::UserEntity,
 };
 
 /* helpers */
-use crate::helpers::timestamp_helper::get_current_datetime;
 use crate::helpers::{
   qr_helper,
-  response_helper::{err_response, success_response},
+  response_helper::{err_response, err_response_formatted, success_response},
 };
 
 /* services */
@@ -254,7 +250,6 @@ impl AuthTotpService {
       new_recovery_codes.remove(pos);
       let updated_user = UserEntity {
         recovery_codes: new_recovery_codes,
-        updated_at: Some(get_current_datetime()),
         ..user
       };
       self.save_user(&updated_user).await?;
@@ -301,41 +296,19 @@ impl AuthTotpService {
   }
 
   async fn save_user(&self, user: &UserEntity) -> Result<(), ResponseModel> {
-    let user_val = serde_json::to_value(user)
-      .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
-
-    let user_id = user.id();
-    let table_name = TableModelType::User.table_name();
-
-    match timeout(
-      Duration::from_secs(3),
-      self
-        .json_provider
-        .update(table_name, user_id, user_val.clone()),
-    )
-    .await
-    {
-      Ok(Ok(_)) => {}
-      Ok(Err(_e)) => {}
-      Err(_) => {}
-    }
+    let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
+    user_repo_json
+      .update(user.clone())
+      .await
+      .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
 
     if let Some(mongo) = &self.mongodb_provider {
-      match timeout(
-        Duration::from_secs(5),
-        mongo.update(table_name, user_id, user_val),
-      )
-      .await
-      {
-        Ok(Ok(_)) => {}
-        Ok(Err(e)) => {
-          return Err(err_response(&format!(
-            "Failed to update MongoDB user: {}",
-            e
-          )));
-        }
-        Err(_) => {}
-      }
+      let user_repo_mongo =
+        Repository::<UserEntity, nosql_orm::providers::MongoProvider>::new(mongo.as_ref().clone());
+      user_repo_mongo
+        .update(user.clone())
+        .await
+        .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
     }
 
     Ok(())
@@ -354,23 +327,10 @@ impl AuthTotpService {
       totp_enabled,
       totp_secret: totp_secret.to_string(),
       recovery_codes,
-      updated_at: Some(get_current_datetime()),
       ..user
     };
 
     self.save_user(&updated_user).await?;
-
-    if let Some(mongo_provider) = &self.mongodb_provider {
-      let _ = timeout(
-        Duration::from_secs(5),
-        mongo_provider.update(
-          "users",
-          updated_user.id(),
-          serde_json::to_value(&updated_user).unwrap(),
-        ),
-      )
-      .await;
-    }
 
     Ok(())
   }

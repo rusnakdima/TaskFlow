@@ -8,6 +8,7 @@ use crate::providers::{
 };
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
+use nosql_orm::repository::Repository;
 
 /* models */
 use crate::entities::{
@@ -19,8 +20,7 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::config::ConfigHelper;
-use crate::helpers::response_helper::err_response;
-use crate::helpers::timestamp_helper::get_current_datetime;
+use crate::helpers::response_helper::{err_response, err_response_formatted};
 
 #[derive(Clone)]
 pub struct AuthPasswordService {
@@ -67,10 +67,6 @@ impl AuthPasswordService {
 
     user.temporary_code = code.clone();
     user.code_expires_at = expiration;
-    user.updated_at = Some(get_current_datetime());
-
-    let user_id = user.id.as_ref().cloned().unwrap_or_default();
-    let user_json = serde_json::to_value(&user).unwrap();
 
     let email_service = EmailProvider::from_config(config)?;
     email_service
@@ -78,15 +74,19 @@ impl AuthPasswordService {
       .await
       .map_err(|_| err_response("Failed to send reset email"))?;
 
-    mongo
-      .update(table_name, &user_id, user_json.clone())
+    let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
+    user_repo_json
+      .update(user.clone())
       .await
-      .map_err(|e| err_response(&format!("Error updating user: {}", e)))?;
+      .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
 
-    let _ = self
-      .json_provider
-      .update(table_name, &user_id, user_json)
-      .await;
+    if let Some(mongo) = &self.mongodb_provider {
+      let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
+      user_repo_mongo
+        .update(user)
+        .await
+        .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
+    }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -165,20 +165,20 @@ impl AuthPasswordService {
     user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
-    user.updated_at = Some(get_current_datetime());
 
-    let user_id = user.id.as_ref().cloned().unwrap_or_default();
-    let user_json = serde_json::to_value(&user).unwrap();
-
-    mongo
-      .update(table_name, &user_id, user_json.clone())
+    let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
+    user_repo_json
+      .update(user.clone())
       .await
-      .map_err(|e| err_response(&format!("Error updating user: {}", e)))?;
+      .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
 
-    let _ = self
-      .json_provider
-      .update(table_name, &user_id, user_json)
-      .await;
+    if let Some(mongo) = &self.mongodb_provider {
+      let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
+      user_repo_mongo
+        .update(user)
+        .await
+        .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
+    }
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,

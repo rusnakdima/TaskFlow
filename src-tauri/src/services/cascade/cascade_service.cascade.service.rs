@@ -14,7 +14,6 @@ use crate::entities::todo_entity::TodoEntity;
 
 use crate::helpers::response_helper::err_response_formatted;
 use crate::services::activity_monitor_service::ActivityMonitorService;
-use nosql_orm::timestamps::timestamp_now_rfc3339;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct CascadeResult {
@@ -160,24 +159,18 @@ impl CascadeService {
           .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
       }
       "chats" => {
-        provider
-          .patch(
-            "chats",
-            id,
-            serde_json::json!({ "deleted_at": timestamp_now_rfc3339() }),
-          )
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete("chats", id)
           .await
-          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+          .map_err(|e| err_response_formatted("Soft delete chat failed", &e.to_string()))?;
       }
       "categories" => {
-        provider
-          .patch(
-            "categories",
-            id,
-            serde_json::json!({ "deleted_at": timestamp_now_rfc3339() }),
-          )
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .soft_delete("categories", id)
           .await
-          .map_err(|e| err_response_formatted("Patch category failed", &e.to_string()))?;
+          .map_err(|e| err_response_formatted("Soft delete category failed", &e.to_string()))?;
       }
       _ => {
         return Err(err_response_formatted(
@@ -266,22 +259,16 @@ impl CascadeService {
           .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
       }
       "chats" => {
-        provider
-          .patch(
-            "chats",
-            id,
-            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
-          )
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .restore("chats", id)
           .await
-          .map_err(|e| err_response_formatted("Patch chat failed", &e.to_string()))?;
+          .map_err(|e| err_response_formatted("Restore chat failed", &e.to_string()))?;
       }
       "categories" => {
-        provider
-          .patch(
-            "categories",
-            id,
-            serde_json::json!({ "deleted_at": serde_json::Value::Null }),
-          )
+        let cascade = CascadeManager::new(provider.clone());
+        cascade
+          .restore("categories", id)
           .await
           .map_err(|e| err_response_formatted("Restore category failed", &e.to_string()))?;
       }

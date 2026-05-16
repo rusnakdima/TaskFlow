@@ -1,10 +1,10 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
-use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::soft_delete_helper::create_soft_delete_payload;
+use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
-use serde_json::Value;
+use nosql_orm::cascade::CascadeManager;
+use serde_json::{json, Value};
 
 pub struct CommentService {
   base: BaseCrudService,
@@ -80,9 +80,22 @@ impl CommentService {
     let visibility = get_visibility(&existing);
     let provider = self.base.get_provider(visibility)?;
 
-    let doc = provider
-      .update("comments", id, create_soft_delete_payload())
-      .await?;
-    Ok(success_response(DataValue::Object(doc)))
+    match provider {
+      DataProvider::Json(p) => {
+        let cascade = CascadeManager::new(p.as_ref().clone());
+        cascade
+          .soft_delete("comments", id)
+          .await
+          .map_err(|e| err_response_formatted("Soft delete failed", &e.to_string()))?;
+      }
+      DataProvider::Mongo(p) => {
+        let cascade = CascadeManager::new(p.as_ref().clone());
+        cascade
+          .soft_delete("comments", id)
+          .await
+          .map_err(|e| err_response_formatted("Soft delete failed", &e.to_string()))?;
+      }
+    }
+    Ok(success_response(DataValue::Object(json!({}))))
   }
 }

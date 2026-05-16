@@ -129,7 +129,7 @@ impl PermissionService {
     false
   }
 
-  pub fn can_edit_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
+  pub fn can_edit_subtask(subtask: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }
@@ -145,7 +145,7 @@ impl PermissionService {
     false
   }
 
-  pub fn can_delete_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
+  pub fn can_delete_subtask(subtask: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }
@@ -177,7 +177,7 @@ impl PermissionService {
     false
   }
 
-  pub fn can_delete_comment(comment: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
+  pub fn can_delete_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }

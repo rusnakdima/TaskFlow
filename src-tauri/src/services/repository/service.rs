@@ -20,7 +20,6 @@ use crate::entities::{
 /* helpers */
 use crate::helpers::{
   collection_metadata::add_collection_metadata,
-  common::merge_immutable_fields,
   load_param::parse_load_param,
   relation_stripper::strip_relation_fields,
   response_helper::{err_response, err_response_formatted, success_response},
@@ -206,7 +205,7 @@ impl RepositoryService {
   }
 
   fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
-    merge_immutable_fields(existing, validated);
+    Self::merge_immutable_fields(existing, validated);
   }
 
   fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {

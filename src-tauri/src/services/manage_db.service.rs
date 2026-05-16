@@ -6,6 +6,7 @@ use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::helpers::response_helper::err_response;
 
 use crate::services::db_backup::DbBackupService;
 use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
@@ -285,20 +286,14 @@ impl ManageDbService {
       format!("{:04}-{:02}-01", year, month + 1)
     };
 
-    let filter = Filter::Or(vec![
-      Filter::And(vec![
-        Filter::Gte("start_date".to_string(), json!(&start_of_month)),
-        Filter::Lt("start_date".to_string(), json!(&end_of_month)),
-      ]),
-      Filter::And(vec![
-        Filter::Gte("end_date".to_string(), json!(&start_of_month)),
-        Filter::Lt("end_date".to_string(), json!(&end_of_month)),
-      ]),
-      Filter::And(vec![
-        Filter::Lte("start_date".to_string(), json!(&start_of_month)),
-        Filter::Gte("end_date".to_string(), json!(&end_of_month)),
-      ]),
-    ]);
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({
+        "$or": [
+            { "start_date": { "$gte": &start_of_month, "$lt": &end_of_month } },
+            { "end_date": { "$gte": &start_of_month, "$lt": &end_of_month } },
+            { "start_date": { "$lte": &start_of_month }, "end_date": { "$gte": &end_of_month } }
+        ]
+    }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
     let mut all_tasks: Vec<Value> = Vec::new();
 

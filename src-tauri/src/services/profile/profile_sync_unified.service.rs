@@ -4,7 +4,6 @@ use std::time::Duration;
 
 /* nosql_orm */
 use nosql_orm::provider::DatabaseProvider;
-use nosql_orm::query::Filter;
 use serde_json::{json, Value};
 
 /* tokio */
@@ -57,7 +56,8 @@ impl ProfileSyncUnifiedService {
 
   pub async fn get_profile_value(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
     let table_name = "profiles";
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
     // Step 1: Check JSON first (fast, works offline)
     if let Ok(mut profiles) = self
@@ -126,30 +126,39 @@ impl ProfileSyncUnifiedService {
   }
 
   pub async fn profile_exists_in_json(&self, user_id: &str) -> bool {
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
-    self
-      .json_provider
-      .find_many("profiles", Some(&filter), None, None, None, false)
-      .await
-      .map(|mut profiles| profiles.pop().is_some())
-      .unwrap_or(false)
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)));
+    match filter {
+      Ok(f) => self
+        .json_provider
+        .find_many("profiles", Some(&f), None, None, None, false)
+        .await
+        .map(|mut profiles| profiles.pop().is_some())
+        .unwrap_or(false),
+      Err(_) => false,
+    }
   }
 
   pub async fn profile_exists_in_mongo(&self, user_id: &str) -> bool {
     if let Some(mongo) = &self.mongodb_provider {
-      let filter = Filter::Eq("user_id".to_string(), json!(user_id));
-      mongo
-        .find_many("profiles", Some(&filter), None, None, None, false)
-        .await
-        .map(|mut profiles| profiles.pop().is_some())
-        .unwrap_or(false)
+      let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
+        .map_err(|e| err_response(&format!("Filter error: {}", e)));
+      match filter {
+        Ok(f) => mongo
+          .find_many("profiles", Some(&f), None, None, None, false)
+          .await
+          .map(|mut profiles| profiles.pop().is_some())
+          .unwrap_or(false),
+        Err(_) => false,
+      }
     } else {
       false
     }
   }
 
   async fn get_profile_from_json(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
     let profiles = self
       .json_provider
       .find_many("profiles", Some(&filter), None, None, None, false)
@@ -163,7 +172,8 @@ impl ProfileSyncUnifiedService {
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| err_response("MongoDB not available"))?;
-    let filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
     let profiles = mongo
       .find_many("profiles", Some(&filter), None, None, None, false)
       .await

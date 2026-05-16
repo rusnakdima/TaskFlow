@@ -8,6 +8,8 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
 
+/* helpers */
+
 #[derive(Clone)]
 pub struct EntityResolutionService {
   pub json_provider: JsonProvider,
@@ -50,7 +52,7 @@ impl EntityResolutionService {
     let mut current_table = table;
 
     for relation in relation_path {
-      let filter = Filter::Eq("id".to_string(), json!(&current_id));
+      let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": &current_id }))?;
       let docs: Vec<Value> = provider
         .find_many(current_table, Some(&filter), None, None, None, false)
         .await?;
@@ -75,7 +77,7 @@ impl EntityResolutionService {
       current_table = relation;
     }
 
-    let filter = Filter::Eq("id".to_string(), json!(&current_id));
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": &current_id }))?;
     let todos: Vec<Value> = provider
       .find_many(current_table, Some(&filter), None, None, None, false)
       .await?;
@@ -110,7 +112,7 @@ impl EntityResolutionService {
 
   pub async fn get_task_id_for_subtask(&self, subtask_id: &str) -> OrmResult<Option<String>> {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      let filter = Filter::Eq("id".to_string(), json!(subtask_id));
+      let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": subtask_id }))?;
       let subtasks = mongo
         .find_many("subtasks", Some(&filter), None, None, None, false)
         .await?;
@@ -120,7 +122,7 @@ impl EntityResolutionService {
         }
       }
     }
-    let filter = Filter::Eq("id".to_string(), json!(subtask_id));
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": subtask_id }))?;
     let subtasks = self
       .json_provider
       .find_many("subtasks", Some(&filter), None, None, None, false)

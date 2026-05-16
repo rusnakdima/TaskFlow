@@ -17,10 +17,7 @@ use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
 /* routes */
 use routes::{
-  admin_route::{
-    admin_permanently_delete, admin_permanently_delete_local, admin_toggle_delete,
-    admin_toggle_delete_local, get_all_admin_data, get_all_admin_paginated,
-  },
+  admin_route::{get_all_admin_data, get_all_admin_paginated},
   archive_route::{get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete},
   auth_data_sync_route::initialize_user_data,
   auth_route::{
