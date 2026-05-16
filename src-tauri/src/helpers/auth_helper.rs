@@ -63,7 +63,8 @@ pub async fn validate_admin_role(
   let user_id = extract_user_from_token(token, jwt_secret)?;
 
   let table_name = TableModelType::User.table_name();
-  let filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
+  let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": user_id }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
   let user_val = match timeout(
     Duration::from_secs(3),
@@ -117,7 +118,8 @@ pub async fn find_user_by_username(
   username: &str,
 ) -> Result<UserEntity, ResponseModel> {
   let table_name = TableModelType::User.table_name();
-  let filter = Filter::Eq("username".to_string(), serde_json::json!(username));
+  let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "username": username }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
   let user_val = match timeout(
     Duration::from_secs(3),

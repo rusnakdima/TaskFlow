@@ -25,18 +25,6 @@ pub fn format_date(value: &str) -> Option<String> {
   None
 }
 
-pub fn merge_immutable_fields(existing: &serde_json::Value, validated: &mut serde_json::Value) {
-  if let (Some(existing_obj), Some(validated_obj)) =
-    (existing.as_object(), validated.as_object_mut())
-  {
-    if let Some(created_at) = existing_obj.get("created_at") {
-      if !validated_obj.contains_key("created_at") {
-        validated_obj.insert("created_at".to_string(), created_at.clone());
-      }
-    }
-  }
-}
-
 pub fn convert_data_to_array<T: Serialize>(data: &[T]) -> DataValue {
   let serialized_array: Vec<serde_json::Value> = data
     .iter()

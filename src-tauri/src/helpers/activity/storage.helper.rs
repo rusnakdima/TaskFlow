@@ -5,6 +5,7 @@ use serde_json::{to_value, Value};
 
 /* helpers */
 use crate::helpers::common::convert_data_to_array;
+use crate::helpers::response_helper::err_response;
 
 /* providers */
 use nosql_orm::providers::JsonProvider;
@@ -59,10 +60,11 @@ impl ActivityStorage {
     user_id: String,
     date: String,
   ) -> Result<DailyActivityModel, ResponseModel> {
-    let filter = Filter::And(vec![
-      Filter::Eq("user_id".to_string(), serde_json::json!(user_id)),
-      Filter::Eq("date".to_string(), serde_json::json!(date)),
-    ]);
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({
+        "user_id": user_id,
+        "date": date
+    }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
     let existing = self
       .json_provider

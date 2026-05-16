@@ -4,7 +4,7 @@ use nosql_orm::providers::MongoProvider;
 use serde_json::Value;
 
 /* helpers */
-use crate::helpers::timestamp_helper::timestamp_now_rfc3339;
+use nosql_orm::timestamps::timestamp_now_rfc3339;
 
 /* entities */
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
@@ -20,9 +20,6 @@ pub async fn update_user_profile_id_both(
   user_id: &str,
   profile_id: &str,
 ) -> Result<(), ResponseModel> {
-  let now = timestamp_now_rfc3339();
-
-  // Step 1: Update JSON
   let user_value = json_provider
     .find_by_id("users", user_id)
     .await
@@ -43,7 +40,6 @@ pub async fn update_user_profile_id_both(
       "profile_id".to_string(),
       Value::String(profile_id.to_string()),
     );
-    obj.insert("updated_at".to_string(), Value::String(now.clone()));
   }
 
   json_provider
@@ -59,12 +55,11 @@ pub async fn update_user_profile_id_both(
     return Ok(());
   };
 
-  let now_str = timestamp_now_rfc3339();
+  let now_for_compare = timestamp_now_rfc3339();
 
   match mongo.find_by_id("users", user_id).await {
     Ok(Some(existing_mongo_user)) => {
-      // Compare updated_at timestamps - local wins if newer
-      let local_time = chrono::DateTime::parse_from_rfc3339(&now_str).ok();
+      let local_time = chrono::DateTime::parse_from_rfc3339(&now_for_compare).ok();
       let mongo_time = existing_mongo_user
         .get("updated_at")
         .and_then(|v| v.as_str())
@@ -85,7 +80,6 @@ pub async fn update_user_profile_id_both(
             "profile_id".to_string(),
             Value::String(profile_id.to_string()),
           );
-          obj.insert("updated_at".to_string(), Value::String(now_str));
         }
         mongo
           .update("users", user_id, updated)
@@ -118,7 +112,6 @@ pub async fn update_user_profile_id_both(
           "profile_id".to_string(),
           Value::String(profile_id.to_string()),
         );
-        obj.insert("updated_at".to_string(), Value::String(now_str));
       }
 
       mongo
