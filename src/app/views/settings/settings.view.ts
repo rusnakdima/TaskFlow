@@ -145,7 +145,6 @@ export class SettingsView implements OnInit, OnDestroy {
           verification_uri: string;
         }>
       ) => {
-        console.log(result);
         if (result.status == ResponseStatus.SUCCESS) {
           const data = result.data;
           this.githubDeviceFlowActive.set(true);

@@ -90,11 +90,7 @@ export class ChatView implements OnInit {
       });
   }
 
-  onMessageSent(chat: Chat): void {
-    console.log("Message sent:", chat);
-  }
+  onMessageSent(_chat: Chat): void {}
 
-  onConversationSelected(userId: string): void {
-    console.log("Conversation selected:", userId);
-  }
+  onConversationSelected(_userId: string): void {}
 }

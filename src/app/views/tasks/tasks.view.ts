@@ -219,15 +219,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.jwtTokenService.getProfileId(this.jwtTokenService.getToken() || "") || "";
     const token = this.jwtTokenService.getToken() || "";
 
-    console.log("=== DEBUG setUserPermission ===");
-    console.log("userId from token:", userId);
-    console.log("profileId from token:", profileId);
-    console.log("todo.user_id:", todo.user_id);
-    console.log("todo.assignees:", todo.assignees);
-    console.log("(todo as any).assignee_roles:", (todo as any).assignee_roles);
-
     if (todo.user_id === userId) {
-      console.log("User is OWNER");
       this.userPermission.set(TodoPermission.OWNER);
       return;
     }
@@ -238,21 +230,8 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       token
     );
 
-    console.log("assigneeRoles from API:", assigneeRoles);
-    console.log("Looking up userId:", userId, "result:", assigneeRoles[userId]);
-    console.log(
-      "Looking up profileId:",
-      profileId,
-      "result:",
-      profileId ? assigneeRoles[profileId] : null
-    );
-
     const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
-    console.log("Final role:", role);
-
     this.userPermission.set(this.permissionService.fromStr(role));
-    console.log("userPermission set to:", this.userPermission());
-    console.log("=== END DEBUG ===");
   }
 
   taskPagination = signal<{
