@@ -27,6 +27,8 @@ import { Todo } from "@models/generated/api.types";
 import { Chat } from "@models/generated/api.types";
 import { CommentService } from "@services/features/comment.service";
 import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -101,6 +103,8 @@ export class SubtasksViewComponent extends BaseListView {
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private commentService = inject(CommentService);
+  private permissionService = inject(PermissionService);
+  private jwtTokenService = inject(JwtTokenService);
 
   kanbanHelper = inject(SubtasksKanbanHelper);
   private syncService = inject(UnifiedSyncService);
@@ -157,9 +161,24 @@ export class SubtasksViewComponent extends BaseListView {
   private lastLoadedTaskId: string | null = null;
 
   userId: string = "";
+  userPermission = signal<TodoPermission>(TodoPermission.VIEWER);
 
   isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
+
+  canCreateSubtask = computed(() =>
+    [
+      TodoPermission.EDITOR,
+      TodoPermission.ADMIN,
+      TodoPermission.MODERATOR,
+      TodoPermission.OWNER,
+    ].includes(this.userPermission())
+  );
+
+  canEditSubtask(_subtask: Subtask): boolean {
+    if (this.userPermission() === TodoPermission.VIEWER) return false;
+    return true;
+  }
 
   listSubtasks = computed(() => {
     return FilteredListHelper.filterAndSort(this.taskSubtasks(), {
@@ -222,9 +241,26 @@ export class SubtasksViewComponent extends BaseListView {
       this.todo.set(reactiveTodo);
       this.todoId.set(reactiveTodo.id);
       this.projectTitle.set(reactiveTodo.title);
+      this.setUserPermission(reactiveTodo);
     } else {
       this.notifyService.showError("Todo not found.");
     }
+  }
+
+  private async setUserPermission(todo: Todo): Promise<void> {
+    const userId = this.userId;
+    if (todo.user_id === userId) {
+      this.userPermission.set(TodoPermission.OWNER);
+      return;
+    }
+    const token = this.jwtTokenService.getToken() || "";
+    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
+      todo.id,
+      todo.visibility || "private",
+      token
+    );
+    const role = assigneeRoles[userId] || "viewer";
+    this.userPermission.set(this.permissionService.fromStr(role));
   }
 
   // @ts-ignore
@@ -463,15 +499,17 @@ export class SubtasksViewComponent extends BaseListView {
         onToggle: () => this.toggleFilter(),
         isActive: this.showFilter(),
       },
-      newButton: {
-        onClick: () =>
-          this.router.navigate(["create_subtask"], {
-            relativeTo: this.route,
-            queryParams: { visibility: this.todo()?.visibility },
-          }),
-        label: "New Subtask",
-        icon: "add",
-      },
+      newButton: this.canCreateSubtask()
+        ? {
+            onClick: () =>
+              this.router.navigate(["create_subtask"], {
+                relativeTo: this.route,
+                queryParams: { visibility: this.todo()?.visibility },
+              }),
+            label: "New Subtask",
+            icon: "add",
+          }
+        : undefined,
       viewMode: {
         mode: this.viewMode(),
         pageKey: "subtasks",
@@ -576,6 +614,10 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   toggleSubtaskCompletion(subtask: Subtask) {
+    if (!this.canEditSubtask(subtask)) {
+      this.notifyService.showError("You don't have permission to change subtask status");
+      return;
+    }
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 
@@ -852,6 +894,10 @@ export class SubtasksViewComponent extends BaseListView {
 
   onSubtaskCommentAdd(event: { content: string; itemId: string }): void {
     if (!event.content.trim()) return;
+    if (this.userPermission() === TodoPermission.VIEWER) {
+      this.notifyService.showError("Viewers cannot add comments");
+      return;
+    }
     const subtask_id = event.itemId;
     this.commentService.createComment(event.content, { subtaskId: subtask_id }).subscribe({
       next: (comment) => {
@@ -897,6 +943,10 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskStatusToggle(payload: { item: Subtask; status: TaskStatus }): void {
+    if (!this.canEditSubtask(payload.item)) {
+      this.notifyService.showError("You don't have permission to change subtask status");
+      return;
+    }
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
 

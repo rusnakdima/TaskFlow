@@ -145,8 +145,32 @@ export class ManageItemPage implements OnInit {
     ].includes(this.userPermission())
   );
 
+  private updateFormFieldPermissions(): void {
+    const canEdit = this.canEditTodoFields();
+    const canManage = this.canManageAssignees();
+
+    const fieldsToToggle = ["title", "description", "priority", "start_date", "end_date"];
+    for (const field of fieldsToToggle) {
+      if (canEdit) {
+        this.form.get(field)?.enable();
+      } else {
+        this.form.get(field)?.disable();
+      }
+    }
+
+    if (canManage) {
+      this.form.get("visibility")?.enable();
+    } else {
+      this.form.get("visibility")?.disable();
+    }
+  }
+
   getCurrentUserId(): string {
     return this.authService.getValueByKey("id");
+  }
+
+  getCurrentProfileId(): string | null {
+    return this.jwtTokenService.getProfileId(this.jwtTokenService.getToken());
   }
 
   filteredCategories = computed(() => {
@@ -407,10 +431,10 @@ export class ManageItemPage implements OnInit {
       }
 
       if (item) {
-        this.applyItemToForm(item);
         if (config.type === "todo") {
           await this.loadAndSetUserPermission(item, visibility);
         }
+        this.applyItemToForm(item);
       }
     } catch (err) {
       this.notifyService.showError("Failed to load item");
@@ -419,20 +443,47 @@ export class ManageItemPage implements OnInit {
 
   private async loadAndSetUserPermission(item: any, visibility: string | undefined): Promise<void> {
     const userId = this.getCurrentUserId();
+    const profileId = this.getCurrentProfileId();
+    const token = this.jwtTokenService.getToken() || "";
+
+    console.log("=== DEBUG loadAndSetUserPermission ===");
+    console.log("userId from token:", userId);
+    console.log("profileId from token:", profileId);
+    console.log("item.user_id:", item.user_id);
+    console.log("item.assignees:", item.assignees);
+    console.log("item.assignee_roles:", item.assignee_roles);
+
     if (item.user_id === userId) {
+      console.log("User is OWNER");
       this.userPermission.set(TodoPermission.OWNER);
+      this.updateFormFieldPermissions();
       return;
     }
 
-    const token = this.jwtTokenService.getToken() || "";
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       item.id,
       visibility || "private",
       token
     );
+
+    console.log("assigneeRoles from API:", assigneeRoles);
+    console.log("Looking up userId:", userId, "result:", assigneeRoles[userId]);
+    console.log(
+      "Looking up profileId:",
+      profileId,
+      "result:",
+      profileId ? assigneeRoles[profileId] : null
+    );
+
+    // assignee_roles keys are user_ids from backend
     this.assigneeRoles.set(assigneeRoles);
-    const role = assigneeRoles[userId] || "viewer";
+    const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
+    console.log("Final role:", role);
+
     this.userPermission.set(this.permissionService.fromStr(role));
+    this.updateFormFieldPermissions();
+    console.log("userPermission set to:", this.userPermission());
+    console.log("=== END DEBUG ===");
   }
 
   private applyItemToForm(item: any): void {
@@ -461,6 +512,19 @@ export class ManageItemPage implements OnInit {
         : [];
       this.form.patchValue({ assignees: assigneeIds });
       this.selectedAssigneeIds.set(new Set(assigneeIds.filter((id: string) => id)));
+
+      if (item.assignee_roles) {
+        const newRoles: Record<string, string> = {};
+        for (const assigneeId of assigneeIds) {
+          const profile = this.assignees().find((p) => p.id === assigneeId);
+          if (profile && profile.user_id) {
+            newRoles[profile.user_id] = item.assignee_roles[assigneeId] || "viewer";
+          } else {
+            newRoles[assigneeId] = item.assignee_roles[assigneeId] || "viewer";
+          }
+        }
+        this.assigneeRoles.set(newRoles);
+      }
     }
 
     if (item.visibility && !this.form.get("visibility")?.value) {

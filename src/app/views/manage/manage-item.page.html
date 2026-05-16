@@ -37,12 +37,7 @@
       <div class="grid grid-cols-1 gap-6">
         <mat-form-field class="w-full">
           <mat-label>Title</mat-label>
-          <input
-            matInput
-            formControlName="title"
-            placeholder="Enter a descriptive title"
-            [disabled]="!canEditTodoFields()"
-          />
+          <input matInput formControlName="title" placeholder="Enter a descriptive title" />
           @if (form.get("title")?.invalid && form.get("title")?.touched) {
             <mat-error>Title is required</mat-error>
           }
@@ -55,7 +50,6 @@
             formControlName="description"
             placeholder="Describe what this {{ itemType() }} is about"
             rows="4"
-            [disabled]="!canEditTodoFields()"
           ></textarea>
         </mat-form-field>
 
@@ -268,11 +262,7 @@
       </div>
 
       <div class="space-y-2">
-        <mat-radio-group
-          formControlName="visibility"
-          class="space-y-3"
-          [disabled]="!canManageAssignees()"
-        >
+        <mat-radio-group formControlName="visibility" class="space-y-3">
           <mat-radio-button
             value="private"
             class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"

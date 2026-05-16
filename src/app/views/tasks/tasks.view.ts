@@ -215,18 +215,44 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   private async setUserPermission(todo: Todo): Promise<void> {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
+    const profileId =
+      this.jwtTokenService.getProfileId(this.jwtTokenService.getToken() || "") || "";
+    const token = this.jwtTokenService.getToken() || "";
+
+    console.log("=== DEBUG setUserPermission ===");
+    console.log("userId from token:", userId);
+    console.log("profileId from token:", profileId);
+    console.log("todo.user_id:", todo.user_id);
+    console.log("todo.assignees:", todo.assignees);
+    console.log("(todo as any).assignee_roles:", (todo as any).assignee_roles);
+
     if (todo.user_id === userId) {
+      console.log("User is OWNER");
       this.userPermission.set(TodoPermission.OWNER);
       return;
     }
-    const token = this.jwtTokenService.getToken() || "";
+
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       todo.id,
       todo.visibility || "private",
       token
     );
-    const role = assigneeRoles[userId] || "viewer";
+
+    console.log("assigneeRoles from API:", assigneeRoles);
+    console.log("Looking up userId:", userId, "result:", assigneeRoles[userId]);
+    console.log(
+      "Looking up profileId:",
+      profileId,
+      "result:",
+      profileId ? assigneeRoles[profileId] : null
+    );
+
+    const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
+    console.log("Final role:", role);
+
     this.userPermission.set(this.permissionService.fromStr(role));
+    console.log("userPermission set to:", this.userPermission());
+    console.log("=== END DEBUG ===");
   }
 
   taskPagination = signal<{
@@ -437,11 +463,19 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   cycleStatus(task: Task) {
+    if (!this.canEditTask(task)) {
+      this.notifyService.showError("You don't have permission to change task status");
+      return;
+    }
     this.toggleTaskCompletion(task);
   }
 
   onTaskStatusToggle(payload: { item: Task; status: TaskStatus }): void {
     const task = payload.item;
+    if (!this.canEditTask(task)) {
+      this.notifyService.showError("You don't have permission to change task status");
+      return;
+    }
     const status = payload.status;
     const todo = this.todo();
     if (!todo) return;
@@ -694,6 +728,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskCommentAdd(event: { content: string; itemId: string }): void {
+    if (this.userPermission() === TodoPermission.VIEWER) {
+      this.notifyService.showError("Viewers cannot add comments");
+      return;
+    }
     this.commentsHelper.onTaskCommentAdd(event);
   }
 
@@ -707,6 +745,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskSubtaskCommentAdd(event: { content: string; subtask_id: string; itemId: string }): void {
+    if (this.userPermission() === TodoPermission.VIEWER) {
+      this.notifyService.showError("Viewers cannot add comments");
+      return;
+    }
     this.commentsHelper.onTaskSubtaskCommentAdd(event);
   }
 
