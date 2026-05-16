@@ -423,7 +423,7 @@
       </div>
     }
 
-    @if (showPermissionsSection() && itemType() === "todo") {
+    @if (showPermissionsSection()) {
       <div
         class="rounded-xl border border-purple-200 bg-purple-50/30 p-6 shadow-lg dark:border-purple-700 dark:bg-purple-900/10"
       >
@@ -479,16 +479,87 @@
                   </div>
                 }
               </div>
-              <select
-                [value]="assigneeRoles()[profileId] || 'viewer'"
-                (change)="setAssigneeRole(profileId, $any($event.target).value)"
-                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
-              >
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-                <option value="admin">Admin</option>
-                <option value="moderator">Moderator</option>
-              </select>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
+                  [matMenuTriggerFor]="roleMenu"
+                >
+                  <mat-icon
+                    class="h-4! w-4! min-w-4 text-base!"
+                    [fontIcon]="getRoleIcon(assigneeRoles()[profileId] || 'viewer')"
+                  />
+                  <span>{{ getRoleLabel(assigneeRoles()[profileId] || "viewer") }}</span>
+                  <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+                </button>
+                <mat-menu
+                  #roleMenu="matMenu"
+                  class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+                >
+                  <button
+                    mat-menu-item
+                    (click)="setAssigneeRole(profileId, 'viewer')"
+                    class="flex w-full items-center gap-3"
+                    [class.badge-accent]="assigneeRoles()[profileId] === 'viewer'"
+                  >
+                    <mat-icon
+                      class="size-5! min-w-5 text-xl!"
+                      [class.text-black]="assigneeRoles()[profileId] === 'viewer'"
+                      [class.dark:text-white]="assigneeRoles()[profileId] === 'viewer'"
+                      [class.text-gray-400]="assigneeRoles()[profileId] !== 'viewer'"
+                      fontIcon="visibility"
+                    />
+                    <span [class.font-bold]="assigneeRoles()[profileId] === 'viewer'">Viewer</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="setAssigneeRole(profileId, 'editor')"
+                    class="flex w-full items-center gap-3"
+                    [class.badge-accent]="assigneeRoles()[profileId] === 'editor'"
+                  >
+                    <mat-icon
+                      class="size-5! min-w-5 text-xl!"
+                      [class.text-black]="assigneeRoles()[profileId] === 'editor'"
+                      [class.dark:text-white]="assigneeRoles()[profileId] === 'editor'"
+                      [class.text-gray-400]="assigneeRoles()[profileId] !== 'editor'"
+                      fontIcon="edit"
+                    />
+                    <span [class.font-bold]="assigneeRoles()[profileId] === 'editor'">Editor</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="setAssigneeRole(profileId, 'admin')"
+                    class="flex w-full items-center gap-3"
+                    [class.badge-accent]="assigneeRoles()[profileId] === 'admin'"
+                  >
+                    <mat-icon
+                      class="size-5! min-w-5 text-xl!"
+                      [class.text-black]="assigneeRoles()[profileId] === 'admin'"
+                      [class.dark:text-white]="assigneeRoles()[profileId] === 'admin'"
+                      [class.text-gray-400]="assigneeRoles()[profileId] !== 'admin'"
+                      fontIcon="admin_panel_settings"
+                    />
+                    <span [class.font-bold]="assigneeRoles()[profileId] === 'admin'">Admin</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="setAssigneeRole(profileId, 'moderator')"
+                    class="flex w-full items-center gap-3"
+                    [class.badge-accent]="assigneeRoles()[profileId] === 'moderator'"
+                  >
+                    <mat-icon
+                      class="size-5! min-w-5 text-xl!"
+                      [class.text-black]="assigneeRoles()[profileId] === 'moderator'"
+                      [class.dark:text-white]="assigneeRoles()[profileId] === 'moderator'"
+                      [class.text-gray-400]="assigneeRoles()[profileId] !== 'moderator'"
+                      fontIcon="security"
+                    />
+                    <span [class.font-bold]="assigneeRoles()[profileId] === 'moderator'"
+                      >Moderator</span
+                    >
+                  </button>
+                </mat-menu>
+              </div>
             </div>
           }
           @if (selectedAssigneeIds().size === 0) {
@@ -652,6 +723,7 @@
 <app-transfer-ownership-dialog
   [show]="showTransferOwnershipDialog()"
   [currentOwnerId]="getCurrentUserId()"
+  [availableProfiles]="assignees()"
   (confirm)="onTransferOwnershipConfirm($event)"
   (cancel)="onTransferOwnershipCancel()"
 />
