@@ -205,11 +205,91 @@ impl RepositoryService {
   }
 
   fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
-    Self::merge_immutable_fields(existing, validated);
+    if let (Some(existing_obj), Some(validated_obj)) = (existing.as_object(), validated.as_object())
+    {
+      let mut merged = validated_obj.clone();
+      for (k, v) in existing_obj {
+        if k == "id" || k == "created_at" || k == "created_by" || k == "user_id" {
+          merged.insert(k.clone(), v.clone());
+        }
+      }
+      *validated = serde_json::to_value(merged).unwrap_or_else(|_| validated.clone());
+    }
   }
 
   fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
     crate::helpers::common::filter_deleted(docs)
+  }
+
+  async fn fix_todo_counts_if_needed(
+    &self,
+    mut docs: Vec<Value>,
+    provider: &DataProvider,
+  ) -> Result<Vec<Value>, ResponseModel> {
+    let todo_ids: Vec<String> = docs
+      .iter()
+      .filter_map(|doc| {
+        doc
+          .get("id")
+          .and_then(|v| v.as_str())
+          .map(|s| s.to_string())
+      })
+      .collect();
+
+    if todo_ids.is_empty() {
+      return Ok(docs);
+    }
+
+    let ids_value: Vec<Value> = todo_ids
+      .iter()
+      .map(|s| serde_json::Value::String(s.clone()))
+      .collect();
+    let filter = Filter::In("id".to_string(), ids_value);
+
+    for todo_id in &todo_ids {
+      let count_service = self.count_service.as_ref();
+      let _ = match provider {
+        DataProvider::Json(ap) => {
+          count_service
+            .refresh_todo_counts(todo_id, ap.as_ref(), true)
+            .await
+        }
+        DataProvider::Mongo(ap) => {
+          count_service
+            .refresh_todo_counts(todo_id, ap.as_ref(), false)
+            .await
+        }
+      };
+    }
+
+    let refreshed = match provider {
+      DataProvider::Json(p) => {
+        p.find_many("todos", Some(&filter), None, None, None, true)
+          .await?
+      }
+      DataProvider::Mongo(p) => {
+        p.find_many("todos", Some(&filter), None, None, None, true)
+          .await?
+      }
+    };
+
+    let refreshed_map: std::collections::HashMap<String, Value> = refreshed
+      .into_iter()
+      .filter_map(|d| {
+        let id = d.get("id").and_then(|v| v.as_str())?.to_string();
+        Some((id, d))
+      })
+      .collect();
+
+    for doc in docs.iter_mut() {
+      if let Some(id) = doc.get("id").and_then(|v| v.as_str()).to_owned() {
+        if let Some(new_doc) = refreshed_map.get(&id.to_string()) {
+          *doc = new_doc.clone();
+        }
+      }
+    }
+
+    Ok(docs)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -361,6 +441,12 @@ impl RepositoryService {
       strip_relation_fields(docs, &table)
     };
 
+    let docs = if table == "todos" {
+      self.fix_todo_counts_if_needed(docs, &provider).await?
+    } else {
+      docs
+    };
+
     let docs = if used_json_fallback || use_json {
       docs
     } else {
@@ -431,6 +517,12 @@ impl RepositoryService {
       }
     } else {
       strip_relation_fields(docs, &table)
+    };
+
+    let docs = if table == "todos" {
+      self.fix_todo_counts_if_needed(docs, &provider).await?
+    } else {
+      docs
     };
 
     let projected = self.apply_projection_recursive(docs);

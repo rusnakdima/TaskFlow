@@ -1,12 +1,11 @@
 /* sys lib */
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::sync::Arc;
 
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use nosql_orm::query::Filter;
 
 /* helpers */
 

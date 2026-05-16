@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 use crate::helpers::response_helper::err_response;
@@ -277,8 +277,6 @@ impl ManageDbService {
     offline: bool,
     visibility: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    use nosql_orm::query::Filter;
-
     let start_of_month = format!("{:04}-{:02}-01", year, month);
     let end_of_month = if month == 12 {
       format!("{:04}-01-01", year + 1)
