@@ -366,8 +366,10 @@ pub trait CrudOperations<T>: Send + Sync {
         self.before_delete(&existing)?;
 
         if soft {
-            let soft_delete_data = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
-            let _ = provider.update(self.table_name(), id, soft_delete_data).await;
+            use nosql_orm::cascade::CascadeManager;
+            let cascade = CascadeManager::new(provider.clone());
+            cascade.soft_delete(self.table_name(), id).await
+                .map_err(|e| err_response_formatted("Soft delete failed", &e.to_string()))?;
         } else {
             let _ = provider.delete(self.table_name(), id).await;
         }

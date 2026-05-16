@@ -1,13 +1,11 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
 use std::sync::Arc;
-use uuid::Uuid;
 
 /* providers */
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-use nosql_orm::query::Filter;
 
 /* services */
 use super::auth_token::AuthTokenService;
@@ -55,10 +53,13 @@ impl AuthRegisterService {
     let password = signup_data.password;
 
     let table_name = TableModelType::User.table_name();
-    let filter = Filter::Or(vec![
-      Filter::Eq("email".to_string(), serde_json::json!(email)),
-      Filter::Eq("username".to_string(), serde_json::json!(username)),
-    ]);
+    let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({
+        "$or": [
+            { "email": email },
+            { "username": username }
+        ]
+    }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
     let existing = self
       .json_provider
@@ -74,8 +75,8 @@ impl AuthRegisterService {
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
 
     let now = get_current_datetime();
-    let user_id = Uuid::new_v4().to_string();
-    let profile_id = Uuid::new_v4().to_string();
+    let user_id = nosql_orm::utils::generate_id();
+    let profile_id = nosql_orm::utils::generate_id();
 
     let new_profile = ProfileEntity {
       id: Some(profile_id.clone()),

@@ -12,6 +12,9 @@ use crate::entities::{
   statistics_entity::StatisticsResponseModel,
 };
 
+/* helpers */
+use crate::helpers::response_helper::err_response;
+
 /* statistics modules */
 use crate::services::statistics::{
   category_statistics::CategoryStatistics, chart_generator::ChartGenerator,
@@ -50,7 +53,8 @@ impl StatisticsService {
       .get_daily_activities_filtered(&user_id, &prev_start_naive, &prev_end_naive)
       .await;
 
-    let todos_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let todos_filter = Filter::from_json(&json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
     let todos: Vec<Value> = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
@@ -119,7 +123,8 @@ impl StatisticsService {
       .cloned()
       .collect();
 
-    let user_id_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let user_id_filter = Filter::from_json(&json!({ "user_id": user_id }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
     let categories: Vec<Value> = self
       .json_provider
       .find_many("categories", Some(&user_id_filter), None, None, None, true)
@@ -179,17 +184,27 @@ impl StatisticsService {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    let filter_snake = Filter::And(vec![
-      Filter::Eq("user_id".to_string(), json!(user_id)),
-      Filter::Gte("date".to_string(), json!(start_str.clone())),
-      Filter::Lte("date".to_string(), json!(end_str.clone())),
-    ]);
+    let filter_snake = match Filter::from_json(&serde_json::json!({
+      "user_id": user_id,
+      "date": { "$gte": start_str.clone(), "$lte": end_str.clone() }
+    })) {
+      Ok(f) => f,
+      Err(e) => {
+        err_response(&format!("Filter error: {}", e));
+        return vec![];
+      }
+    };
 
-    let filter_camel = Filter::And(vec![
-      Filter::Eq("userId".to_string(), json!(user_id)),
-      Filter::Gte("date".to_string(), json!(end_str)),
-      Filter::Lte("date".to_string(), json!(end_str)),
-    ]);
+    let filter_camel = match Filter::from_json(&serde_json::json!({
+      "userId": user_id,
+      "date": { "$gte": end_str, "$lte": end_str }
+    })) {
+      Ok(f) => f,
+      Err(e) => {
+        err_response(&format!("Filter error: {}", e));
+        return vec![];
+      }
+    };
 
     let docs: Vec<Value> = self
       .json_provider

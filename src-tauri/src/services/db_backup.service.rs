@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 
 use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
 use crate::helpers::common::filter_deleted;
+use crate::helpers::response_helper::err_response;
 
 pub struct DbBackupService {
   json_provider: JsonProvider,
@@ -123,7 +124,13 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let filter = Filter::Eq(field.to_string(), json!(user_id));
+    let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
+      Ok(f) => f,
+      Err(e) => {
+        err_response(&format!("Filter error: {}", e));
+        return 0;
+      }
+    };
     match mongo
       .find_many(table, Some(&filter), None, None, None, true)
       .await
@@ -154,7 +161,14 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let user_filter =
+      match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
+        Ok(f) => f,
+        Err(e) => {
+          err_response(&format!("Filter error: {}", e));
+          return 0;
+        }
+      };
     let mut count = 0;
 
     if let Ok(parents) = mongo
@@ -168,7 +182,15 @@ impl DbBackupService {
         .collect();
 
       for parent_id in parent_ids {
-        let filter = Filter::Eq(parent_field.to_string(), json!(parent_id));
+        let filter = match nosql_orm::query::Filter::from_json(
+          &serde_json::json!({ parent_field: parent_id }),
+        ) {
+          Ok(f) => f,
+          Err(e) => {
+            err_response(&format!("Filter error: {}", e));
+            continue;
+          }
+        };
         if let Ok(items) = mongo
           .find_many(child_table, Some(&filter), None, None, None, true)
           .await
@@ -257,7 +279,13 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let filter = Filter::Eq(field.to_string(), json!(user_id));
+    let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
+      Ok(f) => f,
+      Err(e) => {
+        err_response(&format!("Filter error: {}", e));
+        return 0;
+      }
+    };
     match self
       .json_provider
       .find_many(table, Some(&filter), None, None, None, true)
@@ -289,7 +317,14 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let user_filter =
+      match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
+        Ok(f) => f,
+        Err(e) => {
+          err_response(&format!("Filter error: {}", e));
+          return 0;
+        }
+      };
     let mut count = 0;
 
     if let Ok(parents) = self
@@ -304,7 +339,15 @@ impl DbBackupService {
         .collect();
 
       for parent_id in parent_ids {
-        let filter = Filter::Eq(parent_field.to_string(), json!(parent_id));
+        let filter = match nosql_orm::query::Filter::from_json(
+          &serde_json::json!({ parent_field: parent_id }),
+        ) {
+          Ok(f) => f,
+          Err(e) => {
+            err_response(&format!("Filter error: {}", e));
+            continue;
+          }
+        };
         if let Ok(items) = self
           .json_provider
           .find_many(child_table, Some(&filter), None, None, None, true)
@@ -331,7 +374,14 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let user_filter =
+      match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
+        Ok(f) => f,
+        Err(e) => {
+          err_response(&format!("Filter error: {}", e));
+          return 0;
+        }
+      };
     let mut count = 0;
 
     if let Ok(parents) = mongo
@@ -370,7 +420,14 @@ impl DbBackupService {
   ) -> usize {
     use nosql_orm::prelude::Filter;
 
-    let user_filter = Filter::Eq("user_id".to_string(), json!(user_id));
+    let user_filter =
+      match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
+        Ok(f) => f,
+        Err(e) => {
+          err_response(&format!("Filter error: {}", e));
+          return 0;
+        }
+      };
     let mut count = 0;
 
     if let Ok(parents) = self

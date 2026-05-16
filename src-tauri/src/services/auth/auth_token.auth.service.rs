@@ -6,6 +6,7 @@ use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
+use nosql_orm::repository::Repository;
 
 /* models */
 use crate::entities::{
@@ -209,6 +210,7 @@ impl AuthTokenService {
   }
 
   /// Sync user data to MongoDB (non-blocking, best effort)
+  /// Compares JSON and Mongo versions, syncs newer data to cloud
   async fn sync_user_to_cloud(&self, user_val: serde_json::Value) -> Result<(), ()> {
     let mongo = match &self.mongodb_provider {
       Some(provider) => provider,
@@ -222,7 +224,37 @@ impl AuthTokenService {
       .to_owned();
 
     let table_name = TableModelType::User.table_name();
-    let _ = mongo.update(table_name, &user_id, user_val).await;
+
+    let mongo_user = mongo.find_by_id(table_name, &user_id).await.ok().flatten();
+
+    let should_sync = if let Some(mongo_val) = mongo_user {
+      let json_updated = user_val
+        .get("updated_at")
+        .or_else(|| user_val.get("created_at"))
+        .and_then(|v| v.as_str());
+      let mongo_updated = mongo_val
+        .get("updated_at")
+        .or_else(|| mongo_val.get("created_at"))
+        .and_then(|v| v.as_str());
+
+      match (json_updated, mongo_updated) {
+        (Some(j), Some(m)) => j > m,
+        (Some(_), None) => true,
+        _ => false,
+      }
+    } else {
+      true
+    };
+
+    if should_sync {
+      let user_repo = Repository::<UserEntity, MongoProvider>::new(mongo.as_ref().clone());
+      if let Ok(user) = serde_json::from_value(user_val.clone()) {
+        let _ = user_repo.update(user).await.map_err(|e| {
+          let _ = format!("Cloud sync failed: {}", e);
+        });
+      }
+    }
+
     Ok(())
   }
 }
