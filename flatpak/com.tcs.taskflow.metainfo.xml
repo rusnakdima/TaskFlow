@@ -73,6 +73,38 @@
   </provides>
 
   <releases>
+    <release version="0.16.0" date="2026-05-17">
+      <description>
+        <p>Release version 0.16.0 with new permission service, theme system, enhanced components, and code quality improvements.</p>
+
+        <p>
+          <strong>New Features &amp; Components:</strong>
+        </p>
+        <ul>
+          <li>Permission service with permission checks for task edit/delete actions</li>
+          <li>Profile selector, pull-to-refresh, and transfer-ownership-dialog components</li>
+          <li>Theme model and service for application theming</li>
+          <li>New reusable components: checkbox-label, kanban-card-base, modal-dialog, progress-compute, section-select-all</li>
+        </ul>
+
+        <p>
+          <strong>Backend Improvements:</strong>
+        </p>
+        <ul>
+          <li>Enhanced cascade service with improved deletion logic</li>
+          <li>Improved database route and repository service</li>
+          <li>Removed base_repository service for streamlined structure</li>
+        </ul>
+
+        <p>
+          <strong>Code Quality:</strong>
+        </p>
+        <ul>
+          <li>Comprehensive Prettier and Rustfmt formatting across entire codebase</li>
+          <li>Updated Cargo dependencies</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.2" date="2026-05-11">
       <description>
         <p>Release version 0.15.2</p>
