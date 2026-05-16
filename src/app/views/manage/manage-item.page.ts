@@ -35,6 +35,7 @@ import { ApiService } from "@services/api.service";
 import { DateHelper } from "@helpers/date.helper";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
 
 type ItemType = "todo" | "task" | "subtask";
 
@@ -70,6 +71,7 @@ interface FormConfig {
     MatMenuModule,
     MatDividerModule,
     CheckboxComponent,
+    TransferOwnershipDialogComponent,
   ],
   templateUrl: "./manage-item.page.html",
 })
@@ -113,6 +115,11 @@ export class ManageItemPage implements OnInit {
   selectedAssigneeIds = signal<Set<string>>(new Set());
   assigneeRoles = signal<Record<string, string>>({});
   showPermissionsSection = signal(false);
+  showTransferOwnershipDialog = signal(false);
+
+  getCurrentUserId(): string {
+    return this.authService.getValueByKey("id");
+  }
 
   filteredCategories = computed(() => {
     const query = this.categorySearchQuery().toLowerCase();
@@ -550,6 +557,7 @@ export class ManageItemPage implements OnInit {
           ...base,
           categories: formValue.categories || [],
           assignees: formValue.assignees || [],
+          assignee_roles: this.assigneeRoles(),
           github_repo_id: formValue.github_repo_id || "",
           github_repo_name: this.getRepoName(formValue.github_repo_id),
         },
@@ -588,7 +596,7 @@ export class ManageItemPage implements OnInit {
     fromVisibility: string,
     toVisibility: string
   ): Promise<void> {
-    if (fromVisibility === toVisibility || toVisibility === "private") {
+    if (fromVisibility === toVisibility) {
       return;
     }
 
@@ -596,11 +604,25 @@ export class ManageItemPage implements OnInit {
       const source = fromVisibility === "private" ? "Json" : "Mongo";
       const target = toVisibility === "private" ? "Json" : "Mongo";
 
+      let deleteFromSource = false;
+      if (
+        fromVisibility === "private" &&
+        (toVisibility === "shared" || toVisibility === "public")
+      ) {
+        deleteFromSource = true;
+      } else if (
+        (fromVisibility === "shared" || fromVisibility === "public") &&
+        toVisibility === "private"
+      ) {
+        deleteFromSource = false;
+      }
+
       await firstValueFrom(
         this.requestService.invokeCommand("sync_visibility_to_provider", {
           todo_id: todoId,
           source_provider: source,
           target_provider: target,
+          delete_from_source: deleteFromSource,
         })
       );
 
@@ -676,8 +698,14 @@ export class ManageItemPage implements OnInit {
     const selected = new Set(this.selectedAssigneeIds());
     if (selected.has(assigneeId)) {
       selected.delete(assigneeId);
+      this.assigneeRoles.update((roles) => {
+        const newRoles = { ...roles };
+        delete newRoles[assigneeId];
+        return newRoles;
+      });
     } else {
       selected.add(assigneeId);
+      this.assigneeRoles.update((roles) => ({ ...roles, [assigneeId]: "viewer" }));
     }
     this.selectedAssigneeIds.set(selected);
     this.form.patchValue({ assignees: Array.from(selected) });
@@ -712,11 +740,13 @@ export class ManageItemPage implements OnInit {
     if (!todoId) return;
 
     const visibility = this.form.get("visibility")?.value || "private";
+    const token = this.jwtTokenService.getToken();
     this.requestService
       .invokeCommand("update_todo_permissions", {
         todo_id: todoId,
         assignee_roles: this.assigneeRoles(),
         visibility,
+        token,
       })
       .subscribe({
         next: () => {
@@ -729,26 +759,36 @@ export class ManageItemPage implements OnInit {
   }
 
   onTransferOwnership(): void {
+    this.showTransferOwnershipDialog.set(true);
+  }
+
+  onTransferOwnershipConfirm(newOwnerId: string): void {
     const todoId = this.form.get("id")?.value || this.form.get("_id")?.value;
-    const newOwnerId = prompt("Enter the user ID of the new owner:");
     if (!newOwnerId || !todoId) return;
 
     const visibility = this.form.get("visibility")?.value || "private";
+    const token = this.jwtTokenService.getToken();
     this.requestService
       .invokeCommand("transfer_todo_ownership", {
         todo_id: todoId,
         new_user_id: newOwnerId,
         visibility,
+        token,
       })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Ownership transferred successfully");
+          this.showTransferOwnershipDialog.set(false);
           this.location.back();
         },
         error: (err: Error) => {
           this.notifyService.showError(err.message || "Failed to transfer ownership");
         },
       });
+  }
+
+  onTransferOwnershipCancel(): void {
+    this.showTransferOwnershipDialog.set(false);
   }
 
   loadAssigneeRoles(item: any): void {

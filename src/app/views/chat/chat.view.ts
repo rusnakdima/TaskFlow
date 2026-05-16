@@ -7,6 +7,10 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* components */
 import { ChatWindowComponent } from "@components/chat-window/chat-window.component";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 /* models */
 import { Chat } from "@models/generated/api.types";
@@ -14,18 +18,31 @@ import { Chat } from "@models/generated/api.types";
 /* services */
 import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 @Component({
   selector: "app-chat",
   standalone: true,
-  imports: [CommonModule, MatIconModule, ChatWindowComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    ChatWindowComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
+  ],
   templateUrl: "./chat.view.html",
 })
 export class ChatView implements OnInit {
   private requestService = inject(ApiService);
   private storageService = inject(StorageService);
   private destroyRef = inject(DestroyRef);
+  private syncService = inject(UnifiedSyncService);
+  private shortcutService = inject(ShortcutService);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   chats = computed(() => this.storageService.chats());
   isLoading = signal(false);
@@ -33,6 +50,18 @@ export class ChatView implements OnInit {
 
   ngOnInit(): void {
     this.loadChats();
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   private loadChats(): void {

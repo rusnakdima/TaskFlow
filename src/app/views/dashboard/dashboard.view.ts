@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, inject, computed } from "@angular/core";
+import { Component, OnInit, inject, computed, signal, DestroyRef } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
@@ -11,10 +11,16 @@ import { TaskStatus } from "@models/generated/api.types";
 
 /* services */
 import { StorageService } from "@services/storage.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+import { ShortcutService } from "@services/ui/shortcut.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
 import { getLatestTimestamp, compareByTimestamp } from "@helpers/array.helper";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 interface DisplayTask {
   id: string;
@@ -32,7 +38,13 @@ interface DisplayTask {
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
+  ],
   templateUrl: "./dashboard.view.html",
 })
 export class DashboardView implements OnInit {
@@ -40,6 +52,12 @@ export class DashboardView implements OnInit {
 
   private storageService = inject(StorageService);
   private router = inject(Router);
+  private syncService = inject(UnifiedSyncService);
+  private shortcutService = inject(ShortcutService);
+  private destroyRef = inject(DestroyRef);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   profile = computed(() => this.storageService.profile());
 
@@ -112,6 +130,18 @@ export class DashboardView implements OnInit {
     this.storageService.ensureUserLoaded();
     this.storageService.ensureProfileLoaded();
     this.storageService.ensureTasksLoaded();
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   getCircleColor(status: TaskStatus): string {

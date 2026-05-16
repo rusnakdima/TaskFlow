@@ -12,6 +12,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { Task, TaskStatus } from "@models/generated/api.types";
 
 /* services */
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
 /* helpers */
 import { CalendarEvent, CalendarDay } from "@helpers/date.helper";
@@ -25,6 +26,10 @@ import {
   SegmentSelectorComponent,
   SegmentOption,
 } from "@components/segment-selector/segment-selector.component";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 @Component({
   selector: "app-calendar",
@@ -36,11 +41,17 @@ import {
     MatDatepickerModule,
     MatNativeDateModule,
     SegmentSelectorComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
   ],
   templateUrl: "./calendar.view.html",
 })
 export class CalendarView extends BaseListView implements OnInit {
   private router = inject(Router);
+  private syncService = inject(UnifiedSyncService);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   protected getItems(): { id: string }[] {
     return [];
@@ -77,6 +88,18 @@ export class CalendarView extends BaseListView implements OnInit {
     this.storageService.ensureTasksLoaded("private", 10);
     this.storageService.ensureTasksLoaded("shared", 10);
     this.storageService.ensureTasksLoaded("public", 10);
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.subscriptions.add(refreshSub);
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   private buildEventsFromTasks(tasks: Task[]): CalendarEvent[] {

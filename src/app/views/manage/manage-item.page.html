@@ -443,11 +443,7 @@
             </div>
           </div>
           @if (isOwner()) {
-            <button
-              type="button"
-              (click)="onTransferOwnership()"
-              class="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
-            >
+            <button type="button" (click)="onTransferOwnership()" class="btn-accent">
               Transfer Ownership
             </button>
           }
@@ -491,6 +487,7 @@
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
                 <option value="admin">Admin</option>
+                <option value="moderator">Moderator</option>
               </select>
             </div>
           }
@@ -500,15 +497,6 @@
             </div>
           }
         </div>
-
-        <button
-          type="button"
-          (click)="savePermissions()"
-          [disabled]="selectedAssigneeIds().size === 0"
-          class="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-zinc-600"
-        >
-          Save Permissions
-        </button>
       </div>
     }
 
@@ -660,3 +648,10 @@
     </div>
   </form>
 </div>
+
+<app-transfer-ownership-dialog
+  [show]="showTransferOwnershipDialog()"
+  [currentOwnerId]="getCurrentUserId()"
+  (confirm)="onTransferOwnershipConfirm($event)"
+  (cancel)="onTransferOwnershipCancel()"
+/>

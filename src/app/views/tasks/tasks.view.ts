@@ -32,6 +32,7 @@ import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { Visibility } from "@services/api.service";
 import { ApiService } from "@services/api.service";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -64,6 +65,10 @@ import { LoadingStateComponent } from "@components/loading-state/loading-state.c
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
 
 @Component({
   selector: "app-tasks",
@@ -86,6 +91,8 @@ import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-tas
     LoadingStateComponent,
     ItemCardComponent,
     KanbanTaskCardComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
   ],
   templateUrl: "./tasks.view.html",
 })
@@ -107,6 +114,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   filtersHelper = inject(TasksFiltersHelper);
   actionsHelper = inject(TasksActionsHelper);
   commentsHelper = inject(TasksCommentsHelper);
+  private syncService = inject(UnifiedSyncService);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   protected get selectedTasks() {
     return this.selectedItems;
@@ -360,6 +371,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       this.toggleFilter();
     });
     this.subscriptions.add(filterSub);
+
+    const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
+    });
+    this.subscriptions.add(refreshSub);
+  }
+
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
   }
 
   toggleTaskCompletion(task: Task): void {

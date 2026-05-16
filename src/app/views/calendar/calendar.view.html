@@ -1,4 +1,11 @@
-<div class="flex flex-col gap-6">
+<div
+  class="flex flex-col gap-6"
+  appPullToRefresh
+  [pullToRefreshHandler]="onPullToRefresh.bind(this)"
+  (stateChange)="refreshState.set($event)"
+  (distanceChange)="refreshDistance.set($event)"
+>
+  <app-pull-to-refresh-indicator [state]="refreshState" [pullDistance]="refreshDistance" />
   <div class="flex items-center justify-between">
     <app-segment-selector
       [options]="displayModeOptions"

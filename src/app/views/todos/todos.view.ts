@@ -48,6 +48,11 @@ import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blu
 
 import { TodosListComponent } from "@components/todos/todos-list/todos-list.component";
 import { TodosStateService } from "@components/todos/todos-filters/todos-state.service";
+import {
+  PullToRefreshDirective,
+  PullToRefreshIndicatorComponent,
+} from "@components/pull-to-refresh";
+import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
 @Component({
   selector: "app-todos",
@@ -67,6 +72,8 @@ import { TodosStateService } from "@components/todos/todos-filters/todos-state.s
     BlueprintSelectionDialogComponent,
     BlueprintApplyDialogComponent,
     TodosListComponent,
+    PullToRefreshDirective,
+    PullToRefreshIndicatorComponent,
   ],
   templateUrl: "./todos.view.html",
 })
@@ -99,6 +106,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private bulkActionHelper = inject(BulkActionHelper);
 
   stateService = inject(TodosStateService);
+  private syncService = inject(UnifiedSyncService);
+
+  refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
+  refreshDistance = signal(0);
 
   protected getItems(): { id: string }[] {
     return this.stateService.listTodos();
@@ -264,6 +275,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.storageService.ensureTodosLoaded(visibility);
   }
 
+  onPullToRefresh(): Promise<void> {
+    return this.syncService.syncAll() as unknown as Promise<void>;
+  }
+
   override ngOnInit(): void {
     super.ngOnInit();
 
@@ -294,6 +309,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      this.refreshState.set("refreshing");
+      this.syncService.refreshLocal().finally(() => {
+        this.refreshState.set("idle");
+      });
       if (this.storageService.todos().length === 0) {
         this.loadInitialTodos();
       }

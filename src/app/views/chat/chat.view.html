@@ -1,4 +1,11 @@
-<div class="flex h-screen w-full flex-col overflow-hidden bg-white pb-20 dark:bg-zinc-900">
+<div
+  class="flex h-screen w-full flex-col overflow-hidden bg-white pb-20 dark:bg-zinc-900"
+  appPullToRefresh
+  [pullToRefreshHandler]="onPullToRefresh.bind(this)"
+  (stateChange)="refreshState.set($event)"
+  (distanceChange)="refreshDistance.set($event)"
+>
+  <app-pull-to-refresh-indicator [state]="refreshState" [pullDistance]="refreshDistance" />
   <app-chat-window
     [chats]="chats()"
     (messageSent)="onMessageSent($event)"

@@ -269,6 +269,63 @@ export class UnifiedSyncService implements OnDestroy {
     });
   }
 
+  async refreshLocal<R>(): Promise<Response<R>> {
+    this.setSyncing(true);
+    this.updateProgress({
+      currentStep: "refresh",
+      progress: 10,
+      message: "Refreshing local data...",
+    });
+
+    try {
+      const isConnected = await firstValueFrom(this.mongoConnectionService.checkConnection());
+      if (!isConnected) {
+        this.updateProgress({
+          currentStep: "error",
+          progress: 0,
+          message: "Refresh aborted - MongoDB offline",
+        });
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "MongoDB is not connected. Working offline.",
+          data: null as unknown as R,
+        };
+      }
+
+      this.updateProgress({ progress: 50, message: "Loading data from storage..." });
+      const result = await invoke<Response<R>>("import_to_local", {
+        userId: this.getUserId(),
+        token: this.getToken(),
+      });
+
+      if (result.status === ResponseStatus.SUCCESS) {
+        this.updateProgress({
+          currentStep: "complete",
+          progress: 100,
+          message: "Refresh complete",
+        });
+      } else {
+        this.updateProgress({
+          currentStep: "error",
+          message: "Refresh failed",
+          error: result.message,
+        });
+      }
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.updateProgress({
+        currentStep: "error",
+        message: "Refresh failed",
+        error: errorMessage,
+      });
+      throw error;
+    } finally {
+      this.setSyncing(false);
+    }
+  }
+
   async importToLocal<R>(): Promise<Response<R>> {
     this.setSyncing(true);
     this.updateProgress({
