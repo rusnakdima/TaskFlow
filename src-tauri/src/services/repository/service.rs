@@ -70,7 +70,11 @@ impl RepositoryService {
   ) -> Result<DataProvider, ResponseModel> {
     let _vis = visibility.unwrap_or("private");
 
-    if offline {
+    let is_shared_or_public = visibility
+      .map(|v| v == "shared" || v == "public")
+      .unwrap_or(false);
+
+    if offline && !is_shared_or_public {
       return Ok(DataProvider::Json(Arc::new(self.json_provider.clone())));
     }
 
@@ -237,7 +241,11 @@ impl RepositoryService {
           .handle_get(table, id, load, visibility, filter, offline, user_id)
           .await
       }
-      "create" => self.handle_create(table, data, visibility, offline).await,
+      "create" => {
+        self
+          .handle_create(table, data, visibility, offline, user_id)
+          .await
+      }
       "update" => {
         self
           .handle_update(table, id, data, visibility, offline)
@@ -464,6 +472,7 @@ impl RepositoryService {
     data: Option<Value>,
     visibility: Option<String>,
     offline: bool,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
 
@@ -477,6 +486,8 @@ impl RepositoryService {
       self.resolve_visibility_for_offline(visibility, offline)
     };
 
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+
     if table == "todos" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
         obj.insert(
@@ -486,7 +497,59 @@ impl RepositoryService {
       }
     }
 
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    if table == "tasks" || table == "subtasks" || table == "comments" {
+      if let Some(uid) = user_id.as_ref() {
+        if table == "tasks" || table == "subtasks" {
+          let todo_id_opt: Option<String> = if table == "tasks" {
+            data_val
+              .get("todo_id")
+              .and_then(|v| v.as_str())
+              .map(|s| s.to_string())
+          } else {
+            let task_id = data_val.get("task_id").and_then(|v| v.as_str());
+            if let Some(tid) = task_id {
+              self.get_todo_id_from_task(tid).await
+            } else {
+              None
+            }
+          };
+
+          if let Some(todo_id) = todo_id_opt {
+            let todo = provider.find_by_id("todos", &todo_id).await.ok().flatten();
+            if let Some(todo) = todo {
+              if !crate::services::permission_service::PermissionService::can_add_task_to_todo(
+                &todo, uid,
+              ) {
+                return Err(err_response(
+                  "Unauthorized: You do not have permission to add content to this todo",
+                ));
+              }
+            }
+          }
+        } else if table == "comments" {
+          let task_id = data_val.get("task_id").and_then(|v| v.as_str());
+          if let Some(task_id) = task_id {
+            if let Some(task) = provider.find_by_id("tasks", task_id).await.ok().flatten() {
+              let todo_id = task.get("todo_id").and_then(|v| v.as_str());
+              if let Some(todo_id) = todo_id {
+                if let Some(todo) = provider.find_by_id("todos", todo_id).await.ok().flatten() {
+                  let permission =
+                    crate::services::permission_service::PermissionService::get_todo_permission(
+                      &todo, uid,
+                    );
+                  if permission.map(|p| p.can_create_comment()).unwrap_or(false) {
+                  } else {
+                    return Err(err_response(
+                      "Unauthorized: You do not have permission to add comments to this todo",
+                    ));
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     let validated_data = validate_model(&table, &data_val, true, Some(visibility_str.clone()))
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
@@ -914,12 +977,9 @@ impl RepositoryService {
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
 
-    let provider_visibility = if new_visibility.is_some() {
-      None
-    } else {
-      Some(visibility_str.as_str())
-    };
-    let provider = self.get_provider(&table, provider_visibility, offline)?;
+    let effective_visibility = new_visibility.as_deref().or(Some(visibility_str.as_str()));
+
+    let provider = self.get_provider(&table, effective_visibility, offline)?;
 
     let mut existing_record = provider.find_by_id(&table, &id_str).await.ok().flatten();
 
@@ -975,6 +1035,44 @@ impl RepositoryService {
                 serde_json::Value::Array(new_assignees),
               );
             }
+          }
+        }
+      }
+
+      let new_assignees = merged_data
+        .get("assignees")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.to_vec())
+        .unwrap_or_default();
+
+      if !new_assignees.is_empty() {
+        let current_roles = merged_data
+          .get("assignee_roles")
+          .and_then(|v| v.as_object())
+          .map(|obj| obj.clone())
+          .unwrap_or_default();
+
+        let mut roles_changed = false;
+        let mut new_roles = current_roles;
+
+        for assignee in &new_assignees {
+          if let Some(assignee_str) = assignee.as_str() {
+            if !new_roles.contains_key(assignee_str) {
+              new_roles.insert(
+                assignee_str.to_string(),
+                serde_json::Value::String("viewer".to_string()),
+              );
+              roles_changed = true;
+            }
+          }
+        }
+
+        if roles_changed {
+          if let Some(obj) = merged_data.as_object_mut() {
+            obj.insert(
+              "assignee_roles".to_string(),
+              serde_json::Value::Object(new_roles),
+            );
           }
         }
       }

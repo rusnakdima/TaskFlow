@@ -530,4 +530,21 @@ impl CascadeService {
   pub async fn move_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json("todos", id).await
   }
+
+  pub async fn sync_entity_to_mongo_and_delete_from_source(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_mongo(table, id).await?;
+    self.soft_delete_cascade_json(table, id).await
+  }
+
+  pub async fn sync_entity_to_json_keep_source(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_json(table, id).await
+  }
 }
