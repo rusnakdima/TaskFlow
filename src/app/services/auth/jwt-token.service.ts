@@ -53,6 +53,13 @@ export class JwtTokenService {
   }
 
   /**
+   * Get profile ID from token
+   */
+  getProfileId(token: string | null): string | null {
+    return this.getValueByKey(token, "profile_id");
+  }
+
+  /**
    * Get username from token or profile data
    */
   getUsername(token: string | null): string | null {

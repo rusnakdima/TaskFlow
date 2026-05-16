@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 import { ApiService } from "@services/api.service";
 
 export enum TodoPermission {
@@ -158,15 +159,14 @@ export class PermissionService {
     token: string
   ): Promise<Record<string, string>> {
     try {
-      const result: Record<string, string> = await (this.api as any).invokeCommand(
-        "get_todo_permissions",
-        {
+      const result: any = await firstValueFrom(
+        (this.api as any).invokeCommand("get_todo_permissions", {
           todo_id: todoId,
           visibility: visibility || "private",
           token: token || "",
-        }
+        })
       );
-      return result || {};
+      return result?.assignee_roles || result || {};
     } catch {
       return {};
     }
