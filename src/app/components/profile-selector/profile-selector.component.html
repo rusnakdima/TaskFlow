@@ -1,101 +1,102 @@
 <div class="flex items-center gap-2">
   @if (getFilteredProfiles().length === 0) {
     <span class="text-sm text-gray-400">No profiles available</span>
-  }
-  <div class="hidden rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600">
-    @for (profile of getFilteredProfiles(); track profile.id) {
-      <button
-        class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-        [class.bg-[var(--accent-100)]]="active === profile.id"
-        [class.dark:bg-[var(--accent-900)]]="active === profile.id"
-        [class.text-black]="active === profile.id"
-        [class.dark:text-white]="active === profile.id"
-        [class.text-gray-700]="active !== profile.id"
-        [class.dark:text-gray-300]="active !== profile.id"
-        [class.hover:bg-gray-100]="active !== profile.id"
-        [class.dark:hover:bg-zinc-700]="active !== profile.id"
-        (click)="onSelect(profile)"
-      >
-        @if (profile.image_url) {
-          <img
-            [src]="profile.image_url"
-            [alt]="profile.name"
-            class="h-6 w-6 rounded-full object-cover"
-          />
-        } @else {
-          <div
-            class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-            [class]="getProfileColor(profile)"
-          >
-            {{ getProfileInitials(profile) }}
-          </div>
-        }
-        <span class="whitespace-nowrap">{{ profile.name }} {{ profile.last_name }}</span>
-      </button>
-    }
-  </div>
-
-  <div class="flex items-center gap-2 lg:hidden">
-    <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
-      [matMenuTriggerFor]="selectorMenu"
-    >
-      @if (getActiveProfile()?.image_url) {
-        <img
-          [src]="getActiveProfile()!.image_url"
-          [alt]="getActiveProfile()!.name"
-          class="h-5 w-5 rounded-full object-cover"
-        />
-      } @else if (getActiveProfile()) {
-        <div
-          class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-          [class]="getProfileColor(getActiveProfile()!)"
-        >
-          {{ getProfileInitials(getActiveProfile()!) }}
-        </div>
-      } @else {
-        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="person" />
-      }
-      <span class="hidden font-medium md:inline">{{
-        getActiveProfile()?.name || "Select User"
-      }}</span>
-      <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
-    </button>
-    <mat-menu
-      #selectorMenu="matMenu"
-      class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
-    >
+  } @else {
+    <div class="hidden rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600">
       @for (profile of getFilteredProfiles(); track profile.id) {
         <button
-          mat-menu-item
+          class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          [class.bg-[var(--accent-100)]]="active === profile.id"
+          [class.dark:bg-[var(--accent-900)]]="active === profile.id"
+          [class.text-black]="active === profile.id"
+          [class.dark:text-white]="active === profile.id"
+          [class.text-gray-700]="active !== profile.id"
+          [class.dark:text-gray-300]="active !== profile.id"
+          [class.hover:bg-gray-100]="active !== profile.id"
+          [class.dark:hover:bg-zinc-700]="active !== profile.id"
           (click)="onSelect(profile)"
-          class="flex w-full items-center gap-3"
-          [class.badge-accent]="active === profile.id"
         >
           @if (profile.image_url) {
             <img
               [src]="profile.image_url"
               [alt]="profile.name"
-              class="h-8 w-8 rounded-full object-cover"
+              class="h-6 w-6 rounded-full object-cover"
             />
           } @else {
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+              class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
               [class]="getProfileColor(profile)"
             >
               {{ getProfileInitials(profile) }}
             </div>
           }
-          <div class="flex flex-col">
-            <span [class.font-bold]="active === profile.id"
-              >{{ profile.name }} {{ profile.last_name }}</span
-            >
-            @if (profile.user?.email) {
-              <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
-            }
-          </div>
+          <span class="whitespace-nowrap">{{ profile.name }} {{ profile.last_name }}</span>
         </button>
       }
-    </mat-menu>
-  </div>
+    </div>
+
+    <div class="flex items-center gap-2 lg:hidden">
+      <button
+        class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        [matMenuTriggerFor]="selectorMenu"
+      >
+        @if (getActiveProfile()?.image_url) {
+          <img
+            [src]="getActiveProfile()!.image_url"
+            [alt]="getActiveProfile()!.name"
+            class="h-5 w-5 rounded-full object-cover"
+          />
+        } @else if (getActiveProfile()) {
+          <div
+            class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+            [class]="getProfileColor(getActiveProfile()!)"
+          >
+            {{ getProfileInitials(getActiveProfile()!) }}
+          </div>
+        } @else {
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="person" />
+        }
+        <span class="hidden font-medium md:inline">{{
+          getActiveProfile()?.name || "Select User"
+        }}</span>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+      </button>
+      <mat-menu
+        #selectorMenu="matMenu"
+        class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      >
+        @for (profile of getFilteredProfiles(); track profile.id) {
+          <button
+            mat-menu-item
+            (click)="onSelect(profile)"
+            class="flex w-full items-center gap-3"
+            [class.badge-accent]="active === profile.id"
+          >
+            @if (profile.image_url) {
+              <img
+                [src]="profile.image_url"
+                [alt]="profile.name"
+                class="h-8 w-8 rounded-full object-cover"
+              />
+            } @else {
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                [class]="getProfileColor(profile)"
+              >
+                {{ getProfileInitials(profile) }}
+              </div>
+            }
+            <div class="flex flex-col">
+              <span [class.font-bold]="active === profile.id"
+                >{{ profile.name }} {{ profile.last_name }}</span
+              >
+              @if (profile.user?.email) {
+                <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
+              }
+            </div>
+          </button>
+        }
+      </mat-menu>
+    </div>
+  }
 </div>

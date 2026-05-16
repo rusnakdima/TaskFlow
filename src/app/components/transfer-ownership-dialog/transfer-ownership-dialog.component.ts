@@ -1,6 +1,9 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ProfileSelectorComponent } from "@components/profile-selector/profile-selector.component";
+import {
+  Profile,
+  ProfileSelectorComponent,
+} from "@components/profile-selector/profile-selector.component";
 
 @Component({
   selector: "app-transfer-ownership-dialog",
@@ -12,6 +15,7 @@ import { ProfileSelectorComponent } from "@components/profile-selector/profile-s
 export class TransferOwnershipDialogComponent {
   @Input() show = false;
   @Input() currentOwnerId: string = "";
+  @Input() availableProfiles: Profile[] = [];
   @Output() confirm = new EventEmitter<string>();
   @Output() cancel = new EventEmitter<void>();
 
