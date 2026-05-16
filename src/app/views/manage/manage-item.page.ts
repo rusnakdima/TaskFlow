@@ -114,7 +114,13 @@ export class ManageItemPage implements OnInit {
   assigneeSearchQuery = signal("");
   selectedAssigneeIds = signal<Set<string>>(new Set());
   assigneeRoles = signal<Record<string, string>>({});
-  showPermissionsSection = signal(false);
+  showPermissionsSection = computed(() => {
+    const visibility = this.visibility();
+    const isTodo = this.itemType() === "todo";
+    const isSharedOrPublic = visibility === "shared" || visibility === "public";
+    const isAdmin = this.assigneeRoles()[this.getCurrentUserId()] === "admin";
+    return isTodo && isSharedOrPublic && (this.isOwner() || isAdmin);
+  });
   showTransferOwnershipDialog = signal(false);
 
   getCurrentUserId(): string {
@@ -425,7 +431,6 @@ export class ManageItemPage implements OnInit {
 
     const isAdminAssignee =
       userId && item.assignee_roles && item.assignee_roles[userId] === "admin";
-    this.showPermissionsSection.set(this.isOwner() || !!isAdminAssignee);
 
     if (item.visibility === "shared" && item.user_id !== userId && !isAdminAssignee) {
       this.notifyService.showError("Only owner can manage project settings");
@@ -733,6 +738,26 @@ export class ManageItemPage implements OnInit {
 
   setAssigneeRole(assigneeId: string, role: string): void {
     this.assigneeRoles.update((roles) => ({ ...roles, [assigneeId]: role }));
+  }
+
+  getRoleIcon(role: string): string {
+    const icons: Record<string, string> = {
+      viewer: "visibility",
+      editor: "edit",
+      admin: "admin_panel_settings",
+      moderator: "security",
+    };
+    return icons[role] || "visibility";
+  }
+
+  getRoleLabel(role: string): string {
+    const labels: Record<string, string> = {
+      viewer: "Viewer",
+      editor: "Editor",
+      admin: "Admin",
+      moderator: "Moderator",
+    };
+    return labels[role] || "Viewer";
   }
 
   savePermissions(): void {
