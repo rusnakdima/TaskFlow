@@ -118,6 +118,10 @@ export class TaskInformationComponent extends ItemInfoBaseComponent implements O
       });
   }
 
+  protected override headerClass(): string {
+    return "";
+  }
+
   getActionColor(action: string): string {
     return getActionColor(action, "");
   }

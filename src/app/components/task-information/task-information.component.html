@@ -1,5 +1,5 @@
 <div
-  class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+  class="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700"
   style="border-left: 3px solid var(--accent-color) !important"
 >
   <div [class]="headerClass()" class="relative p-6 text-white">
@@ -65,7 +65,7 @@
   </div>
 
   @if (showActions()) {
-    <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="border-t border-gray-200 p-4 dark:border-zinc-700">
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
           [routerLink]="'/todos/' + todo_id + '/tasks/' + task.id + '/edit_task'"

@@ -40,6 +40,10 @@ export class TodoInformationComponent extends ItemInfoBaseComponent {
     this.colorScheme.set(ItemInfoColorScheme.BLUE);
   }
 
+  protected override headerClass(): string {
+    return "";
+  }
+
   getCategories(): string[] {
     return this.todo.categories || [];
   }

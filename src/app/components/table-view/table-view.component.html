@@ -243,19 +243,12 @@
                   </button>
                 }
                 @if (showCommentToggle) {
-                  <button
-                    mat-icon-button
-                    class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
-                    [class]="
-                      isCommentExpandedById(item.id)
-                        ? 'bg-purple-100! text-purple-600! hover:bg-purple-50! dark:bg-purple-900/30! dark:text-purple-400! dark:hover:bg-purple-900/50!'
-                        : 'text-purple-600! hover:bg-purple-50! dark:text-purple-400! dark:hover:bg-purple-900/30!'
-                    "
-                    (click)="toggleCommentsById(item.id); $event.stopPropagation()"
-                    title="Toggle comments"
-                  >
-                    <mat-icon class="text-2xl!">forum</mat-icon>
-                  </button>
+                  <app-comments-toggle
+                    [showComments]="isCommentExpandedById(item.id)"
+                    [unreadCount]="getUnreadCountForItem(item)"
+                    [count]="getTotalCommentsCount(item)"
+                    (toggle)="onCommentsToggleClick(item.id)"
+                  />
                 }
                 @if (showStatusToggle) {
                   <app-status-toggle
@@ -324,11 +317,7 @@
             </td>
           </tr>
         }
-        @if (
-          showCommentToggle &&
-          isCommentExpandedById(item.id) &&
-          (!expandable || !isExpanded(item.id))
-        ) {
+        @if (showCommentToggle && isCommentExpandedById(item.id)) {
           <tr class="expand-row">
             <td
               [attr.colspan]="
