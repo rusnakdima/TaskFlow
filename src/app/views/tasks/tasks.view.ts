@@ -164,7 +164,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   visibilityParam = signal<Visibility>("private");
 
   isOwner(): boolean {
-    return true;
+    return this.userPermission() === TodoPermission.OWNER;
+  }
+
+  canEditTask(task: Task): boolean {
+    return this.permissionService.canEditTask(task, this.userPermission(), this.userId);
+  }
+
+  canDeleteTask(task: Task): boolean {
+    return this.permissionService.canDeleteTask(task, this.userPermission(), this.userId);
   }
 
   isPrivate(): boolean {
@@ -206,7 +214,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private async setUserPermission(todo: Todo): Promise<void> {
-    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "");
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
     if (todo.user_id === userId) {
       this.userPermission.set(TodoPermission.OWNER);
       return;
@@ -320,15 +328,17 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         onToggle: () => this.toggleFilter(),
         isActive: this.showFilter(),
       },
-      newButton: {
-        onClick: () =>
-          this.router.navigate(["create_task"], {
-            relativeTo: this.route,
-            queryParams: { visibility: this.todo()?.visibility },
-          }),
-        label: "New Task",
-        icon: "add",
-      },
+      newButton: this.canCreateTask()
+        ? {
+            onClick: () =>
+              this.router.navigate(["create_task"], {
+                relativeTo: this.route,
+                queryParams: { visibility: this.todo()?.visibility },
+              }),
+            label: "New Task",
+            icon: "add",
+          }
+        : undefined,
       viewMode: {
         mode: this.viewMode(),
         pageKey: "tasks",
@@ -634,6 +644,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskTableAction(event: { action: string; item: Task }): void {
+    if (event.action === "delete") {
+      if (!this.canDeleteTask(event.item)) {
+        this.notifyService.showError("You don't have permission to delete this task");
+        return;
+      }
+    }
+    if (event.action === "edit") {
+      if (!this.canEditTask(event.item)) {
+        this.notifyService.showError("You don't have permission to edit this task");
+        return;
+      }
+    }
     this.actionsHelper.onTaskTableAction(
       event,
       this.todo(),
@@ -648,6 +670,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTaskItemAction(event: { action: string; item: Task }): void {
+    if (event.action === "delete") {
+      if (!this.canDeleteTask(event.item)) {
+        this.notifyService.showError("You don't have permission to delete this task");
+        return;
+      }
+    }
+    if (event.action === "edit") {
+      if (!this.canEditTask(event.item)) {
+        this.notifyService.showError("You don't have permission to edit this task");
+        return;
+      }
+    }
     this.onTaskTableAction(event);
   }
 
