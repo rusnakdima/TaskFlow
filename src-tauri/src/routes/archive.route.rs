@@ -4,7 +4,6 @@ use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::AppState;
 use nosql_orm::query::Filter;
-use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
 
@@ -32,112 +31,86 @@ pub async fn get_all_archive_data(
 
   let provider = get_json_provider(&state);
 
-  let all_todos = provider
-    .find_many("todos", None, None, None, None, true)
+  let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+
+  let user_todos = provider
+    .find_many("todos", Some(&user_filter), None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
-
-  let user_todos: Vec<Value> = all_todos
-    .into_iter()
-    .filter(|t| {
-      let t_user_id = t.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      t_user_id == user_id_str
-    })
-    .collect();
 
   let task_ids: Vec<String> = user_todos
     .iter()
     .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
     .collect();
 
-  let all_tasks = provider
-    .find_many("tasks", None, None, None, None, true)
+  let tasks_filter = Filter::from_json(&serde_json::json!({ "todo_id": { "$in": task_ids } }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+
+  let user_tasks = provider
+    .find_many("tasks", Some(&tasks_filter), None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
-
-  let user_tasks: Vec<Value> = all_tasks
-    .into_iter()
-    .filter(|t| {
-      if let Some(todo_id) = t.get("todo_id").and_then(|v| v.as_str()) {
-        task_ids.contains(&todo_id.to_string())
-      } else {
-        false
-      }
-    })
-    .collect();
 
   let subtask_task_ids: Vec<String> = user_tasks
     .iter()
     .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
     .collect();
 
-  let all_subtasks = provider
-    .find_many("subtasks", None, None, None, None, true)
+  let subtasks_filter =
+    Filter::from_json(&serde_json::json!({ "task_id": { "$in": subtask_task_ids } }))
+      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+
+  let user_subtasks = provider
+    .find_many("subtasks", Some(&subtasks_filter), None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  let user_subtasks: Vec<Value> = all_subtasks
-    .into_iter()
-    .filter(|t| {
-      if let Some(task_id) = t.get("task_id").and_then(|v| v.as_str()) {
-        subtask_task_ids.contains(&task_id.to_string())
-      } else {
-        false
-      }
-    })
-    .collect();
+  let comments_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
-  let all_comments = provider
-    .find_many("comments", None, None, None, None, true)
+  let user_comments = provider
+    .find_many("comments", Some(&comments_filter), None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  let user_comments: Vec<Value> = all_comments
-    .into_iter()
-    .filter(|c| {
-      let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str
-    })
-    .collect();
+  let chats_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
-  let all_chats = provider
-    .find_many("chats", None, None, None, None, true)
+  let user_chats = provider
+    .find_many("chats", Some(&chats_filter), None, None, None, true)
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  let user_chats: Vec<Value> = all_chats
-    .into_iter()
-    .filter(|c| {
-      let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str
-    })
-    .collect();
+  let categories_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
-  let all_categories = provider
-    .find_many("categories", None, None, None, None, true)
+  let user_categories = provider
+    .find_many(
+      "categories",
+      Some(&categories_filter),
+      None,
+      None,
+      None,
+      true,
+    )
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  let user_categories: Vec<Value> = all_categories
-    .into_iter()
-    .filter(|c| {
-      let c_user_id = c.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      c_user_id == user_id_str
-    })
-    .collect();
+  let daily_activities_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
 
-  let all_daily_activities = provider
-    .find_many("daily_activities", None, None, None, None, true)
+  let user_daily_activities = provider
+    .find_many(
+      "daily_activities",
+      Some(&daily_activities_filter),
+      None,
+      None,
+      None,
+      true,
+    )
     .await
     .map_err(|e| err_response(&e.message))?;
-
-  let user_daily_activities: Vec<Value> = all_daily_activities
-    .into_iter()
-    .filter(|da| {
-      let da_user_id = da.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-      da_user_id == user_id_str
-    })
-    .collect();
 
   let result = serde_json::json!({
     "todos": user_todos,
