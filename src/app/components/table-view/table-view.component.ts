@@ -29,11 +29,13 @@ import { DateHelper } from "@helpers/date.helper";
 
 /* services */
 import { StorageService } from "@services/storage.service";
+import { AuthService } from "@services/auth/auth.service";
 
 /* components */
 
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
 
 /* models */
 import { TableFieldActionButton, TableField } from "@models/table-field.model";
@@ -55,6 +57,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
     CommentsComponent,
     StatusToggleComponent,
     ProgressBarComponent,
+    CommentsToggleComponent,
   ],
   templateUrl: "./table-view.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +65,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
+  private authService = inject(AuthService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -475,5 +479,36 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   getProgressSizeForTable(field: TableField | ItemDisplayConfig): "sm" | "md" | "lg" {
     return (field as any).size || "sm";
+  }
+
+  onCommentsToggleClick(itemId: string): void {
+    this.toggleCommentsEvent.emit(itemId);
+    const item = this.data.find((d) => d.id === itemId);
+    if (item) queueMicrotask(() => this.setCurrentItem(item));
+    queueMicrotask(() => {
+      this.expandedComments.update((expanded) => {
+        const newExpanded = new Set(expanded);
+        if (newExpanded.has(itemId)) {
+          newExpanded.delete(itemId);
+        } else {
+          newExpanded.add(itemId);
+        }
+        return newExpanded;
+      });
+    });
+  }
+
+  getUnreadCountForItem(item: any): number {
+    const comments = this.getCommentsForItem(item);
+    const userId = this.authService.getValueByKey("id");
+    if (!userId) return 0;
+    return comments.filter(
+      (c: Comment) =>
+        !c.deleted_at && c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
+    ).length;
+  }
+
+  getTotalCommentsCount(item: any): number {
+    return this.getCommentsForItem(item).length;
   }
 }
