@@ -104,57 +104,93 @@ impl PermissionService {
   }
 
   pub fn can_edit_task(task: &Value, todo: &Value, user_id: &str) -> bool {
-    let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-
-    if task_creator_id == user_id {
+    if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }
-
-    Self::is_owner_or_admin(todo, user_id)
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_edit_task() {
+        let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+        return task_creator_id == user_id;
+      }
+    }
+    false
   }
 
   pub fn can_delete_task(task: &Value, todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_task(task, todo, user_id)
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_delete_task() {
+        let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+        return task_creator_id == user_id;
+      }
+    }
+    false
   }
 
   pub fn can_edit_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
-    let subtask_creator_id = subtask
-      .get("user_id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
-
-    if subtask_creator_id == user_id {
+    if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }
-
-    let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-
-    if task_creator_id == user_id {
-      return true;
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_edit_subtask() {
+        let subtask_creator_id = subtask
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return subtask_creator_id == user_id;
+      }
     }
-
-    Self::is_owner_or_admin(todo, user_id)
+    false
   }
 
   pub fn can_delete_subtask(subtask: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_subtask(subtask, task, todo, user_id)
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_delete_subtask() {
+        let subtask_creator_id = subtask
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return subtask_creator_id == user_id;
+      }
+    }
+    false
   }
 
   pub fn can_edit_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
-    let comment_creator_id = comment
-      .get("user_id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
-
-    if comment_creator_id == user_id {
+    if Self::is_owner_or_admin(todo, user_id) {
       return true;
     }
-
-    Self::is_owner_or_admin(todo, user_id)
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_edit_comment() {
+        let comment_creator_id = comment
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return comment_creator_id == user_id;
+      }
+    }
+    false
   }
 
   pub fn can_delete_comment(comment: &Value, task: &Value, todo: &Value, user_id: &str) -> bool {
-    Self::can_edit_comment(comment, task, todo, user_id)
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_delete_comment() {
+        let comment_creator_id = comment
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return comment_creator_id == user_id;
+      }
+    }
+    false
   }
 
   pub fn can_manage_permissions(todo: &Value, user_id: &str) -> bool {

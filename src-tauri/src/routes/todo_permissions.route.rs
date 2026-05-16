@@ -4,7 +4,7 @@ use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, success_response};
 use std::collections::HashMap;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn update_todo_permissions(
   state: State<'_, crate::AppState>,
   todo_id: String,
@@ -40,7 +40,7 @@ pub async fn update_todo_permissions(
   )))
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn transfer_todo_ownership(
   state: State<'_, crate::AppState>,
   todo_id: String,
@@ -76,7 +76,7 @@ pub async fn transfer_todo_ownership(
   )))
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_todo_permissions(
   state: State<'_, crate::AppState>,
   todo_id: String,
