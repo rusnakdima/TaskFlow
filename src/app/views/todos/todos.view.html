@@ -58,6 +58,7 @@
   }
 
   <app-todos-list
+    [activeVisibility]="stateService.activeVisibility()"
     [selectedTodos]="selectedTodos"
     [lastSelectedId]="lastSelectedId"
     [viewMode]="viewMode()"

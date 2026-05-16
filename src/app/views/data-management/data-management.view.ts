@@ -10,7 +10,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -96,6 +96,7 @@ export class DataManagementView implements OnInit {
   @ViewChild("expandRowTemplate") expandRowTemplate!: TemplateRef<any>;
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   protected adminStorageService = inject(AdminStorageService);
@@ -131,7 +132,7 @@ export class DataManagementView implements OnInit {
   adminTableFields = TableFieldFactory.createAdminFields();
 
   getAdminActions(): TableFieldActionButton[] {
-    return [TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
   }
 
   // Filter state
@@ -320,7 +321,9 @@ export class DataManagementView implements OnInit {
   }
 
   onAdminAction(event: { action: string; item: any }): void {
-    if (event.action === "toggleDelete") {
+    if (event.action === "edit") {
+      this.onEditRecord(event.item);
+    } else if (event.action === "toggleDelete") {
       this.toggleDeleteStatus(event.item);
     } else if (
       event.action === "delete" ||
@@ -328,6 +331,44 @@ export class DataManagementView implements OnInit {
       event.action === "deleteRecord"
     ) {
       this.deleteRecord(event.item);
+    }
+  }
+
+  onEditRecord(item: any): void {
+    const type = this.selectedType();
+    const visibility = this.mode === "admin" ? "public" : "private";
+
+    switch (type) {
+      case "todos":
+        this.router.navigate(["/todos", item.id, "edit_todo"], {
+          queryParams: { visibility },
+        });
+        break;
+      case "tasks":
+        const todoId = item.todo_id;
+        if (todoId) {
+          this.router.navigate(["/todos", todoId, "tasks", item.id, "edit_task"], {
+            queryParams: { visibility },
+          });
+        } else {
+          this.notifyService.showError("Cannot edit task: missing todo reference");
+        }
+        break;
+      case "subtasks":
+        const taskId = item.task_id;
+        const taskTodoId = item.todo_id;
+        if (taskId && taskTodoId) {
+          this.router.navigate(
+            ["/todos", taskTodoId, "tasks", taskId, "subtasks", item.id, "edit_subtask"],
+            { queryParams: { visibility } }
+          );
+        } else {
+          this.notifyService.showInfo("Cannot edit subtask: missing parent references");
+        }
+        break;
+      default:
+        this.notifyService.showInfo(`Inline edit for ${type} is not yet implemented`);
+        break;
     }
   }
 

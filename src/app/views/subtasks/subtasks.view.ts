@@ -283,15 +283,23 @@ export class SubtasksViewComponent extends BaseListView {
   private loadCommentsForSubtasks(subtaskIds: string[]): void {
     if (subtaskIds.length === 0) return;
     const visibility = this.todo()?.visibility || "private";
-    this.requestService
-      .loadPage("comments", {
-        filter: { subtask_id: { $in: subtaskIds } },
-        visibility: visibility as Visibility,
-        skip: 0,
+    this.apiService.comments
+      .getAll({
+        visibility,
         limit: 10,
+        filter: { subtask_id: { $in: subtaskIds } },
         load: ["user"],
       })
-      .subscribe();
+      .subscribe({
+        next: (comments) => {
+          comments.forEach((comment) => {
+            this.storageService.addCommentToSubtask(comment, comment.subtask_id);
+          });
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load comments");
+        },
+      });
   }
 
   loadMoreSubtasks() {
