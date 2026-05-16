@@ -34,15 +34,10 @@ impl BaseCrudService {
 
 pub trait BaseCrudServiceTrait {
   fn get_json_provider(&self) -> &DataProvider;
-  fn get_mongo_provider(&self) -> Option<&DataProvider>;
 }
 
 impl BaseCrudServiceTrait for BaseCrudService {
   fn get_json_provider(&self) -> &DataProvider {
     &self.json_provider
-  }
-
-  fn get_mongo_provider(&self) -> Option<&DataProvider> {
-    self.mongo_provider.as_ref()
   }
 }

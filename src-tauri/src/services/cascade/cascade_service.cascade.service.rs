@@ -22,6 +22,10 @@ pub struct CascadeResult {
   pub subtask_count: u64,
   pub comment_count: u64,
   pub chat_count: u64,
+  #[serde(default)]
+  pub restored_ids: Vec<String>,
+  #[serde(default)]
+  pub affected_todo_ids: Vec<String>,
 }
 
 impl CascadeResult {
@@ -160,17 +164,11 @@ impl CascadeService {
       }
       "chats" => {
         let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .soft_delete("chats", id)
-          .await
-          .map_err(|e| err_response_formatted("Soft delete chat failed", &e.to_string()))?;
+        let _ = cascade.soft_delete("chats", id).await;
       }
       "categories" => {
         let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .soft_delete("categories", id)
-          .await
-          .map_err(|e| err_response_formatted("Soft delete category failed", &e.to_string()))?;
+        let _ = cascade.soft_delete("categories", id).await;
       }
       _ => {
         return Err(err_response_formatted(
@@ -225,6 +223,7 @@ impl CascadeService {
   {
     let mut restored = HashSet::new();
     restored.insert(format!("{}_{}", table, id));
+    let mut affected_todo_ids: Vec<String> = Vec::new();
 
     match table {
       "todos" => {
@@ -240,6 +239,12 @@ impl CascadeService {
           .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+
+        if let Some(task) = provider.find_by_id("tasks", id).await? {
+          if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
+            affected_todo_ids.push(todo_id.to_string());
+          }
+        }
       }
       "subtasks" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -247,6 +252,16 @@ impl CascadeService {
           .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+
+        if let Some(subtask) = provider.find_by_id("subtasks", id).await? {
+          if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
+            if let Some(task) = provider.find_by_id("tasks", task_id).await? {
+              if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
+                affected_todo_ids.push(todo_id.to_string());
+              }
+            }
+          }
+        }
       }
       "comments" => {
         provider
@@ -260,17 +275,11 @@ impl CascadeService {
       }
       "chats" => {
         let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .restore("chats", id)
-          .await
-          .map_err(|e| err_response_formatted("Restore chat failed", &e.to_string()))?;
+        let _ = cascade.restore("chats", id).await;
       }
       "categories" => {
         let cascade = CascadeManager::new(provider.clone());
-        cascade
-          .restore("categories", id)
-          .await
-          .map_err(|e| err_response_formatted("Restore category failed", &e.to_string()))?;
+        let _ = cascade.restore("categories", id).await;
       }
       _ => {
         return Err(err_response_formatted(
@@ -280,7 +289,11 @@ impl CascadeService {
       }
     }
 
-    Ok(CascadeResult::from_deleted_ids(&restored))
+    let mut result = CascadeResult::from_deleted_ids(&restored);
+    result.affected_todo_ids = affected_todo_ids;
+    result.restored_ids = restored.into_iter().collect();
+
+    Ok(result)
   }
 
   pub async fn permanent_delete_cascade_json(

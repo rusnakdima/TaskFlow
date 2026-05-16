@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::{json, Value};
@@ -122,8 +123,6 @@ impl DbBackupService {
     user_id: &str,
     filter_deleted: bool,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
       Ok(f) => f,
       Err(e) => {
@@ -159,8 +158,6 @@ impl DbBackupService {
     parent_field: &str,
     user_id: &str,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let user_filter =
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
@@ -277,8 +274,6 @@ impl DbBackupService {
     user_id: &str,
     filter_deleted: bool,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
       Ok(f) => f,
       Err(e) => {
@@ -315,8 +310,6 @@ impl DbBackupService {
     parent_field: &str,
     user_id: &str,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let user_filter =
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
@@ -372,8 +365,6 @@ impl DbBackupService {
     _grandparent_table: &str,
     user_id: &str,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let user_filter =
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
@@ -418,8 +409,6 @@ impl DbBackupService {
     parent_table: &str,
     user_id: &str,
   ) -> usize {
-    use nosql_orm::prelude::Filter;
-
     let user_filter =
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,

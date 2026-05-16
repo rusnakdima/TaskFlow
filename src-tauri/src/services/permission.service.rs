@@ -6,11 +6,15 @@ use crate::entities::permission_entity::{TodoPermission, ASSIGNEE_DEFAULT_ROLE};
 pub struct PermissionService {}
 
 impl PermissionService {
-  pub fn new() -> Self {
-    Self {}
+  pub fn get_todo_permission(todo: &Value, user_id: &str) -> Option<TodoPermission> {
+    Self::get_todo_permission_with_profile(todo, user_id, None)
   }
 
-  pub fn get_todo_permission(todo: &Value, user_id: &str) -> Option<TodoPermission> {
+  pub fn get_todo_permission_with_profile(
+    todo: &Value,
+    user_id: &str,
+    profile_id: Option<&str>,
+  ) -> Option<TodoPermission> {
     let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
 
     if owner_id == user_id {
@@ -28,7 +32,7 @@ impl PermissionService {
         .and_then(|v| v.as_str())
         .unwrap_or(ASSIGNEE_DEFAULT_ROLE);
 
-      if assignee_str == user_id {
+      if assignee_str == profile_id.unwrap_or("") || assignee_str == user_id {
         return Some(TodoPermission::from_str(role));
       }
     }
@@ -40,6 +44,11 @@ impl PermissionService {
     match visibility {
       "public" => Some(TodoPermission::VIEWER),
       "shared" => {
+        if let Some(pid) = profile_id {
+          if assignees.iter().any(|a| a.as_str() == Some(pid)) {
+            return Some(TodoPermission::VIEWER);
+          }
+        }
         if assignees.iter().any(|a| a.as_str() == Some(user_id)) {
           Some(TodoPermission::VIEWER)
         } else {
@@ -48,13 +57,6 @@ impl PermissionService {
       }
       _ => None,
     }
-  }
-
-  pub fn is_admin_assignee(todo: &Value, user_id: &str) -> bool {
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      return permission == TodoPermission::ADMIN;
-    }
-    false
   }
 
   pub fn is_owner_or_admin(todo: &Value, user_id: &str) -> bool {
@@ -193,20 +195,6 @@ impl PermissionService {
     false
   }
 
-  pub fn can_manage_permissions(todo: &Value, user_id: &str) -> bool {
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      return permission.can_manage_assignees();
-    }
-    false
-  }
-
-  pub fn can_transfer_ownership(todo: &Value, user_id: &str) -> bool {
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      return permission.can_transfer_ownership();
-    }
-    false
-  }
-
   pub fn get_todo_filter_for_user(user_id: &str, visibility: Option<&str>) -> Value {
     match visibility.unwrap_or("private") {
       "private" => {
@@ -242,15 +230,6 @@ impl PermissionService {
         json!({ "visibility": "private", "user_id": user_id })
       }
     }
-  }
-
-  pub fn get_tasks_filter_for_user(user_id: &str) -> Value {
-    json!({
-        "$or": [
-            { "user_id": user_id },
-            { "visibility": "public" }
-        ]
-    })
   }
 
   pub fn can_view_category(category: &Value, user_id: &str) -> bool {

@@ -4,7 +4,7 @@ use std::time::Duration;
 
 /* nosql_orm */
 use nosql_orm::provider::DatabaseProvider;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 /* tokio */
 use tokio::time::timeout;

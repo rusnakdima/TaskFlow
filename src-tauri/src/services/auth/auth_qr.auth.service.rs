@@ -403,7 +403,14 @@ impl QrAuthService {
     let _username = user.username.clone();
 
     // Generate JWT token
-    let jwt_token = self.token_service.generate_token(&user_id, "", "", false)?;
+    let profile_id = if user.profile_id.is_empty() {
+      None
+    } else {
+      Some(user.profile_id.as_str())
+    };
+    let jwt_token = self
+      .token_service
+      .generate_token(&user_id, profile_id, "", "", false)?;
 
     // Mark token as completed
     let mut updated_token = qr_token.clone();

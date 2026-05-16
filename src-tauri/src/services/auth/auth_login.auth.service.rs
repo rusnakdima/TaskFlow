@@ -66,9 +66,22 @@ impl AuthLoginService {
 
     let user_id = user.id().to_string();
 
-    let token = self
-      .token_service
-      .generate_token(&user_id, "", "", login_data.remember)?;
+    let profile = self
+      .profile_sync_service
+      .get_profile(&user_id)
+      .await
+      .ok()
+      .flatten();
+
+    let profile_id = profile
+      .as_ref()
+      .and_then(|p| p.id.as_ref())
+      .map(|s| s.as_str());
+
+    let token =
+      self
+        .token_service
+        .generate_token(&user_id, profile_id, "", "", login_data.remember)?;
 
     let _ = self.auth_data_sync_service.on_user_login(&user_id).await;
 

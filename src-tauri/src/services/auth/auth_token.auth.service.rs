@@ -52,6 +52,7 @@ impl AuthTokenService {
   pub fn generate_token(
     &self,
     user_id: &str,
+    profile_id: Option<&str>,
     _username: &str,
     _role: &str,
     remember: bool,
@@ -70,6 +71,7 @@ impl AuthTokenService {
 
     let claims = Claims {
       id: user_id.to_owned(),
+      profile_id: profile_id.map(|s| s.to_string()),
       exp: expiration,
     };
 

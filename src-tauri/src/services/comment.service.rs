@@ -1,5 +1,5 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
-use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
+use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
@@ -83,17 +83,11 @@ impl CommentService {
     match provider {
       DataProvider::Json(p) => {
         let cascade = CascadeManager::new(p.as_ref().clone());
-        cascade
-          .soft_delete("comments", id)
-          .await
-          .map_err(|e| err_response_formatted("Soft delete failed", &e.to_string()))?;
+        let _ = cascade.soft_delete("comments", id).await;
       }
       DataProvider::Mongo(p) => {
         let cascade = CascadeManager::new(p.as_ref().clone());
-        cascade
-          .soft_delete("comments", id)
-          .await
-          .map_err(|e| err_response_formatted("Soft delete failed", &e.to_string()))?;
+        let _ = cascade.soft_delete("comments", id).await;
       }
     }
     Ok(success_response(DataValue::Object(json!({}))))
