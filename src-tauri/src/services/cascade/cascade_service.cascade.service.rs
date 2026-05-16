@@ -53,6 +53,20 @@ impl CascadeResult {
   }
 }
 
+fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
+  if let serde_json::Value::Object(obj) = value {
+    let mut filtered = serde_json::Map::new();
+    for (k, v) in obj.iter() {
+      if !k.starts_with('$') {
+        filtered.insert(k.clone(), sanitize_for_mongo_replacement(v.clone()));
+      }
+    }
+    serde_json::Value::Object(filtered)
+  } else {
+    value
+  }
+}
+
 pub struct CascadeService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -377,14 +391,14 @@ impl CascadeService {
     &self,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
-    self.restore_cascade_json("todos", id).await
+    self.sync_entity_to_json("todos", id).await
   }
 
   pub async fn export_todo_cascade_to_mongo(
     &self,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
-    self.restore_cascade_mongo("todos", id).await
+    self.sync_entity_to_mongo("todos", id).await
   }
 
   pub async fn sync_entity_to_json(
@@ -392,7 +406,59 @@ impl CascadeService {
     table: &str,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
-    self.permanent_delete_cascade_json(table, id).await
+    if let Some(mongo) = self.mongodb_provider.as_ref() {
+      let entity = mongo
+        .find_by_id(table, id)
+        .await
+        .map_err(|e| {
+          err_response_formatted(
+            "Sync to JSON failed",
+            &format!("Failed to fetch from Mongo: {}", e),
+          )
+        })?
+        .ok_or_else(|| {
+          err_response_formatted(
+            "Sync to JSON failed",
+            &format!("Entity {} not found in Mongo", id),
+          )
+        })?;
+
+      let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
+
+      match self.json_provider.find_by_id(table, id).await {
+        Ok(Some(_)) => {
+          self
+            .json_provider
+            .update(table, id, sanitized_entity)
+            .await
+            .map_err(|e| {
+              err_response_formatted(
+                "Sync to JSON failed",
+                &format!("Failed to update JSON: {}", e),
+              )
+            })?;
+        }
+        Ok(None) => {
+          self
+            .json_provider
+            .insert(table, sanitized_entity)
+            .await
+            .map_err(|e| {
+              err_response_formatted(
+                "Sync to JSON failed",
+                &format!("Failed to insert to JSON: {}", e),
+              )
+            })?;
+        }
+        Err(e) => {
+          return Err(err_response_formatted(
+            "Sync to JSON failed",
+            &format!("Failed to check JSON: {}", e),
+          ));
+        }
+      }
+    }
+    Ok(CascadeResult::new())
   }
 
   pub async fn sync_entity_to_mongo(
@@ -418,17 +484,22 @@ impl CascadeService {
           )
         })?;
 
+      let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
+
       match mongo.find_by_id(table, id).await {
         Ok(Some(_)) => {
-          mongo.update(table, id, entity).await.map_err(|e| {
-            err_response_formatted(
-              "Cascade sync to MongoDB failed",
-              &format!("Failed to update in MongoDB: {}", e),
-            )
-          })?;
+          mongo
+            .update(table, id, sanitized_entity)
+            .await
+            .map_err(|e| {
+              err_response_formatted(
+                "Cascade sync to MongoDB failed",
+                &format!("Failed to update in MongoDB: {}", e),
+              )
+            })?;
         }
         Ok(None) => {
-          mongo.insert(table, entity).await.map_err(|e| {
+          mongo.insert(table, sanitized_entity).await.map_err(|e| {
             err_response_formatted(
               "Cascade sync to MongoDB failed",
               &format!("Failed to insert to MongoDB: {}", e),
@@ -444,5 +515,19 @@ impl CascadeService {
       }
     }
     Ok(CascadeResult::new())
+  }
+
+  pub async fn backup_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_json("todos", id).await
+  }
+
+  pub async fn migrate_todo_to_mongo(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_mongo("todos", id).await?;
+    self.soft_delete_cascade_json("todos", id).await?;
+    Ok(CascadeResult::new())
+  }
+
+  pub async fn move_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_json("todos", id).await
   }
 }
