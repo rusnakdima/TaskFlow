@@ -116,8 +116,12 @@ export class StorageEntityService {
   }
 
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
-    if (!subtask_id) return;
-    addEntityToSignal(this.comments, { ...comment, subtask_id });
+    if (!subtask_id) {
+      console.error("addCommentToSubtask: subtask_id is undefined", comment);
+      return;
+    }
+    const commentWithSubtaskId = { ...comment, subtask_id };
+    addEntityToSignal(this.comments, commentWithSubtaskId);
   }
 
   removeCommentFromAll(commentId: string): void {

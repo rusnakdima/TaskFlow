@@ -14,7 +14,7 @@ export class CommentService {
 
   createComment(
     content: string,
-    options: { taskId?: string; subtaskId?: string; visibility?: "private" | "shared" }
+    options: { taskId?: string; subtaskId?: string; visibility?: Visibility }
   ): Observable<Comment> {
     const userId = this.authService.getValueByKey("id");
     const payload: CommentPayload = {
@@ -34,6 +34,8 @@ export class CommentService {
         map((response) => {
           return {
             ...response,
+            subtask_id: response.subtask_id || options.subtaskId,
+            task_id: response.task_id || options.taskId,
             id: response.id || crypto.randomUUID(),
             created_at: response.created_at || new Date().toISOString(),
             updated_at: response.updated_at || new Date().toISOString(),

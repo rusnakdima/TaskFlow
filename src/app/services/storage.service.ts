@@ -26,6 +26,7 @@ import { StorageSignalMap } from "@models/storage-signal-map.model";
 import { StorageEntityService } from "@services/core/storage-entity.service";
 import { StorageCacheService } from "@services/core/storage-cache.service";
 import { StorageQueryService } from "@services/core/storage-query.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 /* utils */
 import { deduplicateById, groupByKey, createGroupedMap } from "@stores/utils/store-helpers";
@@ -39,6 +40,7 @@ export class StorageService {
   private readonly _entityService = inject(StorageEntityService);
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
+  private readonly mongoConnectionService = inject(MongoConnectionService);
 
   private _notifyService: NotifyService | null = null;
   private _cascadeService: CascadeService | null = null;
@@ -774,9 +776,11 @@ export class StorageService {
     );
   }
   getCommentsBySubtaskId(subtask_id: string): Comment[] {
-    return (this.commentsBySubtaskId().get(subtask_id) || []).sort(
-      (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
-    );
+    return (this.commentsBySubtaskId().get(subtask_id) || []).sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeA - timeB;
+    });
   }
   getChatsByAll(): Chat[] {
     return this.chats();
@@ -843,8 +847,12 @@ export class StorageService {
       )
         return;
       this._queryService.ensureTodosLoaded("private", limit);
-      this._queryService.ensureTodosLoaded("shared", limit);
-      this._queryService.ensureTodosLoaded("public", limit);
+      this.mongoConnectionService.checkConnection().subscribe((isConnected) => {
+        if (isConnected) {
+          this._queryService.ensureTodosLoaded("shared", limit);
+          this._queryService.ensureTodosLoaded("public", limit);
+        }
+      });
       return;
     }
     const targetTodos =
