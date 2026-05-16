@@ -446,15 +446,7 @@ export class ManageItemPage implements OnInit {
     const profileId = this.getCurrentProfileId();
     const token = this.jwtTokenService.getToken() || "";
 
-    console.log("=== DEBUG loadAndSetUserPermission ===");
-    console.log("userId from token:", userId);
-    console.log("profileId from token:", profileId);
-    console.log("item.user_id:", item.user_id);
-    console.log("item.assignees:", item.assignees);
-    console.log("item.assignee_roles:", item.assignee_roles);
-
     if (item.user_id === userId) {
-      console.log("User is OWNER");
       this.userPermission.set(TodoPermission.OWNER);
       this.updateFormFieldPermissions();
       return;
@@ -466,24 +458,11 @@ export class ManageItemPage implements OnInit {
       token
     );
 
-    console.log("assigneeRoles from API:", assigneeRoles);
-    console.log("Looking up userId:", userId, "result:", assigneeRoles[userId]);
-    console.log(
-      "Looking up profileId:",
-      profileId,
-      "result:",
-      profileId ? assigneeRoles[profileId] : null
-    );
-
-    // assignee_roles keys are user_ids from backend
     this.assigneeRoles.set(assigneeRoles);
     const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
-    console.log("Final role:", role);
 
     this.userPermission.set(this.permissionService.fromStr(role));
     this.updateFormFieldPermissions();
-    console.log("userPermission set to:", this.userPermission());
-    console.log("=== END DEBUG ===");
   }
 
   private applyItemToForm(item: any): void {

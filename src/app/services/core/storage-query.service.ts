@@ -449,11 +449,7 @@ export class StorageQueryService {
   }
 
   setDailyActivities(activities: any[]): void {
-    const timer = `[DailyActivities] setDailyActivities`;
-    console.time(timer);
-    console.log(`${timer} RECEIVED - count: ${activities?.length || 0}`, activities?.slice(0, 2));
     this._dailyActivities.set(activities);
-    console.timeEnd(timer);
   }
 
   setCollection(
@@ -503,10 +499,6 @@ export class StorageQueryService {
         this._entityService.users.set(items);
         break;
       case "dailyActivities":
-        console.log(
-          `[DailyActivities] setCollection 'dailyActivities' - count: ${items?.length || 0}`,
-          items?.slice(0, 2)
-        );
         this._dailyActivities.set(items);
         break;
     }

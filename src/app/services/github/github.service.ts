@@ -93,7 +93,6 @@ export class GithubService {
     deviceCode: string,
     userId: string
   ): Observable<Response<GithubDeviceFlowCheckResult>> {
-    console.log(deviceCode);
     return this.requestService
       .invokeCommand<
         Response<GithubDeviceFlowCheckResult>
