@@ -41,8 +41,6 @@ impl Display for TaskStatus {
 #[one_to_many("comments", "comments", "task_id", "Cascade")]
 #[index("todo_id", 1)]
 #[frontend_exclude("todo")]
-#[counter("subtasks")]
-#[counter("comments")]
 pub struct TaskEntity {
   pub id: Option<String>,
   #[validate(required)]

@@ -170,6 +170,7 @@ pub async fn batch_restore_cascade(
   let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
+  let mut all_affected_todo_ids: Vec<String> = Vec::new();
 
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
 
@@ -185,7 +186,8 @@ pub async fn batch_restore_cascade(
 
     if let Ok(result) = result {
       all_failed = false;
-      results.push(result);
+      results.push(result.clone());
+      all_affected_todo_ids.extend(result.affected_todo_ids);
     }
   }
 
@@ -194,6 +196,33 @@ pub async fn batch_restore_cascade(
       "All batch restore operations failed",
       "",
     ));
+  }
+
+  if !all_affected_todo_ids.is_empty() {
+    let unique_todo_ids: Vec<String> = all_affected_todo_ids
+      .into_iter()
+      .collect::<std::collections::HashSet<_>>()
+      .into_iter()
+      .collect();
+
+    let _offline = use_json;
+    let is_json = use_json;
+
+    for todo_id in &unique_todo_ids {
+      if use_json {
+        let _ = state
+          .repository_service
+          .count_service
+          .refresh_todo_counts(todo_id, &state.json_provider, is_json)
+          .await;
+      } else if let Some(ref mongo) = state.mongodb_provider {
+        let _ = state
+          .repository_service
+          .count_service
+          .refresh_todo_counts(todo_id, mongo.as_ref(), is_json)
+          .await;
+      }
+    }
   }
 
   Ok(ResponseModel {
