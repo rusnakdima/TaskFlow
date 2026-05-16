@@ -37,6 +37,8 @@ import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { AppStateService } from "@services/core/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { PromptDialogService } from "@services/core/prompt-dialog.service";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -115,9 +117,22 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   actionsHelper = inject(TasksActionsHelper);
   commentsHelper = inject(TasksCommentsHelper);
   private syncService = inject(UnifiedSyncService);
+  private permissionService = inject(PermissionService);
+  private jwtTokenService = inject(JwtTokenService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
+
+  userPermission = signal<TodoPermission>(TodoPermission.VIEWER);
+
+  canCreateTask = computed(() =>
+    [
+      TodoPermission.EDITOR,
+      TodoPermission.ADMIN,
+      TodoPermission.MODERATOR,
+      TodoPermission.OWNER,
+    ].includes(this.userPermission())
+  );
 
   protected get selectedTasks() {
     return this.selectedItems;
@@ -160,12 +175,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   todoTasks = signal<Task[]>([]);
   allTasksForTodo = computed(() => this.todoTasks());
 
-  private loadInitialTodo(todoId: string): void {
+  private async loadInitialTodo(todoId: string): Promise<void> {
     this.apiService.todos.get(todoId, this.visibilityParam()).subscribe({
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
           this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
+          this.setUserPermission(todo);
           const tasks = todo.tasks || [];
           if (tasks.length > 0) {
             this.todoTasks.set(tasks);
@@ -187,6 +203,22 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         this.notifyService.showError("Failed to load todo.");
       },
     });
+  }
+
+  private async setUserPermission(todo: Todo): Promise<void> {
+    const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "");
+    if (todo.user_id === userId) {
+      this.userPermission.set(TodoPermission.OWNER);
+      return;
+    }
+    const token = this.jwtTokenService.getToken() || "";
+    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
+      todo.id,
+      todo.visibility || "private",
+      token
+    );
+    const role = assigneeRoles[userId] || "viewer";
+    this.userPermission.set(this.permissionService.fromStr(role));
   }
 
   taskPagination = signal<{
