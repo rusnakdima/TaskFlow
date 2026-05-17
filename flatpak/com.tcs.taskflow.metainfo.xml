@@ -73,6 +73,58 @@
   </provides>
 
   <releases>
+    <release version="0.17.0" date="2026-05-18">
+      <description>
+        <p>Release version 0.17.0 with new group/room entities, chat refactoring, profile search service, and comprehensive code formatting across frontend and backend.</p>
+
+        <p>
+          <strong>New Features &amp; Architecture:</strong>
+        </p>
+        <ul>
+          <li>Group and room entities for improved organization and grouping</li>
+          <li>Profile search service for dedicated profile search functionality</li>
+        </ul>
+
+        <p>
+          <strong>Backend Improvements:</strong>
+        </p>
+        <ul>
+          <li>Updated Rust entity definitions with improved structure</li>
+          <li>Refactored routes module, helpers, and lib exports</li>
+          <li>Updated Rust service implementations</li>
+          <li>Updated Cargo dependencies and capabilities</li>
+        </ul>
+
+        <p>
+          <strong>Frontend Refactoring:</strong>
+        </p>
+        <ul>
+          <li>Refactored frontend services for improved architecture</li>
+          <li>Updated view implementations across the application</li>
+          <li>Refactored component TypeScript files</li>
+          <li>Updated API models for better type consistency</li>
+        </ul>
+
+        <p>
+          <strong>UI/UX Improvements:</strong>
+        </p>
+        <ul>
+          <li>Updated HTML templates for components with improved styling</li>
+          <li>Updated global styles for better visual consistency</li>
+          <li>Refactored table-view component</li>
+          <li>Updated checkbox, text, floating-nav, and todos-list components</li>
+        </ul>
+
+        <p>
+          <strong>Code Quality:</strong>
+        </p>
+        <ul>
+          <li>Applied Prettier and Rustfmt across frontend and backend</li>
+          <li>Chat refactoring with updated chat entity and lib exports</li>
+          <li>Removed chat-window component for streamlined chat experience</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.16.0" date="2026-05-17">
       <description>
         <p>Release version 0.16.0 with new permission service, theme system, enhanced components, and code quality improvements.</p>

@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT License"
 name = "taskflow"
 repository = "https://github.com/TechCraft-Solutions/TaskFlow"
-version = "0.16.0"
+version = "0.17.0"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]
