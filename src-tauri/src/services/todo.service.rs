@@ -84,14 +84,17 @@ impl TodoService {
     data: Value,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let visibility = get_visibility(&data);
-
-    let provider = self.base.get_provider(visibility)?;
-
-    let existing = provider
+    // First find existing todo to get its stored visibility
+    // We must use the STORED visibility, not from request data, to determine the provider
+    let existing = self
+      .base
+      .get_json_provider()
       .find_by_id("todos", id)
       .await?
       .ok_or_else(|| err_response("Todo not found"))?;
+
+    let stored_visibility = get_visibility(&existing);
+    let provider = self.base.get_provider(stored_visibility)?;
 
     if !PermissionService::can_edit_todo(&existing, user_id) {
       return Err(err_response(
@@ -99,7 +102,13 @@ impl TodoService {
       ));
     }
 
-    let doc = provider.update("todos", id, data).await?;
+    let mut update_data = data;
+    // Ensure visibility in data matches stored visibility (don't allow changing via update)
+    if let Some(v) = update_data.get_mut("visibility") {
+      *v = Value::String(stored_visibility.to_string());
+    }
+
+    let doc = provider.update("todos", id, update_data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
