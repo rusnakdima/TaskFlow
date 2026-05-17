@@ -41,8 +41,11 @@ pub struct TodoEntity {
   pub github_repo_name: Option<String>,
   pub tasks_count: i32,
   pub completed_tasks_count: i32,
+  #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
+  #[serde(default)]
   pub updated_at: Option<DateTime<Utc>>,
+  #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
 
