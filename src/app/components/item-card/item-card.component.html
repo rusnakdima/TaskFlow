@@ -113,6 +113,9 @@
                   @for (action of actions; track action.key) {
                     <button
                       class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                      [class.opacity-50]="isActionDisabled()"
+                      [class.cursor-not-allowed]="isActionDisabled()"
+                      [disabled]="isActionDisabled()"
                       (click)="onAction(action.key || action.label, $event)"
                     >
                       <mat-icon
@@ -132,6 +135,8 @@
                 [status]="taskStatus"
                 (toggle)="onStatusToggle($event)"
                 (click)="$event.stopPropagation()"
+                [class.pointer-events-none]="!canToggleStatus()"
+                [class.opacity-30]="!canToggleStatus()"
               />
             }
           }
@@ -250,6 +255,9 @@
                       @for (action of actions; track action.key) {
                         <button
                           class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                          [class.opacity-50]="isActionDisabled()"
+                          [class.cursor-not-allowed]="isActionDisabled()"
+                          [disabled]="isActionDisabled()"
                           (click)="onAction(action.key || action.label, $event)"
                         >
                           <mat-icon
@@ -286,6 +294,7 @@
           [comments]="getComments()"
           [task_id]="itemType === 'task' ? item?.id : undefined"
           [subtask_id]="itemType === 'subtask' ? item?.id : undefined"
+          [disabled]="userPermission === isViewerPermission"
           (addCommentEvent)="onAddComment($event)"
           (deleteCommentEvent)="onDeleteComment($event)"
           (markAsReadEvent)="onMarkAsRead($event)"
