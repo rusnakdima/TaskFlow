@@ -879,13 +879,21 @@ html[data-theme="cyan-wave"] {
 
 /* Floating Bottom Nav & Overlays */
 html[data-gradient-intensity="none"] .gradient-overlay {
-  @apply bg-white/25 dark:bg-black/25;
+  @apply bg-white/75 dark:bg-black/75;
 }
 html[data-gradient-intensity="subtle"] .gradient-overlay {
-  background: linear-gradient(135deg, var(--accent-50) 0%, var(--accent-100) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    oklch(from var(--accent-color) calc(l + 0.25) c h / 0.2) 0%,
+    oklch(from var(--accent-color) calc(l + 0.25) c h / 0.3) 100%
+  ) !important;
 }
 html[data-gradient-intensity="bold"] .gradient-overlay {
-  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    oklch(from var(--accent-color) calc(l + 0.25) c h / 0.3) 0%,
+    oklch(from var(--accent-color) calc(l + 0.25) c h / 0.4) 100%
+  ) !important;
 }
 
 /* Header Background */
