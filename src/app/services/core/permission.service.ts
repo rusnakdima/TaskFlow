@@ -69,19 +69,27 @@ export class PermissionService {
   }
 
   canDeleteTodo(permission: TodoPermission): boolean {
-    return permission === TodoPermission.OWNER;
+    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      permission
+    );
   }
 
   canManageAssignees(permission: TodoPermission): boolean {
-    return permission === TodoPermission.OWNER;
+    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      permission
+    );
   }
 
   canManageGhRepo(permission: TodoPermission): boolean {
-    return permission === TodoPermission.OWNER;
+    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      permission
+    );
   }
 
   canTransferOwnership(permission: TodoPermission): boolean {
-    return permission === TodoPermission.OWNER;
+    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      permission
+    );
   }
 
   canCreateTask(permission: TodoPermission): boolean {
@@ -93,14 +101,14 @@ export class PermissionService {
     ].includes(permission);
   }
 
-  canEditTask(task: any, permission: TodoPermission, userId: string): boolean {
+  canEditTask(_task: any, permission: TodoPermission, _userId: string): boolean {
     if (
       [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)
     ) {
       return true;
     }
     if (permission === TodoPermission.EDITOR) {
-      return task.user_id === userId;
+      return true;
     }
     return false;
   }
@@ -113,14 +121,14 @@ export class PermissionService {
     return this.canCreateTask(permission);
   }
 
-  canEditSubtask(subtask: any, permission: TodoPermission, userId: string): boolean {
+  canEditSubtask(_subtask: any, permission: TodoPermission, _userId: string): boolean {
     if (
       [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)
     ) {
       return true;
     }
     if (permission === TodoPermission.EDITOR) {
-      return subtask.user_id === userId;
+      return true;
     }
     return false;
   }
@@ -166,8 +174,10 @@ export class PermissionService {
           token: token || "",
         })
       );
+      console.log("[DEBUG getTodoPermissionsAsync] raw result", JSON.stringify(result));
       return result?.assignee_roles || result || {};
-    } catch {
+    } catch (e) {
+      console.log("[DEBUG getTodoPermissionsAsync] error", e);
       return {};
     }
   }
