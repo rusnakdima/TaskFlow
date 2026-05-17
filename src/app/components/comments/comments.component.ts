@@ -62,6 +62,7 @@ export class CommentsComponent
   @Input() subtaskCommentGroups: SubtaskCommentGroup[] = [];
   @Input() taskIdForSubtasks?: string;
   @Input() highlightSubtaskId?: string;
+  @Input() disabled: boolean = false;
 
   @Output() addCommentEvent = new EventEmitter<string>();
   @Output() deleteCommentEvent = new EventEmitter<string>();

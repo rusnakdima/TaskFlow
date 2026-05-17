@@ -27,6 +27,8 @@ import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 @Component({
   selector: "app-todos-list",
@@ -49,7 +51,12 @@ export class TodosListComponent {
   private router = inject(Router);
   private dragDropService = inject(DragDropOrderService);
   private dragDropHandlerService = inject(DragDropHandlerService);
+  private permissionService = inject(PermissionService);
+  private jwtTokenService = inject(JwtTokenService);
   stateService = inject(TodosStateService);
+
+  permissionMap = signal<Record<string, Record<string, string>>>({});
+  loadedPermissions = signal<Set<string>>(new Set());
 
   expandedTodoIds = signal<Set<string>>(new Set());
 
@@ -271,6 +278,9 @@ export class TodosListComponent {
         this.todoRestored.emit(event.item.id);
         break;
       case "blueprint":
+        if (event.item.user_id !== this.userId) {
+          return;
+        }
         this.todoSavedAsBlueprint.emit(event.item);
         break;
       case "delete":
@@ -314,6 +324,9 @@ export class TodosListComponent {
         this.todoRestored.emit(todo.id);
         break;
       case "blueprint":
+        if (todo.user_id !== this.userId) {
+          return;
+        }
         this.todoSavedAsBlueprint.emit(todo);
         break;
       case "delete":
@@ -358,6 +371,60 @@ export class TodosListComponent {
 
   isCommentsExpanded(todoId: string): boolean {
     return this.expandedCommentsIds().has(todoId);
+  }
+
+  async loadTodoPermissions(todo: Todo): Promise<TodoPermission> {
+    const userId = this.userId;
+
+    if (todo.user_id === userId) {
+      return TodoPermission.OWNER;
+    }
+
+    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
+      return this.permissionService.fromStr((todo as any).assignee_roles[userId]);
+    }
+
+    if (this.loadedPermissions().has(todo.id)) {
+      const roles = this.permissionMap()[todo.id] || {};
+      const role = roles[userId] || "viewer";
+      return this.permissionService.fromStr(role);
+    }
+
+    if (todo.visibility === "shared") {
+      const token = this.jwtTokenService.getToken() || "";
+      const roles = await this.permissionService.getTodoPermissionsAsync(
+        todo.id,
+        todo.visibility,
+        token
+      );
+
+      this.permissionMap.update((m) => ({ ...m, [todo.id]: roles }));
+      this.loadedPermissions.update((s) => new Set(s).add(todo.id));
+
+      const role = roles[userId] || "viewer";
+      return this.permissionService.fromStr(role);
+    }
+
+    return TodoPermission.VIEWER;
+  }
+
+  getUserTodoPermission(todo: Todo): TodoPermission {
+    if (todo.user_id === this.userId) {
+      return TodoPermission.OWNER;
+    }
+    if ((todo as any).assignee_roles && (todo as any).assignee_roles[this.userId]) {
+      return this.permissionService.fromStr((todo as any).assignee_roles[this.userId]);
+    }
+    const roles = this.permissionMap()[todo.id];
+    if (roles) {
+      const role = roles[this.userId] || "viewer";
+      return this.permissionService.fromStr(role);
+    }
+    return TodoPermission.VIEWER;
+  }
+
+  isBlueprintDisabled(todo: Todo): boolean {
+    return todo.user_id !== this.userId;
   }
 
   getGroupedTodos() {
