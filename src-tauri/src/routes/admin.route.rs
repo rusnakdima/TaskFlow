@@ -22,19 +22,19 @@ pub async fn get_all_admin_data(
 pub async fn get_all_admin_paginated(
   state: State<'_, AppState>,
   token: String,
-  data_type: String,
+  dataType: String,
   skip: u64,
   limit: u64,
 ) -> Result<ResponseModel, ResponseModel> {
   validate_admin_role(
     &token,
     &state.config_helper.jwt_secret,
-    &state.manage_db_service.json_provider,
+    &state.json_provider,
     state.manage_db_service.get_mongodb_provider().as_ref(),
   )
   .await?;
   state
     .manage_db_service
-    .get_admin_data_paginated(data_type, skip, limit)
+    .get_admin_data_paginated(dataType, skip, limit)
     .await
 }
