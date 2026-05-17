@@ -522,15 +522,16 @@ impl CascadeService {
   }
 
   pub async fn migrate_todo_to_mongo(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
-    self.sync_entity_to_mongo("todos", id).await?;
-    self.soft_delete_cascade_json("todos", id).await?;
-    Ok(CascadeResult::new())
+    self.sync_entity_to_mongo("todos", id).await
   }
 
   pub async fn move_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json("todos", id).await
   }
 
+  /**
+   * @deprecated No longer needed - sync_entity_to_mongo always copies now
+   */
   pub async fn sync_entity_to_mongo_and_delete_from_source(
     &self,
     table: &str,
@@ -540,6 +541,9 @@ impl CascadeService {
     self.soft_delete_cascade_json(table, id).await
   }
 
+  /**
+   * @deprecated No longer needed - sync_entity_to_json always copies now
+   */
   pub async fn sync_entity_to_json_keep_source(
     &self,
     table: &str,

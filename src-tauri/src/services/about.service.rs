@@ -121,7 +121,7 @@ impl AboutService {
     })
   }
 
-  pub async fn open_file(&self, path: String) -> Result<ResponseModel, ResponseModel> {
+  pub async fn open_file(path: String) -> Result<ResponseModel, ResponseModel> {
     match open::that(&path) {
       Ok(()) => Ok(ResponseModel {
         status: ResponseStatus::Success,
