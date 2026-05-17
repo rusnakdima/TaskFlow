@@ -56,6 +56,7 @@
         @if (itemType() === "todo") {
           <div
             class="space-y-4 rounded-xl border border-blue-500/30 bg-blue-50/30 p-4 dark:bg-blue-900/10"
+            [attr.data-locked]="!canManageCategories()"
           >
             <mat-form-field class="w-full">
               <mat-label>Search or Add Category</mat-label>
@@ -66,13 +67,14 @@
                 [ngModelOptions]="{ standalone: true }"
                 (keydown.enter)="addCategory()"
                 placeholder="Type to search or press Enter to add"
+                [readonly]="!canManageCategories()"
               />
               <button
                 matSuffix
                 class="mr-2"
                 type="button"
                 (click)="addCategory()"
-                [disabled]="!newCategoryTitle().trim()"
+                [disabled]="!newCategoryTitle().trim() || !canManageCategories()"
               >
                 <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="add" />
               </button>
@@ -89,6 +91,7 @@
                 type="button"
                 (click)="toggleSelectAllCategories()"
                 class="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+                [disabled]="!canManageCategories()"
               >
                 @if (isAllCategoriesSelected()) {
                   Deselect All
@@ -100,18 +103,23 @@
               </button>
             </div>
 
-            <div class="custom-scrollbar flex max-h-40 flex-col gap-2 overflow-y-auto pr-2">
+            <div
+              class="custom-scrollbar flex max-h-40 flex-col gap-2 overflow-y-auto pr-2"
+              [class.pointer-events-none]="!canManageCategories()"
+            >
               @for (category of filteredCategories(); track category.id) {
                 <div
-                  class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+                  class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
                   [ngClass]="{
                     'border-blue-500 bg-blue-100 dark:bg-blue-900/40': isCategorySelectedById(
                       category.id
                     ),
                     'border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800':
                       !isCategorySelectedById(category.id),
+                    'cursor-pointer': canManageCategories(),
+                    'cursor-not-allowed opacity-60': !canManageCategories(),
                   }"
-                  (click)="toggleCategorySelection(category.id)"
+                  (click)="canManageCategories() && toggleCategorySelection(category.id)"
                 >
                   <app-checkbox
                     class="pointer-events-none"
@@ -244,8 +252,20 @@
     </div>
     <div
       *ngIf="itemType() === 'todo'"
-      class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+      class="relative rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
+      @if (!canEditVisibility()) {
+        <div
+          class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-gray-200/60 dark:bg-zinc-800/60"
+        >
+          <div
+            class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow-lg dark:bg-zinc-700"
+          >
+            <mat-icon class="text-gray-500" fontIcon="lock" />
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Owner only</span>
+          </div>
+        </div>
+      }
       <div class="mb-6 flex items-center gap-3">
         <div
           class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
@@ -305,8 +325,20 @@
 
     @if (showAssignees()) {
       <div
-        class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+        class="relative rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
+        @if (!canManageAssignees()) {
+          <div
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-gray-200/60 dark:bg-zinc-800/60"
+          >
+            <div
+              class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow-lg dark:bg-zinc-700"
+            >
+              <mat-icon class="text-gray-500" fontIcon="lock" />
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Owner only</span>
+            </div>
+          </div>
+        }
         <div class="mb-6 flex items-center gap-3">
           <div
             class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30"
@@ -568,8 +600,20 @@
 
     @if (itemType() === "todo") {
       <div
-        class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+        class="relative rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       >
+        @if (!canManageGhRepo()) {
+          <div
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-gray-200/60 dark:bg-zinc-800/60"
+          >
+            <div
+              class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow-lg dark:bg-zinc-700"
+            >
+              <mat-icon class="text-gray-500" fontIcon="lock" />
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Owner only</span>
+            </div>
+          </div>
+        }
         <div class="mb-6 flex items-center gap-3">
           <div
             class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-zinc-700"

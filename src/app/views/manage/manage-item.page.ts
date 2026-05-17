@@ -121,8 +121,7 @@ export class ManageItemPage implements OnInit {
     const visibility = this.visibility();
     const isTodo = this.itemType() === "todo";
     const isSharedOrPublic = visibility === "shared" || visibility === "public";
-    const isAdmin = this.assigneeRoles()[this.getCurrentUserId()] === "admin";
-    return isTodo && isSharedOrPublic && (this.isOwner() || isAdmin);
+    return isTodo && isSharedOrPublic && this.isOwner();
   });
   showTransferOwnershipDialog = signal(false);
 
@@ -131,37 +130,40 @@ export class ManageItemPage implements OnInit {
       this.userPermission()
     )
   );
-
+  canEditVisibility = computed(() => this.userPermission() === TodoPermission.OWNER);
   canManageAssignees = computed(() => this.userPermission() === TodoPermission.OWNER);
   canManageGhRepo = computed(() => this.userPermission() === TodoPermission.OWNER);
-  canDeleteTodo = computed(() => this.userPermission() === TodoPermission.OWNER);
-  canTransferOwnership = computed(() => this.userPermission() === TodoPermission.OWNER);
-  canCreateTask = computed(() =>
-    [
-      TodoPermission.EDITOR,
-      TodoPermission.ADMIN,
-      TodoPermission.MODERATOR,
-      TodoPermission.OWNER,
-    ].includes(this.userPermission())
+  canManagePermissions = computed(() => this.userPermission() === TodoPermission.OWNER);
+  canManageCategories = computed(() =>
+    [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      this.userPermission()
+    )
   );
 
   private updateFormFieldPermissions(): void {
-    const canEdit = this.canEditTodoFields();
-    const canManage = this.canManageAssignees();
+    const permission = this.userPermission();
+    const isOwner = permission === TodoPermission.OWNER;
+    const isAdminOrModerator = [TodoPermission.ADMIN, TodoPermission.MODERATOR].includes(
+      permission
+    );
 
-    const fieldsToToggle = ["title", "description", "priority", "start_date", "end_date"];
-    for (const field of fieldsToToggle) {
-      if (canEdit) {
+    const basicFields = ["title", "description", "priority", "start_date", "end_date"];
+    for (const field of basicFields) {
+      if (isOwner || isAdminOrModerator) {
         this.form.get(field)?.enable();
       } else {
         this.form.get(field)?.disable();
       }
     }
 
-    if (canManage) {
+    if (isOwner) {
       this.form.get("visibility")?.enable();
+      this.form.get("assignees")?.enable();
+      this.form.get("github_repo_id")?.enable();
     } else {
       this.form.get("visibility")?.disable();
+      this.form.get("assignees")?.disable();
+      this.form.get("github_repo_id")?.disable();
     }
   }
 
@@ -282,6 +284,11 @@ export class ManageItemPage implements OnInit {
     this.loadGithubData();
     this.loadCategories();
     this.loadProfiles();
+
+    if (this.itemType() === "todo" && !this.isEdit()) {
+      this.userPermission.set(TodoPermission.OWNER);
+      this.updateFormFieldPermissions();
+    }
   }
 
   private loadCategories(): void {
@@ -432,7 +439,7 @@ export class ManageItemPage implements OnInit {
 
       if (item) {
         if (config.type === "todo") {
-          await this.loadAndSetUserPermission(item, visibility);
+          await this.loadAndSetUserPermission(item);
         }
         this.applyItemToForm(item);
       }
@@ -441,10 +448,9 @@ export class ManageItemPage implements OnInit {
     }
   }
 
-  private async loadAndSetUserPermission(item: any, visibility: string | undefined): Promise<void> {
+  private async loadAndSetUserPermission(item: any): Promise<void> {
     const userId = this.getCurrentUserId();
     const profileId = this.getCurrentProfileId();
-    const token = this.jwtTokenService.getToken() || "";
 
     if (item.user_id === userId) {
       this.userPermission.set(TodoPermission.OWNER);
@@ -452,13 +458,28 @@ export class ManageItemPage implements OnInit {
       return;
     }
 
+    if (item.assignee_roles && item.assignee_roles[userId]) {
+      this.userPermission.set(this.permissionService.fromStr(item.assignee_roles[userId]));
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    if (item.visibility === "public") {
+      this.userPermission.set(TodoPermission.VIEWER);
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    const token = this.jwtTokenService.getToken() || "";
+
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       item.id,
-      visibility || "private",
+      item.visibility || "shared",
       token
     );
 
     this.assigneeRoles.set(assigneeRoles);
+
     const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
 
     this.userPermission.set(this.permissionService.fromStr(role));
@@ -515,10 +536,12 @@ export class ManageItemPage implements OnInit {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken());
     this.isOwner.set(item.user_id === userId);
 
-    const isAdminAssignee =
-      userId && item.assignee_roles && item.assignee_roles[userId] === "admin";
+    const isAdminOrModeratorAssignee =
+      userId &&
+      item.assignee_roles &&
+      (item.assignee_roles[userId] === "admin" || item.assignee_roles[userId] === "moderator");
 
-    if (item.visibility === "shared" && item.user_id !== userId && !isAdminAssignee) {
+    if (item.visibility === "shared" && item.user_id !== userId && !isAdminOrModeratorAssignee) {
       this.notifyService.showError("Only owner can manage project settings");
       setTimeout(() => this.location.back(), 500);
       return;
@@ -527,7 +550,7 @@ export class ManageItemPage implements OnInit {
       item.visibility === "public" &&
       item.user_id !== userId &&
       !this.isUserAssignee(item, userId ?? null) &&
-      !isAdminAssignee
+      !isAdminOrModeratorAssignee
     ) {
       this.notifyService.showError("You don't have permission to manage this project");
       setTimeout(() => this.location.back(), 500);
@@ -561,6 +584,11 @@ export class ManageItemPage implements OnInit {
       return;
     }
 
+    if (!this.canEditTodoFields() && this.isEdit()) {
+      this.notifyService.showError("You don't have permission to edit this item");
+      return;
+    }
+
     this.isSubmitting.set(true);
 
     try {
@@ -574,7 +602,10 @@ export class ManageItemPage implements OnInit {
         const id = formValue._id || formValue.id;
         savedTaskId = id;
         if (config.type === "todo") {
-          await firstValueFrom(this.apiService.todos.update(id, payload, visibility));
+          const result = await firstValueFrom(
+            this.apiService.todos.update(id, payload, visibility)
+          );
+          this.storageService.modify("todos", "update", { ...result, id });
         } else if (config.type === "task") {
           await firstValueFrom(this.apiService.tasks.update(id, payload, visibility));
         } else {
@@ -652,7 +683,7 @@ export class ManageItemPage implements OnInit {
           github_repo_id: formValue.github_repo_id || "",
           github_repo_name: this.getRepoName(formValue.github_repo_id),
         },
-        visibility: formValue.visibility || "private",
+        visibility: this.isEdit() ? this.visibility() : formValue.visibility || "private",
       };
     } else if (config.type === "task") {
       const parentTodo = this.todos().find((t) => t.id === formValue.todo_id);

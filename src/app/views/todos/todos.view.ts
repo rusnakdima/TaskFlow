@@ -496,6 +496,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const { action, item } = event;
     switch (action) {
       case "blueprint":
+        if (item.user_id !== this.currentUserId) {
+          break;
+        }
         this.saveAsBlueprint(item);
         break;
       case "edit":

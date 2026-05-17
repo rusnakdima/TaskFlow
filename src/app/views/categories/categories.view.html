@@ -1,5 +1,11 @@
 <div class="flex flex-col gap-4">
-  <div class="flex items-center justify-end gap-2">
+  <div class="flex items-center justify-between gap-2">
+    <app-segment-selector
+      [options]="visibilityOptions()"
+      [active]="activeVisibility()"
+      (select)="activeVisibility.set($any($event))"
+    />
+
     <app-page-toolbar [config]="getToolbarConfig()" />
   </div>
 

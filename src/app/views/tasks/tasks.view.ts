@@ -217,13 +217,28 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
     const profileId =
       this.jwtTokenService.getProfileId(this.jwtTokenService.getToken() || "") || "";
-    const token = this.jwtTokenService.getToken() || "";
 
     if (todo.user_id === userId) {
       this.userPermission.set(TodoPermission.OWNER);
       return;
     }
 
+    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
+      this.userPermission.set(this.permissionService.fromStr((todo as any).assignee_roles[userId]));
+      return;
+    }
+
+    if (!todo.assignees?.includes(userId)) {
+      this.userPermission.set(TodoPermission.VIEWER);
+      return;
+    }
+
+    if (todo.visibility === "public") {
+      this.userPermission.set(TodoPermission.VIEWER);
+      return;
+    }
+
+    const token = this.jwtTokenService.getToken() || "";
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       todo.id,
       todo.visibility || "private",
@@ -991,6 +1006,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onKanbanStatusCycle(task: Task): void {
+    if (!this.canEditTask(task)) {
+      this.notifyService.showError("You don't have permission to change task status");
+      return;
+    }
     this.kanbanHelper.onKanbanStatusCycle(task, (taskId, newStatus) =>
       this.updateTaskStatus(taskId, newStatus)
     );
