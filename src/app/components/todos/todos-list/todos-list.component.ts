@@ -380,4 +380,44 @@ export class TodosListComponent {
   onSectionSelectAll(section: "private" | "shared" | "public", checked: boolean): void {
     this.selectAll.emit({ selectAll: checked, section });
   }
+
+  getSectionTodos(section: string): Todo[] {
+    const grouped = this.stateService.groupedTodos();
+    switch (section) {
+      case "private":
+        return grouped.private;
+      case "shared":
+        return grouped.shared;
+      case "public":
+        return grouped.public;
+      default:
+        return [];
+    }
+  }
+
+  getSectionIcon(section: string): string {
+    switch (section) {
+      case "private":
+        return "lock";
+      case "shared":
+        return "group";
+      case "public":
+        return "public";
+      default:
+        return "folder";
+    }
+  }
+
+  getSectionLabel(section: string): string {
+    switch (section) {
+      case "private":
+        return "Private";
+      case "shared":
+        return "Shared";
+      case "public":
+        return "Public";
+      default:
+        return section;
+    }
+  }
 }
