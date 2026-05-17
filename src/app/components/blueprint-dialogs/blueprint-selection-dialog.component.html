@@ -12,7 +12,7 @@
           class="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-zinc-700"
           (click)="closeDialog()"
         >
-          <mat-icon>close</mat-icon>
+          <mat-icon fontIcon="close" />
         </button>
       </div>
       <p class="textMuted mb-4">Select a blueprint to create a new project from</p>
@@ -36,7 +36,7 @@
               class="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100"
               title="Remove blueprint"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-base! text-red-500">delete</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-base! text-red-500" fontIcon="delete" />
             </button>
           </div>
         } @empty {
@@ -44,7 +44,7 @@
             <mat-icon
               class="mx-auto mb-2 h-12! w-12! text-4xl! opacity-50"
               fontIcon="account_tree"
-            ></mat-icon>
+            />
             <p>No blueprints saved yet</p>
             <p class="text-sm">
               Create a project and save it as a blueprint to use it as a template

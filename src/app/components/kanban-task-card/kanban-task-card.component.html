@@ -24,7 +24,7 @@
         [fontIcon]="getStatusIcon(task.status)"
         (click)="onStatusCycleClick($event)"
         [title]="'Status: ' + task.status + ' (click to change)'"
-      ></mat-icon>
+      />
       <button
         class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-600 dark:hover:text-gray-300"
         style="touch-action: none; -webkit-user-drag: none"
@@ -32,7 +32,7 @@
         (click)="onDragHandleClick($event)"
         title="Drag to move"
       >
-        <mat-icon class="h-4! w-4! min-w-4 text-base!">drag_indicator</mat-icon>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="drag_indicator" />
       </button>
     </div>
   </div>
