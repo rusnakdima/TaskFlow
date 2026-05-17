@@ -152,10 +152,23 @@
                   }
                   @case ("status") {
                     <span
-                      class="inline-flex cursor-pointer items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all hover:scale-105"
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all"
                       [class]="getStatusClass(formatValue(item, field))"
-                      (click)="field.onClick ? field.onClick(item) : null"
-                      title="Click to change status"
+                      [class.hover:scale-105]="!isStatusToggleDisabledForItem(item)"
+                      [class.cursor-pointer]="!isStatusToggleDisabledForItem(item)"
+                      [class.cursor-default]="isStatusToggleDisabledForItem(item)"
+                      [attr.title]="
+                        isStatusToggleDisabledForItem(item)
+                          ? 'You cannot change this status'
+                          : 'Click to change status'
+                      "
+                      (click)="
+                        isStatusToggleDisabledForItem(item)
+                          ? null
+                          : field.onClick
+                            ? field.onClick(item)
+                            : null
+                      "
                     >
                       {{ formatValue(item, field) }}
                     </span>
@@ -254,8 +267,12 @@
                 @if (showStatusToggle) {
                   <app-status-toggle
                     [status]="item[statusKey]"
-                    (toggle)="onStatusToggle(item, $event)"
+                    (toggle)="
+                      isStatusToggleDisabledForItem(item) ? null : onStatusToggle(item, $event)
+                    "
                     (click)="$event.stopPropagation()"
+                    [class.pointer-events-none]="isStatusToggleDisabledForItem(item)"
+                    [class.opacity-30]="isStatusToggleDisabledForItem(item)"
                   />
                 }
                 @for (action of actions; track action.key) {
@@ -270,6 +287,9 @@
                     <button
                       mat-icon-button
                       class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
+                      [class.opacity-50]="isActionDisabledForItem(item)"
+                      [class.cursor-not-allowed]="isActionDisabledForItem(item)"
+                      [disabled]="isActionDisabledForItem(item)"
                       [class]="getActionColor(action)"
                       (click)="
                         onActionClickHandler(action.key || '', item); $event.stopPropagation()
@@ -336,6 +356,7 @@
                 [showSubtaskList]="true"
                 [subtaskCommentGroups]="getSubtaskCommentGroupsForItem(item)"
                 [taskIdForSubtasks]="item.id"
+                [disabled]="userPermission === isViewerPermission"
                 (addCommentEvent)="onCommentAdd($event, item)"
                 (deleteCommentEvent)="onCommentDelete($event)"
                 (markAsReadEvent)="onCommentMarkAsRead($event)"
