@@ -32,7 +32,9 @@ pub struct DailyActivityModel {
   pub total_tasks: i32,
   pub completed_tasks: i32,
   pub productivity_score: i32,
+  #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
+  #[serde(default)]
   pub updated_at: Option<DateTime<Utc>>,
 }
 

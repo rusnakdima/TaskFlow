@@ -104,6 +104,13 @@ impl TodoPermission {
         | TodoPermission::OWNER
     )
   }
+
+  pub fn can_edit_todo_fields(&self) -> bool {
+    matches!(
+      self,
+      TodoPermission::ADMIN | TodoPermission::MODERATOR | TodoPermission::OWNER
+    )
+  }
 }
 
 pub const ASSIGNEE_DEFAULT_ROLE: &str = "viewer";
