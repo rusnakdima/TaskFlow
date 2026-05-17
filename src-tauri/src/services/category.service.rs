@@ -84,6 +84,7 @@ impl CategoryService {
     data: Value,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
+    // First find existing category to get its stored visibility
     let existing = self
       .base
       .get_json_provider()
@@ -97,11 +98,11 @@ impl CategoryService {
       ));
     }
 
-    let doc = self
-      .base
-      .get_json_provider()
-      .update("categories", id, data)
-      .await?;
+    // Use stored visibility to get correct provider
+    let stored_visibility = get_visibility(&existing);
+    let provider = self.base.get_provider(stored_visibility)?;
+
+    let doc = provider.update("categories", id, data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
@@ -119,8 +120,9 @@ impl CategoryService {
       ));
     }
 
-    let visibility = get_visibility(&existing);
-    let provider = self.base.get_provider(visibility)?;
+    // Use stored visibility to get correct provider
+    let stored_visibility = get_visibility(&existing);
+    let provider = self.base.get_provider(stored_visibility)?;
 
     match provider {
       DataProvider::Json(p) => {

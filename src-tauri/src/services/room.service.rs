@@ -2,6 +2,7 @@ use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
+use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 
 pub struct RoomService {
@@ -150,30 +151,33 @@ impl RoomService {
   }
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
-    let doc = self
-      .base
-      .get_json_provider()
-      .insert("rooms", data.clone())
-      .await?;
-
-    if let Some(mongo) = self.get_mongo_provider() {
-      let _ = mongo.insert("rooms", data).await;
+    let mongo = self
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+    let now = chrono::Utc::now().to_rfc3339();
+    let mut create_data = data;
+    create_data["created_at"] = serde_json::json!(now);
+    create_data["updated_at"] = serde_json::json!(now);
+    let doc = mongo.insert("rooms", create_data).await?;
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.insert("rooms", doc.clone()).await;
     }
-
     Ok(success_response(DataValue::Object(doc)))
   }
 
   pub async fn update(&self, room_id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
-    let doc = self
-      .base
-      .get_json_provider()
-      .update("rooms", room_id, data.clone())
-      .await?;
-
-    if let Some(mongo) = self.get_mongo_provider() {
-      let _ = mongo.update("rooms", room_id, data).await;
+    let mongo = self
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+    let now = chrono::Utc::now().to_rfc3339();
+    let mut update_data = data;
+    update_data["updated_at"] = serde_json::json!(now);
+    let doc = mongo.update("rooms", room_id, update_data.clone()).await?;
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.update("rooms", room_id, update_data).await;
     }
-
     Ok(success_response(DataValue::Object(doc)))
   }
 
@@ -182,9 +186,10 @@ impl RoomService {
     room_id: &str,
     new_participant_ids: Vec<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let existing = self
-      .base
-      .get_json_provider()
+    let mongo = self
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+    let existing = mongo
       .find_by_id("rooms", room_id)
       .await?
       .ok_or_else(|| err_response("Room not found"))?;
@@ -206,33 +211,80 @@ impl RoomService {
       }
     }
 
-    let update_data = json!({ "participant_ids": participant_ids.clone() });
-    let doc = self
-      .base
-      .get_json_provider()
-      .update("rooms", room_id, update_data.clone())
-      .await?;
-
-    if let Some(mongo) = self.get_mongo_provider() {
-      let _ = mongo.update("rooms", room_id, update_data).await;
+    let now = chrono::Utc::now().to_rfc3339();
+    let update_data = json!({ "participant_ids": participant_ids.clone(), "updated_at": now });
+    let doc = mongo.update("rooms", room_id, update_data.clone()).await?;
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.update("rooms", room_id, update_data).await;
     }
-
     Ok(success_response(DataValue::Object(doc)))
   }
 
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
-    let update_data = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
+    let mongo = self
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
 
-    let doc = self
-      .base
-      .get_json_provider()
-      .update("rooms", id, update_data.clone())
+    // Find by room field, not id
+    let filter = json!({ "room": id });
+    let filter_opt = Some(
+      nosql_orm::query::Filter::from_json(&filter)
+        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+    );
+    let docs = mongo
+      .find_many("rooms", filter_opt.as_ref(), None, Some(1), None, true)
       .await?;
+    let existing = docs
+      .first()
+      .cloned()
+      .ok_or_else(|| err_response("Room not found"))?;
+    let doc_id = existing.get("id").and_then(|v| v.as_str()).unwrap_or(id);
+    println!("[DEBUG delete_room] id={} doc_id={}", id, doc_id);
 
-    if let Some(mongo) = self.get_mongo_provider() {
-      let _ = mongo.update("rooms", id, update_data).await;
+    // Cascade: delete all chats in this room from MongoDB
+    let chat_filter = json!({ "room_id": id });
+    if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
+      let chat_docs: Vec<serde_json::Value> = mongo
+        .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
+        .await
+        .unwrap_or_default();
+      for chat_doc in chat_docs {
+        if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
+          let _ = mongo.delete("chats", chat_id).await;
+        }
+      }
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    // Delete from JSON cascade
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let chat_filter = json!({ "room_id": id });
+      if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
+        let json_chat_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
+          p.as_ref(),
+          "chats",
+          Some(&chat_filter_obj),
+          None,
+          None,
+          None,
+          true,
+        )
+        .await
+        .unwrap_or_default();
+        for chat_doc in json_chat_docs {
+          if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
+            let _ = p.delete("chats", chat_id).await;
+          }
+        }
+      }
+      let _ = p.delete("rooms", doc_id).await;
+    }
+
+    // Delete the room from MongoDB
+    let _ = mongo.delete("rooms", doc_id).await;
+
+    println!("[DEBUG delete_room] cascade delete completed");
+    Ok(success_response(DataValue::Object(json!({}))))
   }
 }

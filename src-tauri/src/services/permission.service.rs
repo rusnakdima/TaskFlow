@@ -88,7 +88,17 @@ impl PermissionService {
   }
 
   pub fn can_edit_todo(todo: &Value, user_id: &str) -> bool {
-    Self::is_owner_or_admin(todo, user_id)
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission.can_edit_todo_fields();
+    }
+    false
+  }
+
+  pub fn can_manage_assignees(todo: &Value, user_id: &str) -> bool {
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      return permission == TodoPermission::OWNER;
+    }
+    false
   }
 
   pub fn can_delete_todo(todo: &Value, user_id: &str) -> bool {
