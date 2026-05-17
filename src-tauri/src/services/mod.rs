@@ -24,6 +24,12 @@ pub mod category_service;
 #[path = "chat.service.rs"]
 pub mod chat_service;
 
+#[path = "group.service.rs"]
+pub mod group_service;
+
+#[path = "room.service.rs"]
+pub mod room_service;
+
 #[path = "db_backup.service.rs"]
 pub mod db_backup;
 

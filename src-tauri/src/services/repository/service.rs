@@ -213,6 +213,26 @@ impl RepositoryService {
           merged.insert(k.clone(), v.clone());
         }
       }
+
+      let created_at_is_null = merged
+        .get("created_at")
+        .map(|v| v == &serde_json::Value::Null)
+        .unwrap_or(false);
+
+      if created_at_is_null {
+        let created_from_existing = existing_obj.get("created_at").cloned();
+
+        if created_from_existing.as_ref() == Some(&serde_json::Value::Null) {
+          if let Some(updated_at) = merged.get("updated_at").cloned() {
+            if updated_at != serde_json::Value::Null {
+              merged.insert("created_at".to_string(), updated_at);
+            }
+          }
+        }
+
+        merged.remove("created_at");
+      }
+
       *validated = serde_json::to_value(merged).unwrap_or_else(|_| validated.clone());
     }
   }
@@ -1074,13 +1094,21 @@ impl RepositoryService {
 
     let mut existing_record = provider.find_by_id(&table, &id_str).await.ok().flatten();
 
-    if existing_record.is_none() && new_visibility.is_some() {
-      let fallback_provider = self.get_provider(&table, Some("shared"), false)?;
-      existing_record = fallback_provider
-        .find_by_id(&table, &id_str)
-        .await
-        .ok()
-        .flatten();
+    // If not found in target provider, try all other providers
+    if existing_record.is_none() {
+      // Try MongoDB for public/shared records
+      if let Some(ref mongo) = self.mongodb_provider {
+        existing_record = mongo.find_by_id(&table, &id_str).await.ok().flatten();
+      }
+      // Try JSON as last resort
+      if existing_record.is_none() {
+        existing_record = self
+          .json_provider
+          .find_by_id(&table, &id_str)
+          .await
+          .ok()
+          .flatten();
+      }
     }
 
     let existing_record = existing_record.ok_or_else(|| err_response("Document not found"))?;
