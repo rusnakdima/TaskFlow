@@ -73,6 +73,18 @@
   </provides>
 
   <releases>
+    <release version="0.17.1" date="2026-05-18">
+      <description>
+        <p>Release version 0.17.1 with dependency migration for improved build management.</p>
+
+        <p>
+          <strong>Dependency Updates:</strong>
+        </p>
+        <ul>
+          <li>Migrated nosql_orm dependency to git repository for better dependency management and versioning control</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.0" date="2026-05-18">
       <description>
         <p>Release version 0.17.0 with new group/room entities, chat refactoring, profile search service, and comprehensive code formatting across frontend and backend.</p>
