@@ -1,3 +1,34 @@
+<ng-template #deletedBadgeTemplate>
+  <span
+    class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
+  >
+    Deleted
+  </span>
+</ng-template>
+
+<ng-template #chipBadgeTemplate let-config="config">
+  <span
+    class="rounded-full px-3 py-1 text-xs font-medium uppercase"
+    [ngClass]="getChipColor(config)"
+  >
+    {{ getDisplayValue(config) }}
+  </span>
+</ng-template>
+
+<ng-template #expandToggleTemplate>
+  <button
+    class="cursor-pointer transition-all duration-200 hover:scale-110"
+    (click)="toggleExpanded($event)"
+    title="Toggle details"
+  >
+    <mat-icon
+      class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
+      [class.rotate-180]="isExpanded"
+      fontIcon="keyboard_arrow_down"
+    />
+  </button>
+</ng-template>
+
 <div
   class="flex h-full cursor-pointer flex-col rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
   [ngClass]="{
@@ -41,20 +72,10 @@
             </div>
           }
           @case ("status-badge") {
-            <span
-              class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-              [ngClass]="getChipColor(config)"
-            >
-              {{ getDisplayValue(config) }}
-            </span>
+            <ng-container *ngTemplateOutlet="chipBadgeTemplate; context: { config: config }" />
           }
           @case ("priority-badge") {
-            <span
-              class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-              [ngClass]="getChipColor(config)"
-            >
-              {{ getDisplayValue(config) }}
-            </span>
+            <ng-container *ngTemplateOutlet="chipBadgeTemplate; context: { config: config }" />
           }
           @case ("category-pills") {
             <div class="flex flex-row flex-wrap gap-1">
@@ -67,26 +88,12 @@
           }
           @case ("deleted-badge") {
             @if (item?.deleted_at) {
-              <span
-                class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
-              >
-                Deleted
-              </span>
+              <ng-container *ngTemplateOutlet="deletedBadgeTemplate" />
             }
           }
           @case ("expand-toggle") {
             @if (canExpand) {
-              <button
-                class="cursor-pointer transition-all duration-200 hover:scale-110"
-                (click)="toggleExpanded($event)"
-                title="Toggle details"
-              >
-                <mat-icon
-                  class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                  [class.rotate-180]="isExpanded"
-                  fontIcon="keyboard_arrow_down"
-                />
-              </button>
+              <ng-container *ngTemplateOutlet="expandToggleTemplate" />
             }
           }
           @case ("menu") {
@@ -154,33 +161,23 @@
               <div class="flex flex-row flex-wrap items-center gap-2">
                 @for (badge of getBadgeGroupItems(); track trackByConfig($index, badge)) {
                   @switch (badge.type) {
-                    @case ("priority-badge") {
-                      @if (getDisplayValue(badge)) {
-                        <span
-                          class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                          [ngClass]="getChipColor(badge)"
-                        >
-                          {{ getDisplayValue(badge) }}
-                        </span>
-                      }
-                    }
                     @case ("status-badge") {
                       @if (getDisplayValue(badge)) {
-                        <span
-                          class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                          [ngClass]="getChipColor(badge)"
-                        >
-                          {{ getDisplayValue(badge) }}
-                        </span>
+                        <ng-container
+                          *ngTemplateOutlet="chipBadgeTemplate; context: { config: badge }"
+                        />
+                      }
+                    }
+                    @case ("priority-badge") {
+                      @if (getDisplayValue(badge)) {
+                        <ng-container
+                          *ngTemplateOutlet="chipBadgeTemplate; context: { config: badge }"
+                        />
                       }
                     }
                     @case ("deleted-badge") {
                       @if (item?.deleted_at) {
-                        <span
-                          class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
-                        >
-                          Deleted
-                        </span>
+                        <ng-container *ngTemplateOutlet="deletedBadgeTemplate" />
                       }
                     }
                   }
@@ -189,31 +186,17 @@
             }
             @case ("priority-badge") {
               @if (!hasBadgeGroup && getDisplayValue(config)) {
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                  [ngClass]="getChipColor(config)"
-                >
-                  {{ getDisplayValue(config) }}
-                </span>
+                <ng-container *ngTemplateOutlet="chipBadgeTemplate; context: { config: config }" />
               }
             }
             @case ("status-badge") {
               @if (!hasBadgeGroup && getDisplayValue(config)) {
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-medium uppercase"
-                  [ngClass]="getChipColor(config)"
-                >
-                  {{ getDisplayValue(config) }}
-                </span>
+                <ng-container *ngTemplateOutlet="chipBadgeTemplate; context: { config: config }" />
               }
             }
             @case ("deleted-badge") {
               @if (!hasBadgeGroup && item?.deleted_at) {
-                <span
-                  class="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 uppercase dark:bg-red-900/30 dark:text-red-300"
-                >
-                  Deleted
-                </span>
+                <ng-container *ngTemplateOutlet="deletedBadgeTemplate" />
               }
             }
             @case ("comment-toggle") {
@@ -247,17 +230,7 @@
             @switch (config.type) {
               @case ("expand-toggle") {
                 @if (canExpand) {
-                  <button
-                    class="cursor-pointer transition-all duration-200 hover:scale-110"
-                    (click)="toggleExpanded($event)"
-                    title="Toggle details"
-                  >
-                    <mat-icon
-                      class="h-6! w-6! min-w-6 text-2xl! transition-transform duration-300"
-                      [class.rotate-180]="isExpanded"
-                      fontIcon="keyboard_arrow_down"
-                    />
-                  </button>
+                  <ng-container *ngTemplateOutlet="expandToggleTemplate" />
                 }
               }
               @case ("menu") {

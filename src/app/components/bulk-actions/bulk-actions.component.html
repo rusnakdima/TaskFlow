@@ -9,7 +9,7 @@
           <div
             class="flex items-center gap-1.5 rounded-full bg-[var(--accent-color)] px-2.5 py-1 whitespace-nowrap"
           >
-            <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">check_circle</mat-icon>
+            <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="check_circle" />
             <span class="text-xs font-semibold whitespace-nowrap"
               >{{ selectedCount }} selected</span
             >
@@ -32,7 +32,7 @@
               (click)="onSoftDelete()"
               matTooltip="Toggle Archive Status"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">archive</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="archive" />
               <span class="hidden sm:inline">Archive/Restore</span>
             </button>
 
@@ -43,7 +43,10 @@
               (click)="onHardDelete()"
               matTooltip="Permanently Delete"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">delete_forever</mat-icon>
+              <mat-icon
+                class="h-5! w-5! min-w-5 text-xl! leading-none!"
+                fontIcon="delete_forever"
+              />
               <span class="hidden sm:inline">Delete</span>
             </button>
           </div>
@@ -57,7 +60,7 @@
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">archive</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="archive" />
               <span class="hidden sm:inline">Archive</span>
             </button>
           </div>
@@ -71,7 +74,7 @@
               (click)="onSoftDelete()"
               matTooltip="Archive selected categories"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">archive</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="archive" />
               <span class="hidden sm:inline">Archive</span>
             </button>
           </div>
@@ -86,7 +89,7 @@
               (click)="onSetStatus('pending')"
               matTooltip="Mark as Pending"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">schedule</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="schedule" />
               <span class="hidden sm:inline">Pending</span>
             </button>
 
@@ -95,7 +98,7 @@
               (click)="onSetStatus('completed')"
               matTooltip="Mark as Completed"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">check_circle</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="check_circle" />
               <span class="hidden sm:inline">Complete</span>
             </button>
 
@@ -104,7 +107,7 @@
               (click)="onSetStatus('skipped')"
               matTooltip="Mark as Skipped"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">skip_next</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="skip_next" />
               <span class="hidden sm:inline">Skip</span>
             </button>
 
@@ -113,7 +116,7 @@
               (click)="onSetStatus('failed')"
               matTooltip="Mark as Failed"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">error</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="error" />
               <span class="hidden sm:inline">Fail</span>
             </button>
 
@@ -124,7 +127,7 @@
               (click)="onSoftDelete()"
               matTooltip="Move to Archive"
             >
-              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">archive</mat-icon>
+              <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="archive" />
               <span class="hidden sm:inline">Archive</span>
             </button>
           </div>
@@ -139,7 +142,7 @@
           (click)="onCancel()"
           matTooltip="Cancel Selection"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!">close</mat-icon>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="close" />
         </button>
       </div>
     </div>

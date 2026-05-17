@@ -237,9 +237,10 @@
                     (click)="toggleExpanded(item.id); $event.stopPropagation()"
                     title="Expand details"
                   >
-                    <mat-icon class="text-2xl!">{{
-                      isExpanded(item.id) ? "expand_less" : "expand_more"
-                    }}</mat-icon>
+                    <mat-icon
+                      class="text-2xl!"
+                      [fontIcon]="isExpanded(item.id) ? 'expand_less' : 'expand_more'"
+                    />
                   </button>
                 }
                 @if (showCommentToggle) {

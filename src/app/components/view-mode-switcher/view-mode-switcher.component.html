@@ -1,78 +1,53 @@
 <div class="inline-flex items-center rounded-lg border border-gray-300 p-1 dark:border-zinc-600">
   @if (isModeAvailable("card")) {
-    <button
-      type="button"
-      class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-[var(--accent-100)]]="mode === 'card'"
-      [class.dark:bg-[var(--accent-900)]]="mode === 'card'"
-      [class.text-black]="mode === 'card'"
-      [class.dark:text-white]="mode === 'card'"
-      [class.text-gray-700]="mode !== 'card'"
-      [class.dark:text-gray-300]="mode !== 'card'"
-      [class.hover:bg-gray-100]="mode !== 'card'"
-      [class.dark:hover:bg-zinc-700]="mode !== 'card'"
-      (click)="setMode('card')"
-      title="One column"
-    >
-      <mat-icon class="!h-4 !w-4" fontIcon="view_agenda" />
-      <span class="hidden sm:inline">List</span>
-    </button>
+    <ng-container
+      *ngTemplateOutlet="modeButton; context: { mode: 'card', icon: 'view_agenda', label: 'List' }"
+    />
   }
   @if (isModeAvailable("grid")) {
-    <button
-      type="button"
-      class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-[var(--accent-100)]]="mode === 'grid'"
-      [class.dark:bg-[var(--accent-900)]]="mode === 'grid'"
-      [class.text-black]="mode === 'grid'"
-      [class.dark:text-white]="mode === 'grid'"
-      [class.text-gray-700]="mode !== 'grid'"
-      [class.dark:text-gray-300]="mode !== 'grid'"
-      [class.hover:bg-gray-100]="mode !== 'grid'"
-      [class.dark:hover:bg-zinc-700]="mode !== 'grid'"
-      (click)="setMode('grid')"
-      title="Multi column"
-    >
-      <mat-icon class="!h-4 !w-4" fontIcon="grid_view" />
-      <span class="hidden sm:inline">Grid</span>
-    </button>
+    <ng-container
+      *ngTemplateOutlet="modeButton; context: { mode: 'grid', icon: 'grid_view', label: 'Grid' }"
+    />
   }
   @if (isModeAvailable("table")) {
-    <button
-      type="button"
-      class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-[var(--accent-100)]]="mode === 'table'"
-      [class.dark:bg-[var(--accent-900)]]="mode === 'table'"
-      [class.text-black]="mode === 'table'"
-      [class.dark:text-white]="mode === 'table'"
-      [class.text-gray-700]="mode !== 'table'"
-      [class.dark:text-gray-300]="mode !== 'table'"
-      [class.hover:bg-gray-100]="mode !== 'table'"
-      [class.dark:hover:bg-zinc-700]="mode !== 'table'"
-      (click)="setMode('table')"
-      title="Table view"
-    >
-      <mat-icon class="!h-4 !w-4" fontIcon="table_rows" />
-      <span class="hidden sm:inline">Table</span>
-    </button>
+    <ng-container
+      *ngTemplateOutlet="modeButton; context: { mode: 'table', icon: 'table_rows', label: 'Table' }"
+    />
   }
   @if (isModeAvailable("kanban")) {
-    <button
-      type="button"
-      class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-[var(--accent-100)]]="mode === 'kanban'"
-      [class.dark:bg-[var(--accent-900)]]="mode === 'kanban'"
-      [class.text-black]="mode === 'kanban'"
-      [class.dark:text-white]="mode === 'kanban'"
-      [class.text-gray-700]="mode !== 'kanban'"
-      [class.dark:text-gray-300]="mode !== 'kanban'"
-      [class.hover:bg-gray-100]="mode !== 'kanban'"
-      [class.dark:hover:bg-zinc-700]="mode !== 'kanban'"
-      (click)="setMode('kanban')"
-      title="Kanban board"
-    >
-      <mat-icon class="!h-4 !w-4" fontIcon="view_kanban" />
-      <span class="hidden sm:inline">Kanban</span>
-    </button>
+    <ng-container
+      *ngTemplateOutlet="
+        modeButton;
+        context: { mode: 'kanban', icon: 'view_kanban', label: 'Kanban' }
+      "
+    />
   }
 </div>
+
+<ng-template #modeButton let-mode="mode" let-icon="icon" let-label="label">
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-[var(--accent-100)]]="this.mode === mode"
+    [class.dark:bg-[var(--accent-900)]]="this.mode === mode"
+    [class.text-black]="this.mode === mode"
+    [class.dark:text-white]="this.mode === mode"
+    [class.text-gray-700]="this.mode !== mode"
+    [class.dark:text-gray-300]="this.mode !== mode"
+    [class.hover:bg-gray-100]="this.mode !== mode"
+    [class.dark:hover:bg-zinc-700]="this.mode !== mode"
+    (click)="setMode(mode)"
+    [title]="
+      label === 'List'
+        ? 'One column'
+        : label === 'Grid'
+          ? 'Multi column'
+          : label === 'Table'
+            ? 'Table view'
+            : 'Kanban board'
+    "
+  >
+    <mat-icon class="!h-4 !w-4" [fontIcon]="icon" />
+    <span class="hidden sm:inline">{{ label }}</span>
+  </button>
+</ng-template>

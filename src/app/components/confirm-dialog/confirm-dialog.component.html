@@ -1,4 +1,4 @@
-@if (confirmService.isOpen()) {
+<ng-template #dialogBackdrop>
   <div
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
     (click)="onBackdropClick()"
@@ -28,4 +28,8 @@
       </div>
     </div>
   </div>
+</ng-template>
+
+@if (confirmService.isOpen()) {
+  <ng-container *ngTemplateOutlet="dialogBackdrop" />
 }
