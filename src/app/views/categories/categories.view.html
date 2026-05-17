@@ -38,6 +38,7 @@
         [actions]="getCategoryTableActions()"
         [highlightedId]="null"
         [highlightIdPrefix]="''"
+        [itemType]="'category'"
         (selectionChange)="toggleCategorySelection($event.id)"
         (selectAll)="onTableSelectAll($event)"
         (rowClick)="onRowClick($event)"
