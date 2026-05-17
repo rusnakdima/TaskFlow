@@ -129,7 +129,7 @@ pub async fn get_all_archive_data(
 pub async fn get_all_archive_paginated(
   state: State<'_, AppState>,
   token: Option<String>,
-  data_type: String,
+  dataType: String,
   skip: u64,
   limit: u64,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -138,7 +138,7 @@ pub async fn get_all_archive_paginated(
 
   let provider = get_json_provider(&state);
 
-  match data_type.as_str() {
+  match dataType.as_str() {
     "todos" => {
       let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
@@ -302,7 +302,7 @@ pub async fn get_all_archive_paginated(
     }
     _ => {
       let all_data = provider
-        .find_many(&data_type, None, Some(skip), Some(limit), None, true)
+        .find_many(&dataType, None, Some(skip), Some(limit), None, true)
         .await
         .map_err(|e| err_response(&e.message))?;
 

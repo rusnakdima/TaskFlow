@@ -22,6 +22,12 @@ pub mod todo_permissions_route;
 #[path = "admin.route.rs"]
 pub mod admin_route;
 
+#[path = "group.route.rs"]
+pub mod group_route;
+
+#[path = "room.route.rs"]
+pub mod room_route;
+
 #[path = "macros.rs"]
 pub mod macros;
 
@@ -30,3 +36,6 @@ pub mod crud_routes;
 
 #[path = "archive.route.rs"]
 pub mod archive_route;
+
+#[path = "update.route.rs"]
+pub mod update_route;
