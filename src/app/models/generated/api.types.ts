@@ -217,6 +217,8 @@ export interface ProfileUpdateRequest {
 
 export interface Chat {
   id: string;
+  room_id: string;
+  sender_id: string;
   user_id: string;
   content: string;
   read_by: string[];
@@ -228,6 +230,8 @@ export interface Chat {
 }
 
 export interface ChatCreateRequest {
+  room_id: string;
+  sender_id: string;
   user_id: string;
   content: string;
 }
@@ -235,6 +239,29 @@ export interface ChatCreateRequest {
 export interface ChatUpdateRequest {
   content?: string;
   read_by?: string[];
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  avatar?: string;
+  room_id: string;
+  owner_id: string;
+  member_ids: string[];
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+}
+
+export interface Room {
+  id: string;
+  name?: string;
+  room: string;
+  is_group: boolean;
+  participant_ids: string[];
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
 }
 
 export interface Comment {

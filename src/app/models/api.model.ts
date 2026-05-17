@@ -6,7 +6,7 @@ export interface CrudOptions {
   filter?: Record<string, any>;
   skip?: number;
   limit?: number;
-  load?: string[];
+  load?: string | string[];
   sort?: { [key: string]: number };
   page?: number;
 }
@@ -16,6 +16,7 @@ export interface PaginatedOptions extends CrudOptions {
   skip?: number;
   todoId?: string;
   taskId?: string;
+  load?: string | string[];
 }
 
 export interface PaginatedResult<T> {
