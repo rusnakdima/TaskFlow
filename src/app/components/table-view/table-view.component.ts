@@ -454,9 +454,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
   ];
 
   isActionDisabledForItem(item: any): boolean {
-    // For categories, check ownership directly since they don't use TodoPermission
+    const currentUserId = this.authServiceLocal.getValueByKey("id");
+    if (!currentUserId) return false;
     if (this.itemType === "category") {
-      const currentUserId = this.authServiceLocal.getValueByKey("id");
       return item.user_id !== currentUserId;
     }
 
