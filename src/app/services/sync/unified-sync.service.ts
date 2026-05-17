@@ -294,9 +294,23 @@ export class UnifiedSyncService implements OnDestroy {
       }
 
       this.updateProgress({ progress: 50, message: "Loading data from storage..." });
+
+      const userId = this.getUserId();
+      const token = this.getToken();
+
+      if (!userId) {
+        this.notifyService.showError("User not authenticated");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "User not authenticated",
+          data: null as unknown as R,
+        };
+      }
+
       const result = await invoke<Response<R>>("import_to_local", {
-        userId: this.getUserId(),
-        token: this.getToken(),
+        userId,
+        token,
       });
 
       if (result.status === ResponseStatus.SUCCESS) {
