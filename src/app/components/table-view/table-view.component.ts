@@ -30,6 +30,7 @@ import { DateHelper } from "@helpers/date.helper";
 /* services */
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
+import { TodoPermission } from "@services/core/permission.service";
 
 /* components */
 
@@ -65,7 +66,7 @@ import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/tabl
 export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
-  private authService = inject(AuthService);
+  private authServiceLocal = inject(AuthService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -87,6 +88,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Input() itemType: ItemType = "task";
   @Input() highlightedId: string | null = null;
   @Input() highlightIdPrefix: string = "";
+  @Input() userPermission: TodoPermission = TodoPermission.VIEWER;
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
@@ -444,6 +446,46 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   lastSelectedId = signal<string | null>(null);
+  readonly isViewerPermission = TodoPermission.VIEWER;
+  readonly isAdminPermission = [
+    TodoPermission.ADMIN,
+    TodoPermission.MODERATOR,
+    TodoPermission.OWNER,
+  ];
+
+  isActionDisabledForItem(item: any): boolean {
+    // For categories, check ownership directly since they don't use TodoPermission
+    if (this.itemType === "category") {
+      const currentUserId = this.authServiceLocal.getValueByKey("id");
+      return item.user_id !== currentUserId;
+    }
+
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (this.isAdminPermission.includes(this.userPermission)) {
+      return false;
+    }
+    if (this.userPermission === TodoPermission.EDITOR && item) {
+      const userId = this.authServiceLocal.getValueByKey("id");
+      return item.user_id !== userId;
+    }
+    return true;
+  }
+
+  isStatusToggleDisabledForItem(item: any): boolean {
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (this.isAdminPermission.includes(this.userPermission)) {
+      return false;
+    }
+    if (this.userPermission === TodoPermission.EDITOR && item) {
+      const userId = this.authServiceLocal.getValueByKey("id");
+      return item.user_id !== userId;
+    }
+    return true;
+  }
 
   private isTableField(field: TableField | ItemDisplayConfig): field is TableField {
     return "getChipText" in field || "colorConfig" in field;
@@ -500,7 +542,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   getUnreadCountForItem(item: any): number {
     const comments = this.getCommentsForItem(item);
-    const userId = this.authService.getValueByKey("id");
+    const userId = this.authServiceLocal.getValueByKey("id");
     if (!userId) return 0;
     return comments.filter(
       (c: Comment) =>

@@ -27,6 +27,8 @@ import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/gene
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
 import { StorageService } from "@services/storage.service";
+import { AuthService } from "@services/auth/auth.service";
+import { TodoPermission } from "@services/core/permission.service";
 
 @Component({
   selector: "app-item-card",
@@ -50,6 +52,7 @@ import { StorageService } from "@services/storage.service";
 })
 export class ItemCardComponent {
   private storageService = inject(StorageService);
+  private authService = inject(AuthService);
 
   @Input() item: Todo | Task | Subtask | Category | null = null;
   @Input() config: ItemDisplayConfig[] = [];
@@ -69,6 +72,7 @@ export class ItemCardComponent {
   @Input() unreadCommentsCount: number = 0;
   @Input() showStatusToggle: boolean = false;
   @Input() onExpandRequest?: (item: any) => Observable<any>;
+  @Input() userPermission: TodoPermission = TodoPermission.VIEWER;
 
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string; visibility?: string }>();
@@ -83,6 +87,47 @@ export class ItemCardComponent {
   showMenu = signal(false);
   expanded = signal(false);
   commentsExpanded = signal(false);
+
+  readonly isViewerPermission = TodoPermission.VIEWER;
+  readonly isAdminPermission = [
+    TodoPermission.ADMIN,
+    TodoPermission.MODERATOR,
+    TodoPermission.OWNER,
+  ];
+
+  isActionDisabled(): boolean {
+    // For categories, check ownership directly since they don't use TodoPermission
+    if (this.itemType === "category" && this.item) {
+      const currentUserId = this.authService.getValueByKey("id");
+      return (this.item as any).user_id !== currentUserId;
+    }
+
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (this.isAdminPermission.includes(this.userPermission)) {
+      return false;
+    }
+    if (this.userPermission === TodoPermission.EDITOR && this.item) {
+      const userId = this.authService.getValueByKey("id");
+      return (this.item as any).user_id !== userId;
+    }
+    return true;
+  }
+
+  canToggleStatus(): boolean {
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return false;
+    }
+    if (this.isAdminPermission.includes(this.userPermission)) {
+      return true;
+    }
+    if (this.userPermission === TodoPermission.EDITOR && this.item) {
+      const userId = this.authService.getValueByKey("id");
+      return (this.item as any).user_id === userId;
+    }
+    return false;
+  }
 
   get itemId(): string {
     return this.item?.id || "";
