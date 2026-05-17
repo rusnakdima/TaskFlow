@@ -12,422 +12,42 @@
       />
     } @else {
       @if (viewMode === "table") {
-        @if (stateService.groupedTodos().private.length > 0) {
-          <div class="mb-6">
-            <h3
-              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-            >
-              <mat-icon class="text-base">lock</mat-icon>
-              Private ({{ stateService.groupedTodos().private.length }})
-            </h3>
-            <app-table-view
-              [data]="stateService.groupedTodos().private"
-              [fields]="todoTableFields"
-              [selectedIds]="selectedTodos()"
-              [showSelection]="true"
-              [showCommentToggle]="false"
-              [dragEnabled]="true"
-              [expandable]="true"
-              [expandTemplate]="expandTemplate"
-              [actions]="tableActions"
-              [itemType]="'todo'"
-              [highlightedId]="highlightTodoId"
-              [highlightIdPrefix]="'todo-'"
-              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit({ selectAll: $event, section: 'private' })"
-              (rowClick)="onRowClick($event)"
-              (rangeSelect)="rangeSelect.emit($event)"
-              (additiveSelect)="additiveSelect.emit($event)"
-              (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($any($event))"
-            >
-            </app-table-view>
-          </div>
-        }
-        @if (stateService.groupedTodos().shared.length > 0) {
-          <div class="mb-6">
-            <h3
-              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-            >
-              <mat-icon class="text-base">group</mat-icon>
-              Shared ({{ stateService.groupedTodos().shared.length }})
-            </h3>
-            <app-table-view
-              [data]="stateService.groupedTodos().shared"
-              [fields]="todoTableFields"
-              [selectedIds]="selectedTodos()"
-              [showSelection]="true"
-              [showCommentToggle]="false"
-              [dragEnabled]="true"
-              [expandable]="true"
-              [expandTemplate]="expandTemplate"
-              [actions]="tableActions"
-              [itemType]="'todo'"
-              [highlightedId]="highlightTodoId"
-              [highlightIdPrefix]="'todo-'"
-              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit({ selectAll: $event, section: 'shared' })"
-              (rowClick)="onRowClick($event)"
-              (rangeSelect)="rangeSelect.emit($event)"
-              (additiveSelect)="additiveSelect.emit($event)"
-              (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($any($event))"
-            >
-            </app-table-view>
-          </div>
-        }
-        @if (stateService.groupedTodos().public.length > 0) {
-          <div class="mb-6">
-            <h3
-              class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-            >
-              <mat-icon class="text-base">public</mat-icon>
-              Public ({{ stateService.groupedTodos().public.length }})
-            </h3>
-            <app-table-view
-              [data]="stateService.groupedTodos().public"
-              [fields]="todoTableFields"
-              [selectedIds]="selectedTodos()"
-              [showSelection]="true"
-              [showCommentToggle]="false"
-              [dragEnabled]="true"
-              [expandable]="true"
-              [expandTemplate]="expandTemplate"
-              [actions]="tableActions"
-              [itemType]="'todo'"
-              [highlightedId]="highlightTodoId"
-              [highlightIdPrefix]="'todo-'"
-              (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-              (selectAll)="selectAll.emit({ selectAll: $event, section: 'public' })"
-              (rowClick)="onRowClick($event)"
-              (rangeSelect)="rangeSelect.emit($event)"
-              (additiveSelect)="additiveSelect.emit($event)"
-              (actionClick)="tableAction.emit($event)"
-              (dropped)="onTodoDrop($any($event))"
-            >
-            </app-table-view>
-          </div>
+        @for (section of ["private", "shared", "public"]; track section) {
+          @if (getSectionTodos(section).length > 0) {
+            <div class="mb-6">
+              <ng-container
+                *ngTemplateOutlet="
+                  sectionHeader;
+                  context: {
+                    section: section,
+                    count: getSectionTodos(section).length,
+                    icon: getSectionIcon(section),
+                  }
+                "
+              />
+              <ng-container
+                *ngTemplateOutlet="
+                  tableView;
+                  context: { data: getSectionTodos(section), section: section }
+                "
+              />
+            </div>
+          }
         }
       } @else if (viewMode === "grid") {
-        <div
-          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          cdkDropList
-          cdkDropListOrientation="horizontal"
-          [cdkDropListData]="
-            stateService.activeVisibility() === 'all'
-              ? stateService.groupedTodos().private
-              : stateService.listTodos()
+        <ng-container
+          *ngTemplateOutlet="
+            gridView;
+            context: { todos: stateService.listTodos(), showSections: true }
           "
-          (cdkDropListDropped)="onTodoListDropped($event)"
-        >
-          @if (stateService.groupedTodos().private.length > 0) {
-            <div class="col-span-full">
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('private')"
-                  [indeterminate]="
-                    getSelectedCountInSection('private') > 0 && !isAllSelectedInSection('private')
-                  "
-                  (toggleChange)="onSectionSelectAll('private', $event)"
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">lock</mat-icon>
-                  Private ({{ stateService.groupedTodos().private.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().private; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-              ></div>
-            }
-          }
-          @if (stateService.groupedTodos().shared.length > 0) {
-            @if (stateService.groupedTodos().private.length > 0) {
-              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
-            }
-            <div class="col-span-full">
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('shared')"
-                  [indeterminate]="
-                    getSelectedCountInSection('shared') > 0 && !isAllSelectedInSection('shared')
-                  "
-                  (toggleChange)="onSectionSelectAll('shared', $event)"
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">group</mat-icon>
-                  Shared ({{ stateService.groupedTodos().shared.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().shared; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-              ></div>
-            }
-          }
-          @if (stateService.groupedTodos().public.length > 0) {
-            @if (
-              stateService.groupedTodos().private.length > 0 ||
-              stateService.groupedTodos().shared.length > 0
-            ) {
-              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
-            }
-            <div class="col-span-full">
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('public')"
-                  [indeterminate]="
-                    getSelectedCountInSection('public') > 0 && !isAllSelectedInSection('public')
-                  "
-                  (toggleChange)="onSectionSelectAll('public', $event)"
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">public</mat-icon>
-                  Public ({{ stateService.groupedTodos().public.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().public; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-              ></div>
-            }
-          }
-        </div>
+        />
       } @else {
-        <div
-          class="flex w-full flex-col gap-y-3"
-          cdkDropList
-          [cdkDropListData]="
-            stateService.activeVisibility() === 'all'
-              ? stateService.groupedTodos().private
-              : stateService.listTodos()
+        <ng-container
+          *ngTemplateOutlet="
+            listView;
+            context: { todos: stateService.listTodos(), showSections: true }
           "
-          (cdkDropListDropped)="onTodoListDropped($event)"
-        >
-          @if (stateService.groupedTodos().private.length > 0) {
-            <div>
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('private')"
-                  [indeterminate]="
-                    getSelectedCountInSection('private') > 0 && !isAllSelectedInSection('private')
-                  "
-                  (toggleChange)="onSectionSelectAll('private', $event)"
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">lock</mat-icon>
-                  Private ({{ stateService.groupedTodos().private.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().private; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-              ></div>
-            }
-          }
-          @if (stateService.groupedTodos().shared.length > 0) {
-            @if (stateService.groupedTodos().private.length > 0) {
-              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
-            }
-            <div>
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('shared')"
-                  [indeterminate]="
-                    getSelectedCountInSection('shared') > 0 && !isAllSelectedInSection('shared')
-                  "
-                  (toggleChange)="onSectionSelectAll('shared', $event)"
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">group</mat-icon>
-                  Shared ({{ stateService.groupedTodos().shared.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().shared; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-              ></div>
-            }
-          }
-          @if (stateService.groupedTodos().public.length > 0) {
-            @if (
-              stateService.groupedTodos().private.length > 0 ||
-              stateService.groupedTodos().shared.length > 0
-            ) {
-              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
-            }
-            <div>
-              <div class="mb-2 flex items-center gap-3">
-                <app-section-select-all
-                  [checked]="isAllSelectedInSection('public')"
-                  [indeterminate]="
-                    getSelectedCountInSection('public') > 0 && !isAllSelectedInSection('public')
-                  "
-                  (toggleChange)="onSectionSelectAll('public', $event)"
-                />
-                />
-                <h3
-                  class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200"
-                >
-                  <mat-icon class="text-base">public</mat-icon>
-                  Public ({{ stateService.groupedTodos().public.length }})
-                </h3>
-              </div>
-            </div>
-            @for (todo of stateService.groupedTodos().public; track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-              ></div>
-            }
-          }
-        </div>
+        />
       }
     }
   } @else {
@@ -438,134 +58,13 @@
         message="No projects match the current filter"
       />
     } @else {
+      <ng-container *ngTemplateOutlet="visibilityHeader" />
       @if (viewMode === "table") {
-        <div>
-          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
-            {{
-              stateService.activeVisibility() === "private"
-                ? "Private"
-                : stateService.activeVisibility() === "shared"
-                  ? "Shared"
-                  : "Public"
-            }}
-            ({{ stateService.listTodos().length }})
-          </h3>
-          <app-table-view
-            [data]="stateService.listTodos()"
-            [fields]="todoTableFields"
-            [selectedIds]="selectedTodos()"
-            [showSelection]="true"
-            [showCommentToggle]="false"
-            [dragEnabled]="true"
-            [expandable]="true"
-            [expandTemplate]="expandTemplate"
-            [actions]="tableActions"
-            [itemType]="'todo'"
-            [highlightedId]="highlightTodoId"
-            [highlightIdPrefix]="'todo-'"
-            (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
-            (selectAll)="selectAll.emit({ selectAll: $event })"
-            (rowClick)="onRowClick($event)"
-            (actionClick)="tableAction.emit($event)"
-            (dropped)="onTodoDrop($any($event))"
-          >
-          </app-table-view>
-        </div>
+        <ng-container *ngTemplateOutlet="tableView; context: { data: stateService.listTodos() }" />
       } @else if (viewMode === "grid") {
-        <div>
-          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
-            {{
-              stateService.activeVisibility() === "private"
-                ? "Private"
-                : stateService.activeVisibility() === "shared"
-                  ? "Shared"
-                  : "Public"
-            }}
-            ({{ stateService.listTodos().length }})
-          </h3>
-          <div
-            class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            cdkDropList
-            cdkDropListOrientation="horizontal"
-            [cdkDropListData]="stateService.listTodos()"
-            (cdkDropListDropped)="onTodoListDropped($event)"
-          >
-            @for (todo of stateService.listTodos(); track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="onTodoDrop($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
-              ></div>
-            }
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="gridView; context: { todos: stateService.listTodos() }" />
       } @else {
-        <div>
-          <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
-            {{
-              stateService.activeVisibility() === "private"
-                ? "Private"
-                : stateService.activeVisibility() === "shared"
-                  ? "Shared"
-                  : "Public"
-            }}
-            ({{ stateService.listTodos().length }})
-          </h3>
-          <div
-            class="flex w-full flex-col gap-y-3"
-            cdkDropList
-            [cdkDropListData]="stateService.listTodos()"
-            (cdkDropListDropped)="onTodoListDropped($event)"
-          >
-            @for (todo of stateService.listTodos(); track todo.id) {
-              <div cdkDrag [cdkDragData]="todo">
-                <app-item-card
-                  [item]="todo"
-                  [config]="todoCardConfig"
-                  [displayMode]="'card'"
-                  [expandable]="true"
-                  [isExpanded]="isTodoExpanded(todo.id)"
-                  [showCommentToggle]="true"
-                  [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
-                  [actions]="tableActions"
-                  [itemType]="'todo'"
-                  [isOwner]="todo.user_id === userId"
-                  [isSelected]="selectedTodos().has(todo.id)"
-                  (cardClick)="onCardClick($any($event))"
-                  (toggleExpand)="toggleTodoExpand(todo)"
-                  (toggleComments)="toggleTodoComments(todo.id)"
-                  (selectionChangeEvent)="toggleTodoSelection($any($event))"
-                  (itemAction)="onTodoCardAction($any($event))"
-                  (dropped)="todoDropped.emit($any($event))"
-                />
-              </div>
-              <div
-                *cdkDragPlaceholder
-                class="cdk-drag-placeholder h-full min-h-[80px] rounded-xl"
-              ></div>
-            }
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="listView; context: { todos: stateService.listTodos() }" />
       }
     }
   }
@@ -583,6 +82,172 @@
 
   <ng-template #expandTemplate let-item>
     <app-item-expand-details [item]="item" type="todo" />
+  </ng-template>
+
+  <ng-template
+    #sectionHeader
+    let-section="section"
+    let-count="count"
+    let-icon="icon"
+    let-useFontIcon="useFontIcon"
+  >
+    <div class="mb-2 flex items-center gap-3">
+      <app-section-select-all
+        [checked]="isAllSelectedInSection(section)"
+        [indeterminate]="getSelectedCountInSection(section) > 0 && !isAllSelectedInSection(section)"
+        (toggleChange)="onSectionSelectAll(section, $event)"
+      />
+      <h3 class="flex items-center gap-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+        <mat-icon class="text-base" [fontIcon]="icon" />
+        {{ getSectionLabel(section) }} ({{ count }})
+      </h3>
+    </div>
+  </ng-template>
+
+  <ng-template #todoCard let-todo="todo" let-minHeight="minHeight">
+    <div cdkDrag [cdkDragData]="todo">
+      <app-item-card
+        [item]="todo"
+        [config]="todoCardConfig"
+        [displayMode]="'card'"
+        [expandable]="true"
+        [isExpanded]="isTodoExpanded(todo.id)"
+        [showCommentToggle]="true"
+        [unreadCommentsCount]="getTodoUnreadCommentsCount(todo)"
+        [actions]="tableActions"
+        [itemType]="'todo'"
+        [isOwner]="todo.user_id === userId"
+        [isSelected]="selectedTodos().has(todo.id)"
+        (cardClick)="onCardClick($any($event))"
+        (toggleExpand)="toggleTodoExpand(todo)"
+        (toggleComments)="toggleTodoComments(todo.id)"
+        (selectionChangeEvent)="toggleTodoSelection($any($event))"
+        (itemAction)="onTodoCardAction($any($event))"
+        (dropped)="onTodoDrop($any($event))"
+      />
+    </div>
+    <div
+      *cdkDragPlaceholder
+      class="cdk-drag-placeholder h-full min-h-[150px] rounded-xl"
+      [style.minHeight]="minHeight || '150px'"
+    ></div>
+  </ng-template>
+
+  <ng-template #visibilityHeader let-visibility="visibility">
+    <h3 class="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">
+      {{
+        stateService.activeVisibility() === "private"
+          ? "Private"
+          : stateService.activeVisibility() === "shared"
+            ? "Shared"
+            : "Public"
+      }}
+      ({{ stateService.listTodos().length }})
+    </h3>
+  </ng-template>
+
+  <ng-template #tableView let-data="data" let-section="section">
+    <app-table-view
+      [data]="data"
+      [fields]="todoTableFields"
+      [selectedIds]="selectedTodos()"
+      [showSelection]="true"
+      [showCommentToggle]="false"
+      [dragEnabled]="true"
+      [expandable]="true"
+      [expandTemplate]="expandTemplate"
+      [actions]="tableActions"
+      [itemType]="'todo'"
+      [highlightedId]="highlightTodoId"
+      [highlightIdPrefix]="'todo-'"
+      (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
+      (selectAll)="selectAll.emit({ selectAll: $event, section: $any(section) })"
+      (rowClick)="onRowClick($event)"
+      (rangeSelect)="rangeSelect.emit($event)"
+      (additiveSelect)="additiveSelect.emit($event)"
+      (actionClick)="tableAction.emit($event)"
+      (dropped)="onTodoDrop($any($event))"
+    />
+  </ng-template>
+
+  <ng-template #gridView let-todos="todos" let-showSections="showSections">
+    <div
+      class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      cdkDropList
+      cdkDropListOrientation="horizontal"
+      [cdkDropListData]="stateService.listTodos()"
+      (cdkDropListDropped)="onTodoListDropped($event)"
+    >
+      @if (showSections) {
+        @for (section of ["private", "shared", "public"]; track section) {
+          @if (getSectionTodos(section).length > 0) {
+            @if ($index > 0) {
+              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+            }
+            <div class="col-span-full">
+              <ng-container
+                *ngTemplateOutlet="
+                  sectionHeader;
+                  context: {
+                    section: section,
+                    count: getSectionTodos(section).length,
+                    icon: getSectionIcon(section),
+                  }
+                "
+              />
+            </div>
+            @for (todo of getSectionTodos(section); track todo.id) {
+              <ng-container *ngTemplateOutlet="todoCard; context: { todo: todo }" />
+            }
+          }
+        }
+      } @else {
+        @for (todo of todos; track todo.id) {
+          <ng-container *ngTemplateOutlet="todoCard; context: { todo: todo }" />
+        }
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #listView let-todos="todos" let-showSections="showSections">
+    <div
+      class="flex w-full flex-col gap-y-3"
+      cdkDropList
+      [cdkDropListData]="stateService.listTodos()"
+      (cdkDropListDropped)="onTodoListDropped($event)"
+    >
+      @if (showSections) {
+        @for (section of ["private", "shared", "public"]; track section) {
+          @if (getSectionTodos(section).length > 0) {
+            @if ($index > 0) {
+              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+            }
+            <div>
+              <ng-container
+                *ngTemplateOutlet="
+                  sectionHeader;
+                  context: {
+                    section: section,
+                    count: getSectionTodos(section).length,
+                    icon: getSectionIcon(section),
+                    useFontIcon: true,
+                  }
+                "
+              />
+            </div>
+            @for (todo of getSectionTodos(section); track todo.id) {
+              <ng-container
+                *ngTemplateOutlet="todoCard; context: { todo: todo, minHeight: '80px' }"
+              />
+            }
+          }
+        }
+      } @else {
+        @for (todo of todos; track todo.id) {
+          <ng-container *ngTemplateOutlet="todoCard; context: { todo: todo, minHeight: '80px' }" />
+        }
+      }
+    </div>
   </ng-template>
 </div>
 

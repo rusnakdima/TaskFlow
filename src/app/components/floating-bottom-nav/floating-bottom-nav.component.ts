@@ -83,7 +83,7 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
       },
       { url: "/calendar", icon: "calendar_month", label: "Calendar", query: {} },
       { url: "/stats", icon: "bar_chart", label: "Stats", query: {} },
-      // { url: "/chat", icon: "chat", label: "Chat", query: {} },
+      { url: "/chat", icon: "chat", label: "Chat", query: {} },
       {
         url: "/profile",
         icon: "person",

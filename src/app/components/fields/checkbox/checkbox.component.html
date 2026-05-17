@@ -11,15 +11,7 @@
       (keydown)="onKeyDown($event)"
     >
       @if (form.get(field.name)?.value) {
-        <svg
-          class="h-3 w-3 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="3"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
+        <ng-container *ngTemplateOutlet="checkIcon" />
       }
     </div>
     <span class="text-sm font-medium whitespace-nowrap select-none">{{ label }}</span>
@@ -35,15 +27,7 @@
       (keydown)="onKeyDown($event)"
     >
       @if (checked && !indeterminate) {
-        <svg
-          class="h-3 w-3 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="3"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
+        <ng-container *ngTemplateOutlet="checkIcon" />
       }
       @if (indeterminate) {
         <div class="h-0.5 w-2.5 bg-white"></div>
@@ -57,3 +41,15 @@
     }
   </label>
 }
+
+<ng-template #checkIcon>
+  <svg
+    class="h-3 w-3 text-white"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    stroke-width="3"
+  >
+    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+</ng-template>
