@@ -43,14 +43,21 @@ use routes::{
     github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
     github_start_device_flow, github_update_issue,
   },
+  group_route::{
+    add_group_members, create_group, delete_group, delete_group_cascade, delete_message,
+    delete_room_messages, ensure_rooms_for_groups, get_group_by_room, get_groups,
+    get_messages_by_room, mark_message_read, remove_group_members, send_message, update_group,
+  },
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
     sync_visibility_to_provider,
   },
+  room_route::{add_room_participants, create_room, delete_room, get_room, get_rooms},
   statistics_route::statistics_get,
   todo_permissions_route::{
     get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
   },
+  update_route::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
 
 /* services */
@@ -64,10 +71,12 @@ use services::{
   chat_service::ChatService,
   comment_service::CommentService,
   entity_resolution_service::EntityResolutionService,
+  group_service::GroupService,
   manage_db_service::ManageDbService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
   repository::service::RepositoryService,
+  room_service::RoomService,
   statistics_service::StatisticsService,
   subtask_service::SubtaskService,
   task_service::TaskService,
@@ -114,6 +123,8 @@ pub struct AppState {
   pub comment_service: Arc<CommentService>,
   pub category_service: Arc<CategoryService>,
   pub chat_service: Arc<ChatService>,
+  pub group_service: Arc<GroupService>,
+  pub room_service: Arc<RoomService>,
   pub about_service: Arc<AboutService>,
   pub auth_service: Arc<AuthService>,
   pub manage_db_service: Arc<ManageDbService>,
@@ -260,6 +271,14 @@ pub fn run() {
         data_provider.clone(),
         mongo_data_provider.clone(),
       ));
+      let group_service = Arc::new(GroupService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
+      let room_service = Arc::new(RoomService::new(
+        data_provider.clone(),
+        mongo_data_provider.clone(),
+      ));
 
       let auth_service = Arc::new(AuthService::new(
         json_provider.clone(),
@@ -302,6 +321,8 @@ pub fn run() {
         comment_service,
         category_service,
         chat_service,
+        group_service,
+        room_service,
         about_service,
         auth_service,
         manage_db_service,
@@ -316,6 +337,8 @@ pub fn run() {
       Ok(())
     })
     .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_shell::init())
+    .plugin(tauri_plugin_mcp_bridge::Builder::new().build())
     .invoke_handler(tauri::generate_handler![
       check_token,
       login,
@@ -405,6 +428,26 @@ pub fn run() {
       get_todo_permissions,
       update_todo_permissions,
       transfer_todo_ownership,
+      get_rooms,
+      get_group_by_room,
+      get_groups,
+      create_group,
+      update_group,
+      add_group_members,
+      remove_group_members,
+      delete_group,
+      delete_group_cascade,
+      ensure_rooms_for_groups,
+      get_messages_by_room,
+      send_message,
+      mark_message_read,
+      delete_message,
+      delete_room_messages,
+      getBinaryNameFile,
+      downloadUpdate,
+      openFile,
+      installUpdate,
+      getCurrentVersion,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

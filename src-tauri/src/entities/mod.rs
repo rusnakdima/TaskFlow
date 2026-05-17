@@ -8,6 +8,8 @@ pub mod comment_entity;
 pub mod daily_activity_entity;
 #[path = "email_config.entity.rs"]
 pub mod email_config;
+#[path = "group.entity.rs"]
+pub mod group_entity;
 #[path = "login_form.entity.rs"]
 pub mod login_form_entity;
 #[path = "password_reset.entity.rs"]
@@ -20,6 +22,8 @@ pub mod profile_entity;
 pub mod provider_type_entity;
 #[path = "response.entity.rs"]
 pub mod response_entity;
+#[path = "room.entity.rs"]
+pub mod room_entity;
 #[path = "signup_form.entity.rs"]
 pub mod signup_form_entity;
 #[path = "statistics.entity.rs"]

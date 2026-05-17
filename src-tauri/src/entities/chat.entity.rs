@@ -12,8 +12,12 @@ use nosql_orm::{Model, Validate};
 #[many_to_one("user", "users", "user_id")]
 #[many_to_many("read_by_users", "users", "read_by")]
 #[index("user_id", 1)]
+#[index("room_id", 1)]
+#[index("sender_id", 1)]
 pub struct ChatEntity {
   pub id: Option<String>,
+  pub room_id: String,
+  pub sender_id: String,
   pub user_id: String,
   pub content: String,
   #[serde(default)]
@@ -29,6 +33,10 @@ pub struct ChatEntity {
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatCreateModel {
   #[validate(required)]
+  pub room_id: String,
+  #[validate(required)]
+  pub sender_id: String,
+  #[validate(required)]
   pub user_id: String,
   #[validate(required)]
   #[validate(length(min = 1, max = 5000))]
@@ -37,14 +45,23 @@ pub struct ChatCreateModel {
 
 impl From<ChatCreateModel> for ChatEntity {
   fn from(create: ChatCreateModel) -> Self {
+    let sender = create.sender_id.clone();
     ChatEntity {
       id: None,
-      user_id: create.user_id.clone(),
+      room_id: create.room_id,
+      sender_id: sender.clone(),
+      user_id: create.user_id,
       content: create.content,
       created_at: None,
       updated_at: None,
       deleted_at: None,
-      read_by: vec![create.user_id],
+      read_by: vec![sender],
     }
   }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatUpdateModel {
+  pub content: Option<String>,
+  pub read_by: Option<Vec<String>>,
 }
