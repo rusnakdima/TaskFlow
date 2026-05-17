@@ -20,13 +20,13 @@ import { AdminDataWithRelations } from "@services/core/admin-data.service";
 
 export abstract class BaseAdminStorageService extends BaseStorageService {
   // Common data signals
-  protected todosSignal = signal<Todo[]>([]);
-  protected tasksSignal = signal<Task[]>([]);
-  protected subtasksSignal = signal<Subtask[]>([]);
-  protected commentsSignal = signal<Comment[]>([]);
-  protected chatsSignal = signal<Chat[]>([]);
-  protected categoriesSignal = signal<Category[]>([]);
-  protected dailyActivitiesSignal = signal<any[]>([]);
+  todosSignal = signal<Todo[]>([]);
+  tasksSignal = signal<Task[]>([]);
+  subtasksSignal = signal<Subtask[]>([]);
+  commentsSignal = signal<Comment[]>([]);
+  chatsSignal = signal<Chat[]>([]);
+  categoriesSignal = signal<Category[]>([]);
+  dailyActivitiesSignal = signal<any[]>([]);
 
   // Users and profiles for relations
   protected usersSignal = signal<User[]>([]);
@@ -37,8 +37,59 @@ export abstract class BaseAdminStorageService extends BaseStorageService {
   protected loadedSignal = signal<boolean>(false);
   protected lastLoadedSignal = signal<Date | null>(null);
 
+  // Per-type loading status
+  protected typeLoadedSignal = signal<Record<string, boolean>>({});
+
   // Cache expiry: 5 minutes
   protected readonly CACHE_EXPIRY_MS = 5 * 60 * 1000;
+
+  isTypeLoaded(type: string): boolean {
+    return this.typeLoadedSignal()[type] || false;
+  }
+
+  setTypeLoaded(type: string, loaded: boolean): void {
+    this.typeLoadedSignal.update((s) => ({ ...s, [type]: loaded }));
+  }
+
+  protected markTypeAsLoaded(type: string): void {
+    this.typeLoadedSignal.update((s) => ({ ...s, [type]: true }));
+  }
+
+  protected markTypeAsNotLoaded(type: string): void {
+    this.typeLoadedSignal.update((s) => ({ ...s, [type]: false }));
+  }
+
+  /**
+   * Add a single record to the appropriate signal
+   */
+  addRecord(table: string, record: any): void {
+    const sig = this.signalMap[table];
+    if (sig) {
+      sig.update((items) => [record, ...items]);
+    }
+  }
+
+  /**
+   * Update a single record in the appropriate signal
+   */
+  updateRecord(table: string, id: string, updates: Partial<any>): void {
+    const sig = this.signalMap[table];
+    if (sig) {
+      sig.update((items) =>
+        items.map((item: any) => (item.id === id ? { ...item, ...updates } : item))
+      );
+    }
+  }
+
+  /**
+   * Remove a record from the appropriate signal
+   */
+  removeRecord(table: string, id: string): void {
+    const sig = this.signalMap[table];
+    if (sig) {
+      sig.update((items) => items.filter((item: any) => item.id !== id));
+    }
+  }
 
   protected readonly signalMap: StorageSignalMap = {
     todos: this.todosSignal,

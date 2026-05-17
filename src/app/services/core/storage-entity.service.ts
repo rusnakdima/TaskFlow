@@ -11,6 +11,7 @@ import {
   User,
   Category,
   Profile,
+  Room,
 } from "@models/generated/api.types";
 import { EntityType } from "@models/storage.model";
 
@@ -33,6 +34,7 @@ export class StorageEntityService {
   readonly publicProfiles = signal<Profile[]>([]);
   readonly users = signal<User[]>([]);
   readonly currentUser = signal<User | null>(null);
+  readonly rooms = signal<Room[]>([]);
 
   readonly privateTodos = signal<Todo[]>([]);
   readonly sharedTodos = signal<Todo[]>([]);

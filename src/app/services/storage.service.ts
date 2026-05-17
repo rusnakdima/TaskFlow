@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { Todo, User, Profile } from "@models/generated/api.types";
+import { Todo, User, Profile, Room } from "@models/generated/api.types";
 import { Task, TaskStatus } from "@models/generated/api.types";
 import { Subtask } from "@models/generated/api.types";
 import { Comment } from "@models/generated/api.types";
@@ -107,6 +107,7 @@ export class StorageService {
   readonly allProfiles = this._queryService.allProfiles;
   readonly user = this._queryService.user;
   readonly users = this._entityService.users.asReadonly();
+  readonly rooms = this._entityService.rooms.asReadonly();
   readonly dailyActivities = this._queryService.dailyActivities;
   readonly archivedTodos = computed(() =>
     [
@@ -291,6 +292,9 @@ export class StorageService {
   setChats(chats: Chat[]) {
     this._entityService.chats.set(chats);
   }
+  setRooms(rooms: Room[]) {
+    this._entityService.rooms.set(rooms);
+  }
   addChat(chat: Chat) {
     this._entityService.updateChat("", "add", chat);
   }
@@ -321,6 +325,9 @@ export class StorageService {
     }
   }
 
+  /**
+   * @deprecated Use updateEntityVisibility("todos", id, "private") instead
+   */
   moveTodoToPrivate(todo_id?: string): void {
     if (!todo_id) return;
     const todo = this.get("todos", todo_id);
@@ -331,6 +338,35 @@ export class StorageService {
         { ...todo, visibility: "private" as const },
         ...todos.filter((t) => t.id !== todo_id),
       ]);
+    }
+  }
+
+  updateEntityVisibility(table: EntityType, id: string, newVisibility: string): void {
+    const entity = this.get(table, id);
+    if (!entity || entity.visibility === newVisibility) return;
+
+    if (table === "todos") {
+      const oldList =
+        entity.visibility === "private"
+          ? this._entityService.privateTodos
+          : entity.visibility === "public"
+            ? this._entityService.publicTodos
+            : this._entityService.sharedTodos;
+
+      const newList =
+        newVisibility === "private"
+          ? this._entityService.privateTodos
+          : newVisibility === "public"
+            ? this._entityService.publicTodos
+            : this._entityService.sharedTodos;
+
+      oldList.update((todos) => todos.filter((t) => t.id !== id));
+      newList.update((todos) => [
+        { ...entity, visibility: newVisibility },
+        ...todos.filter((t) => t.id !== id),
+      ]);
+    } else {
+      this.updateRecord(table, id, { visibility: newVisibility });
     }
   }
 

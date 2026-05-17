@@ -45,4 +45,8 @@ export class AboutService {
   async openFile<R>(path: string): Promise<Response<R>> {
     return await invoke<Response<R>>("openFile", { path: path });
   }
+
+  async installUpdate<R>(path: string): Promise<Response<R>> {
+    return await invoke<Response<R>>("installUpdate", { installerPath: path });
+  }
 }
