@@ -268,7 +268,7 @@
             class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
           >
             <div class="flex flex-1 items-center gap-2">
-              <mat-icon class="text-gray-500 dark:text-gray-400" fontIcon="lock"></mat-icon>
+              <mat-icon class="text-gray-500 dark:text-gray-400" fontIcon="lock" />
               <div>
                 <div class="textNormal font-medium">Private</div>
                 <div class="textMuted text-xs">Only you can see this</div>
@@ -280,7 +280,7 @@
             class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
           >
             <div class="flex flex-1 items-center gap-2">
-              <mat-icon class="text-blue-500 dark:text-blue-400" fontIcon="group"></mat-icon>
+              <mat-icon class="text-blue-500 dark:text-blue-400" fontIcon="group" />
               <div>
                 <div class="textNormal font-medium">Shared</div>
                 <div class="textMuted text-xs">Shared with specific people</div>
@@ -292,7 +292,7 @@
             class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
           >
             <div class="flex flex-1 items-center gap-2">
-              <mat-icon class="text-green-500 dark:text-green-400" fontIcon="public"></mat-icon>
+              <mat-icon class="text-green-500 dark:text-green-400" fontIcon="public" />
               <div>
                 <div class="textNormal font-medium">Public</div>
                 <div class="textMuted text-xs">Visible to everyone</div>
@@ -350,10 +350,7 @@
           >
             <div class="relative">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <mat-icon
-                  class="h-4! w-4! text-gray-400 dark:text-gray-500"
-                  fontIcon="search"
-                ></mat-icon>
+                <mat-icon class="h-4! w-4! text-gray-400 dark:text-gray-500" fontIcon="search" />
               </div>
               <input
                 type="text"
@@ -369,7 +366,7 @@
                   (click)="assigneeSearchQuery.set('')"
                   class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  <mat-icon class="h-4! w-4!" fontIcon="close"></mat-icon>
+                  <mat-icon class="h-4! w-4!" fontIcon="close" />
                 </button>
               }
             </div>
@@ -591,7 +588,7 @@
 
         @if (!githubConnected()) {
           <div class="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-zinc-700/50">
-            <mat-icon class="text-gray-400 dark:text-gray-500" fontIcon="link_off"></mat-icon>
+            <mat-icon class="text-gray-400 dark:text-gray-500" fontIcon="link_off" />
             <span class="text-sm text-gray-500 dark:text-gray-400"
               >Connect GitHub first to link a repository</span
             >
@@ -602,10 +599,7 @@
           >
             <div class="relative">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <mat-icon
-                  class="h-4! w-4! text-gray-400 dark:text-gray-500"
-                  fontIcon="search"
-                ></mat-icon>
+                <mat-icon class="h-4! w-4! text-gray-400 dark:text-gray-500" fontIcon="search" />
               </div>
               <input
                 type="text"
@@ -621,7 +615,7 @@
                   (click)="githubRepoSearchQuery.set('')"
                   class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  <mat-icon class="h-4! w-4!" fontIcon="close"></mat-icon>
+                  <mat-icon class="h-4! w-4!" fontIcon="close" />
                 </button>
               }
             </div>

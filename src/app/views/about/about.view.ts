@@ -181,7 +181,7 @@ export class AboutView {
 
   openFile() {
     this.aboutService
-      .openFile<string>(this.pathUpdate())
+      .installUpdate<string>(this.pathUpdate())
       .then((data: Response<string>) => {
         this.notifyService.showNotify(data.status, data.message);
       })

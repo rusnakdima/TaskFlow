@@ -110,8 +110,6 @@ export class DataManagementView implements OnInit {
   protected requestService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
 
-  private archiveLoadedSignal = signal<{ [type: string]: boolean }>({});
-
   paginationState = signal<{
     skip: number;
     limit: number;
@@ -192,14 +190,42 @@ export class DataManagementView implements OnInit {
     }
   }
 
-  private loadAdminData(force: boolean) {
-    const sub = this.adminStorageService.loadAdminData(force).subscribe({
-      next: () => {
+  private loadAdminData(force: boolean = false) {
+    const type = this.selectedType();
+    const limit = 10;
+
+    if (!force && this.adminStorageService.isTypeLoaded(type)) {
+      const data = this.getAdminData();
+      this.paginationState.set({
+        skip: 0,
+        limit,
+        total: data.length,
+        hasMore: data.length >= limit,
+        loading: false,
+      });
+      this.loading.set(false);
+      this.populateFilterLists();
+      return;
+    }
+
+    const sub = this.adminStorageService.loadInitialData(type, limit).subscribe({
+      next: (response: any) => {
+        const data = response?.data || [];
+        if (type === "todos") this.adminStorageService.todosSignal.set(data);
+        else if (type === "tasks") this.adminStorageService.tasksSignal.set(data);
+        else if (type === "subtasks") this.adminStorageService.subtasksSignal.set(data);
+        else if (type === "comments") this.adminStorageService.commentsSignal.set(data);
+        else if (type === "chats") this.adminStorageService.chatsSignal.set(data);
+        else if (type === "categories") this.adminStorageService.categoriesSignal.set(data);
+        else if (type === "daily_activities")
+          this.adminStorageService.dailyActivitiesSignal.set(data);
+
+        this.adminStorageService.setTypeLoaded(type, true);
         this.paginationState.set({
-          skip: 0,
-          limit: 0,
-          total: this.getAdminDataCount(),
-          hasMore: false,
+          skip: data.length,
+          limit,
+          total: data.length,
+          hasMore: data.length >= limit,
           loading: false,
         });
         this.populateFilterLists();
@@ -213,31 +239,42 @@ export class DataManagementView implements OnInit {
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
-  private loadArchiveData(force: boolean) {
+  private loadArchiveData(force: boolean = false) {
     const type = this.selectedType();
-    const alreadyLoaded = !force && this.archiveLoadedSignal()[type];
+    const limit = 10;
 
-    if (alreadyLoaded && this.hasArchiveData(type)) {
-      this.loading.set(false);
+    if (!force && this.archiveStorageService.isTypeLoaded(type)) {
+      const data = this.getArchiveData();
       this.paginationState.set({
         skip: 0,
-        limit: 0,
-        total: this.getArchiveDataCount(type),
-        hasMore: false,
+        limit,
+        total: data.length,
+        hasMore: data.length >= limit,
         loading: false,
       });
+      this.loading.set(false);
       this.populateFilterLists();
       return;
     }
 
-    const sub = this.archiveStorageService.loadArchiveData(force).subscribe({
-      next: () => {
-        this.archiveLoadedSignal.update((s) => ({ ...s, [type]: true }));
+    const sub = this.archiveStorageService.loadInitialData(type, limit).subscribe({
+      next: (response: any) => {
+        const data = response?.data || [];
+        if (type === "todos") this.archiveStorageService.todosSignal.set(data);
+        else if (type === "tasks") this.archiveStorageService.tasksSignal.set(data);
+        else if (type === "subtasks") this.archiveStorageService.subtasksSignal.set(data);
+        else if (type === "comments") this.archiveStorageService.commentsSignal.set(data);
+        else if (type === "chats") this.archiveStorageService.chatsSignal.set(data);
+        else if (type === "categories") this.archiveStorageService.categoriesSignal.set(data);
+        else if (type === "daily_activities")
+          this.archiveStorageService.dailyActivitiesSignal.set(data);
+
+        this.archiveStorageService.setTypeLoaded(type, true);
         this.paginationState.set({
-          skip: 0,
-          limit: 0,
-          total: this.getArchiveDataCount(type),
-          hasMore: false,
+          skip: data.length,
+          limit,
+          total: data.length,
+          hasMore: data.length >= limit,
           loading: false,
         });
         this.populateFilterLists();
@@ -251,60 +288,84 @@ export class DataManagementView implements OnInit {
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
-  private hasArchiveData(type: string): boolean {
+  loadMore() {
+    if (this.paginationState().loading || !this.paginationState().hasMore) {
+      return;
+    }
+
+    this.paginationState.update((s) => ({ ...s, loading: true }));
+
+    const type = this.selectedType();
+    const skip = this.paginationState().skip;
+    const limit = this.paginationState().limit;
+
+    if (this.mode === "admin") {
+      const sub = this.adminStorageService.loadMoreData(type, skip).subscribe({
+        next: (response: any) => {
+          const newData = response?.data || [];
+          this.appendDataToSignal(type, this.adminStorageService, newData);
+          const currentTotal = this.paginationState().total + newData.length;
+          this.paginationState.set({
+            skip: skip + newData.length,
+            limit,
+            total: currentTotal,
+            hasMore: newData.length >= limit,
+            loading: false,
+          });
+        },
+        error: (error) => {
+          this.notifyService.showError(`Failed to load more: ${error}`);
+          this.paginationState.update((s) => ({ ...s, loading: false }));
+        },
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    } else {
+      const sub = this.archiveStorageService.loadMoreData(type, skip).subscribe({
+        next: (response: any) => {
+          const newData = response?.data || [];
+          this.appendDataToSignal(type, this.archiveStorageService, newData);
+          const currentTotal = this.paginationState().total + newData.length;
+          this.paginationState.set({
+            skip: skip + newData.length,
+            limit,
+            total: currentTotal,
+            hasMore: newData.length >= limit,
+            loading: false,
+          });
+        },
+        error: (error) => {
+          this.notifyService.showError(`Failed to load more: ${error}`);
+          this.paginationState.update((s) => ({ ...s, loading: false }));
+        },
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    }
+  }
+
+  private appendDataToSignal(type: string, storage: any, newData: any[]): void {
     switch (type) {
       case "todos":
-        return this.archiveStorageService.todos().length > 0;
+        storage.todosSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "tasks":
-        return this.archiveStorageService.tasks().length > 0;
+        storage.tasksSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "subtasks":
-        return this.archiveStorageService.subtasks().length > 0;
+        storage.subtasksSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "comments":
-        return this.archiveStorageService.comments().length > 0;
+        storage.commentsSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "chats":
-        return this.archiveStorageService.chats().length > 0;
+        storage.chatsSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "categories":
-        return this.archiveStorageService.categories().length > 0;
+        storage.categoriesSignal.update((items: any[]) => [...items, ...newData]);
+        break;
       case "daily_activities":
-        return this.archiveStorageService.dailyActivities().length > 0;
-      default:
-        return false;
+        storage.dailyActivitiesSignal.update((items: any[]) => [...items, ...newData]);
+        break;
     }
-  }
-
-  private getDataCount(source: "admin" | "archive", type?: string): number {
-    const service = source === "admin" ? this.adminStorageService : this.archiveStorageService;
-    const dataType = type || this.selectedType();
-    switch (dataType) {
-      case "todos":
-        return service.todos().length;
-      case "tasks":
-        return service.tasks().length;
-      case "subtasks":
-        return service.subtasks().length;
-      case "comments":
-        return service.comments().length;
-      case "chats":
-        return service.chats().length;
-      case "categories":
-        return service.categories().length;
-      case "daily_activities":
-        return service.dailyActivities().length;
-      default:
-        return 0;
-    }
-  }
-
-  private getAdminDataCount(): number {
-    return this.getDataCount("admin");
-  }
-
-  private getArchiveDataCount(type: string): number {
-    return this.getDataCount("archive", type);
-  }
-
-  loadMore() {
-    // No longer needed - we load all data at once
   }
 
   getFieldConfig(): TableField[] {
@@ -519,6 +580,7 @@ export class DataManagementView implements OnInit {
     this.clearFilters();
     this.showFilters.set(false);
     this.paginationState.set({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
+    this.loadData();
   }
 
   closeFilters() {
@@ -661,7 +723,7 @@ export class DataManagementView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
-        this.loadData(true);
+        this.removeRecordFromStorage(table, record.id);
       }
     } catch (error) {
       this.notifyService.showError("Error: " + error);
@@ -679,7 +741,10 @@ export class DataManagementView implements OnInit {
 
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
-        this.loadData(true);
+        const isDeleted = response.data === true;
+        this.updateRecordInStorage(table, record.id, {
+          deleted_at: isDeleted ? new Date().toISOString() : null,
+        });
       }
     } catch (error) {
       this.notifyService.showError("Error: " + error);
@@ -691,14 +756,18 @@ export class DataManagementView implements OnInit {
     const allSelected = this.getCurrentData().filter((item) => selectedIds.includes(item.id));
     const allArchived = allSelected.every((item) => item.deleted_at);
     const visibility = this.mode === "admin" ? "public" : "private";
+    const table = this.selectedType();
 
     if (allArchived) {
-      await this.adminCascadeService.restoreBatch(this.selectedType(), selectedIds, visibility);
+      await this.adminCascadeService.restoreBatch(table, selectedIds, visibility);
+      selectedIds.forEach((id) => this.updateRecordInStorage(table, id, { deleted_at: null }));
     } else {
-      await this.adminCascadeService.softDeleteBatch(this.selectedType(), selectedIds, visibility);
+      await this.adminCascadeService.softDeleteBatch(table, selectedIds, visibility);
+      selectedIds.forEach((id) =>
+        this.updateRecordInStorage(table, id, { deleted_at: new Date().toISOString() })
+      );
     }
     this.selectedRecords.set(new Set());
-    this.loadData(true);
   }
 
   async onBulkHardDelete(): Promise<void> {
@@ -710,14 +779,12 @@ export class DataManagementView implements OnInit {
     });
     if (!confirmed) return;
     const visibility = this.mode === "admin" ? "public" : "private";
+    const table = this.selectedType();
+    const idsToDelete = Array.from(this.selectedRecords());
 
-    await this.adminCascadeService.hardDeleteBatch(
-      this.selectedType(),
-      Array.from(this.selectedRecords()),
-      visibility
-    );
+    await this.adminCascadeService.hardDeleteBatch(table, idsToDelete, visibility);
+    idsToDelete.forEach((id) => this.removeRecordFromStorage(table, id));
     this.selectedRecords.set(new Set());
-    this.loadData(true);
   }
 
   onBulkCancel(): void {
@@ -953,5 +1020,15 @@ export class DataManagementView implements OnInit {
     const signal = this.getFilterSignal(event.key);
     signal.set(event.value);
     this.showFilters.set(true);
+  }
+
+  private removeRecordFromStorage(table: string, id: string): void {
+    const storage = this.mode === "admin" ? this.adminStorageService : this.archiveStorageService;
+    storage.removeRecord(table, id);
+  }
+
+  private updateRecordInStorage(table: string, id: string, updates: Partial<any>): void {
+    const storage = this.mode === "admin" ? this.adminStorageService : this.archiveStorageService;
+    storage.updateRecord(table, id, updates);
   }
 }

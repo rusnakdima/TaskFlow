@@ -15,7 +15,7 @@
         class="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
         (click)="cancelQrLogin()"
       >
-        <mat-icon class="text-white">arrow_back</mat-icon>
+        <mat-icon class="text-white" fontIcon="arrow_back" />
         <span class="font-medium">Cancel</span>
       </button>
     </div>
@@ -83,7 +83,7 @@
           <div
             class="absolute inset-0 z-10 flex animate-pulse items-center justify-center rounded-2xl bg-emerald-500/30"
           >
-            <mat-icon class="text-6xl text-emerald-400">check_circle</mat-icon>
+            <mat-icon class="text-6xl text-emerald-400" fontIcon="check_circle" />
           </div>
         }
       </div>
@@ -101,13 +101,13 @@
         <div
           class="flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-2 backdrop-blur-sm"
         >
-          <mat-icon class="text-emerald-400">check_circle</mat-icon>
+          <mat-icon class="text-emerald-400" fontIcon="check_circle" />
           <span class="text-sm text-emerald-300">Approved! Logging in...</span>
         </div>
       }
       @if (qrLoginStatus() === "expired") {
         <div class="flex items-center gap-2 rounded-full bg-red-500/20 px-4 py-2 backdrop-blur-sm">
-          <mat-icon class="text-red-400">error</mat-icon>
+          <mat-icon class="text-red-400" fontIcon="error" />
           <span class="text-sm text-red-300">QR code expired</span>
         </div>
       }
@@ -128,7 +128,7 @@
         <!-- Back button -->
         <div class="mb-4 flex justify-start">
           <button class="btn-accent" (click)="cancelQrLogin()">
-            <mat-icon class="mr-1">arrow_back</mat-icon>
+            <mat-icon class="mr-1" fontIcon="arrow_back" />
             Back to Login
           </button>
         </div>
@@ -145,9 +145,10 @@
         @if (passkeyQrCode() && !isQrGenerating()) {
           <div class="flex flex-col items-center gap-4">
             <div class="text-center">
-              <mat-icon class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
-                >qr_code</mat-icon
-              >
+              <mat-icon
+                class="mb-2 h-8! w-8! text-2xl! text-green-600 dark:text-green-400"
+                fontIcon="qr_code"
+              />
               <p class="font-medium text-green-800 dark:text-green-200">
                 Scan with your mobile device
               </p>
@@ -168,21 +169,21 @@
 
             @if (qrLoginStatus() === "pending") {
               <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <mat-icon class="h-4! w-4! animate-spin text-lg!">sync</mat-icon>
+                <mat-icon class="h-4! w-4! animate-spin text-lg!" fontIcon="sync" />
                 Waiting for mobile approval...
               </div>
             }
 
             @if (qrLoginStatus() === "approved") {
               <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <mat-icon class="h-4! w-4! text-lg!">check_circle</mat-icon>
+                <mat-icon class="h-4! w-4! text-lg!" fontIcon="check_circle" />
                 Approved! Completing login...
               </div>
             }
 
             @if (qrLoginStatus() === "expired") {
               <div class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                <mat-icon class="h-4! w-4! text-lg!">error</mat-icon>
+                <mat-icon class="h-4! w-4! text-lg!" fontIcon="error" />
                 QR code expired
               </div>
             }
@@ -191,7 +192,7 @@
 
         <!-- Cancel button -->
         <button class="btn-cancel mt-4" (click)="cancelQrLogin()">
-          <mat-icon class="mr-1">close</mat-icon>
+          <mat-icon class="mr-1" fontIcon="close" />
           Cancel
         </button>
       </div>

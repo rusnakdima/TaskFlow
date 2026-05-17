@@ -516,6 +516,16 @@ export class SubtasksViewComponent extends BaseListView {
         onModeChange: (mode) => this.setViewMode(mode),
         modes: ["card", "grid", "table", "list", "kanban"],
       },
+      refresh: {
+        onClick: () => {
+          this.refreshState.set("refreshing");
+          this.syncService.refreshLocal().finally(() => {
+            this.refreshState.set("idle");
+          });
+          this.loadInitialSubtasks(true);
+        },
+        loading: this.refreshState() === "refreshing",
+      },
       filterFields: this.filterFields,
       showFilter: this.showFilter(),
       onFiltersChange: (filters) => this.onFiltersChange(filters),
