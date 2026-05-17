@@ -151,6 +151,7 @@ pub async fn delete_group(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
+  println!("[DEBUG delete_group route] id={}", id);
   let _user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config_helper.jwt_secret,
@@ -206,6 +207,10 @@ pub async fn send_message(
     &state.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
+
+  if user_id.starts_with("dm_") || user_id.starts_with("group_") {
+    return Err(err_response("Invalid user_id: cannot be a room ID"));
+  }
 
   let room_exists = state.room_service.get_by_room(&room_id).await?;
   let should_create_room = match &room_exists.data {
