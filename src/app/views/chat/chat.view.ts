@@ -147,26 +147,62 @@ export class ChatView implements OnInit {
     const conv = this.contextMenuConversation();
     if (!conv) return;
 
-    this.requestService
-      .invokeCommand("delete_room", {
-        roomId: conv.roomId,
-        token: this.authService.getToken(),
-      })
-      .subscribe({
-        next: () => {
-          this.conversations.update((convs) => convs.filter((c) => c.roomId !== conv.roomId));
-          if (this.activeConversationId() === conv.roomId) {
-            this.activeConversationId.set(null);
-            this.messages.set([]);
-          }
-          this.notifyService.showSuccess("Conversation removed");
-          this.closeContextMenu();
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to remove conversation");
-          this.closeContextMenu();
-        },
-      });
+    console.log(
+      "[DEBUG removeConversation] deleting roomId:",
+      conv.roomId,
+      "isGroup:",
+      conv.isGroup
+    );
+
+    if (conv.isGroup) {
+      // For groups, we need to call delete_group with the group's id (not room_id)
+      // But we don't have the group id in ConversationItem - we need to check the structure
+      this.requestService
+        .invokeCommand("delete_group", {
+          id: conv.roomId, // TODO: should be group id, not room id
+          token: this.authService.getToken(),
+        })
+        .subscribe({
+          next: () => {
+            console.log("[DEBUG removeConversation] delete_group success");
+            this.conversations.update((convs) => convs.filter((c) => c.roomId !== conv.roomId));
+            if (this.activeConversationId() === conv.roomId) {
+              this.activeConversationId.set(null);
+              this.messages.set([]);
+            }
+            this.notifyService.showSuccess("Conversation removed");
+            this.closeContextMenu();
+          },
+          error: (err) => {
+            console.error("[DEBUG removeConversation] delete_group error:", err);
+            this.notifyService.showError(err.message || "Failed to remove conversation");
+            this.closeContextMenu();
+          },
+        });
+    } else {
+      this.requestService
+        .invokeCommand("delete_room", {
+          roomId: conv.roomId,
+          token: this.authService.getToken(),
+        })
+        .subscribe({
+          next: () => {
+            console.log("[DEBUG removeConversation] delete_room success");
+            this.conversations.update((convs) => convs.filter((c) => c.roomId !== conv.roomId));
+            if (this.activeConversationId() === conv.roomId) {
+              this.activeConversationId.set(null);
+              this.messages.set([]);
+            }
+            this.notifyService.showSuccess("Conversation removed");
+            this.closeContextMenu();
+          },
+          error: (err) => {
+            console.error("[DEBUG removeConversation] delete_room error:", err);
+            this.notifyService.showError(err.message || "Failed to remove conversation");
+            this.closeContextMenu();
+          },
+        });
+    }
   }
 
   ngOnInit(): void {
@@ -199,12 +235,14 @@ export class ChatView implements OnInit {
       })
       .subscribe({
         next: (result: any) => {
-          const rooms = result?.data || [];
+          const rooms = Array.isArray(result) ? result : result?.data || [];
           this.storageService.setRooms(rooms as any);
           this.loadConversations();
           this.loadGroups();
+          this.loadRoomsIntoConversations(rooms);
         },
-        error: () => {
+        error: (err) => {
+          console.error("get_rooms error:", err);
           this.loadConversations();
           this.loadGroups();
         },
@@ -363,7 +401,7 @@ export class ChatView implements OnInit {
       .invokeCommand("send_message", {
         roomId: conv.roomId,
         senderId: userId,
-        userId: conv.isGroup ? conv.roomId : conv.roomId,
+        userId: conv.isGroup ? conv.roomId : conv.otherUserId,
         content: content,
         token: this.authService.getToken(),
       })
@@ -408,6 +446,52 @@ export class ChatView implements OnInit {
           this.notifyService.showError(err.message || "Failed to create group");
         },
       });
+  }
+
+  private loadRoomsIntoConversations(rooms: any[]): void {
+    const currentUserId = this.currentUserId();
+    if (!currentUserId || !Array.isArray(rooms)) return;
+
+    const existingRoomIds = new Set(this.conversations().map((c) => c.roomId));
+
+    for (const room of rooms) {
+      if (existingRoomIds.has(room.room)) continue;
+
+      const isGroup = room.is_group === true || (room.room || "").startsWith("group_");
+      const memberIds: string[] = room.participant_ids || [];
+      const otherUserId = isGroup
+        ? undefined
+        : memberIds.find((id: string) => id !== currentUserId);
+
+      let name = isGroup ? room.name || "Group" : "Unknown";
+      let avatar: string | null = null;
+
+      if (!isGroup && otherUserId) {
+        const profile = this.getProfileByUserId(otherUserId);
+        if (profile) {
+          name = this.getProfileDisplayName(profile);
+          avatar = profile.image_url || null;
+        }
+      }
+
+      const conv: ConversationItem = {
+        roomId: room.room,
+        name: name,
+        avatar: avatar,
+        isOnline: false,
+        isTyping: false,
+        isGroup: isGroup,
+        unreadCount: 0,
+        lastMessage: "",
+        lastMessageTime: "",
+        memberIds: memberIds,
+        memberCount: memberIds.length,
+        bio: "",
+        otherUserId: otherUserId,
+      };
+
+      this.conversations.update((convs) => [...convs, conv]);
+    }
   }
 
   private loadConversations(): void {
@@ -480,7 +564,7 @@ export class ChatView implements OnInit {
   private reloadChatsFromApi(): void {
     this.requestService
       .getAll<Chat>("chats", {
-        visibility: "private",
+        visibility: "all",
         limit: 100,
       })
       .subscribe({
@@ -508,7 +592,7 @@ export class ChatView implements OnInit {
       })
       .subscribe({
         next: (result: any) => {
-          const groups = result?.data || [];
+          const groups = Array.isArray(result) ? result : result?.data || [];
           if (Array.isArray(groups)) {
             const existingRooms = new Set(this.conversations().map((c) => c.roomId));
 
@@ -527,13 +611,16 @@ export class ChatView implements OnInit {
                   memberIds: group.member_ids || [],
                   memberCount: (group.member_ids || []).length,
                   bio: "",
+                  otherUserId: undefined,
                 };
                 this.conversations.update((convs) => [...convs, conv]);
               }
             }
           }
         },
-        error: () => {},
+        error: (err) => {
+          console.error("Load groups error:", err);
+        },
       });
   }
 

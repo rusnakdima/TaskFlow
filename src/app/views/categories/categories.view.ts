@@ -1,6 +1,6 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { firstValueFrom, Observable } from "rxjs";
@@ -15,12 +15,18 @@ import { Category } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
 
 /* services */
 import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
+import { StorageService } from "@services/storage.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -51,12 +57,13 @@ import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-dis
     MatIconModule,
     MatMenuModule,
     MatButtonModule,
-    CategoryFormComponent,
     BulkActionsComponent,
     TableViewComponent,
     ItemCardComponent,
     ItemExpandDetailsComponent,
     PageToolbarComponent,
+    CategoryFormComponent,
+    SegmentSelectorComponent,
   ],
   templateUrl: "./categories.view.html",
 })
@@ -66,9 +73,34 @@ export class CategoriesView extends BaseListView implements OnInit {
   private requestService = inject(ApiService);
   private apiService = inject(ApiService);
   private relationLoadingService = inject(RelationLoadingService);
+  protected override storageService = inject(StorageService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
+
+  activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
+
+  visibilityOptions = computed<SegmentOption[]>(() => [
+    {
+      id: "all",
+      label: "All",
+      icon: "apps",
+      count: this.storageService.categories().length,
+    },
+    {
+      id: "private",
+      label: "Local",
+      icon: "folder",
+      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
+    },
+    {
+      id: "shared",
+      label: "Cloud",
+      icon: "cloud",
+      count: 0,
+    },
+  ]);
 
   protected getItems(): { id: string }[] {
     return this.searchResults();
@@ -79,10 +111,24 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   searchResults = computed(() => {
+    const currentUserId = this.authService.getValueByKey("id") || this.userId();
     let cats = this.storageService.categories();
+    if (currentUserId) {
+      cats = cats.filter((cat: Category) => cat.user_id === currentUserId);
+    }
+    const visibility = this.activeVisibility();
+    if (visibility === "private") {
+      cats = cats.filter((cat: Category) => !cat.deleted_at);
+    } else if (visibility === "shared") {
+      cats = cats.filter((cat: Category) => !cat.deleted_at);
+    } else if (visibility === "public") {
+      cats = cats.filter((cat: Category) => !cat.deleted_at);
+    } else {
+      cats = cats.filter((cat: Category) => !cat.deleted_at);
+    }
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
-      cats = cats.filter((cat) => cat.title.toLowerCase().includes(query));
+      cats = cats.filter((cat: Category) => (cat.title || "").toLowerCase().includes(query));
     }
     const order = this.sortOrder();
     const by = this.sortBy();
@@ -144,11 +190,15 @@ export class CategoriesView extends BaseListView implements OnInit {
       })
     );
 
-    this.requestService
-      .loadPage("categories", { visibility: "private", limit: 50, skip: 0, load: ["user"] })
-      .subscribe();
+    this.loadCategories();
+  }
 
-    this.storageService.ensureCategoriesLoaded("private", 50);
+  loadCategories(): void {
+    this.storageService.ensureCategoriesLoaded("private", 100);
+    if (this.mongoConnectionService.isConnected()) {
+      this.storageService.ensureCategoriesLoaded("shared", 100);
+      this.storageService.ensureCategoriesLoaded("public", 100);
+    }
   }
 
   toggleCreateForm() {
@@ -312,9 +362,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       refresh: {
         onClick: () => {
           this.refreshState.set("refreshing");
-          this.storageService.ensureCategoriesLoaded("private", 100);
-          this.storageService.ensureCategoriesLoaded("shared", 100);
-          this.storageService.ensureCategoriesLoaded("public", 100);
+          this.loadCategories();
           setTimeout(() => this.refreshState.set("idle"), 500);
         },
         loading: this.refreshState() === "refreshing",

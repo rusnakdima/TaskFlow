@@ -35,6 +35,7 @@
       [expandable]="true"
       [expandTemplate]="expandRowTemplate"
       [actions]="getAdminActions()"
+      [userPermission]="userPermission()"
       [emptyMessage]="'No ' + getSelectedTypeLabel().toLowerCase() + ' data available'"
       [highlightedId]="null"
       [highlightIdPrefix]="''"

@@ -35,6 +35,7 @@ import { AdminCascadeService } from "@services/admin/admin-cascade.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { TodoPermission } from "@services/core/permission.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -120,6 +121,7 @@ export class DataManagementView implements OnInit {
 
   mode: "admin" | "archive" = "admin";
   dataMap = signal<any>({});
+  userPermission = signal<TodoPermission>(TodoPermission.OWNER);
 
   selectedType = signal<string>("todos");
   loading = signal<boolean>(false);

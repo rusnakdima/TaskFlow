@@ -175,9 +175,8 @@ export class SubtasksViewComponent extends BaseListView {
     ].includes(this.userPermission())
   );
 
-  canEditSubtask(_subtask: Subtask): boolean {
-    if (this.userPermission() === TodoPermission.VIEWER) return false;
-    return true;
+  canEditSubtask(subtask: Subtask): boolean {
+    return this.permissionService.canEditSubtask(subtask, this.userPermission(), this.userId);
   }
 
   listSubtasks = computed(() => {
@@ -193,6 +192,10 @@ export class SubtasksViewComponent extends BaseListView {
   subtaskCardConfig = SUBTASK_CARD_CONFIG;
   subtaskTableConfig = SUBTASK_TABLE_CONFIG;
   subtaskActions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
+
+  getFilteredSubtaskActions(): TableFieldActionButton[] {
+    return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
+  }
 
   subtaskTableFields: TableField[] = [
     { key: "title", label: "Subtask", type: "text", sortable: true },
@@ -251,6 +254,18 @@ export class SubtasksViewComponent extends BaseListView {
     const userId = this.userId;
     if (todo.user_id === userId) {
       this.userPermission.set(TodoPermission.OWNER);
+      return;
+    }
+    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
+      this.userPermission.set(this.permissionService.fromStr((todo as any).assignee_roles[userId]));
+      return;
+    }
+    if (!todo.assignees?.includes(userId)) {
+      this.userPermission.set(TodoPermission.VIEWER);
+      return;
+    }
+    if (todo.visibility === "public") {
+      this.userPermission.set(TodoPermission.VIEWER);
       return;
     }
     const token = this.jwtTokenService.getToken() || "";
@@ -1068,6 +1083,10 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onKanbanStatusCycle(subtask: Subtask): void {
+    if (!this.canEditSubtask(subtask)) {
+      this.notifyService.showError("You don't have permission to change subtask status");
+      return;
+    }
     this.kanbanHelper.onKanbanStatusCycle(subtask, (subtaskId, newStatus) =>
       this.updateSubtaskStatus(subtaskId, newStatus)
     );
