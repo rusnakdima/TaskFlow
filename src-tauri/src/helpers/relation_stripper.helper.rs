@@ -5,7 +5,7 @@ pub fn get_relation_fields_for_table(table: &str) -> Vec<&'static str> {
     "tasks" => vec!["subtasks", "comments"],
     "subtasks" => vec!["comments"],
     "comments" => vec!["user", "task", "subtask"],
-    "todos" => vec!["tasks", "user", "categories"],
+    "todos" => vec!["tasks", "user"],
     "categories" => vec!["user"],
     "users" => vec!["profile"],
     "profiles" => vec!["user"],

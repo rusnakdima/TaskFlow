@@ -2,7 +2,112 @@ use tauri::State;
 
 use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, success_response};
+use crate::helpers::visibility_helper::get_visibility;
 use std::collections::HashMap;
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn change_todo_visibility(
+  state: State<'_, crate::AppState>,
+  todo_id: String,
+  new_visibility: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let user_id = crate::helpers::auth_helper::extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  // First get the current todo to find its stored visibility
+  let existing = state
+    .repository_service
+    .execute(
+      "get".to_string(),
+      "todos".to_string(),
+      Some(todo_id.clone()),
+      None,
+      None,
+      None,
+      None,
+      true,
+      Some(user_id.clone()),
+      None,
+      None,
+    )
+    .await
+    .map_err(|e| err_response(&e.message))?;
+
+  let doc = match existing.data {
+    DataValue::Object(obj) => obj,
+    _ => return Err(err_response("Invalid response format")),
+  };
+
+  let doc_value = serde_json::to_value(&doc).unwrap_or_default();
+  let old_visibility = get_visibility(&doc_value);
+
+  // If visibility is the same, nothing to do
+  if old_visibility == new_visibility {
+    return Ok(success_response(DataValue::Object(
+      serde_json::json!({ "message": "Visibility unchanged" }),
+    )));
+  }
+
+  // Update the todo with new visibility
+  let update_data = serde_json::json!({
+    "visibility": new_visibility
+  });
+
+  state
+    .repository_service
+    .execute(
+      "update".to_string(),
+      "todos".to_string(),
+      Some(todo_id.clone()),
+      Some(update_data),
+      None,
+      None,
+      None,
+      true,
+      Some(user_id.clone()),
+      None,
+      None,
+    )
+    .await
+    .map_err(|e| err_response(&e.message))?;
+
+  // Sync todo to the new provider
+  let source_provider =
+    if old_visibility == "private" || old_visibility == "shared" && old_visibility != "public" {
+      "Json"
+    } else {
+      "Mongo"
+    };
+
+  let target_provider = if new_visibility == "private" {
+    "Json"
+  } else {
+    "Mongo"
+  };
+
+  if source_provider != target_provider {
+    let cascade_service = state.cascade_service.clone();
+    if target_provider == "Mongo" {
+      cascade_service
+        .sync_entity_to_mongo("todos", &todo_id)
+        .await
+        .map_err(|e| err_response(&e.message))?;
+    } else {
+      cascade_service
+        .sync_entity_to_json("todos", &todo_id)
+        .await
+        .map_err(|e| err_response(&e.message))?;
+    }
+  }
+
+  Ok(success_response(DataValue::Object(
+    serde_json::json!({ "message": "Visibility changed successfully" }),
+  )))
+}
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn update_todo_permissions(

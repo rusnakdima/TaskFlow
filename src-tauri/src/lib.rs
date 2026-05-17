@@ -55,7 +55,7 @@ use routes::{
   room_route::{add_room_participants, create_room, delete_room, get_room, get_rooms},
   statistics_route::statistics_get,
   todo_permissions_route::{
-    get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
+    change_todo_visibility, get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
   },
   update_route::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
@@ -425,6 +425,7 @@ pub fn run() {
       get_user,
       get_users,
       sync_data,
+      change_todo_visibility,
       get_todo_permissions,
       update_todo_permissions,
       transfer_todo_ownership,
@@ -442,6 +443,7 @@ pub fn run() {
       send_message,
       mark_message_read,
       delete_message,
+      delete_room,
       delete_room_messages,
       getBinaryNameFile,
       downloadUpdate,
