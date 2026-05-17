@@ -74,14 +74,14 @@ export class AdminService {
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("get_all_admin_paginated", { data_type: type, skip, limit, token })
+      invoke<Response<R>>("get_all_admin_paginated", { dataType: type, skip, limit, token })
     );
   }
 
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("get_all_archive_paginated", { data_type: type, skip, limit, token })
+      invoke<Response<R>>("get_all_archive_paginated", { dataType: type, skip, limit, token })
     );
   }
 }

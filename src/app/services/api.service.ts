@@ -12,6 +12,7 @@ import {
   Comment,
   Profile,
   User,
+  Group,
 } from "@models/generated/api.types";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
@@ -100,6 +101,13 @@ export class ApiService {
   });
   readonly admin = new AdminApi(this);
   readonly users = new EntityApi<User>(this, { get: "get_user", getAll: "get_users" });
+  readonly groups = new EntityApi<Group>(this, {
+    get: "get_group",
+    getAll: "get_groups",
+    create: "create_group",
+    update: "update_group",
+    delete: "delete_group",
+  });
 
   private paginationState = signal<Map<string, PaginationState>>(new Map());
 
@@ -262,7 +270,12 @@ export class ApiService {
   }
 
   initializeUserData(userId: string): Observable<Response<unknown>> {
-    return from(invoke<Response<unknown>>("initialize_user_data", { userId }));
+    return from(
+      invoke<Response<unknown>>(
+        "initialize_user_data",
+        this.toSnakeCase({ userId }) as Record<string, unknown>
+      )
+    );
   }
 
   loadPage<T>(table: string, options: PaginatedOptions): Observable<T[]> {
@@ -330,7 +343,7 @@ export class ApiService {
       data?: Partial<T>;
       visibility?: string;
       filter?: Record<string, unknown>;
-      load?: string[];
+      load?: string | string[];
       page?: number;
       limit?: number;
       todoId?: string;
@@ -358,7 +371,7 @@ export class ApiService {
     }
 
     return new Observable((subscriber) => {
-      invoke<Response<T>>(route, args)
+      invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
         .then((response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             subscriber.next(response.data as T);
@@ -384,7 +397,7 @@ export class ApiService {
       data?: Partial<T>;
       visibility?: string;
       filter?: Record<string, unknown>;
-      load?: string[];
+      load?: string | string[];
       page?: number;
       limit?: number;
       todoId?: string;
@@ -398,7 +411,9 @@ export class ApiService {
     if (params.id) args["id"] = params.id;
     if (params.data) args["data"] = params.data;
     if (params.visibility) args["visibility"] = params.visibility;
-    if (params.load) args["load"] = JSON.stringify(params.load);
+    if (params.load) {
+      args["load"] = Array.isArray(params.load) ? JSON.stringify(params.load) : params.load;
+    }
     if (params.page !== undefined) args["page"] = params.page;
     if (params.limit !== undefined) args["limit"] = params.limit;
 
@@ -410,7 +425,7 @@ export class ApiService {
     }
 
     return new Observable((subscriber) => {
-      invoke<Response<T[]>>(route, args)
+      invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
         .then((response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             const items = Array.isArray(response.data)
@@ -572,9 +587,29 @@ export class ApiService {
         return this.chats as unknown as EntityApi<T>;
       case "users":
         return this.users as unknown as EntityApi<T>;
+      case "groups":
+        return this.groups as unknown as EntityApi<T>;
       default:
         throw new ApiError(`Unknown table: ${table}`, "server");
     }
+  }
+
+  private toSnakeCase(obj: unknown): unknown {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.toSnakeCase(item));
+    }
+    if (typeof obj === "object" && !(obj instanceof Date)) {
+      return Object.fromEntries(
+        Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
+          key.replace(/([A-Z])/g, (letter) => `_${letter.toLowerCase()}`),
+          this.toSnakeCase(value),
+        ])
+      );
+    }
+    return obj;
   }
 }
 
@@ -653,7 +688,7 @@ class EntityApi<T> {
     filter?: unknown;
     todoId?: string;
     taskId?: string;
-    load?: string[];
+    load?: string | string[];
   }): Observable<T[]> {
     const {
       page = 0,

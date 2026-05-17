@@ -72,72 +72,80 @@ export class ArchiveStorageService extends BaseAdminStorageService {
   }
 
   /**
-   * Load all archive data from backend
-   * Only fetches if cache is expired or force is true
+   * Load archive data for a specific type from backend
+   * Uses per-type loading to avoid fetching all data at once
    */
-  loadArchiveData(force: boolean = false): Observable<AdminDataWithRelations> {
-    if (!force && this.isCacheValid() && this.hasArchiveData()) {
-      return of(this.getArchiveDataWithRelations());
+  loadArchiveDataForType(type: string, force: boolean = false): Observable<any[]> {
+    if (!force && this.isTypeLoaded(type) && this.hasTypeData(type)) {
+      return of(this.getTypeData(type));
     }
 
     if (this.loadingSignal()) {
-      return of(this.getArchiveDataWithRelations());
+      return of(this.getTypeData(type));
     }
 
     this.loadingSignal.set(true);
 
-    return this.loadAllArchiveDataFromRoute().pipe(
+    return this.loadArchiveDataFromRoute().pipe(
       tap((response: any) => {
         const data = response?.data || response;
-        this.todosSignal.set(data["todos"] || []);
-        this.tasksSignal.set(data["tasks"] || []);
-        this.subtasksSignal.set(data["subtasks"] || []);
-        this.commentsSignal.set(data["comments"] || []);
-        this.chatsSignal.set(data["chats"] || []);
-        this.categoriesSignal.set(data["categories"] || []);
-        this.dailyActivitiesSignal.set(data["daily_activities"] || []);
-
+        this.setTypeData(data);
+        this.markTypeAsLoaded(type);
         this.loadingSignal.set(false);
         this.loadedSignal.set(true);
         this.lastLoadedSignal.set(new Date());
       }),
       catchError(() => {
         this.loadingSignal.set(false);
-        return of(this.getArchiveDataWithRelations());
+        return of(this.getTypeData(type));
       }),
       map((response: any) => {
         const data = response?.data || response;
-        return {
-          todos: data["todos"] || [],
-          tasks: data["tasks"] || [],
-          subtasks: data["subtasks"] || [],
-          comments: data["comments"] || [],
-          chats: data["chats"] || [],
-          categories: data["categories"] || [],
-          daily_activities: data["daily_activities"] || [],
-          users: [],
-          profiles: [],
-        };
+        return data[type] || [];
       })
     );
   }
 
-  private hasArchiveData(): boolean {
-    return (
-      this.todosSignal().length > 0 ||
-      this.tasksSignal().length > 0 ||
-      this.subtasksSignal().length > 0 ||
-      this.commentsSignal().length > 0 ||
-      this.chatsSignal().length > 0 ||
-      this.categoriesSignal().length > 0 ||
-      this.dailyActivitiesSignal().length > 0
-    );
+  private getTypeData(type: string): any[] {
+    switch (type) {
+      case "todos":
+        return this.todosSignal();
+      case "tasks":
+        return this.tasksSignal();
+      case "subtasks":
+        return this.subtasksSignal();
+      case "comments":
+        return this.commentsSignal();
+      case "chats":
+        return this.chatsSignal();
+      case "categories":
+        return this.categoriesSignal();
+      case "daily_activities":
+        return this.dailyActivitiesSignal();
+      default:
+        return [];
+    }
+  }
+
+  private setTypeData(data: any): void {
+    this.todosSignal.set(data["todos"] || []);
+    this.tasksSignal.set(data["tasks"] || []);
+    this.subtasksSignal.set(data["subtasks"] || []);
+    this.commentsSignal.set(data["comments"] || []);
+    this.chatsSignal.set(data["chats"] || []);
+    this.categoriesSignal.set(data["categories"] || []);
+    this.dailyActivitiesSignal.set(data["daily_activities"] || []);
+  }
+
+  private hasTypeData(type: string): boolean {
+    const data = this.getTypeData(type);
+    return data.length > 0;
   }
 
   /**
    * Load archive data from the get_all_data_for_archive route
    */
-  private loadAllArchiveDataFromRoute(): Observable<AdminDataWithRelations> {
+  private loadArchiveDataFromRoute(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
       (this.apiService.admin.getAllArchiveData() as Observable<any>).subscribe({
         next: (response) => {

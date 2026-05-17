@@ -186,6 +186,10 @@ export class ShortcutService implements OnDestroy {
               event.preventDefault();
               this.zone.run(() => this.router.navigate(["/profile"]));
               break;
+            case "m":
+              event.preventDefault();
+              this.zone.run(() => this.router.navigate(["/chat"]));
+              break;
           }
           return;
         }
