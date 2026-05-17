@@ -98,7 +98,7 @@
           class="textMuted hover:textNormal"
           aria-label="Close filters"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!">close</mat-icon>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="close" />
         </button>
       </div>
     </div>
@@ -116,7 +116,7 @@
         (click)="clearFilters()"
         class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
       >
-        <mat-icon class="h-4! w-4! min-w-4 text-base!">clear_all</mat-icon>
+        <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="clear_all" />
         Clear All Filters
       </button>
     </div>
@@ -126,7 +126,7 @@
 <ng-template #expandRowTemplate let-item>
   <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
     <div class="mb-3 flex items-center gap-2 border-b border-gray-200 pb-2 dark:border-zinc-700">
-      <mat-icon class="textMuted">info</mat-icon>
+      <mat-icon class="textMuted" fontIcon="info" />
       <span class="text-sm font-semibold">Record Details</span>
       @if (item.deleted_at) {
         <mat-chip

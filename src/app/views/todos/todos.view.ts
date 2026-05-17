@@ -110,6 +110,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
+  override loading = signal(false);
 
   protected getItems(): { id: string }[] {
     return this.stateService.listTodos();
@@ -212,6 +213,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         mode: this.viewMode(),
         pageKey: this.isSharedMode() ? "shared-tasks" : "todos",
         onModeChange: (mode: ViewMode) => this.setViewMode(mode),
+      },
+      refresh: {
+        onClick: () => {
+          this.refreshState.set("refreshing");
+          this.syncService.refreshLocal().finally(() => {
+            this.refreshState.set("idle");
+            this.loadInitialTodos();
+          });
+        },
+        loading: this.refreshState() === "refreshing",
       },
       filterFields: this.filterFields,
       showFilter: this.showFilter(),

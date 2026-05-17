@@ -695,17 +695,9 @@ export class ManageItemPage implements OnInit {
       const source = fromVisibility === "private" ? "Json" : "Mongo";
       const target = toVisibility === "private" ? "Json" : "Mongo";
 
-      let deleteFromSource = false;
-      if (
-        fromVisibility === "private" &&
-        (toVisibility === "shared" || toVisibility === "public")
-      ) {
-        deleteFromSource = true;
-      } else if (
-        (fromVisibility === "shared" || fromVisibility === "public") &&
-        toVisibility === "private"
-      ) {
-        deleteFromSource = false;
+      if (source === target) {
+        this.storageService.updateEntityVisibility("todos", todoId, toVisibility);
+        return;
       }
 
       await firstValueFrom(
@@ -713,9 +705,10 @@ export class ManageItemPage implements OnInit {
           todo_id: todoId,
           source_provider: source,
           target_provider: target,
-          delete_from_source: deleteFromSource,
         })
       );
+
+      this.storageService.updateEntityVisibility("todos", todoId, toVisibility);
 
       if (toVisibility === "shared" || toVisibility === "public") {
         this.apiService.todos.getAll({ visibility: toVisibility }).subscribe();

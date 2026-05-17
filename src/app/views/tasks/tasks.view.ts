@@ -350,6 +350,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         onModeChange: (mode) => this.setViewMode(mode),
         modes: ["card", "grid", "table", "kanban"],
       },
+      refresh: {
+        onClick: () => {
+          this.refreshState.set("refreshing");
+          this.syncService.refreshLocal().finally(() => {
+            this.refreshState.set("idle");
+          });
+          this.loadInitialTasks(true);
+        },
+        loading: this.refreshState() === "refreshing",
+      },
       filterFields: this.filtersHelper.filterFields,
       showFilter: this.showFilter(),
       onFiltersChange: (filters) => this.filtersHelper.onFiltersChange(filters),

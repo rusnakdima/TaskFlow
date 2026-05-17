@@ -67,6 +67,9 @@ export class CategoriesView extends BaseListView implements OnInit {
   private apiService = inject(ApiService);
   private relationLoadingService = inject(RelationLoadingService);
 
+  refreshState = signal<"idle" | "refreshing">("idle");
+  override loading = signal(false);
+
   protected getItems(): { id: string }[] {
     return this.searchResults();
   }
@@ -144,6 +147,8 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.requestService
       .loadPage("categories", { visibility: "private", limit: 50, skip: 0, load: ["user"] })
       .subscribe();
+
+    this.storageService.ensureCategoriesLoaded("private", 50);
   }
 
   toggleCreateForm() {
@@ -303,6 +308,16 @@ export class CategoriesView extends BaseListView implements OnInit {
         mode: this.viewMode(),
         pageKey: "categories",
         onModeChange: (mode) => this.setViewMode(mode),
+      },
+      refresh: {
+        onClick: () => {
+          this.refreshState.set("refreshing");
+          this.storageService.ensureCategoriesLoaded("private", 100);
+          this.storageService.ensureCategoriesLoaded("shared", 100);
+          this.storageService.ensureCategoriesLoaded("public", 100);
+          setTimeout(() => this.refreshState.set("idle"), 500);
+        },
+        loading: this.refreshState() === "refreshing",
       },
     };
   }

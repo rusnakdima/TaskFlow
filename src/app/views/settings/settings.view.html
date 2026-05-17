@@ -9,7 +9,7 @@
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
     >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="notifications"></mat-icon>
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="notifications" />
       Notifications
     </button>
     <button
@@ -21,7 +21,7 @@
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
     >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="security"></mat-icon>
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="security" />
       Security
     </button>
     <button
@@ -33,7 +33,7 @@
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
     >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="extension"></mat-icon>
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="extension" />
       Integrations
     </button>
     <button
@@ -45,7 +45,7 @@
       "
       class="px-4 py-2 text-sm font-medium transition-colors"
     >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="palette"></mat-icon>
+      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="palette" />
       Appearance
     </button>
   </div>
@@ -280,7 +280,7 @@
               (click)="setupTotp()"
               class="btn-accent flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
             >
-              <mat-icon class="h-5! w-5! text-xl!" fontIcon="add"></mat-icon>
+              <mat-icon class="h-5! w-5! text-xl!" fontIcon="add" />
               Enable Google Authenticator
             </button>
           }
@@ -366,14 +366,14 @@
                   (click)="showRecoveryCodes.set(true)"
                   class="flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
                 >
-                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="key"></mat-icon>
+                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="key" />
                   View Recovery Codes
                 </button>
                 <button
                   (click)="disableTotp()"
                   class="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
                 >
-                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="delete"></mat-icon>
+                  <mat-icon class="h-5! w-5! text-xl!" fontIcon="delete" />
                   Disable
                 </button>
               </div>
@@ -434,7 +434,7 @@
                     (click)="disconnectGithub()"
                     class="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
                   >
-                    <mat-icon class="h-5! w-5! text-xl!" fontIcon="link_off"></mat-icon>
+                    <mat-icon class="h-5! w-5! text-xl!" fontIcon="link_off" />
                     Disconnect
                   </button>
                 </div>
@@ -451,7 +451,7 @@
                           (click)="copyUserCode()"
                           class="flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-200 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600"
                         >
-                          <mat-icon class="h-4! w-4! text-base!" fontIcon="content_copy"></mat-icon>
+                          <mat-icon class="h-4! w-4! text-base!" fontIcon="content_copy" />
                           Copy
                         </button>
                       </div>
@@ -461,7 +461,7 @@
                         (click)="openGithubVerification()"
                         class="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                       >
-                        <mat-icon class="h-5! w-5! text-xl!" fontIcon="open_in_new"></mat-icon>
+                        <mat-icon class="h-5! w-5! text-xl!" fontIcon="open_in_new" />
                         Open GitHub
                       </button>
                       <button
@@ -472,7 +472,7 @@
                       </button>
                     </div>
                     <p class="textMuted flex items-center gap-2 text-sm">
-                      <mat-icon class="h-4! w-4! animate-spin text-xl!" fontIcon="sync"></mat-icon>
+                      <mat-icon class="h-4! w-4! animate-spin text-xl!" fontIcon="sync" />
                       Waiting for authorization...
                     </p>
                   </div>
@@ -483,7 +483,7 @@
                     class="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                   >
                     @if (githubLoading()) {
-                      <mat-icon class="h-5! w-5! animate-spin text-xl!" fontIcon="sync"></mat-icon>
+                      <mat-icon class="h-5! w-5! animate-spin text-xl!" fontIcon="sync" />
                       Connecting...
                     } @else {
                       <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -566,7 +566,7 @@
                   (change)="selectMode(m.value)"
                   class="sr-only"
                 />
-                <mat-icon class="h-5! w-5! text-lg!" [fontIcon]="m.icon"></mat-icon>
+                <mat-icon class="h-5! w-5! text-lg!" [fontIcon]="m.icon" />
                 <span class="textNormal text-sm font-medium">{{ m.label }}</span>
               </label>
             }
@@ -608,7 +608,7 @@
                 [class]="activePreset().id + '-header'"
               >
                 <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                  <mat-icon class="h-5! w-5! text-lg! text-white" fontIcon="menu"></mat-icon>
+                  <mat-icon class="h-5! w-5! text-lg! text-white" fontIcon="menu" />
                 </div>
                 <span class="font-medium text-white">Header Preview</span>
               </div>
@@ -631,7 +631,7 @@
                         : 'text-gray-400'
                     "
                     fontIcon="description"
-                  ></mat-icon>
+                  />
                 </div>
                 <div
                   class="flex flex-1 items-center justify-center rounded-lg border-l-2"
@@ -656,7 +656,7 @@
                   "
                   [class]="activePreset().id + '-button'"
                 >
-                  <mat-icon class="h-4! w-4! text-base!" fontIcon="add"></mat-icon>
+                  <mat-icon class="h-4! w-4! text-base!" fontIcon="add" />
                   Button Preview
                 </button>
                 <button
@@ -675,14 +675,14 @@
           (click)="saveAppearance()"
           class="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 font-medium text-white transition-colors hover:opacity-90"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save"></mat-icon>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Appearance
         </button>
         <button
           (click)="resetAppearance()"
           class="btn-cancel textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
         >
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh"></mat-icon>
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
           Reset to Defaults
         </button>
       </div>
