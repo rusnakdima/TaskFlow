@@ -182,7 +182,58 @@ impl AuthPasswordService {
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
-      message: "Password reset successfully".to_string(),
+      message: "Password reset successfully. Please login again.".to_string(),
+      data: DataValue::String("".to_string()),
+    })
+  }
+
+  pub async fn change_password(
+    &self,
+    user_id: String,
+    new_password: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .as_ref()
+      .ok_or_else(|| err_response("Password change unavailable: MongoDB offline"))?;
+
+    let table_name = TableModelType::User.table_name();
+    let filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
+
+    let mut users = mongo
+      .find_many(table_name, Some(&filter), None, None, None, true)
+      .await
+      .map_err(|e| err_response(&format!("User not found: {}", e)))?;
+
+    let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
+
+    let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
+      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+
+    let hashed_password = hash(new_password, DEFAULT_COST)
+      .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
+
+    user.password = hashed_password;
+    user.temporary_code = "".to_string();
+    user.code_expires_at = "".to_string();
+
+    let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
+    user_repo_json
+      .update(user.clone())
+      .await
+      .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
+
+    if let Some(mongo) = &self.mongodb_provider {
+      let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
+      user_repo_mongo
+        .update(user)
+        .await
+        .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
+    }
+
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: "Password changed successfully. Please login again.".to_string(),
       data: DataValue::String("".to_string()),
     })
   }

@@ -3,6 +3,9 @@ pub mod repository;
 #[path = "manage_db.service.rs"]
 pub mod manage_db_service;
 
+#[path = "notification.service.rs"]
+pub mod notification_service;
+
 #[path = "permission.service.rs"]
 pub mod permission_service;
 

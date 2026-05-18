@@ -73,6 +73,7 @@ use services::{
   entity_resolution_service::EntityResolutionService,
   group_service::GroupService,
   manage_db_service::ManageDbService,
+  notification_service::NotificationService,
   profile::profile_sync_unified::ProfileSyncUnifiedService,
   profile_service::ProfileService,
   repository::service::RepositoryService,
@@ -156,6 +157,90 @@ async fn search_data(
     .map_err(|e| e.message)
 }
 
+#[tauri::command]
+async fn get_notifications(
+  state: State<'_, AppState>,
+  user_id: String,
+  page: Option<u64>,
+  limit: Option<u64>,
+) -> Result<ResponseModel, String> {
+  state
+    .notification_service
+    .get_by_user(&user_id, "private", page, limit)
+    .await
+    .map_err(|e| e.message)
+}
+
+#[tauri::command]
+async fn create_notification(
+  state: State<'_, AppState>,
+  data: serde_json::Value,
+  visibility: Option<String>,
+) -> Result<ResponseModel, String> {
+  let vis = visibility.unwrap_or_else(|| "private".to_string());
+  state
+    .notification_service
+    .create(data, &vis)
+    .await
+    .map_err(|e| e.message)
+}
+
+#[tauri::command]
+async fn mark_notification_read(
+  state: State<'_, AppState>,
+  id: String,
+  visibility: Option<String>,
+) -> Result<ResponseModel, String> {
+  let vis = visibility.unwrap_or_else(|| "private".to_string());
+  state
+    .notification_service
+    .mark_as_read(&id, &vis)
+    .await
+    .map_err(|e| e.message)
+}
+
+#[tauri::command]
+async fn mark_all_notifications_read(
+  state: State<'_, AppState>,
+  user_id: String,
+  visibility: Option<String>,
+) -> Result<ResponseModel, String> {
+  let vis = visibility.unwrap_or_else(|| "private".to_string());
+  state
+    .notification_service
+    .mark_all_as_read(&user_id, &vis)
+    .await
+    .map_err(|e| e.message)
+}
+
+#[tauri::command]
+async fn delete_notification(
+  state: State<'_, AppState>,
+  id: String,
+  visibility: Option<String>,
+) -> Result<ResponseModel, String> {
+  let vis = visibility.unwrap_or_else(|| "private".to_string());
+  state
+    .notification_service
+    .delete(&id, &vis)
+    .await
+    .map_err(|e| e.message)
+}
+
+#[tauri::command]
+async fn clear_all_notifications(
+  state: State<'_, AppState>,
+  user_id: String,
+  visibility: Option<String>,
+) -> Result<ResponseModel, String> {
+  let vis = visibility.unwrap_or_else(|| "private".to_string());
+  state
+    .notification_service
+    .clear_all(&user_id, &vis)
+    .await
+    .map_err(|e| e.message)
+}
+
 pub struct AppState {
   pub config_helper: Arc<ConfigHelper>,
   pub json_provider: JsonProvider,
@@ -172,6 +257,7 @@ pub struct AppState {
   pub about_service: Arc<AboutService>,
   pub auth_service: Arc<AuthService>,
   pub manage_db_service: Arc<ManageDbService>,
+  pub notification_service: Arc<NotificationService>,
   pub profile_service: Arc<ProfileService>,
   pub statistics_service: Arc<StatisticsService>,
   pub cascade_service: CascadeService,
@@ -284,6 +370,7 @@ pub fn run() {
         entity_resolution.clone(),
         activity_monitor,
         profile_service.as_ref().clone(),
+        app.handle().clone(),
       ));
 
       let data_provider = DataProvider::Json(Arc::new(json_provider.clone()));
@@ -353,6 +440,10 @@ pub fn run() {
         config_helper.mongo_db_uri.clone(),
         config_helper.mongo_db_name.clone(),
       ));
+      let notification_service = Arc::new(NotificationService::new(
+        json_provider.clone(),
+        mongodb_provider.clone(),
+      ));
 
       app.manage(AppState {
         config_helper,
@@ -370,6 +461,7 @@ pub fn run() {
         about_service,
         auth_service,
         manage_db_service,
+        notification_service,
         profile_service,
         statistics_service,
         cascade_service,
@@ -495,6 +587,12 @@ pub fn run() {
       installUpdate,
       getCurrentVersion,
       search_data,
+      get_notifications,
+      create_notification,
+      mark_notification_read,
+      mark_all_notifications_read,
+      delete_notification,
+      clear_all_notifications,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

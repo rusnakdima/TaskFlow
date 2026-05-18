@@ -62,6 +62,21 @@ pub async fn reset_password(
 }
 
 #[tauri::command]
+pub async fn change_password(
+  state: State<'_, AppState>,
+  token: String,
+  new_password: String,
+) -> Result<ResponseModel, ResponseModel> {
+  let user_id =
+    crate::helpers::auth_helper::extract_user_from_token(&token, &state.config_helper.jwt_secret)?;
+  state
+    .auth_service
+    .password_service
+    .change_password(user_id, new_password)
+    .await
+}
+
+#[tauri::command]
 pub async fn setup_totp(
   state: State<'_, AppState>,
   username: String,
