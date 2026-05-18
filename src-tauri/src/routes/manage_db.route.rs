@@ -56,7 +56,8 @@ pub async fn check_mongodb_connection(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn sync_visibility_to_provider(
   state: State<'_, AppState>,
-  todo_id: String,
+  entity_id: String,
+  entity_type: String,
   source_provider: String,
   target_provider: String,
   delete_from_source: Option<bool>,
@@ -72,14 +73,38 @@ pub async fn sync_visibility_to_provider(
     return Err(err_response("Visibility is already set to this value"));
   }
 
+  let delete_from_src = delete_from_source.unwrap_or(false);
+  let table = match entity_type.as_str() {
+    "todo" | "todos" => "todos",
+    "category" | "categories" => "categories",
+    _ => {
+      return Err(err_response(&format!(
+        "Unknown entity type: {}",
+        entity_type
+      )))
+    }
+  };
+
   if source_provider == "Json" && target_provider == "Mongo" {
-    cascade_service
-      .sync_entity_to_mongo("todos", &todo_id)
-      .await?;
+    if delete_from_src {
+      cascade_service
+        .sync_entity_to_mongo_and_delete_from_source(table, &entity_id)
+        .await?;
+    } else {
+      cascade_service
+        .sync_entity_to_mongo(table, &entity_id)
+        .await?;
+    }
   } else if source_provider == "Mongo" && target_provider == "Json" {
-    cascade_service
-      .sync_entity_to_json("todos", &todo_id)
-      .await?;
+    if delete_from_src {
+      cascade_service
+        .sync_entity_to_json_and_delete_from_source(table, &entity_id)
+        .await?;
+    } else {
+      cascade_service
+        .sync_entity_to_json(table, &entity_id)
+        .await?;
+    }
   }
 
   Ok(ResponseModel {
