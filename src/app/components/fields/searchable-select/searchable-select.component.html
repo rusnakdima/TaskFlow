@@ -1,0 +1,24 @@
+<div class="searchable-select-wrapper">
+  <mat-form-field class="w-full">
+    <mat-label>{{ label }}</mat-label>
+    <mat-select
+      [value]="value"
+      (selectionChange)="onSelectionChange($event.value)"
+      [placeholder]="placeholder"
+    >
+      <mat-option>
+        <input
+          type="text"
+          class="search-input"
+          [placeholder]="'Search...'"
+          [value]="searchQuery()"
+          (input)="onSearchChange($any($event.target).value)"
+          (click)="$event.stopPropagation()"
+        />
+      </mat-option>
+      @for (option of visibleOptions(); track trackByValue($index, option)) {
+        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>

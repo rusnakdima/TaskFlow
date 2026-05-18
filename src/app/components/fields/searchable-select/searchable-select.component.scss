@@ -1,0 +1,33 @@
+.searchable-select-wrapper {
+  width: 100%;
+
+  .search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    background: transparent;
+    color: var(--text-color, #374151);
+
+    &:focus {
+      border-color: var(--accent-color, #3b82f6);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder {
+      color: var(--placeholder-color, #9ca3af);
+    }
+  }
+
+  ::ng-deep {
+    .mat-mdc-select-panel {
+      max-height: 300px !important;
+    }
+
+    .mat-mdc-select-value {
+      padding-left: 4px;
+    }
+  }
+}
