@@ -8,18 +8,34 @@ import {
   signal,
   ViewChild,
   ElementRef,
+  inject,
+  computed,
+  QueryList,
+  ViewChildren,
+  AfterViewInit,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { ThemeService } from "@services/ui/theme.service";
+import { SearchService } from "@services/core/search.service";
+
+type CommandCategory =
+  | "page"
+  | "project"
+  | "task"
+  | "subtask"
+  | "category"
+  | "user"
+  | "action"
+  | "chat";
 
 interface CommandItem {
   id: string;
   label: string;
   description?: string;
   icon?: string;
-  category: "page" | "project" | "action" | "category";
+  category: CommandCategory;
   route?: string;
   action?: () => void;
 }
@@ -30,16 +46,97 @@ interface CommandItem {
   imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: "./command-palette.component.html",
 })
-export class CommandPaletteComponent implements OnInit {
+export class CommandPaletteComponent implements OnInit, AfterViewInit {
   @Output() close = new EventEmitter<void>();
   @ViewChild("searchInput") searchInputRef!: ElementRef<HTMLInputElement>;
+  @ViewChildren("itemBtn") itemButtons!: QueryList<ElementRef<HTMLButtonElement>>;
+
+  private searchService = inject(SearchService);
+  private router = inject(Router);
+  private themeService = inject(ThemeService);
 
   isOpen = signal(false);
   searchQuery = signal("");
   selectedIndex = signal(0);
 
-  filteredItems = signal<CommandItem[]>([]);
   private allItems: CommandItem[] = [];
+
+  allFlatItems = computed(() => {
+    const query = this.searchQuery().trim();
+    if (!query) {
+      return this.allItems;
+    }
+
+    const results = this.searchService.globalSearchResults();
+    const items: CommandItem[] = [];
+
+    results.projects.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || "list_alt",
+        category: "project",
+        route: item.route,
+      });
+    });
+
+    results.tasks.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || "assignment",
+        category: "task",
+        route: item.route,
+      });
+    });
+
+    results.categories.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        icon: item.icon || "category",
+        category: "category",
+        route: item.route,
+      });
+    });
+
+    results.users.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || "person",
+        category: "user",
+        route: item.route,
+      });
+    });
+
+    results.subtasks.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || "subdirectory_arrow_right",
+        category: "subtask",
+        route: item.route,
+      });
+    });
+
+    results.chats.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || "chat",
+        category: "chat",
+        route: item.route,
+      });
+    });
+
+    return items;
+  });
 
   private pages: CommandItem[] = [
     {
@@ -90,7 +187,6 @@ export class CommandPaletteComponent implements OnInit {
       category: "page",
       route: "/categories",
     },
-
     {
       id: "profile",
       label: "Profile",
@@ -140,7 +236,7 @@ export class CommandPaletteComponent implements OnInit {
       description: "Switch between light and dark mode",
       icon: "brightness_6",
       category: "action",
-      action: () => this.toggleTheme(),
+      action: () => this.themeService.toggleMode(),
     },
     {
       id: "refresh",
@@ -152,14 +248,22 @@ export class CommandPaletteComponent implements OnInit {
     },
   ];
 
-  constructor(
-    private router: Router,
-    private themeService: ThemeService
-  ) {}
-
   ngOnInit() {
     this.allItems = [...this.pages, ...this.actions];
-    this.filteredItems.set(this.allItems);
+  }
+
+  ngAfterViewInit() {}
+
+  private scrollToSelectedItem(): void {
+    setTimeout(() => {
+      const buttons = this.itemButtons?.toArray();
+      if (buttons && buttons.length > 0) {
+        const currentIndex = this.selectedIndex();
+        if (currentIndex >= 0 && currentIndex < buttons.length) {
+          buttons[currentIndex]?.nativeElement?.scrollIntoView({ block: "nearest" });
+        }
+      }
+    }, 0);
   }
 
   @HostListener("window:keydown", ["$event"])
@@ -171,21 +275,29 @@ export class CommandPaletteComponent implements OnInit {
       return;
     }
 
+    const items = this.allFlatItems();
+    const maxIndex = items.length > 0 ? items.length - 1 : 0;
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      this.selectedIndex.update((i) => (i < this.filteredItems().length - 1 ? i + 1 : 0));
+      this.selectedIndex.update((i) => (i < maxIndex ? i + 1 : 0));
+      this.scrollToSelectedItem();
       return;
     }
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      this.selectedIndex.update((i) => (i > 0 ? i - 1 : this.filteredItems().length - 1));
+      this.selectedIndex.update((i) => (i > 0 ? i - 1 : maxIndex));
+      this.scrollToSelectedItem();
       return;
     }
 
     if (event.key === "Enter") {
       event.preventDefault();
-      this.selectItem(this.filteredItems()[this.selectedIndex()]);
+      const item = items[this.selectedIndex()];
+      if (item) {
+        this.selectItem(item);
+      }
       return;
     }
   }
@@ -194,7 +306,7 @@ export class CommandPaletteComponent implements OnInit {
     this.isOpen.set(true);
     this.searchQuery.set("");
     this.selectedIndex.set(0);
-    this.filteredItems.set(this.allItems);
+    this.searchService.clearGlobalSearch();
     setTimeout(() => {
       this.searchInputRef?.nativeElement?.focus();
     }, 50);
@@ -202,55 +314,30 @@ export class CommandPaletteComponent implements OnInit {
 
   closePalette() {
     this.isOpen.set(false);
+    this.searchService.clearGlobalSearch();
     this.close.emit();
   }
 
   onSearch() {
-    const query = this.searchQuery().toLowerCase().trim();
+    const query = this.searchQuery().trim();
     if (!query) {
-      this.filteredItems.set(this.allItems);
+      this.searchService.clearGlobalSearch();
       this.selectedIndex.set(0);
       return;
     }
-
-    const filtered = this.allItems.filter((item) => {
-      const labelMatch = this.fuzzyMatch(item.label.toLowerCase(), query);
-      const descMatch = item.description && this.fuzzyMatch(item.description.toLowerCase(), query);
-      return labelMatch || descMatch;
-    });
-
-    this.filteredItems.set(filtered);
-    this.selectedIndex.set(0);
-  }
-
-  private fuzzyMatch(text: string, pattern: string): boolean {
-    if (pattern.length === 0) return true;
-    if (pattern.length > text.length) return false;
-
-    const patternChars = pattern.split("");
-    let patternIdx = 0;
-
-    for (let i = 0; i < text.length && patternIdx < patternChars.length; i++) {
-      if (text[i] === patternChars[patternIdx]) {
-        patternIdx++;
-      }
-    }
-
-    return patternIdx === patternChars.length;
-  }
-
-  selectItem(item: CommandItem) {
-    if (item.route) {
-      this.router.navigate([item.route]);
-    } else if (item.action) {
-      item.action();
-    }
-    this.closePalette();
+    this.searchService.searchAllEntities(query);
   }
 
   getGroupedItems(): { category: string; items: CommandItem[] }[] {
+    const items = this.allFlatItems();
+    if (items.length === 0) {
+      return [];
+    }
+    return this.groupItems(items);
+  }
+
+  private groupItems(items: CommandItem[]): { category: string; items: CommandItem[] }[] {
     const groups: { [key: string]: CommandItem[] } = {};
-    const items = this.filteredItems();
 
     items.forEach((item) => {
       if (!groups[item.category]) {
@@ -262,8 +349,12 @@ export class CommandPaletteComponent implements OnInit {
     const categoryLabels: { [key: string]: string } = {
       page: "Pages",
       project: "Projects",
+      task: "Tasks",
+      subtask: "Subtasks",
       category: "Categories",
+      user: "Users",
       action: "Actions",
+      chat: "Chats",
     };
 
     return Object.entries(groups).map(([category, items]) => ({
@@ -272,8 +363,23 @@ export class CommandPaletteComponent implements OnInit {
     }));
   }
 
-  private toggleTheme() {
-    this.themeService.toggleMode();
+  selectItem(item: CommandItem) {
+    if (item.route) {
+      const [path, queryString] = item.route.split("?");
+      const queryParams: Record<string, string> = {};
+      if (queryString) {
+        queryString.split("&").forEach((param) => {
+          const [key, value] = param.split("=");
+          if (key) {
+            queryParams[decodeURIComponent(key)] = decodeURIComponent(value || "");
+          }
+        });
+      }
+      this.router.navigate([path], { queryParams });
+    } else if (item.action) {
+      item.action();
+    }
+    this.closePalette();
   }
 
   onBackdropClick(event: MouseEvent) {

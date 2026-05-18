@@ -11,7 +11,7 @@
         <input
           type="text"
           class="flex-1 rounded-lg bg-transparent px-2 py-1 text-base text-zinc-900 placeholder-zinc-400 outline-none dark:text-zinc-100"
-          placeholder="Search commands, projects, pages..."
+          placeholder="Search projects, tasks, categories..."
           [(ngModel)]="searchQuery"
           (input)="onSearch()"
           #searchInput
@@ -23,7 +23,7 @@
       </div>
 
       <div class="max-h-[60vh] overflow-y-auto">
-        @if (filteredItems().length === 0) {
+        @if (allFlatItems().length === 0) {
           <div class="py-8 text-center text-zinc-500">
             <mat-icon class="mb-2 h-5! w-5! min-w-5 text-2xl!" fontIcon="search_off" />
             <p>No results found</p>
@@ -36,11 +36,12 @@
               </div>
               @for (item of group.items; track item.id; let i = $index) {
                 <button
+                  #itemBtn
                   class="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  [class.bg-zinc-100]="filteredItems().indexOf(item) === selectedIndex()"
-                  [class.dark:bg-zinc-800]="filteredItems().indexOf(item) === selectedIndex()"
+                  [class.bg-zinc-100]="allFlatItems().indexOf(item) === selectedIndex()"
+                  [class.dark:bg-zinc-800]="allFlatItems().indexOf(item) === selectedIndex()"
                   (click)="selectItem(item)"
-                  (mouseenter)="selectedIndex.set(filteredItems().indexOf(item))"
+                  (mouseenter)="selectedIndex.set(allFlatItems().indexOf(item))"
                 >
                   @if (item.icon) {
                     <mat-icon
@@ -58,7 +59,11 @@
                       </div>
                     }
                   </div>
-                  @if (item.category === "page") {
+                  @if (
+                    item.category === "page" ||
+                    item.category === "project" ||
+                    item.category === "task"
+                  ) {
                     <mat-icon
                       class="h-4! w-4! min-w-4 text-xl! text-zinc-300 dark:text-zinc-600"
                       fontIcon="arrow_forward"
