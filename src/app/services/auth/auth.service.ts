@@ -125,6 +125,11 @@ export class AuthService {
     return this.requestService.invokeCommand<R>("resetPassword", { resetData: passwordReset });
   }
 
+  changePassword<R>(newPassword: string): Observable<R> {
+    const token = this.getToken();
+    return this.requestService.invokeCommand<R>("changePassword", { token, newPassword });
+  }
+
   logout() {
     this.jwtTokenService.clearToken();
     window.location.reload();

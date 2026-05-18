@@ -42,6 +42,7 @@ export class NotifyService implements OnDestroy {
 
   // Settings state
   private settingsKey = "notification_settings";
+  private notificationsStorageKey = "taskflow_notifications";
   private settingsSignal = signal<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Track recent comment events to suppress duplicate task updates
@@ -68,9 +69,32 @@ export class NotifyService implements OnDestroy {
   constructor() {
     this.destroyRef.onDestroy(() => this.destroy$.next());
     this.loadSettings();
+    this.loadNotifications();
     this.cleanupSubscription = interval(5000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.cleanupOldEvents());
+  }
+
+  private loadNotifications(): void {
+    try {
+      const stored = localStorage.getItem(this.notificationsStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as NotificationAction[];
+        this.notificationsSignal.set(parsed);
+        this.updateUnreadCount();
+      }
+    } catch {
+      this.notificationsSignal.set([]);
+    }
+  }
+
+  private saveNotifications(): void {
+    try {
+      localStorage.setItem(
+        this.notificationsStorageKey,
+        JSON.stringify(this.notificationsSignal())
+      );
+    } catch {}
   }
 
   private cleanupOldEvents(): void {
@@ -311,6 +335,7 @@ export class NotifyService implements OnDestroy {
   private addNotification(notification: NotificationAction) {
     this.notificationsSignal.update((n) => [notification, ...n].slice(0, 50));
     this.updateUnreadCount();
+    this.saveNotifications();
   }
 
   markAsRead(id: string) {
@@ -318,6 +343,7 @@ export class NotifyService implements OnDestroy {
       notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
     this.updateUnreadCount();
+    this.saveNotifications();
   }
 
   markAllAsRead() {
@@ -325,11 +351,13 @@ export class NotifyService implements OnDestroy {
       notifications.map((n) => ({ ...n, read: true }))
     );
     this.updateUnreadCount();
+    this.saveNotifications();
   }
 
   clearAll() {
     this.notificationsSignal.set([]);
     this.unreadCountSignal.set(0);
+    this.saveNotifications();
   }
 
   private updateUnreadCount() {
