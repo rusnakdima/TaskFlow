@@ -33,13 +33,11 @@ export class PageToolbarComponent {
   @Input() searchQuery: string = "";
   @Input() searchFields: string[] = [];
   @Input() excludeFields: string[] = [];
-  @Input() searchData: any[] = [];
 
   showFilter = signal(false);
 
   @Output() filtersChange = new EventEmitter<Record<string, string | string[] | any>>();
   @Output() searchChange = new EventEmitter<string>();
-  @Output() filteredDataChange = new EventEmitter<any[]>();
 
   onToggleFilter(): void {
     this.showFilter.update((v) => !v);
@@ -122,13 +120,5 @@ export class PageToolbarComponent {
 
   onFilterChange(_filter: string): void {
     this.config?.filter?.onToggle?.();
-  }
-
-  onFilteredDataChange(data: any[]): void {
-    this.filteredDataChange.emit(data);
-  }
-
-  onSearchDataChange(data: any[]): void {
-    this.filteredDataChange.emit(data);
   }
 }
