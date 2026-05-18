@@ -88,20 +88,7 @@
                         class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
                         (mousedown)="startConversationWithUser(user); hideSearchDropdown()"
                       >
-                        @if (user.image_url) {
-                          <img
-                            class="h-9 w-9 rounded-full object-cover"
-                            [src]="user.image_url"
-                            [alt]="user.name"
-                            onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=?'"
-                          />
-                        } @else {
-                          <div
-                            class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                          >
-                            {{ (user.name?.charAt(0) || "?").toUpperCase() }}
-                          </div>
-                        }
+                        <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
                         <div class="min-w-0 flex-1">
                           <p class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200">
                             {{ user.name }} {{ user.last_name }}
@@ -176,23 +163,10 @@
                 track user.id
               ) {
                 <div
-                  class="flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
-                  (click)="startConversationWithUser(user)"
+                  class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                  (mousedown)="startConversationWithUser(user); hideSearchDropdown()"
                 >
-                  @if (user.image_url) {
-                    <img
-                      class="h-9 w-9 rounded-full object-cover"
-                      [src]="user.image_url"
-                      [alt]="user.name"
-                      onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=?'"
-                    />
-                  } @else {
-                    <div
-                      class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                    >
-                      {{ (user.name?.charAt(0) || "?").toUpperCase() }}
-                    </div>
-                  }
+                  <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200">
                       {{ user.name }} {{ user.last_name }}
@@ -259,34 +233,17 @@
             [class.dark:hover:bg-[var(--accent-900)]/30]="
               activeConversationId() !== conversation.roomId
             "
+            [class.border]="activeConversationId() !== conversation.roomId"
+            [class.border-slate-200]="activeConversationId() !== conversation.roomId"
+            [class.dark:border-zinc-700]="activeConversationId() !== conversation.roomId"
+            [class.border-0]="activeConversationId() === conversation.roomId"
             (click)="selectConversation(conversation)"
             (contextmenu)="onConversationContextMenu($event, conversation)"
           >
             <div class="flex min-w-0 items-center space-x-3 overflow-hidden">
               <div class="relative shrink-0">
-                @if (conversation.avatar) {
-                  <img
-                    class="h-11 w-11 rounded-xl object-cover"
-                    [src]="conversation.avatar"
-                    [alt]="conversation.name"
-                    onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=U'"
-                  />
-                } @else {
-                  <div
-                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent-100)] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                  >
-                    {{ conversation.name.charAt(0).toUpperCase() }}
-                  </div>
-                }
-                @if (conversation.isOnline) {
-                  <span
-                    class="absolute right-0 bottom-0 block h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900"
-                  ></span>
-                } @else {
-                  <span
-                    class="absolute right-0 bottom-0 block h-3 w-3 rounded-full bg-slate-300 ring-2 ring-white dark:bg-zinc-700 dark:ring-zinc-900"
-                  ></span>
-                }
+                <app-user-avatar [src]="conversation.avatar" [name]="conversation.name" size="lg" />
+                <app-online-status [isOnline]="conversation.isOnline" />
               </div>
               <div class="overflow-hidden">
                 <h4
@@ -379,28 +336,12 @@
 
             @if (activeConversation()) {
               <div class="relative shrink-0">
-                @if (activeConversation()!.avatar) {
-                  <img
-                    class="h-10 w-10 rounded-xl object-cover"
-                    [src]="activeConversation()!.avatar"
-                    [alt]="activeConversation()!.name"
-                    onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=U'"
-                  />
-                } @else {
-                  <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-100)] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                  >
-                    {{ activeConversation()!.name.charAt(0).toUpperCase() }}
-                  </div>
-                }
-                <div
-                  class="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2"
-                  [class.bg-emerald-500]="activeConversation()!.isOnline"
-                  [class.border-white]="!isDarkMode()"
-                  [class.dark:border-zinc-900]="!isDarkMode()"
-                  [class.bg-slate-300]="!activeConversation()!.isOnline"
-                  [class.dark:bg-zinc-700]="!activeConversation()!.isOnline"
-                ></div>
+                <app-user-avatar
+                  [src]="activeConversation()!.avatar"
+                  [name]="activeConversation()!.name"
+                  size="lg"
+                />
+                <app-online-status [isOnline]="activeConversation()!.isOnline" />
               </div>
               <div class="overflow-hidden">
                 <h2
@@ -424,7 +365,7 @@
           <div class="relative">
             <button
               class="rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[var(--accent-600)] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-[var(--accent-400)]"
-              (click)="toggleDetailsMenu()"
+              (click)="toggleDetailsPanel()"
             >
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -480,7 +421,7 @@
         </header>
 
         <div
-          class="custom-scrollbar flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 dark:bg-zinc-950/40"
+          class="custom-scrollbar flex flex-1 flex-col space-y-3 overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 dark:bg-zinc-950/40"
         >
           @for (message of activeMessages(); track message.id) {
             <div
@@ -492,39 +433,18 @@
             >
               @if (activeConversation()?.isGroup && !message.isMine) {
                 <div class="mb-1 flex items-center gap-2">
-                  @if (message.senderAvatar) {
-                    <img
-                      class="h-5 w-5 rounded-full object-cover"
-                      [src]="message.senderAvatar"
-                      [alt]="message.senderName"
-                    />
-                  } @else {
-                    <div
-                      class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-100)] text-[9px] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                    >
-                      {{ message.senderName.charAt(0).toUpperCase() }}
-                    </div>
-                  }
+                  <app-user-avatar
+                    [src]="message.senderAvatar"
+                    [name]="message.senderName"
+                    size="sm"
+                  />
                   <span class="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">{{
                     message.senderName
                   }}</span>
                 </div>
               }
               <div
-                class="group relative px-4 py-2.5 text-sm leading-relaxed transition-all duration-150"
-                [class.bg-[var(--accent-color)]]="message.isMine"
-                [class.text-white]="message.isMine"
-                [class.dark:text-white]="message.isMine"
-                [class.rounded-2xl]="message.isMine"
-                [class.rounded-br-md]="message.isMine"
-                [class.shadow-sm]="message.isMine"
-                [class.bg-white]="!message.isMine"
-                [class.dark:bg-zinc-800]="!message.isMine"
-                [class.text-slate-800]="!message.isMine"
-                [class.dark:text-zinc-200]="!message.isMine"
-                [class.rounded-2xl]="!message.isMine"
-                [class.rounded-bl-md]="!message.isMine"
-                [class.shadow-sm]="!message.isMine"
+                class="group relative rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm transition-all duration-150 dark:bg-zinc-800 dark:text-zinc-200"
               >
                 <p class="whitespace-pre-line">{{ message.content }}</p>
                 <div class="mt-1.5 flex items-center justify-end gap-1">
@@ -894,8 +814,12 @@
     }
 
     @if (showDetailsPanel()) {
+      <div
+        class="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 md:z-40"
+        (click)="toggleDetailsPanel()"
+      ></div>
       <aside
-        class="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white md:w-80 dark:border-zinc-700 dark:bg-zinc-900"
+        class="fixed top-0 right-0 z-50 flex h-full w-80 shrink-0 flex-col border-l border-slate-200 bg-white shadow-2xl md:w-80 dark:border-zinc-700 dark:bg-zinc-900"
       >
         <div
           class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-zinc-700"
@@ -920,19 +844,11 @@
           @if (activeConversation()) {
             <div class="border-b border-slate-100 p-4 dark:border-zinc-800">
               <div class="mb-4 flex flex-col items-center">
-                @if (activeConversation()!.avatar) {
-                  <img
-                    class="mb-3 h-16 w-16 rounded-2xl object-cover"
-                    [src]="activeConversation()!.avatar"
-                    [alt]="activeConversation()!.name"
-                  />
-                } @else {
-                  <div
-                    class="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent-100)] text-2xl font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                  >
-                    {{ activeConversation()!.name.charAt(0).toUpperCase() }}
-                  </div>
-                }
+                <app-user-avatar
+                  [src]="activeConversation()!.avatar"
+                  [name]="activeConversation()!.name"
+                  size="xl"
+                />
                 <h4 class="text-center font-semibold text-slate-800 dark:text-zinc-200">
                   {{ activeConversation()!.name }}
                 </h4>
@@ -945,36 +861,35 @@
             </div>
 
             @if (activeConversation()!.isGroup) {
-              <div class="p-4">
+              <div class="relative p-4">
                 <div class="mb-3 flex items-center justify-between">
                   <span class="text-sm font-medium text-slate-500 dark:text-zinc-400">Members</span>
-                  <button
-                    class="text-xs font-medium text-[var(--accent-600)] hover:text-[var(--accent-700)] dark:text-[var(--accent-400)] dark:hover:text-[var(--accent-300)]"
-                  >
-                    + Add
-                  </button>
+                  @if (!groupOwnerId() || groupOwnerId() === currentUserId()) {
+                    <button
+                      class="text-xs font-medium text-[var(--accent-600)] hover:text-[var(--accent-700)] dark:text-[var(--accent-400)] dark:hover:text-[var(--accent-300)]"
+                      (click)="openAddMembersDropdown()"
+                    >
+                      + Add
+                    </button>
+                  }
                 </div>
                 <div class="space-y-1">
                   @for (member of members(); track member.id) {
                     <div
                       class="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800"
                     >
-                      @if (member.avatar) {
-                        <img
-                          class="h-8 w-8 rounded-full object-cover"
-                          [src]="member.avatar"
-                          [alt]="member.name"
-                        />
-                      } @else {
-                        <div
-                          class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600 dark:bg-zinc-700 dark:text-zinc-400"
-                        >
-                          {{ member.name.charAt(0).toUpperCase() }}
-                        </div>
-                      }
+                      <app-user-avatar [src]="member.avatar" [name]="member.name" size="sm" />
                       <span class="flex-1 truncate text-sm text-slate-700 dark:text-zinc-300">{{
                         member.name
                       }}</span>
+                      @if (isCurrentUserOwner() && member.id !== groupOwnerId()) {
+                        <button
+                          class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          (click)="removeMemberFromGroup(member.id)"
+                        >
+                          Remove
+                        </button>
+                      }
                     </div>
                   } @empty {
                     <div class="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
@@ -982,6 +897,59 @@
                     </div>
                   }
                 </div>
+
+                @if (showAddMembersDropdown()) {
+                  <div
+                    class="absolute top-full left-0 z-50 mt-1 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <div class="border-b border-slate-200 p-2 dark:border-zinc-700">
+                      <input
+                        type="search"
+                        placeholder="Search users..."
+                        class="w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                        [value]="addMembersSearch()"
+                        (input)="addMembersSearch.set($any($event.target).value)"
+                      />
+                    </div>
+                    <div class="custom-scrollbar max-h-60 overflow-y-auto p-2">
+                      @for (user of addMembersSearchResults(); track user.user_id) {
+                        <label
+                          class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                        >
+                          <input
+                            type="checkbox"
+                            [checked]="isUserSelectedForAdd(user.user_id)"
+                            (change)="toggleUserForAdd(user.user_id)"
+                            class="h-4 w-4 rounded border-slate-300 text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
+                          />
+                          <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
+                          <div class="min-w-0 flex-1">
+                            <p
+                              class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200"
+                            >
+                              {{ user.name }} {{ user.last_name }}
+                            </p>
+                          </div>
+                        </label>
+                      } @empty {
+                        <div class="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
+                          No users found
+                        </div>
+                      }
+                    </div>
+                    @if (selectedAddMembers().length > 0) {
+                      <div class="border-t border-slate-200 p-2 dark:border-zinc-700">
+                        <button
+                          class="w-full rounded-lg bg-[var(--accent-color)] py-2 text-sm font-medium text-white hover:bg-[var(--accent-600)]"
+                          (click)="addMembersToGroup()"
+                        >
+                          Add {{ selectedAddMembers().length }} Member(s)
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
           }

@@ -1,11 +1,9 @@
-<div
-  class="gradient-header-bg sticky top-0 z-40 overflow-hidden border-b border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
->
-  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+<div class="sticky top-0 z-40 overflow-hidden px-4 py-3">
+  <div class="mx-auto flex max-w-7xl items-center justify-between">
     <div class="flex min-w-0 items-center gap-3">
       @if (isBack()) {
         <button
-          class="h-9! flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+          class="flex h-9 flex-shrink-0 items-center justify-center rounded-full border border-gray-200/50 bg-white/80 px-3 py-2 shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white dark:border-zinc-700/50 dark:bg-zinc-800/80 dark:hover:bg-zinc-700"
           (click)="goBack()"
         >
           <mat-icon class="textNormal size-5! min-w-5 text-xl!" fontIcon="arrow_back" />
@@ -14,43 +12,44 @@
 
       <div class="flex min-w-0 flex-1 flex-col">
         <div class="flex items-center gap-2">
-          <h1 class="textNormal truncate text-lg font-semibold">{{ title() }}</h1>
-          @if (unreadCount() > 0) {
-            <div
-              class="flex animate-pulse items-center gap-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
-              title="Unread notifications"
-            >
-              <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="notifications" />
-              {{ unreadCount() }}
-            </div>
-          }
+          <div
+            class="flex items-center gap-2 rounded-full border border-gray-200/50 bg-white/80 px-4 py-2 shadow-lg shadow-black/10 backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800/80"
+          >
+            <h1 class="textNormal truncate text-lg font-semibold">{{ title() }}</h1>
+            @if (unreadCount() > 0) {
+              <div
+                class="flex animate-pulse items-center gap-1 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                title="Unread notifications"
+              >
+                <mat-icon class="h-3! w-3! min-w-3 text-xs!" fontIcon="notifications" />
+                {{ unreadCount() }}
+              </div>
+            }
+          </div>
         </div>
-        @if (description()) {
-          <p class="textMuted truncate text-sm">{{ description() }}</p>
-        }
       </div>
     </div>
 
     <div class="flex flex-shrink-0 items-center gap-2">
       <app-connection-status />
 
-      @if (unreadCount() > 0) {
-        <button
-          class="relative h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
-          title="Notifications"
-          [matMenuTriggerFor]="notificationMenu"
-        >
-          <mat-icon class="textMuted h-6! w-6! min-w-6 text-2xl!" fontIcon="notifications_none" />
+      <button
+        class="relative flex h-9 items-center justify-center rounded-full border border-gray-200/50 bg-white/80 px-3 py-2 shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white dark:border-zinc-700/50 dark:bg-zinc-800/80 dark:hover:bg-zinc-700"
+        title="Notifications"
+        [matMenuTriggerFor]="notificationMenu"
+      >
+        <mat-icon class="textMuted h-6! w-6! min-w-6 text-2xl!" fontIcon="notifications_none" />
+        @if (unreadCount() > 0) {
           <div
             class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
           >
             {{ unreadCount() > 9 ? "9+" : unreadCount() }}
           </div>
-        </button>
-      }
+        }
+      </button>
 
       <button
-        class="h-9! rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+        class="flex h-9 items-center justify-center rounded-full border border-gray-200/50 bg-white/80 px-3 py-2 shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white dark:border-zinc-700/50 dark:bg-zinc-800/80 dark:hover:bg-zinc-700"
         (click)="syncAll()"
         [disabled]="isSyncing()"
         [title]="isSyncing() ? 'Synchronizing...' : 'Sync data with cloud'"

@@ -110,6 +110,8 @@
         [item]="todo"
         [config]="todoCardConfig"
         [displayMode]="'card'"
+        [id]="'todo-' + todo.id"
+        [highlight]="highlightTodoId === todo.id"
         [expandable]="true"
         [isExpanded]="isTodoExpanded(todo.id)"
         [showCommentToggle]="true"

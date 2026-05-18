@@ -141,12 +141,13 @@
               [id]="'cdk-drop-list-' + column.id"
             >
               @for (task of getTasksByStatus(column.id); track task.id) {
-                <div cdkDrag [cdkDragData]="task" class="block">
+                <div cdkDrag [cdkDragData]="task" [id]="'task-' + task.id" class="block">
                   <app-kanban-task-card
                     [task]="task"
                     [todo_id]="todoId() || ''"
                     [subtasks]="getTaskSubtasks(task.id)"
                     [isSelected]="isKanbanTaskSelected(task.id)"
+                    [highlight]="highlightTaskId() === task.id"
                     (statusCycle)="onKanbanStatusCycle($event)"
                     (selectionChange)="onKanbanSelectionChange(task.id, $event)"
                     (cardClick)="onKanbanTaskClick($event)"

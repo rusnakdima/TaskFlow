@@ -47,14 +47,18 @@ export class ChangePasswordView {
 
   errorText: string = "";
   isVerified: boolean = false;
+  isLoggedInUser: boolean = false;
 
   isShowPassword: boolean = false;
   isShowConfirmPassword: boolean = false;
 
   ngOnInit() {
     this.userEmail = sessionStorage.getItem("resetPasswordEmail") || "";
+    this.isLoggedInUser = this.authService.isLoggedIn();
 
-    if (this.userEmail) {
+    if (this.isLoggedInUser) {
+      this.isVerified = true;
+    } else if (this.userEmail) {
       this.isVerified = true;
     } else {
       this.errorText = "No verified email found. Please restart the password reset process.";
@@ -82,28 +86,48 @@ export class ChangePasswordView {
       return;
     }
 
-    if (this.resetForm.valid && this.userEmail) {
-      const passwordReset: PasswordReset = {
-        email: this.userEmail,
-        code: sessionStorage.getItem("resetPasswordCode") || "",
-        newPassword: this.f["password"].value,
-      };
-
-      this.authService.resetPassword<string>(passwordReset).subscribe({
-        next: () => {
-          this.notifyService.showSuccess("Password changed successfully");
-
-          setTimeout(() => {
-            sessionStorage.removeItem("resetPasswordEmail");
-            sessionStorage.removeItem("resetPasswordCode");
-            document.location.href = "/login";
-          }, 1500);
-        },
-        error: (err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to change password";
-          this.notifyService.showError(message);
-        },
-      });
+    if (this.isLoggedInUser) {
+      this.changePasswordAsLoggedIn();
+    } else if (this.userEmail) {
+      this.resetPasswordAsGuest();
     }
+  }
+
+  private changePasswordAsLoggedIn() {
+    this.authService.changePassword<string>(this.f["password"].value).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Password changed successfully");
+        setTimeout(() => {
+          this.authService.logoutAll();
+        }, 1500);
+      },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to change password";
+        this.notifyService.showError(message);
+      },
+    });
+  }
+
+  private resetPasswordAsGuest() {
+    const passwordReset: PasswordReset = {
+      email: this.userEmail,
+      code: sessionStorage.getItem("resetPasswordCode") || "",
+      newPassword: this.f["password"].value,
+    };
+
+    this.authService.resetPassword<string>(passwordReset).subscribe({
+      next: () => {
+        this.notifyService.showSuccess("Password changed successfully");
+        setTimeout(() => {
+          sessionStorage.removeItem("resetPasswordEmail");
+          sessionStorage.removeItem("resetPasswordCode");
+          document.location.href = "/login";
+        }, 1500);
+      },
+      error: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to change password";
+        this.notifyService.showError(message);
+      },
+    });
   }
 }

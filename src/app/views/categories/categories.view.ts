@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, signal, computed, inject, OnInit } from "@angular/core";
-import { RouterModule } from "@angular/router";
+import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { Observable } from "rxjs";
 
@@ -74,6 +74,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   protected override storageService = inject(StorageService);
   private mongoConnectionService = inject(MongoConnectionService);
   private searchService = inject(SearchService);
+  private route = inject(ActivatedRoute);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
@@ -178,6 +179,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   editingCategory = signal<Category | null>(null);
   sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
+  highlightCategoryId = signal<string | null>(null);
 
   categoryCardConfig = CATEGORY_CARD_CONFIG;
   categoryTableConfig = CATEGORY_TABLE_CONFIG;
@@ -215,6 +217,18 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.subscriptions.add(
       this.shortcutService.createCategory$.subscribe(() => {
         this.toggleCreateForm();
+      })
+    );
+
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((queryParams: any) => {
+        const highlightId = queryParams.highlightCategoryId;
+        if (highlightId) {
+          this.highlightCategoryId.set(highlightId);
+        }
+        super.handleHighlightQueryParams(queryParams, "highlightCategoryId", "category-", () =>
+          this.highlightCategoryId.set(null)
+        );
       })
     );
 
