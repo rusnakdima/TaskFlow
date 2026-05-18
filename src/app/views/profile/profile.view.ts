@@ -1,9 +1,10 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, computed, OnDestroy, inject, DestroyRef } from "@angular/core";
-import { Router, RouterModule } from "@angular/router";
+import { Router, RouterModule, ActivatedRoute } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -42,14 +43,21 @@ export class ProfileView implements OnInit, OnDestroy {
     private storageService: StorageService,
     private confirmDialogService: ConfirmDialogService,
     private shortcutEmitters: ShortcutEmittersService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private route: ActivatedRoute
   ) {}
 
   userId: string = "";
+  viewedUserId = signal<string | null>(null);
+  isViewingOtherUser = signal(false);
+  viewedUserProfile = signal<any | null>(null);
 
   profile = computed(() => this.storageService.profile());
-  currentUsername = computed(() => this.storageService.profile()?.user?.username || "");
-  currentEmail = computed(() => this.storageService.profile()?.user?.email || "");
+  displayProfile = computed(() =>
+    this.isViewingOtherUser() ? this.viewedUserProfile() : this.profile()
+  );
+  currentUsername = computed(() => this.displayProfile()?.user?.username || "");
+  currentEmail = computed(() => this.displayProfile()?.user?.email || "");
   role = computed(() => this.storageService.user()?.role || "");
 
   isDarkTheme = computed(() => this.themeService.getEffectiveMode() === "dark");
@@ -68,11 +76,45 @@ export class ProfileView implements OnInit, OnDestroy {
   myQrToken = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const userIdParam = params["userId"];
+      if (userIdParam) {
+        this.viewedUserId.set(userIdParam);
+        this.isViewingOtherUser.set(userIdParam !== this.authService.getValueByKey("id"));
+        if (this.isViewingOtherUser()) {
+          this.fetchViewedUserProfile(userIdParam);
+        }
+      } else {
+        this.viewedUserId.set(null);
+        this.isViewingOtherUser.set(false);
+      }
+    });
+
     this.userId = this.authService.getValueByKey("id");
     this.storageService.ensureUserLoaded();
     this.storageService.ensureProfileLoaded();
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
+  }
+
+  private fetchViewedUserProfile(userId: string): void {
+    this.requestService
+      .invokeCommand("get_profile", {
+        id: userId,
+        token: this.authService.getToken(),
+        visibility: "public",
+        load: "user",
+      })
+      .subscribe({
+        next: (profile: any) => {
+          if (profile) {
+            this.viewedUserProfile.set(profile);
+          }
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load user profile");
+        },
+      });
   }
 
   ngOnDestroy(): void {

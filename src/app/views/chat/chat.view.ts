@@ -1,10 +1,16 @@
 /* sys lib */
-import { Component, OnInit, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { ActivatedRoute } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+
+/* components */
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
+import { OnlineStatusComponent } from "@components/online-status/online-status.component";
 
 /* services */
 import { ApiService } from "@services/api.service";
@@ -15,36 +21,25 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { ProfileSearchService } from "@services/core/profile-search.service";
 import { Profile, Chat } from "@models/generated/api.types";
 
-export interface ConversationItem {
-  roomId: string;
-  name: string;
-  avatar: string | null;
-  isOnline: boolean;
-  isTyping: boolean;
-  isGroup: boolean;
-  unreadCount: number;
-  lastMessage: string;
-  lastMessageTime: string;
-  memberIds: string[];
-  memberCount: number;
-  bio: string;
-  otherUserId?: string;
-}
+/* models */
+import { ConversationItem, ChatMessage, FilterType, EmojiTab } from "@models/chat.model";
 
-export interface ChatMessage {
-  id: string;
-  content: string;
-  senderId: string;
-  senderName: string;
-  senderAvatar?: string;
-  time: string;
-  isMine: boolean;
-}
+/* constants */
+import {
+  SMILEYS_EMOJIS,
+  GESTURES_EMOJIS,
+  OBJECTS_EMOJIS,
+  RECENT_EMOJIS_DEFAULT,
+} from "@constants/emoji.constants";
+
+/* utils */
+import { formatTime } from "@utils/format-time.util";
+import { getProfileDisplayName } from "@utils/display-name.util";
 
 @Component({
   selector: "app-chat",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, UserAvatarComponent, OnlineStatusComponent],
   templateUrl: "./chat.view.html",
 })
 export class ChatView implements OnInit {
@@ -54,6 +49,8 @@ export class ChatView implements OnInit {
   private themeService = inject(ThemeService);
   private notifyService = inject(NotifyService);
   private profileSearchService = inject(ProfileSearchService);
+  private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
 
   showSidebar = signal(true);
   showDetailsPanel = signal(false);
@@ -70,185 +67,19 @@ export class ChatView implements OnInit {
   showAttachmentMenu = signal(false);
   showDetailsMenu = signal(false);
   members = signal<any[]>([]);
-  activeEmojiTab = signal<"recent" | "smileys" | "gestures" | "objects">("smileys");
+  activeEmojiTab = signal<EmojiTab>("smileys");
   recentEmojis = signal<string[]>([]);
+  showAddMembersDropdown = signal(false);
+  addMembersSearch = signal("");
+  selectedAddMembers = signal<string[]>([]);
+  groupOwnerId = signal<string | null>(null);
 
-  smileysEmojis = [
-    "😀",
-    "😃",
-    "😄",
-    "😁",
-    "😆",
-    "😅",
-    "🤣",
-    "😂",
-    "🙂",
-    "🙃",
-    "😉",
-    "😊",
-    "😇",
-    "🥰",
-    "😍",
-    "🤩",
-    "😘",
-    "😗",
-    "☺️",
-    "😚",
-    "😋",
-    "😛",
-    "😜",
-    "🤪",
-    "😝",
-    "🤑",
-    "🤗",
-    "🤭",
-    "🤫",
-    "🤔",
-    "🤐",
-    "🤨",
-    "😐",
-    "😑",
-    "😶",
-    "😏",
-    "😒",
-    "🙄",
-    "😬",
-    "🤥",
-    "😌",
-    "😔",
-    "😪",
-    "🤤",
-    "😴",
-    "😷",
-    "🤒",
-    "🤕",
-  ];
-  gesturesEmojis = [
-    "👋",
-    "🤚",
-    "🖐️",
-    "✋",
-    "🖖",
-    "👌",
-    "🤌",
-    "🤏",
-    "✌️",
-    "🤞",
-    "🤟",
-    "🤘",
-    "🤙",
-    "👈",
-    "👉",
-    "👆",
-    "🖕",
-    "👇",
-    "☝️",
-    "👍",
-    "👎",
-    "✊",
-    "👊",
-    "🤛",
-    "🤜",
-    "👏",
-    "🙌",
-    "👐",
-    "🤲",
-    "🤝",
-    "🙏",
-    "✍️",
-    "💅",
-    "🤳",
-    "💪",
-    "🦾",
-    "🦿",
-    "🦵",
-    "🦶",
-    "👂",
-    "🦻",
-    "👃",
-    "🧠",
-    "🫀",
-    "🫁",
-    "🦷",
-    "🦴",
-    "👀",
-    "👁️",
-    "👅",
-    "👄",
-  ];
-  objectsEmojis = [
-    "❤️",
-    "🧡",
-    "💛",
-    "💚",
-    "💙",
-    "💜",
-    "🖤",
-    "🤍",
-    "💔",
-    "❣️",
-    "💕",
-    "💞",
-    "💓",
-    "💗",
-    "💖",
-    "💘",
-    "💝",
-    "💟",
-    "😈",
-    "👿",
-    "💀",
-    "☠️",
-    "👻",
-    "👽",
-    "👾",
-    "🤖",
-    "💩",
-    "😺",
-    "😸",
-    "😹",
-    "😻",
-    "😼",
-    "😽",
-    "🙀",
-    "😿",
-    "😾",
-    "🙈",
-    "🙉",
-    "🙊",
-    "💋",
-    "💌",
-    "💍",
-    "💎",
-    "👑",
-    "🎮",
-    "🎯",
-    "🎲",
-    "🧩",
-    "♟️",
-    "🏆",
-    "🥇",
-  ];
-  recentEmojisDefault = [
-    "😀",
-    "😂",
-    "😍",
-    "🥰",
-    "😊",
-    "😎",
-    "🤔",
-    "😅",
-    "😭",
-    "👍",
-    "❤️",
-    "🔥",
-    "✨",
-    "🎉",
-    "💯",
-    "🙏",
-  ];
+  smileysEmojis = SMILEYS_EMOJIS;
+  gesturesEmojis = GESTURES_EMOJIS;
+  objectsEmojis = OBJECTS_EMOJIS;
+  recentEmojisDefault = RECENT_EMOJIS_DEFAULT;
 
-  filterType = signal<"all" | "unread" | "groups">("all");
+  filterType = signal<FilterType>("all");
   searchQuery = signal("");
 
   conversations = signal<ConversationItem[]>([]);
@@ -312,6 +143,20 @@ export class ChatView implements OnInit {
   isProfilesLoading = computed(() => this.profileSearchService.isLoading());
   isSearching = computed(() => this.profileSearchService.isSearching());
   hasMoreProfiles = computed(() => this.profileSearchService.hasMore());
+
+  addMembersSearchResults = computed(() => {
+    const search = this.addMembersSearch().toLowerCase();
+    const allProfiles = this.profileSearchService.profiles();
+    const currentMembers = this.members().map((m) => m.id);
+    const currentUserId = this.currentUserId();
+
+    return allProfiles.filter((u: Profile) => {
+      if (u.user_id === currentUserId) return false;
+      if (currentMembers.includes(u.user_id)) return false;
+      if (!search) return true;
+      return `${u.name} ${u.last_name}`.toLowerCase().includes(search);
+    });
+  });
 
   onConversationContextMenu(event: MouseEvent, conv: ConversationItem): void {
     event.preventDefault();
@@ -389,12 +234,54 @@ export class ChatView implements OnInit {
   }
 
   ngOnInit(): void {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const userId = params["userId"];
+      if (userId) {
+        this.openConversationWithUserId(userId);
+      }
+    });
+
     this.loadAllUsers();
     if (typeof window !== "undefined") {
       window.addEventListener("resize", () => {
         this.isMobile.set(window.innerWidth < 768);
       });
     }
+  }
+
+  private openConversationWithUserId(userId: string): void {
+    this.profileSearchService.loadInitial().subscribe({
+      next: () => {
+        const profile = this.getProfileByUserId(userId);
+        if (profile) {
+          this.startConversationWithUser(profile);
+        } else {
+          this.fetchProfileAndOpenChat(userId);
+        }
+      },
+      error: () => {
+        this.fetchProfileAndOpenChat(userId);
+      },
+    });
+  }
+
+  private fetchProfileAndOpenChat(userId: string): void {
+    this.requestService
+      .invokeCommand("get_profile", {
+        id: userId,
+        token: this.authService.getToken(),
+        visibility: "public",
+      })
+      .subscribe({
+        next: (profile: any) => {
+          if (profile) {
+            this.startConversationWithUser(profile);
+          }
+        },
+        error: () => {
+          this.notifyService.showError("Failed to load user profile");
+        },
+      });
   }
 
   private loadAllUsers(): void {
@@ -553,12 +440,7 @@ export class ChatView implements OnInit {
   }
 
   private getProfileDisplayName(profile: Profile): string {
-    const name = profile.name?.trim() || "";
-    const lastName = profile.last_name?.trim() || "";
-    if (name && lastName) return `${name} ${lastName}`;
-    if (name) return name;
-    if (lastName) return lastName;
-    return profile.user?.username || "Unknown";
+    return getProfileDisplayName(profile);
   }
 
   private getProfileByUserId(userId: string): Profile | undefined {
@@ -643,15 +525,152 @@ export class ChatView implements OnInit {
     this.showEmojiPicker.set(false);
   }
 
-  setEmojiTab(tab: "recent" | "smileys" | "gestures" | "objects"): void {
+  setEmojiTab(tab: EmojiTab): void {
     this.activeEmojiTab.set(tab);
   }
 
   private loadMembers(): void {
     const conv = this.activeConversation();
     if (!conv) return;
-    // TODO: Load members from API based on conversation
-    this.members.set([]);
+
+    const memberIds = conv.memberIds || [];
+    const profiles = this.profileSearchService.profiles();
+    const membersList: any[] = [];
+
+    for (const memberId of memberIds) {
+      const profile = profiles.find((p) => p.user_id === memberId);
+      if (profile) {
+        membersList.push({
+          id: profile.user_id,
+          name: this.getProfileDisplayName(profile),
+          avatar: profile.image_url || undefined,
+        });
+      } else {
+        membersList.push({
+          id: memberId,
+          name: "Unknown User",
+          avatar: undefined,
+        });
+      }
+    }
+
+    this.members.set(membersList);
+    this.loadGroupOwner();
+  }
+
+  private loadGroupOwner(): void {
+    const conv = this.activeConversation();
+    if (!conv || !conv.isGroup) {
+      this.groupOwnerId.set(null);
+      return;
+    }
+
+    this.requestService
+      .invokeCommand("get_group_by_room", {
+        room_id: conv.roomId,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: (result: any) => {
+          if (result?.data?.owner_id) {
+            this.groupOwnerId.set(result.data.owner_id);
+          }
+        },
+        error: () => {
+          this.groupOwnerId.set(null);
+        },
+      });
+  }
+
+  isCurrentUserOwner(): boolean {
+    const ownerId = this.groupOwnerId();
+    const currentUserId = this.currentUserId();
+    return ownerId !== null && ownerId === currentUserId;
+  }
+
+  openAddMembersDropdown(): void {
+    this.showAddMembersDropdown.set(true);
+    this.addMembersSearch.set("");
+    this.selectedAddMembers.set([]);
+    this.profileSearchService.loadInitial().subscribe();
+  }
+
+  closeAddMembersDropdown(): void {
+    this.showAddMembersDropdown.set(false);
+    this.addMembersSearch.set("");
+    this.selectedAddMembers.set([]);
+  }
+
+  isUserSelectedForAdd(userId: string): boolean {
+    return this.selectedAddMembers().includes(userId);
+  }
+
+  toggleUserForAdd(userId: string): void {
+    this.selectedAddMembers.update((ids) =>
+      ids.includes(userId) ? ids.filter((id) => id !== userId) : [...ids, userId]
+    );
+  }
+
+  addMembersToGroup(): void {
+    const conv = this.activeConversation();
+    if (!conv || !conv.isGroup || this.selectedAddMembers().length === 0) return;
+
+    const memberIds = this.selectedAddMembers();
+    console.log("[DEBUG addMembersToGroup] memberIds:", memberIds);
+
+    this.requestService
+      .invokeCommand("add_group_members", {
+        id: conv.roomId,
+        memberIds: memberIds,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Members added successfully");
+          const newMemberIds = [...conv.memberIds, ...this.selectedAddMembers()];
+          this.conversations.update((convs) =>
+            convs.map((c) =>
+              c.roomId === conv.roomId
+                ? { ...c, memberIds: newMemberIds, memberCount: newMemberIds.length }
+                : c
+            )
+          );
+          this.closeAddMembersDropdown();
+          this.loadMembers();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add members");
+        },
+      });
+  }
+
+  removeMemberFromGroup(memberId: string): void {
+    const conv = this.activeConversation();
+    if (!conv || !conv.isGroup) return;
+
+    this.requestService
+      .invokeCommand("remove_group_members", {
+        id: conv.roomId,
+        member_ids: [memberId],
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Member removed");
+          const newMemberIds = conv.memberIds.filter((id) => id !== memberId);
+          this.conversations.update((convs) =>
+            convs.map((c) =>
+              c.roomId === conv.roomId
+                ? { ...c, memberIds: newMemberIds, memberCount: newMemberIds.length }
+                : c
+            )
+          );
+          this.loadMembers();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to remove member");
+        },
+      });
   }
 
   onMessageInputChange(value: string): void {
@@ -821,7 +840,7 @@ export class ChatView implements OnInit {
           isGroup: isGroup,
           unreadCount: 0,
           lastMessage: chat.content || "",
-          lastMessageTime: this.formatTime(chat.created_at || ""),
+          lastMessageTime: this.formatDate(chat.created_at || ""),
           memberIds: memberIds,
           memberCount: memberIds.length,
           bio: "",
@@ -831,7 +850,7 @@ export class ChatView implements OnInit {
 
       const conv = convMap.get(roomId)!;
       conv.lastMessage = chat.content;
-      conv.lastMessageTime = this.formatTime(chat.created_at || "");
+      conv.lastMessageTime = this.formatDate(chat.created_at || "");
 
       if (!chat.read_by?.includes(currentUserId) && chat.sender_id !== currentUserId) {
         conv.unreadCount++;
@@ -893,7 +912,7 @@ export class ChatView implements OnInit {
                   isGroup: true,
                   unreadCount: 0,
                   lastMessage: "",
-                  lastMessageTime: this.formatTime(group.created_at || ""),
+                  lastMessageTime: this.formatDate(group.created_at || ""),
                   memberIds: group.member_ids || [],
                   memberCount: (group.member_ids || []).length,
                   bio: "",
@@ -936,7 +955,7 @@ export class ChatView implements OnInit {
               senderId: chat.sender_id,
               senderName: chat.author_name || chat.sender_id,
               senderAvatar: profile?.image_url,
-              time: this.formatTime(chat.created_at || ""),
+              time: this.formatDate(chat.created_at || ""),
               isMine: chat.sender_id === currentUserId,
             });
           }
@@ -968,19 +987,7 @@ export class ChatView implements OnInit {
     );
   }
 
-  private formatTime(dateStr: string): string {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const dayMs = 24 * 60 * 60 * 1000;
-
-    if (diff < dayMs) {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } else if (diff < 7 * dayMs) {
-      return date.toLocaleDateString([], { weekday: "short" });
-    } else {
-      return date.toLocaleDateString([], { month: "short", day: "numeric" });
-    }
+  private formatDate(dateStr: string): string {
+    return formatTime(dateStr);
   }
 }

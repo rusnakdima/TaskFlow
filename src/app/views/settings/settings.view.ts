@@ -14,6 +14,10 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatIconModule } from "@angular/material/icon";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import {
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
 
 import { NotifyService } from "@services/notifications/notify.service";
 import { SecurityService } from "@services/auth/security.service";
@@ -28,7 +32,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
   selector: "app-settings",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent, SegmentSelectorComponent],
   templateUrl: "./settings.view.html",
 })
 export class SettingsView implements OnInit, OnDestroy {
@@ -46,6 +50,13 @@ export class SettingsView implements OnInit, OnDestroy {
   enableNotificationSounds = signal(true);
 
   activeTab = signal<"notifications" | "security" | "integrations" | "appearance">("notifications");
+
+  settingsTabs: SegmentOption[] = [
+    { id: "notifications", label: "Notifications", icon: "notifications" },
+    { id: "security", label: "Security", icon: "security" },
+    { id: "integrations", label: "Integrations", icon: "extension" },
+    { id: "appearance", label: "Appearance", icon: "palette" },
+  ];
 
   themePresets = THEME_PRESETS;
   themeModes = [
@@ -96,6 +107,10 @@ export class SettingsView implements OnInit, OnDestroy {
 
   setActiveTab(tab: "notifications" | "security" | "integrations" | "appearance"): void {
     this.activeTab.set(tab);
+  }
+
+  onTabSelect(id: string): void {
+    this.setActiveTab(id as "notifications" | "security" | "integrations" | "appearance");
   }
 
   private async loadGithubStatus(): Promise<void> {

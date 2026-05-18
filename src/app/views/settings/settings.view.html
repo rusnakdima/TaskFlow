@@ -1,53 +1,10 @@
 <div class="mx-auto flex max-w-4xl flex-col gap-6">
   <div class="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-700">
-    <button
-      (click)="setActiveTab('notifications')"
-      [ngClass]="
-        activeTab() === 'notifications'
-          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
-          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-      "
-      class="px-4 py-2 text-sm font-medium transition-colors"
-    >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="notifications" />
-      Notifications
-    </button>
-    <button
-      (click)="setActiveTab('security')"
-      [ngClass]="
-        activeTab() === 'security'
-          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
-          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-      "
-      class="px-4 py-2 text-sm font-medium transition-colors"
-    >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="security" />
-      Security
-    </button>
-    <button
-      (click)="setActiveTab('integrations')"
-      [ngClass]="
-        activeTab() === 'integrations'
-          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
-          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-      "
-      class="px-4 py-2 text-sm font-medium transition-colors"
-    >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="extension" />
-      Integrations
-    </button>
-    <button
-      (click)="setActiveTab('appearance')"
-      [ngClass]="
-        activeTab() === 'appearance'
-          ? 'border-b-2 border-[var(--accent-color)] text-[var(--accent-color)] dark:text-[var(--accent-color)]'
-          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-      "
-      class="px-4 py-2 text-sm font-medium transition-colors"
-    >
-      <mat-icon class="mr-1 align-middle text-lg!" fontIcon="palette" />
-      Appearance
-    </button>
+    <app-segment-selector
+      [options]="settingsTabs"
+      [active]="activeTab()"
+      (select)="onTabSelect($event)"
+    />
   </div>
 
   @if (activeTab() === "notifications") {
