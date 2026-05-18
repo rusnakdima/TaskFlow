@@ -20,14 +20,6 @@
       </div>
     </div>
 
-    <app-page-search
-      [data]="searchData"
-      [config]="searchConfig"
-      [searchQuery]="pageSearchQuery"
-      (filteredDataChange)="onPageFilteredDataChange($event)"
-      (searchQueryChange)="onPageSearchChange($event)"
-    />
-
     <div class="filter-sidebar-body">
       @if (filters && filters.length > 0) {
         <div class="flex flex-col gap-4">
