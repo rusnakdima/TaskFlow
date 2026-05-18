@@ -9,6 +9,35 @@ import { FilteredListHelper } from "@helpers/filtered-list.helper";
 
 export type SearchableEntity = "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories";
 
+export type GlobalSearchCategory =
+  | "project"
+  | "task"
+  | "subtask"
+  | "category"
+  | "user"
+  | "page"
+  | "action"
+  | "chat";
+
+export interface GlobalSearchItem {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  category: GlobalSearchCategory;
+  route?: string;
+  data?: any;
+}
+
+export interface GlobalSearchResults {
+  projects: GlobalSearchItem[];
+  tasks: GlobalSearchItem[];
+  subtasks: GlobalSearchItem[];
+  categories: GlobalSearchItem[];
+  users: GlobalSearchItem[];
+  chats: GlobalSearchItem[];
+}
+
 export interface SearchResult<T> {
   items: T[];
   hasMore: boolean;
@@ -51,6 +80,20 @@ export class SearchService {
   readonly chatsResults = computed(() => this.searchState().chats.items);
   readonly categoriesResults = computed(() => this.searchState().categories.items);
 
+  private globalSearchSubject = new Subject<string>();
+  private globalSearchState = signal<GlobalSearchResults>({
+    projects: [],
+    tasks: [],
+    subtasks: [],
+    categories: [],
+    users: [],
+    chats: [],
+  });
+
+  readonly globalSearchResults = computed(() => this.globalSearchState());
+
+  readonly isGlobalSearching = signal(false);
+
   readonly isSearching = computed(() => {
     const state = this.searchState();
     return (
@@ -72,6 +115,8 @@ export class SearchService {
         takeUntil(this.destroy$)
       )
       .subscribe();
+
+    this.initGlobalSearchListener();
   }
 
   ngOnDestroy(): void {
@@ -234,5 +279,148 @@ export class SearchService {
       "categories",
     ];
     entities.forEach((entity) => this.clearResults(entity));
+  }
+
+  searchAllEntities(query: string): void {
+    if (!query.trim()) {
+      this.globalSearchState.set({
+        projects: [],
+        tasks: [],
+        subtasks: [],
+        categories: [],
+        users: [],
+        chats: [],
+      });
+      return;
+    }
+
+    this.isGlobalSearching.set(true);
+    this.globalSearchSubject.next(query);
+  }
+
+  private performGlobalSearch(query: string): void {
+    const q = query.toLowerCase();
+
+    const projects = this.storageService
+      .todos()
+      .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((t) => ({
+        id: t.id,
+        label: t.title,
+        description: t.description?.slice(0, 100),
+        icon: "list_alt",
+        category: "project" as GlobalSearchCategory,
+        route: `/todos/${t.id}/tasks`,
+        data: t,
+      }));
+
+    const tasks = this.storageService
+      .tasks()
+      .filter((t) => t.title?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((t) => ({
+        id: t.id,
+        label: t.title,
+        description: t.description?.slice(0, 100),
+        icon: "assignment",
+        category: "task" as GlobalSearchCategory,
+        route: `/todos/${t.todo_id}/tasks?highlightTask=${t.id}`,
+        data: t,
+      }));
+
+    const subtasks = this.storageService
+      .subtasks()
+      .filter((s) => s.title?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((s) => {
+        const parentTask = this.storageService.getTaskById(s.task_id);
+        const route = parentTask
+          ? `/todos/${parentTask.todo_id}/tasks/${s.task_id}/subtasks?highlightSubtask=${s.id}`
+          : undefined;
+        return {
+          id: s.id,
+          label: s.title,
+          description: s.description?.slice(0, 100),
+          icon: "subdirectory_arrow_right",
+          category: "subtask" as GlobalSearchCategory,
+          route,
+          data: s,
+        };
+      });
+
+    const categories = this.storageService
+      .categories()
+      .filter((c) => c.title?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((c) => ({
+        id: c.id,
+        label: c.title,
+        icon: "category",
+        category: "category" as GlobalSearchCategory,
+        route: "/categories",
+        data: c,
+      }));
+
+    const users = this.getProfilesFromStorage(q)
+      .slice(0, 5)
+      .map((p) => ({
+        id: p.id,
+        label: p.name && p.last_name ? `${p.name} ${p.last_name}` : p.user?.username || "Unknown",
+        description: p.user?.email || "",
+        icon: "person",
+        category: "user" as GlobalSearchCategory,
+        route: "/profile",
+        data: p,
+      }));
+
+    const chats = this.storageService
+      .chats()
+      .filter(
+        (c) => c.content?.toLowerCase().includes(q) || c.author_name?.toLowerCase().includes(q)
+      )
+      .slice(0, 5)
+      .map((c) => ({
+        id: c.id,
+        label: c.content?.slice(0, 50) || "Chat message",
+        description: c.author_name || "",
+        icon: "chat",
+        category: "chat" as GlobalSearchCategory,
+        route: `/chat?room=${c.room_id || c.user_id}`,
+        data: c,
+      }));
+
+    this.globalSearchState.set({ projects, tasks, subtasks, categories, users, chats });
+    this.isGlobalSearching.set(false);
+  }
+
+  private getProfilesFromStorage(query: string): any[] {
+    const profiles = this.storageService.allProfiles() || [];
+    const q = query.toLowerCase();
+    return profiles.filter((p) => {
+      const fullName = `${p.name || ""} ${p.last_name || ""}`.toLowerCase();
+      const username = p.user?.username?.toLowerCase() || "";
+      const email = p.user?.email?.toLowerCase() || "";
+      return fullName.includes(q) || username.includes(q) || email.includes(q);
+    });
+  }
+
+  clearGlobalSearch(): void {
+    this.globalSearchState.set({
+      projects: [],
+      tasks: [],
+      subtasks: [],
+      categories: [],
+      users: [],
+      chats: [],
+    });
+  }
+
+  initGlobalSearchListener(): void {
+    this.globalSearchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((query) => {
+        this.performGlobalSearch(query);
+      });
   }
 }
