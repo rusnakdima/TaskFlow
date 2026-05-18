@@ -24,6 +24,7 @@ use crate::helpers::{
   relation_stripper::strip_relation_fields,
   response_helper::{err_response, err_response_formatted, success_response},
   security_helper::security_projection,
+  user_sync_helper,
 };
 
 /* services */
@@ -383,7 +384,9 @@ impl RepositoryService {
       }
       "search" => {
         self
-          .handle_search(table, filter, visibility, offline, user_id, skip, limit)
+          .handle_search(
+            table, filter, load, visibility, offline, user_id, skip, limit,
+          )
           .await
       }
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
@@ -489,6 +492,7 @@ impl RepositoryService {
     &self,
     table: String,
     filter: Option<Value>,
+    load: Option<String>,
     visibility: Option<String>,
     offline: bool,
     user_id: Option<String>,
@@ -505,6 +509,8 @@ impl RepositoryService {
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+
+    let load_paths = parse_load_param(load);
 
     let search_filter = if !search_query.is_empty() {
       let search_regex = serde_json::json!({
@@ -574,7 +580,22 @@ impl RepositoryService {
       }
     };
 
-    let docs = strip_relation_fields(docs, &table);
+    let docs = if !load_paths.is_empty() {
+      match &provider {
+        DataProvider::Json(p) => {
+          self
+            .load_relations_unified(docs, &table, &load_paths, (**p).clone())
+            .await?
+        }
+        DataProvider::Mongo(p) => {
+          self
+            .load_relations_unified(docs, &table, &load_paths, (**p).clone())
+            .await?
+        }
+      }
+    } else {
+      strip_relation_fields(docs, &table)
+    };
 
     let docs = if used_json_fallback || visibility_str == "private" {
       docs
@@ -778,7 +799,32 @@ impl RepositoryService {
 
     self.cache_service.invalidate_collection(&table).await;
 
-    if table == "tasks" {
+    if table == "profiles" && !offline {
+      if let Some(profile_id) = created_record.get("id").and_then(|v| v.as_str()) {
+        if let Some(user_id) = created_record.get("user_id").and_then(|v| v.as_str()) {
+          let profile_id_clone = profile_id.to_string();
+          let profile_service = self.profile_service.clone();
+          let json_provider = self.json_provider.clone();
+          let mongo_provider = self.mongodb_provider.clone();
+          let user_id_clone = user_id.to_string();
+          let handle = tokio::spawn(async move {
+            let _ = profile_service
+              .sync_profile_to_cloud(profile_id_clone.clone())
+              .await;
+            let _ = user_sync_helper::update_user_profile_id_both(
+              &json_provider,
+              mongo_provider.as_ref(),
+              &user_id_clone,
+              &profile_id_clone,
+            )
+            .await;
+          });
+          if let Ok(mut handles) = self.spawned_handles.write() {
+            handles.push(handle);
+          }
+        }
+      }
+    } else if table == "tasks" {
       if let Some(todo_id) = created_record.get("todo_id").and_then(|v| v.as_str()) {
         let count_service = self.count_service.clone();
         let todo_id_clone = todo_id.to_string();
@@ -1307,6 +1353,21 @@ impl RepositoryService {
     }
 
     let updated_record = provider.update(&table, &id_str, merged_data).await?;
+
+    if table == "profiles" && !offline {
+      if let Some(profile_id) = updated_record.get("id").and_then(|v| v.as_str()) {
+        let profile_id_clone = profile_id.to_string();
+        let profile_service = self.profile_service.clone();
+        let handle = tokio::spawn(async move {
+          let _ = profile_service
+            .sync_profile_to_cloud(profile_id_clone)
+            .await;
+        });
+        if let Ok(mut handles) = self.spawned_handles.write() {
+          handles.push(handle);
+        }
+      }
+    }
 
     let new_status = updated_record.get("status").and_then(|v| v.as_str());
 
