@@ -205,16 +205,29 @@ impl GroupService {
 
   pub async fn add_members(
     &self,
-    id: &str,
+    room_id: &str,
     member_ids: Vec<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
-    let existing = mongo
-      .find_by_id("groups", id)
-      .await?
+
+    let filter = json!({ "room_id": room_id });
+    let filter_opt = Some(
+      nosql_orm::query::Filter::from_json(&filter)
+        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+    );
+    let docs = mongo
+      .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
+      .await?;
+    let existing = docs
+      .first()
+      .cloned()
       .ok_or_else(|| err_response("Group not found"))?;
+    let group_id = existing
+      .get("id")
+      .and_then(|v| v.as_str())
+      .unwrap_or(room_id);
 
     let mut members: Vec<String> = existing
       .get("member_ids")
@@ -235,10 +248,12 @@ impl GroupService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
-    let doc = mongo.update("groups", id, update_data.clone()).await?;
+    let doc = mongo
+      .update("groups", group_id, update_data.clone())
+      .await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("groups", id, update_data).await;
+      let _ = p.update("groups", group_id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -284,7 +299,7 @@ impl GroupService {
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
 
-    // Find by room_id first, if not found try by id
+    let is_1on1 = id.starts_with("dm_");
     let filter = json!({ "room_id": id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
@@ -293,100 +308,120 @@ impl GroupService {
     let docs = mongo
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
       .await?;
-    let existing = docs
-      .first()
-      .cloned()
-      .ok_or_else(|| err_response("Group not found"))?;
-    let doc_id = existing.get("id").and_then(|v| v.as_str()).unwrap_or(id);
-    let room_id = existing
-      .get("room_id")
-      .and_then(|v| v.as_str())
-      .unwrap_or("");
+    let existing = docs.first().cloned();
+
+    let (doc_id, room_id) = if let Some(existing_doc) = existing {
+      let d_id = existing_doc
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or(id);
+      let r_id = existing_doc
+        .get("room_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+      (d_id.to_string(), r_id.to_string())
+    } else if is_1on1 {
+      (id.to_string(), id.to_string())
+    } else {
+      return Err(err_response("Group not found"));
+    };
+
     println!(
-      "[DEBUG delete_group] id={} doc_id={} room_id={}",
-      id, doc_id, room_id
+      "[DEBUG delete_group] id={} doc_id={} room_id={} is_1on1={}",
+      id, doc_id, room_id, is_1on1
     );
 
-    // Cascade: delete all chats in this group's room
-    if !room_id.is_empty() {
-      let chat_filter = json!({ "room_id": room_id });
-      if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
-        let chat_docs: Vec<serde_json::Value> = mongo
-          .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
-          .await
-          .unwrap_or_default();
-        for chat_doc in chat_docs {
-          if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
-            let _ = mongo.delete("chats", chat_id).await;
-          }
-        }
-        // Also delete from JSON
-        let json_provider = self.base.get_json_provider();
-        if let DataProvider::Json(p) = json_provider {
-          let json_chat_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
-            p.as_ref(),
-            "chats",
-            Some(&chat_filter_obj),
-            None,
-            None,
-            None,
-            true,
-          )
-          .await
-          .unwrap_or_default();
-          for chat_doc in json_chat_docs {
-            if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
-              let _ = p.delete("chats", chat_id).await;
-            }
-          }
-        }
-      }
-    }
+    self.cascade_delete_room(&room_id).await?;
 
-    // Delete the group room
-    if !room_id.is_empty() {
-      let room_filter = json!({ "room": room_id });
-      if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
-        let room_docs: Vec<serde_json::Value> = mongo
-          .find_many("rooms", Some(&room_filter_obj), None, None, None, true)
-          .await
-          .unwrap_or_default();
-        for room_doc in room_docs {
-          if let Some(room_doc_id) = room_doc.get("id").and_then(|v| v.as_str()) {
-            let _ = mongo.delete("rooms", room_doc_id).await;
-          }
-        }
-        let json_provider = self.base.get_json_provider();
-        if let DataProvider::Json(p) = json_provider {
-          let json_room_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
-            p.as_ref(),
-            "rooms",
-            Some(&room_filter_obj),
-            None,
-            None,
-            None,
-            true,
-          )
-          .await
-          .unwrap_or_default();
-          for room_doc in json_room_docs {
-            if let Some(room_doc_id) = room_doc.get("id").and_then(|v| v.as_str()) {
-              let _ = p.delete("rooms", room_doc_id).await;
-            }
-          }
-        }
+    if !is_1on1 {
+      let _ = mongo.delete("groups", &doc_id).await;
+      let json_provider = self.base.get_json_provider();
+      if let DataProvider::Json(p) = json_provider {
+        let _ = p.delete("groups", &doc_id).await;
       }
-    }
-
-    // Delete the group itself
-    let _ = mongo.delete("groups", doc_id).await;
-    let json_provider = self.base.get_json_provider();
-    if let DataProvider::Json(p) = json_provider {
-      let _ = p.delete("groups", doc_id).await;
     }
 
     println!("[DEBUG delete_group] cascade delete completed");
     Ok(success_response(DataValue::Object(json!({}))))
+  }
+
+  async fn cascade_delete_room(&self, room_id: &str) -> Result<(), ResponseModel> {
+    let mongo = self
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+
+    if room_id.is_empty() {
+      return Ok(());
+    }
+
+    let chat_filter = json!({ "room_id": room_id });
+    if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
+      let chat_docs: Vec<serde_json::Value> = mongo
+        .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
+        .await
+        .unwrap_or_default();
+      for chat_doc in chat_docs {
+        if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
+          let _ = mongo.delete("chats", chat_id).await;
+          let _ = mongo.delete("messages", chat_id).await;
+        }
+      }
+
+      let json_provider = self.base.get_json_provider();
+      if let DataProvider::Json(p) = json_provider {
+        let json_chat_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
+          p.as_ref(),
+          "chats",
+          Some(&chat_filter_obj),
+          None,
+          None,
+          None,
+          true,
+        )
+        .await
+        .unwrap_or_default();
+        for chat_doc in json_chat_docs {
+          if let Some(chat_id) = chat_doc.get("id").and_then(|v| v.as_str()) {
+            let _ = p.delete("chats", chat_id).await;
+            let _ = p.delete("messages", chat_id).await;
+          }
+        }
+      }
+    }
+
+    let room_filter = json!({ "room": room_id });
+    if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
+      let room_docs: Vec<serde_json::Value> = mongo
+        .find_many("rooms", Some(&room_filter_obj), None, None, None, true)
+        .await
+        .unwrap_or_default();
+      for room_doc in room_docs {
+        if let Some(room_doc_id) = room_doc.get("id").and_then(|v| v.as_str()) {
+          let _ = mongo.delete("rooms", room_doc_id).await;
+        }
+      }
+      let json_provider = self.base.get_json_provider();
+      if let DataProvider::Json(p) = json_provider {
+        let json_room_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
+          p.as_ref(),
+          "rooms",
+          Some(&room_filter_obj),
+          None,
+          None,
+          None,
+          true,
+        )
+        .await
+        .unwrap_or_default();
+        for room_doc in json_room_docs {
+          if let Some(room_doc_id) = room_doc.get("id").and_then(|v| v.as_str()) {
+            let _ = p.delete("rooms", room_doc_id).await;
+          }
+        }
+      }
+    }
+
+    Ok(())
   }
 
   pub async fn hard_delete_cascade(&self, id: &str) -> Result<ResponseModel, ResponseModel> {

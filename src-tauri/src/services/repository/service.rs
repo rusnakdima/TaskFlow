@@ -16,6 +16,7 @@ use crate::entities::{
   response_entity::{DataValue, ResponseModel},
   table_entity::validate_model,
 };
+use tauri::Emitter;
 
 /* helpers */
 use crate::helpers::{
@@ -48,6 +49,7 @@ pub struct RepositoryService {
   pub activity_monitor: ActivityMonitorService,
   pub profile_service: ProfileService,
   pub entity_resolution: Arc<EntityResolutionService>,
+  app_handle: tauri::AppHandle,
   spawned_handles: RwLock<Vec<tokio::task::JoinHandle<()>>>,
 }
 
@@ -110,6 +112,7 @@ impl RepositoryService {
     entity_resolution: Arc<EntityResolutionService>,
     activity_monitor: ActivityMonitorService,
     profile_service: ProfileService,
+    app_handle: tauri::AppHandle,
   ) -> Self {
     Self {
       json_provider,
@@ -120,6 +123,7 @@ impl RepositoryService {
       activity_monitor,
       profile_service,
       entity_resolution,
+      app_handle,
       spawned_handles: RwLock::new(Vec::new()),
     }
   }
@@ -139,6 +143,15 @@ impl RepositoryService {
       return true;
     }
     visibility.unwrap_or("private") == "private"
+  }
+
+  fn emit_db_change_event(&self, operation: &str, table: &str, data: &serde_json::Value) {
+    let event_name = format!("db-change-{}", table);
+    let payload = serde_json::json!({
+      "operationType": operation,
+      "data": data,
+    });
+    let _ = self.app_handle.emit(&event_name, payload);
   }
 
   fn resolve_visibility_for_offline(&self, visibility: Option<String>, offline: bool) -> String {
@@ -939,6 +952,8 @@ impl RepositoryService {
       .and_then(|v| v.as_str())
       .unwrap_or("unknown");
 
+    self.emit_db_change_event("created", &table, &response_doc);
+
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -1472,6 +1487,8 @@ impl RepositoryService {
     let response_doc = projection.apply_recursive(&updated_record);
     let _elapsed = start.elapsed();
 
+    self.emit_db_change_event("updated", &table, &response_doc);
+
     Ok(success_response(DataValue::Object(response_doc)))
   }
 
@@ -1600,6 +1617,8 @@ impl RepositoryService {
     }
 
     let _elapsed = start.elapsed();
+
+    self.emit_db_change_event("deleted", &table, &serde_json::json!({"id": id_str}));
 
     Ok(success_response(DataValue::String(id_str.clone())))
   }
