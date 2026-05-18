@@ -94,68 +94,105 @@ impl AuthTokenService {
     let user_id = token_data.claims.id;
     let table_name = TableModelType::User.table_name();
 
-    // STEP 1: Check local JSON database FIRST (works offline)
-    if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
-      let user: UserEntity = serde_json::from_value(user_val.clone())
-        .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+    // If MongoDB is available, check it FIRST to detect deleted users
+    if let Some(mongo_provider) = &self.mongodb_provider {
+      match mongo_provider.find_by_id(table_name, &user_id).await {
+        Ok(Some(user_val)) => {
+          let user: UserEntity = serde_json::from_value(user_val.clone())
+            .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
 
-      // Try to sync with MongoDB in background (non-blocking)
-      if self.mongodb_provider.is_some() {
-        let _ = self.sync_user_to_cloud(user_val.clone()).await;
+          // Sync user to local database for future offline use
+          let _ = self
+            .json_provider
+            .insert(table_name, user_val.clone())
+            .await;
+
+          // Sync profile to local database if it exists in MongoDB
+          let profile_filter =
+            nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
+          if let Ok(profile_val) = mongo_provider
+            .find_many("profiles", Some(&profile_filter), None, None, None, true)
+            .await
+          {
+            if let Some(p) = profile_val.first() {
+              let _ = self.json_provider.insert("profiles", p.clone()).await;
+            }
+          }
+
+          // Ensure profile exists in MongoDB, sync from JSON if missing
+          let _ = self.ensure_profile_exists(&user_id).await;
+
+          if let Some(sync_service) = &self.auth_data_sync_service {
+            let _ = sync_service.on_user_login(&user_id).await;
+          }
+
+          let profile = self
+            .profile_sync_service
+            .get_profile(&user_id)
+            .await
+            .ok()
+            .flatten();
+
+          let mut response_data = serde_json::to_value(&user).unwrap();
+          if let Some(p) = profile {
+            response_data["profile"] = serde_json::to_value(&p).unwrap();
+          }
+
+          Ok(ResponseModel {
+            status: ResponseStatus::Success,
+            message: "Token is valid".to_string(),
+            data: DataValue::Object(response_data),
+          })
+        }
+        Ok(None) => {
+          // User deleted from MongoDB - check if exists in JSON for error message
+          if self
+            .json_provider
+            .find_by_id(table_name, &user_id)
+            .await
+            .is_ok()
+          {
+            // User exists locally but not in cloud - clean up local data
+            let _ = self.cleanup_user_data_from_json(&user_id).await;
+            return Err(err_response("User session invalid - please login again"));
+          }
+          Err(err_response("User not found"))
+        }
+        Err(e) => {
+          // MongoDB error - fall back to JSON if available
+          if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
+            let user: UserEntity = serde_json::from_value(user_val.clone())
+              .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+
+            let profile = self
+              .profile_sync_service
+              .get_profile(&user_id)
+              .await
+              .ok()
+              .flatten();
+
+            let mut response_data = serde_json::to_value(&user).unwrap();
+            if let Some(p) = profile {
+              response_data["profile"] = serde_json::to_value(&p).unwrap();
+            }
+
+            return Ok(ResponseModel {
+              status: ResponseStatus::Success,
+              message: "Token is valid (local fallback)".to_string(),
+              data: DataValue::Object(response_data),
+            });
+          }
+          Err(err_response(&format!(
+            "User not found (MongoDB error: {}): Trying JSON also failed",
+            e
+          )))
+        }
       }
-
-      if let Some(sync_service) = &self.auth_data_sync_service {
-        let _ = sync_service.on_user_login(&user_id).await;
-      }
-
-      let profile = self
-        .profile_sync_service
-        .get_profile(&user_id)
-        .await
-        .ok()
-        .flatten();
-
-      let mut response_data = serde_json::to_value(&user).unwrap();
-      if let Some(p) = profile {
-        response_data["profile"] = serde_json::to_value(&p).unwrap();
-      }
-
-      return Ok(ResponseModel {
-        status: ResponseStatus::Success,
-        message: "Token is valid (local)".to_string(),
-        data: DataValue::Object(response_data),
-      });
-    }
-
-    // STEP 2: Local database failed - try MongoDB (if available)
-    let mongo_provider = match &self.mongodb_provider {
-      Some(provider) => provider,
-      None => {
-        return Err(err_response(
-          "User not found in local database and MongoDB unavailable",
-        ));
-      }
-    };
-
-    match mongo_provider.find_by_id(table_name, &user_id).await {
-      Ok(Some(user_val)) => {
+    } else {
+      // No MongoDB available - check local JSON only (offline mode)
+      if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
         let user: UserEntity = serde_json::from_value(user_val.clone())
           .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
-        // Sync user to local database for future offline use
-        let _ = self.json_provider.insert(table_name, user_val).await;
-
-        // Sync profile to local database if it exists in MongoDB
-        let profile_filter =
-          nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
-        if let Ok(profile_val) = mongo_provider
-          .find_many("profiles", Some(&profile_filter), None, None, None, true)
-          .await
-        {
-          if let Some(p) = profile_val.first() {
-            let _ = self.json_provider.insert("profiles", p.clone()).await;
-          }
-        }
 
         if let Some(sync_service) = &self.auth_data_sync_service {
           let _ = sync_service.on_user_login(&user_id).await;
@@ -173,41 +210,15 @@ impl AuthTokenService {
           response_data["profile"] = serde_json::to_value(&p).unwrap();
         }
 
-        Ok(ResponseModel {
+        return Ok(ResponseModel {
           status: ResponseStatus::Success,
-          message: "Token is valid".to_string(),
+          message: "Token is valid (local)".to_string(),
           data: DataValue::Object(response_data),
-        })
+        });
       }
-      Ok(None) => Err(err_response("User not found")),
-      Err(e) => {
-        if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
-          let user: UserEntity = serde_json::from_value(user_val.clone())
-            .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
-          let profile = self
-            .profile_sync_service
-            .get_profile(&user_id)
-            .await
-            .ok()
-            .flatten();
-
-          let mut response_data = serde_json::to_value(&user).unwrap();
-          if let Some(p) = profile {
-            response_data["profile"] = serde_json::to_value(&p).unwrap();
-          }
-
-          return Ok(ResponseModel {
-            status: ResponseStatus::Success,
-            message: "Token is valid (local fallback)".to_string(),
-            data: DataValue::Object(response_data),
-          });
-        }
-        Err(err_response(&format!(
-          "User not found (MongoDB error: {}): Trying JSON also failed",
-          e
-        )))
-      }
+      Err(err_response(
+        "User not found in local database and MongoDB unavailable",
+      ))
     }
   }
 
@@ -255,6 +266,94 @@ impl AuthTokenService {
           let _ = format!("Cloud sync failed: {}", e);
         });
       }
+    }
+
+    Ok(())
+  }
+
+  async fn cleanup_user_data_from_json(&self, user_id: &str) -> Result<(), ()> {
+    // Remove user from JSON
+    let _ = self.json_provider.delete("users", user_id).await;
+
+    // Remove profile from JSON
+    let profile_filter =
+      nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
+    if let Ok(profiles) = self
+      .json_provider
+      .find_many("profiles", Some(&profile_filter), None, None, None, false)
+      .await
+    {
+      for profile in profiles {
+        if let Some(profile_id) = profile.get("id").and_then(|v| v.as_str()) {
+          let _ = self.json_provider.delete("profiles", profile_id).await;
+        }
+      }
+    }
+
+    // Remove user's todos, tasks, subtasks, comments, chats
+    for table in &["todos", "tasks", "subtasks", "comments", "chats"] {
+      let filter = nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
+      if let Ok(items) = self
+        .json_provider
+        .find_many(table, Some(&filter), None, None, None, false)
+        .await
+      {
+        for item in items {
+          if let Some(id) = item.get("id").and_then(|v| v.as_str()) {
+            let _ = self.json_provider.delete(table, id).await;
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  async fn ensure_profile_exists(&self, user_id: &str) -> Result<(), ResponseModel> {
+    // Check if profile exists in MongoDB
+    let profile_filter =
+      nosql_orm::query::Filter::Eq("user_id".to_string(), serde_json::json!(user_id));
+
+    let profile_exists_mongo = if let Some(mongo) = &self.mongodb_provider {
+      mongo
+        .find_many("profiles", Some(&profile_filter), None, None, None, false)
+        .await
+        .map(|mut p| p.pop().is_some())
+        .unwrap_or(false)
+    } else {
+      false
+    };
+
+    if profile_exists_mongo {
+      return Ok(());
+    }
+
+    // Profile not in MongoDB - check JSON
+    let profile_exists_json = self
+      .json_provider
+      .find_many("profiles", Some(&profile_filter), None, None, None, false)
+      .await
+      .map(|mut p| p.pop().is_some())
+      .unwrap_or(false);
+
+    if profile_exists_json {
+      // Upload from JSON to MongoDB
+      if let Some(mongo) = &self.mongodb_provider {
+        if let Ok(profiles) = self
+          .json_provider
+          .find_many("profiles", Some(&profile_filter), None, None, None, false)
+          .await
+        {
+          for profile in profiles {
+            let _ = mongo.insert("profiles", profile).await;
+          }
+        }
+      }
+    } else {
+      // Profile doesn't exist anywhere - user needs to create one
+      return Err(err_response(
+        "Profile not found - please create your profile",
+      ));
     }
 
     Ok(())
