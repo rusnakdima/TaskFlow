@@ -6,14 +6,7 @@
       (select)="selectDataType($event)"
     />
 
-    <app-page-toolbar
-      [config]="getToolbarConfig()"
-      [searchFields]="getSearchFields()"
-      [excludeFields]="getExcludeFields()"
-      [searchData]="getCurrentData()"
-      [searchQuery]="pageSearchQuery()"
-      (filteredDataChange)="onPageSearchFiltered($event)"
-    />
+    <app-page-toolbar [config]="getToolbarConfig()" />
   </div>
 
   @if (loading()) {

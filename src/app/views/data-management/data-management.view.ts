@@ -448,8 +448,6 @@ export class DataManagementView implements OnInit {
       data = this.getArchiveData();
     }
 
-    console.log("[DataManagement] getFilteredData - raw data length:", data?.length);
-
     if (!data || data.length === 0) return [];
 
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
