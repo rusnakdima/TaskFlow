@@ -66,6 +66,187 @@ export class ChatView implements OnInit {
   showContextMenu = signal(false);
   contextMenuPosition = signal({ x: 0, y: 0 });
   isMobile = signal(typeof window !== "undefined" && window.innerWidth < 768);
+  showEmojiPicker = signal(false);
+  showAttachmentMenu = signal(false);
+  showDetailsMenu = signal(false);
+  members = signal<any[]>([]);
+  activeEmojiTab = signal<"recent" | "smileys" | "gestures" | "objects">("smileys");
+  recentEmojis = signal<string[]>([]);
+
+  smileysEmojis = [
+    "😀",
+    "😃",
+    "😄",
+    "😁",
+    "😆",
+    "😅",
+    "🤣",
+    "😂",
+    "🙂",
+    "🙃",
+    "😉",
+    "😊",
+    "😇",
+    "🥰",
+    "😍",
+    "🤩",
+    "😘",
+    "😗",
+    "☺️",
+    "😚",
+    "😋",
+    "😛",
+    "😜",
+    "🤪",
+    "😝",
+    "🤑",
+    "🤗",
+    "🤭",
+    "🤫",
+    "🤔",
+    "🤐",
+    "🤨",
+    "😐",
+    "😑",
+    "😶",
+    "😏",
+    "😒",
+    "🙄",
+    "😬",
+    "🤥",
+    "😌",
+    "😔",
+    "😪",
+    "🤤",
+    "😴",
+    "😷",
+    "🤒",
+    "🤕",
+  ];
+  gesturesEmojis = [
+    "👋",
+    "🤚",
+    "🖐️",
+    "✋",
+    "🖖",
+    "👌",
+    "🤌",
+    "🤏",
+    "✌️",
+    "🤞",
+    "🤟",
+    "🤘",
+    "🤙",
+    "👈",
+    "👉",
+    "👆",
+    "🖕",
+    "👇",
+    "☝️",
+    "👍",
+    "👎",
+    "✊",
+    "👊",
+    "🤛",
+    "🤜",
+    "👏",
+    "🙌",
+    "👐",
+    "🤲",
+    "🤝",
+    "🙏",
+    "✍️",
+    "💅",
+    "🤳",
+    "💪",
+    "🦾",
+    "🦿",
+    "🦵",
+    "🦶",
+    "👂",
+    "🦻",
+    "👃",
+    "🧠",
+    "🫀",
+    "🫁",
+    "🦷",
+    "🦴",
+    "👀",
+    "👁️",
+    "👅",
+    "👄",
+  ];
+  objectsEmojis = [
+    "❤️",
+    "🧡",
+    "💛",
+    "💚",
+    "💙",
+    "💜",
+    "🖤",
+    "🤍",
+    "💔",
+    "❣️",
+    "💕",
+    "💞",
+    "💓",
+    "💗",
+    "💖",
+    "💘",
+    "💝",
+    "💟",
+    "😈",
+    "👿",
+    "💀",
+    "☠️",
+    "👻",
+    "👽",
+    "👾",
+    "🤖",
+    "💩",
+    "😺",
+    "😸",
+    "😹",
+    "😻",
+    "😼",
+    "😽",
+    "🙀",
+    "😿",
+    "😾",
+    "🙈",
+    "🙉",
+    "🙊",
+    "💋",
+    "💌",
+    "💍",
+    "💎",
+    "👑",
+    "🎮",
+    "🎯",
+    "🎲",
+    "🧩",
+    "♟️",
+    "🏆",
+    "🥇",
+  ];
+  recentEmojisDefault = [
+    "😀",
+    "😂",
+    "😍",
+    "🥰",
+    "😊",
+    "😎",
+    "🤔",
+    "😅",
+    "😭",
+    "👍",
+    "❤️",
+    "🔥",
+    "✨",
+    "🎉",
+    "💯",
+    "🙏",
+  ];
 
   filterType = signal<"all" | "unread" | "groups">("all");
   searchQuery = signal("");
@@ -220,11 +401,37 @@ export class ChatView implements OnInit {
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
         this.loadRooms();
+        this.updateConversationsWithProfiles();
       },
       error: () => {
         this.loadRooms();
       },
     });
+  }
+
+  private updateConversationsWithProfiles(): void {
+    const profiles = this.profileSearchService.profiles();
+    if (profiles.length === 0) return;
+
+    this.conversations.update((convs) =>
+      convs.map((conv) => {
+        if (conv.isGroup) return conv;
+
+        const otherUserId =
+          conv.otherUserId || (conv.roomId.startsWith("dm_") ? conv.roomId.substring(3) : null);
+        if (!otherUserId) return conv;
+
+        const profile = profiles.find((p) => p.user_id === otherUserId);
+        if (profile && conv.name === "Unknown") {
+          return {
+            ...conv,
+            name: this.getProfileDisplayName(profile),
+            avatar: profile.image_url || null,
+          };
+        }
+        return conv;
+      })
+    );
   }
 
   private loadRooms(): void {
@@ -360,6 +567,25 @@ export class ChatView implements OnInit {
     return profiles.find((p) => p.user_id === userId);
   }
 
+  private fetchProfileIfMissing(userId: string): void {
+    if (!this.getProfileByUserId(userId)) {
+      this.requestService
+        .invokeCommand("get_profile", {
+          id: userId,
+          token: this.authService.getToken(),
+          visibility: "public",
+        })
+        .subscribe({
+          next: (profile: any) => {
+            if (profile?.user_id) {
+              this.profileSearchService.addProfile(profile);
+            }
+          },
+          error: () => {},
+        });
+    }
+  }
+
   filterChats(type: "all" | "unread" | "groups"): void {
     this.filterType.set(type);
   }
@@ -377,10 +603,56 @@ export class ChatView implements OnInit {
     this.activeConversationId.set(null);
     this.messages.set([]);
     this.showSidebar.set(true);
+    this.showEmojiPicker.set(false);
+    this.showAttachmentMenu.set(false);
+    this.showDetailsMenu.set(false);
   }
 
   toggleDetailsPanel(): void {
     this.showDetailsPanel.update((v) => !v);
+    if (this.showDetailsPanel()) {
+      this.showDetailsMenu.set(false);
+      this.loadMembers();
+    }
+  }
+
+  toggleDetailsMenu(): void {
+    this.showDetailsMenu.update((v) => !v);
+    this.showEmojiPicker.set(false);
+    this.showAttachmentMenu.set(false);
+  }
+
+  toggleEmojiPicker(): void {
+    this.showEmojiPicker.update((v) => !v);
+    this.showAttachmentMenu.set(false);
+    this.showDetailsMenu.set(false);
+  }
+
+  toggleAttachmentMenu(): void {
+    this.showAttachmentMenu.update((v) => !v);
+    this.showEmojiPicker.set(false);
+    this.showDetailsMenu.set(false);
+  }
+
+  addEmoji(emoji: string): void {
+    this.messageInput.update((current) => current + emoji);
+    this.recentEmojis.update((recent) => {
+      const filtered = recent.filter((e) => e !== emoji);
+      return [emoji, ...filtered].slice(0, 20);
+    });
+    this.activeEmojiTab.set("recent");
+    this.showEmojiPicker.set(false);
+  }
+
+  setEmojiTab(tab: "recent" | "smileys" | "gestures" | "objects"): void {
+    this.activeEmojiTab.set(tab);
+  }
+
+  private loadMembers(): void {
+    const conv = this.activeConversation();
+    if (!conv) return;
+    // TODO: Load members from API based on conversation
+    this.members.set([]);
   }
 
   onMessageInputChange(value: string): void {
@@ -481,6 +753,8 @@ export class ChatView implements OnInit {
         if (profile) {
           name = this.getProfileDisplayName(profile);
           avatar = profile.image_url || null;
+        } else {
+          this.fetchProfileIfMissing(otherUserId);
         }
       }
 
@@ -529,6 +803,8 @@ export class ChatView implements OnInit {
             avatar = profile.image_url || null;
           } else if (chat.author_name) {
             name = chat.author_name;
+          } else {
+            this.fetchProfileIfMissing(otherUserId);
           }
         } else if (isGroup) {
           name = "Group";

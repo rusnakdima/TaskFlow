@@ -26,7 +26,7 @@
             <input
               type="search"
               placeholder="Search or start conversation..."
-              class="w-full rounded-xl border-0 bg-slate-50 py-2.5 pr-4 pl-10 text-sm text-slate-950 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-500"
+              class="w-full rounded-xl border-0 bg-slate-50 py-2.5 pr-4 pl-10 text-sm text-slate-950 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-500"
               [value]="searchQuery()"
               (input)="onSearchChange($any($event.target).value)"
               (keydown)="onSearchKeydown($event)"
@@ -61,7 +61,7 @@
                           />
                         } @else {
                           <div
-                            class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+                            class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
                           >
                             {{ (user.name?.charAt(0) || "?").toUpperCase() }}
                           </div>
@@ -97,7 +97,7 @@
                           />
                         } @else {
                           <div
-                            class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+                            class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
                           >
                             {{ (user.name?.charAt(0) || "?").toUpperCase() }}
                           </div>
@@ -124,12 +124,12 @@
                   @if (isProfilesLoading() || isSearching()) {
                     <div class="flex justify-center py-3">
                       <div
-                        class="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"
+                        class="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent-color)] border-t-transparent"
                       ></div>
                     </div>
                   } @else if (hasMoreProfiles()) {
                     <button
-                      class="w-full py-2 text-sm text-indigo-600 transition-colors hover:bg-slate-50 dark:text-indigo-400 dark:hover:bg-zinc-700"
+                      class="w-full py-2 text-sm text-[var(--accent-600)] transition-colors hover:bg-slate-50 dark:text-[var(--accent-400)] dark:hover:bg-zinc-700"
                       (click)="loadMoreProfiles(); $event.stopPropagation()"
                     >
                       Load More
@@ -141,7 +141,7 @@
           </div>
 
           <button
-            class="shrink-0 rounded-xl bg-indigo-600 p-2.5 text-white shadow-lg shadow-indigo-500/15 transition-all duration-150 hover:bg-indigo-700 hover:shadow-indigo-500/20"
+            class="shrink-0 rounded-xl bg-[var(--accent-color)] p-2.5 text-white shadow-[var(--accent-color)]/15 shadow-lg transition-all duration-150 hover:bg-[var(--accent-600)] hover:shadow-[var(--accent-color)]/20"
             (click)="showCreateGroupModal.set(true)"
             title="Create Group"
           >
@@ -164,7 +164,7 @@
               <input
                 type="search"
                 placeholder="Search users..."
-                class="w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm text-slate-950 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-50 dark:placeholder-zinc-500"
+                class="w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm text-slate-950 placeholder-slate-400 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-50 dark:placeholder-zinc-500"
                 [value]="userDropdownSearch()"
                 (input)="userDropdownSearch.set($any($event.target).value)"
                 (click)="$event.stopPropagation()"
@@ -188,7 +188,7 @@
                     />
                   } @else {
                     <div
-                      class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+                      class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
                     >
                       {{ (user.name?.charAt(0) || "?").toUpperCase() }}
                     </div>
@@ -218,7 +218,7 @@
             (click)="filterChats('all')"
             [class]="
               filterType() === 'all'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-indigo-600 shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
+                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
                 : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
             "
           >
@@ -228,7 +228,7 @@
             (click)="filterChats('unread')"
             [class]="
               filterType() === 'unread'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-indigo-600 shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
+                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
                 : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
             "
           >
@@ -238,7 +238,7 @@
             (click)="filterChats('groups')"
             [class]="
               filterType() === 'groups'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-indigo-600 shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
+                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
                 : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
             "
           >
@@ -251,12 +251,14 @@
         @for (conversation of filteredConversations(); track conversation.roomId) {
           <div
             class="flex cursor-pointer items-center justify-between rounded-2xl p-3 transition-all duration-150"
-            [class.bg-indigo-50/70]="activeConversationId() === conversation.roomId"
-            [class.dark:bg-indigo-950/30]="activeConversationId() === conversation.roomId"
+            [class.bg-[var(--accent-100)]]="activeConversationId() === conversation.roomId"
+            [class.dark:bg-[var(--accent-900)]/30]="activeConversationId() === conversation.roomId"
             [class.ring-1]="activeConversationId() === conversation.roomId"
-            [class.ring-indigo-500/10]="activeConversationId() === conversation.roomId"
-            [class.hover:bg-slate-50]="activeConversationId() !== conversation.roomId"
-            [class.dark:hover:bg-zinc-800/40]="activeConversationId() !== conversation.roomId"
+            [class.ring-[var(--accent-color)]/20]="activeConversationId() === conversation.roomId"
+            [class.hover:bg-[var(--accent-50)]]="activeConversationId() !== conversation.roomId"
+            [class.dark:hover:bg-[var(--accent-900)]/30]="
+              activeConversationId() !== conversation.roomId
+            "
             (click)="selectConversation(conversation)"
             (contextmenu)="onConversationContextMenu($event, conversation)"
           >
@@ -271,7 +273,7 @@
                   />
                 } @else {
                   <div
-                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent-100)] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
                   >
                     {{ conversation.name.charAt(0).toUpperCase() }}
                   </div>
@@ -289,8 +291,10 @@
               <div class="overflow-hidden">
                 <h4
                   class="truncate text-sm font-semibold"
-                  [class.text-indigo-600]="activeConversationId() === conversation.roomId"
-                  [class.dark:text-indigo-400]="activeConversationId() === conversation.roomId"
+                  [class.text-[var(--accent-600)]]="activeConversationId() === conversation.roomId"
+                  [class.dark:text-[var(--accent-400)]]="
+                    activeConversationId() === conversation.roomId
+                  "
                   [class.text-slate-800]="activeConversationId() !== conversation.roomId"
                   [class.dark:text-zinc-200]="activeConversationId() !== conversation.roomId"
                 >
@@ -313,7 +317,7 @@
               }}</span>
               @if (conversation.unreadCount > 0) {
                 <span
-                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-md shadow-indigo-500/20"
+                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-color)] text-[10px] font-bold text-white shadow-[var(--accent-color)]/20 shadow-md"
                 >
                   {{ conversation.unreadCount }}
                 </span>
@@ -337,7 +341,7 @@
           class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-50 p-8 text-center dark:bg-zinc-950"
         >
           <div
-            class="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500 shadow-xl shadow-indigo-500/5 dark:bg-indigo-950/30 dark:text-indigo-400"
+            class="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--accent-50)] text-[var(--accent-color)] shadow-[var(--accent-color)]/5 shadow-xl dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
           >
             <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -360,7 +364,7 @@
         >
           <div class="flex items-center space-x-3 overflow-hidden">
             <button
-              class="-ml-2 rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 md:hidden dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+              class="-ml-2 rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[var(--accent-600)] md:hidden dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-[var(--accent-400)]"
               (click)="closeConversation()"
             >
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +388,7 @@
                   />
                 } @else {
                   <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 font-semibold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-100)] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
                   >
                     {{ activeConversation()!.name.charAt(0).toUpperCase() }}
                   </div>
@@ -417,63 +421,126 @@
             }
           </div>
 
-          <button
-            class="rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
-            (click)="toggleDetailsPanel()"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-          </button>
+          <div class="relative">
+            <button
+              class="rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[var(--accent-600)] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-[var(--accent-400)]"
+              (click)="toggleDetailsMenu()"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+            </button>
+            @if (showDetailsMenu()) {
+              <div
+                class="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+              >
+                <button
+                  class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  (click)="toggleDetailsPanel()"
+                >
+                  <svg
+                    class="h-4 w-4 text-[var(--accent-color)]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  View Details
+                </button>
+                <div class="my-1 border-t border-slate-100 dark:border-zinc-700"></div>
+                @if (activeConversation()?.isGroup) {
+                  <button
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      ></path>
+                    </svg>
+                    Leave Group
+                  </button>
+                }
+              </div>
+            }
+          </div>
         </header>
 
         <div
-          class="custom-scrollbar flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 dark:bg-zinc-950/40"
+          class="custom-scrollbar flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 dark:bg-zinc-950/40"
         >
           @for (message of activeMessages(); track message.id) {
             <div
-              class="flex max-w-[80%] flex-col"
+              class="flex max-w-[75%] flex-col"
               [class.self-end]="message.isMine"
               [class.self-start]="!message.isMine"
               [class.ml-auto]="message.isMine"
               [class.mr-auto]="!message.isMine"
             >
               @if (activeConversation()?.isGroup && !message.isMine) {
-                <span class="mb-1 ml-1.5 text-[10px] font-bold text-slate-500 dark:text-zinc-400">{{
-                  message.senderName
-                }}</span>
+                <div class="mb-1 flex items-center gap-2">
+                  @if (message.senderAvatar) {
+                    <img
+                      class="h-5 w-5 rounded-full object-cover"
+                      [src]="message.senderAvatar"
+                      [alt]="message.senderName"
+                    />
+                  } @else {
+                    <div
+                      class="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-100)] text-[9px] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
+                    >
+                      {{ message.senderName.charAt(0).toUpperCase() }}
+                    </div>
+                  }
+                  <span class="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">{{
+                    message.senderName
+                  }}</span>
+                </div>
               }
               <div
-                class="group relative p-3.5 px-4 text-sm leading-relaxed transition-all duration-150"
-                [class.bg-indigo-600]="message.isMine"
-                [class.text-white]="message.isMine"
+                class="group relative px-4 py-2.5 text-sm leading-relaxed transition-all duration-150"
+                [class.bg-[var(--accent-50)]]="message.isMine"
+                [class.dark:bg-[var(--accent-900)]/30]="message.isMine"
+                [class.text-slate-800]="message.isMine"
+                [class.dark:text-zinc-200]="message.isMine"
                 [class.rounded-2xl]="message.isMine"
-                [class.rounded-tr-sm]="message.isMine"
-                [class.shadow-md]="message.isMine"
-                [class.shadow-indigo-500/10]="message.isMine"
+                [class.rounded-br-md]="message.isMine"
+                [class.border]="message.isMine"
+                [class.border-[var(--accent-color)]]="message.isMine"
+                [class.dark:border-[var(--accent-700)]]="message.isMine"
+                [class.shadow-sm]="message.isMine"
                 [class.bg-white]="!message.isMine"
                 [class.dark:bg-zinc-800]="!message.isMine"
                 [class.text-slate-800]="!message.isMine"
                 [class.dark:text-zinc-200]="!message.isMine"
                 [class.rounded-2xl]="!message.isMine"
-                [class.rounded-tl-sm]="!message.isMine"
+                [class.rounded-bl-md]="!message.isMine"
                 [class.border]="!message.isMine"
-                [class.border-slate-200/50]="!message.isMine"
-                [class.dark:border-zinc-700/50]="!message.isMine"
+                [class.border-slate-200]="!message.isMine"
+                [class.dark:border-zinc-600]="!message.isMine"
+                [class.shadow-sm]="!message.isMine"
               >
                 <p class="whitespace-pre-line">{{ message.content }}</p>
-                <div class="mt-1.5 flex items-center justify-end opacity-70">
-                  <span class="text-[9px] font-medium tracking-wide uppercase">{{
+                <div class="mt-1.5 flex items-center justify-end gap-1">
+                  <span class="text-[9px] font-medium tracking-wide opacity-60">{{
                     message.time
                   }}</span>
                   @if (message.isMine) {
                     <svg
-                      class="ml-1.5 h-3.5 w-3.5 text-indigo-200"
+                      class="h-3.5 w-3.5 opacity-60"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -496,53 +563,234 @@
           class="shrink-0 border-t border-slate-200 bg-white p-4 pb-8 dark:border-zinc-800 dark:bg-zinc-900"
         >
           <form
-            class="mx-auto flex max-w-4xl items-center space-x-2 md:space-x-3"
+            class="mx-auto flex max-w-4xl items-end space-x-2 md:space-x-3"
             (submit)="sendMessage($event)"
           >
-            <button
-              type="button"
-              class="shrink-0 rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              title="Attach Document"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                ></path>
-              </svg>
-            </button>
-
-            <div class="relative flex-1">
-              <input
-                type="text"
-                autocomplete="off"
-                placeholder="Write a message..."
-                class="w-full rounded-2xl border-0 bg-slate-100 py-3 pr-10 pl-4 text-sm text-slate-900 placeholder-slate-400 transition-all duration-150 focus:ring-2 focus:ring-indigo-500/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
-                [value]="messageInput()"
-                (input)="onMessageInputChange($any($event.target).value)"
-                (keydown)="onInputKeydown($event)"
-              />
+            <div class="relative flex items-end">
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition-colors hover:text-amber-500 dark:text-zinc-500 dark:hover:text-amber-400"
-                title="Emojis"
+                class="shrink-0 rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                title="Attach"
+                (click)="toggleAttachmentMenu()"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
-                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                   ></path>
                 </svg>
               </button>
+              @if (showAttachmentMenu()) {
+                <div
+                  class="absolute bottom-full left-0 z-50 mb-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                >
+                  <button
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    <svg
+                      class="h-4 w-4 text-[var(--accent-color)]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                    Photo Library
+                  </button>
+                  <button
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    <svg
+                      class="h-4 w-4 text-emerald-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      ></path>
+                    </svg>
+                    Document
+                  </button>
+                  <button
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    <svg
+                      class="h-4 w-4 text-rose-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                      ></path>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                      ></path>
+                    </svg>
+                    Camera
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="relative flex-1">
+              <input
+                type="text"
+                autocomplete="off"
+                placeholder="Write a message..."
+                class="w-full rounded-2xl border-0 bg-slate-100 py-3 pr-24 pl-4 text-sm text-slate-900 placeholder-slate-400 transition-all duration-150 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
+                [value]="messageInput()"
+                (input)="onMessageInputChange($any($event.target).value)"
+                (keydown)="onInputKeydown($event)"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+                <button
+                  type="button"
+                  class="rounded-lg p-1.5 text-slate-400 transition-colors hover:text-amber-500 dark:text-zinc-500 dark:hover:text-amber-400"
+                  title="Emoji"
+                  (click)="toggleEmojiPicker()"
+                >
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              @if (showEmojiPicker()) {
+                <div
+                  class="absolute right-0 bottom-full z-50 mb-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                >
+                  <div class="flex items-center border-b border-slate-100 dark:border-zinc-700">
+                    <button
+                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
+                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'recent'"
+                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'recent'"
+                      [class.border-transparent]="activeEmojiTab() !== 'recent'"
+                      [class.text-slate-400]="activeEmojiTab() !== 'recent'"
+                      (click)="setEmojiTab('recent')"
+                    >
+                      <span>🕐</span>
+                      <span>Recent</span>
+                    </button>
+                    <button
+                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
+                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'smileys'"
+                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'smileys'"
+                      [class.border-transparent]="activeEmojiTab() !== 'smileys'"
+                      [class.text-slate-400]="activeEmojiTab() !== 'smileys'"
+                      (click)="setEmojiTab('smileys')"
+                    >
+                      <span>😀</span>
+                      <span>Smileys</span>
+                    </button>
+                    <button
+                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
+                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'gestures'"
+                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'gestures'"
+                      [class.border-transparent]="activeEmojiTab() !== 'gestures'"
+                      [class.text-slate-400]="activeEmojiTab() !== 'gestures'"
+                      (click)="setEmojiTab('gestures')"
+                    >
+                      <span>👋</span>
+                      <span>Gestures</span>
+                    </button>
+                    <button
+                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
+                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'objects'"
+                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'objects'"
+                      [class.border-transparent]="activeEmojiTab() !== 'objects'"
+                      [class.text-slate-400]="activeEmojiTab() !== 'objects'"
+                      (click)="setEmojiTab('objects')"
+                    >
+                      <span>❤️</span>
+                      <span>Objects</span>
+                    </button>
+                  </div>
+                  <div class="custom-scrollbar h-64 overflow-y-auto p-2">
+                    @if (activeEmojiTab() === "recent") {
+                      <div class="grid grid-cols-8 gap-1">
+                        @for (
+                          emoji of recentEmojis().length > 0 ? recentEmojis() : recentEmojisDefault;
+                          track emoji
+                        ) {
+                          <button
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
+                            (click)="addEmoji(emoji)"
+                          >
+                            {{ emoji }}
+                          </button>
+                        } @empty {
+                          <div class="col-span-8 py-4 text-center text-xs text-slate-400">
+                            No recent emojis
+                          </div>
+                        }
+                      </div>
+                    }
+                    @if (activeEmojiTab() === "smileys") {
+                      <div class="grid grid-cols-8 gap-1">
+                        @for (emoji of smileysEmojis; track emoji) {
+                          <button
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
+                            (click)="addEmoji(emoji)"
+                          >
+                            {{ emoji }}
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if (activeEmojiTab() === "gestures") {
+                      <div class="grid grid-cols-8 gap-1">
+                        @for (emoji of gesturesEmojis; track emoji) {
+                          <button
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
+                            (click)="addEmoji(emoji)"
+                          >
+                            {{ emoji }}
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if (activeEmojiTab() === "objects") {
+                      <div class="grid grid-cols-8 gap-1">
+                        @for (emoji of objectsEmojis; track emoji) {
+                          <button
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
+                            (click)="addEmoji(emoji)"
+                          >
+                            {{ emoji }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
             </div>
 
             <button
               type="submit"
-              class="shrink-0 rounded-2xl bg-indigo-600 p-3 text-white shadow-lg shadow-indigo-500/15 transition-all duration-150 hover:bg-indigo-700 hover:shadow-indigo-500/20 active:scale-[0.95]"
+              class="shrink-0 rounded-2xl bg-[var(--accent-color)] p-3 text-white shadow-[var(--accent-color)]/15 shadow-lg transition-all duration-150 hover:bg-[var(--accent-600)] hover:shadow-[var(--accent-color)]/20 active:scale-[0.95] disabled:opacity-50"
               [disabled]="!messageInput().trim()"
             >
               <svg
@@ -598,7 +846,7 @@
               >
               <input
                 type="text"
-                class="w-full rounded-xl border-0 bg-slate-100 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-100"
+                class="w-full rounded-xl border-0 bg-slate-100 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-100"
                 placeholder="Enter group name..."
                 [value]="newGroupName()"
                 (input)="newGroupName.set($any($event.target).value)"
@@ -615,7 +863,7 @@
               Cancel
             </button>
             <button
-              class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/15 transition-colors hover:bg-indigo-700"
+              class="rounded-xl bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white shadow-[var(--accent-color)]/15 shadow-lg transition-colors hover:bg-[var(--accent-600)]"
               (click)="createGroup()"
               [disabled]="!newGroupName().trim()"
             >
@@ -650,6 +898,102 @@
           </button>
         </div>
       </div>
+    }
+
+    @if (showDetailsPanel()) {
+      <aside
+        class="flex w-80 shrink-0 flex-col border-l border-slate-200 bg-white md:w-80 dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        <div
+          class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-zinc-700"
+        >
+          <h3 class="font-semibold text-slate-800 dark:text-zinc-200">Details</h3>
+          <button
+            class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            (click)="toggleDetailsPanel()"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+          @if (activeConversation()) {
+            <div class="border-b border-slate-100 p-4 dark:border-zinc-800">
+              <div class="mb-4 flex flex-col items-center">
+                @if (activeConversation()!.avatar) {
+                  <img
+                    class="mb-3 h-16 w-16 rounded-2xl object-cover"
+                    [src]="activeConversation()!.avatar"
+                    [alt]="activeConversation()!.name"
+                  />
+                } @else {
+                  <div
+                    class="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent-100)] text-2xl font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
+                  >
+                    {{ activeConversation()!.name.charAt(0).toUpperCase() }}
+                  </div>
+                }
+                <h4 class="text-center font-semibold text-slate-800 dark:text-zinc-200">
+                  {{ activeConversation()!.name }}
+                </h4>
+                @if (activeConversation()!.isGroup) {
+                  <span class="mt-1 text-xs text-slate-500 dark:text-zinc-400"
+                    >{{ activeConversation()!.memberCount }} members</span
+                  >
+                }
+              </div>
+            </div>
+
+            @if (activeConversation()!.isGroup) {
+              <div class="p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm font-medium text-slate-500 dark:text-zinc-400">Members</span>
+                  <button
+                    class="text-xs font-medium text-[var(--accent-600)] hover:text-[var(--accent-700)] dark:text-[var(--accent-400)] dark:hover:text-[var(--accent-300)]"
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div class="space-y-1">
+                  @for (member of members(); track member.id) {
+                    <div
+                      class="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                    >
+                      @if (member.avatar) {
+                        <img
+                          class="h-8 w-8 rounded-full object-cover"
+                          [src]="member.avatar"
+                          [alt]="member.name"
+                        />
+                      } @else {
+                        <div
+                          class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600 dark:bg-zinc-700 dark:text-zinc-400"
+                        >
+                          {{ member.name.charAt(0).toUpperCase() }}
+                        </div>
+                      }
+                      <span class="flex-1 truncate text-sm text-slate-700 dark:text-zinc-300">{{
+                        member.name
+                      }}</span>
+                    </div>
+                  } @empty {
+                    <div class="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
+                      No members yet
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </aside>
     }
   </div>
 </div>
