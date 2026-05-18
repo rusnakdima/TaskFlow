@@ -12,10 +12,13 @@ use nosql_orm::Validate;
 #[soft_delete]
 #[timestamp]
 #[index("user_id", 1)]
+#[index("visibility", 1)]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,
   pub user_id: String,
+  #[serde(default)]
+  pub visibility: String,
   #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
   #[serde(default)]
@@ -31,6 +34,8 @@ pub struct CategoryCreateModel {
   pub title: String,
   #[validate(not_empty)]
   pub user_id: String,
+  #[serde(default)]
+  pub visibility: Option<String>,
 }
 
 impl From<CategoryCreateModel> for CategoryEntity {
@@ -39,6 +44,7 @@ impl From<CategoryCreateModel> for CategoryEntity {
       id: None,
       title: value.title,
       user_id: value.user_id,
+      visibility: value.visibility.unwrap_or_else(|| "private".to_string()),
       deleted_at: None,
       created_at: None,
       updated_at: None,
