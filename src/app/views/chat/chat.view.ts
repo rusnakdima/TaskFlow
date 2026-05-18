@@ -948,12 +948,19 @@ export class ChatView implements OnInit {
             if (chat.deleted_at) continue;
 
             const profile = this.getProfileByUserId(chat.sender_id);
+            if (!profile) {
+              this.fetchProfileIfMissing(chat.sender_id);
+            }
+
+            const senderName = profile
+              ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
+              : chat.sender_id;
 
             msgs.push({
               id: chat.id,
               content: chat.content,
               senderId: chat.sender_id,
-              senderName: chat.author_name || chat.sender_id,
+              senderName: senderName,
               senderAvatar: profile?.image_url,
               time: this.formatDate(chat.created_at || ""),
               isMine: chat.sender_id === currentUserId,
