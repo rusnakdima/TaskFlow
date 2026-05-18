@@ -186,8 +186,12 @@
     [filters]="getFilterConfigs()"
     [filterValues]="getFilterValues()"
     [getOptionsFn]="getDynamicOptionsFn"
+    [searchConfig]="{ includeFields: searchFields, excludeFields: excludeFields }"
+    [searchData]="searchData"
+    [pageSearchQuery]="searchQuery"
     (closeEvent)="onToggleFilter()"
     (clearEvent)="onClearFilters()"
     (filterChangeEvent)="onFiltersChange($event)"
+    (filteredDataChange)="onFilteredDataChange($event)"
   />
 }
