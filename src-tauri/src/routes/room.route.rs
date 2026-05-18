@@ -46,14 +46,13 @@ pub async fn get_room(
 #[tauri::command]
 pub async fn get_rooms(
   state: State<'_, AppState>,
-  user_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _request_user_id = extract_user_from_token(
+  let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config_helper.jwt_secret,
   )
-  .ok();
+  .map_err(|e| e)?;
 
   let filter = serde_json::json!({
     "participant_ids": { "$in": [user_id] }

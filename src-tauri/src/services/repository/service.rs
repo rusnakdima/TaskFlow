@@ -550,7 +550,8 @@ impl RepositoryService {
             "$or": [
               { "name": search_regex },
               { "last_name": search_regex },
-              { "email": search_regex }
+              { "email": search_regex },
+              { "user.username": search_regex }
             ]
           })
         }
@@ -570,7 +571,20 @@ impl RepositoryService {
       .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
       .await
     {
-      Ok(docs) => (docs, false),
+      Ok(docs) => {
+        if docs.is_empty() && visibility_str == "all" {
+          let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+          match json_provider
+            .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+            .await
+          {
+            Ok(json_docs) => (json_docs, true),
+            Err(_) => (docs, false),
+          }
+        } else {
+          (docs, false)
+        }
+      }
       Err(_e) => {
         let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
         let docs = json_provider
