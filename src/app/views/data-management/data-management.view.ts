@@ -128,6 +128,8 @@ export class DataManagementView implements OnInit {
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
   expandedRecords = signal<Set<string>>(new Set());
+  pageSearchResults = signal<any[]>([]);
+  pageSearchQuery = signal<string>("");
 
   adminTableFields = TableFieldFactory.createAdminFields();
 
@@ -442,6 +444,10 @@ export class DataManagementView implements OnInit {
   getCurrentData(): any[] {
     let data: any[];
 
+    if (this.pageSearchResults().length > 0) {
+      return this.pageSearchResults();
+    }
+
     if (this.mode === "admin") {
       data = this.getAdminData();
     } else {
@@ -669,6 +675,7 @@ export class DataManagementView implements OnInit {
     this.deletedFilter.set("all");
     this.sortBy.set(cleared.sortBy);
     this.sortOrder.set(cleared.sortOrder);
+    this.pageSearchResults.set([]);
   }
 
   onBulkSelectAll(): void {
@@ -1018,10 +1025,65 @@ export class DataManagementView implements OnInit {
     return this.getFilterOptions(key);
   };
 
+  getSearchFields(): string[] {
+    switch (this.selectedType()) {
+      case "todos":
+      case "tasks":
+      case "subtasks":
+        return ["title", "description", "status", "priority"];
+      case "comments":
+        return ["content"];
+      case "chats":
+        return ["message", "content"];
+      case "categories":
+        return ["name", "description"];
+      case "daily_activities":
+        return ["date", "activity"];
+      default:
+        return ["title"];
+    }
+  }
+
+  getExcludeFields(): string[] {
+    return [
+      "id",
+      "created_at",
+      "updated_at",
+      "deleted_at",
+      "createdBy",
+      "updatedBy",
+      "userId",
+      "todo_id",
+      "task_id",
+      "subtask_id",
+    ];
+  }
+
   onDynamicFilterChange(event: { key: string; value: string }): void {
     const signal = this.getFilterSignal(event.key);
     signal.set(event.value);
+    this.pageSearchResults.set([]);
     this.showFilters.set(true);
+  }
+
+  onPageSearchFiltered(data: any[]): void {
+    if (data === null) {
+      this.pageSearchResults.set([]);
+    } else {
+      this.pageSearchResults.set(data);
+    }
+  }
+
+  onPageSearchQueryChange(query: string): void {
+    this.pageSearchQuery.set(query);
+  }
+
+  getOriginalData(): any[] {
+    if (this.mode === "admin") {
+      return this.getAdminData();
+    } else {
+      return this.getArchiveData();
+    }
   }
 
   private removeRecordFromStorage(table: string, id: string): void {
