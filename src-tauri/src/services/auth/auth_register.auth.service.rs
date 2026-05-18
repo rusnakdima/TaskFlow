@@ -71,6 +71,17 @@ impl AuthRegisterService {
       return Err(err_response("User already exists"));
     }
 
+    // Check MongoDB for existing user (required check when MongoDB is available)
+    if let Some(mongo) = &self.mongodb_provider {
+      let existing_mongo = mongo
+        .find_many(table_name, Some(&filter), None, None, None, false)
+        .await
+        .map_err(|e| err_response(&format!("Error checking user in cloud: {}", e)))?;
+      if !existing_mongo.is_empty() {
+        return Err(err_response("User already exists in cloud"));
+      }
+    }
+
     let hashed_password = hash(password, DEFAULT_COST)
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
 
