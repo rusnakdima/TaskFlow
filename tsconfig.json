@@ -38,7 +38,8 @@
       "@stores/*": ["./src/app/stores/*"],
       "@mixins/*": ["./src/app/mixins/*"],
       "@constants/*": ["./src/app/constants/*"],
-      "@validators/*": ["./src/app/validators/*"]
+      "@validators/*": ["./src/app/validators/*"],
+      "@utils/*": ["./src/app/utils/*"]
     }
   },
   "angularCompilerOptions": {
