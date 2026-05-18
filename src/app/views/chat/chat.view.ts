@@ -444,7 +444,6 @@ export class ChatView implements OnInit {
 
     this.requestService
       .invokeCommand("get_rooms", {
-        userId: userId,
         token: this.authService.getToken(),
       })
       .subscribe({
@@ -527,7 +526,7 @@ export class ChatView implements OnInit {
       this.recentUserIds.update((ids) => [profileUserId, ...ids].slice(0, 20));
     }
 
-    const roomId = `dm_${profileUserId}`;
+    const roomId = crypto.randomUUID();
     const conv: ConversationItem = {
       roomId: roomId,
       name: this.getProfileDisplayName(profile),
@@ -786,7 +785,8 @@ export class ChatView implements OnInit {
     for (const chat of chats) {
       if (chat.deleted_at) continue;
 
-      const roomId = chat.room_id || chat.user_id;
+      const roomId = chat.room_id;
+      if (!roomId) continue;
 
       if (!convMap.has(roomId)) {
         let name = "Unknown";
@@ -795,21 +795,21 @@ export class ChatView implements OnInit {
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
 
-        if (!isGroup && roomId.startsWith("dm_")) {
-          otherUserId = roomId.substring(3);
-          const profile = this.getProfileByUserId(otherUserId);
-          if (profile) {
-            name = this.getProfileDisplayName(profile);
-            avatar = profile.image_url || null;
-          } else if (chat.author_name) {
-            name = chat.author_name;
-          } else {
-            this.fetchProfileIfMissing(otherUserId);
+        if (!isGroup) {
+          otherUserId = chat.user_id;
+          if (otherUserId && otherUserId !== currentUserId) {
+            const profile = this.getProfileByUserId(otherUserId);
+            if (profile) {
+              name = this.getProfileDisplayName(profile);
+              avatar = profile.image_url || null;
+            } else if (chat.author_name) {
+              name = chat.author_name;
+            } else {
+              this.fetchProfileIfMissing(otherUserId);
+            }
           }
-        } else if (isGroup) {
-          name = "Group";
         } else {
-          name = chat.author_name || roomId;
+          name = "Group";
         }
 
         convMap.set(roomId, {
