@@ -36,6 +36,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;
+  @Input() visibility: string = "private";
 
   @Output() close: EventEmitter<void> = new EventEmitter<void>();
   @Output() saved: EventEmitter<void> = new EventEmitter<void>();
@@ -102,7 +103,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     };
 
     this.requestService
-      .create<Category>("categories", categoryData, { visibility: "private" })
+      .create<Category>("categories", categoryData, { visibility: this.visibility })
       .subscribe({
         next: (_createdCategory: Category) => {
           this.notifyService.showSuccess("Category created successfully");
@@ -127,7 +128,9 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     };
 
     this.requestService
-      .update("categories", this.editingCategory.id, updatedCategory, { visibility: "private" })
+      .update("categories", this.editingCategory.id, updatedCategory, {
+        visibility: this.visibility,
+      })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");

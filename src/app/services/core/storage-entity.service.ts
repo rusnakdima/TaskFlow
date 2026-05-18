@@ -40,6 +40,10 @@ export class StorageEntityService {
   readonly sharedTodos = signal<Todo[]>([]);
   readonly publicTodos = signal<Todo[]>([]);
 
+  readonly privateCategories = signal<Category[]>([]);
+  readonly sharedCategories = signal<Category[]>([]);
+  readonly publicCategories = signal<Category[]>([]);
+
   addEntity(type: EntityType, data: any): void {
     if (!data?.id) return;
     if (type === "profiles") {
@@ -54,6 +58,15 @@ export class StorageEntityService {
           : visibility === "public"
             ? this.publicTodos
             : this.sharedTodos;
+      addEntityToSignal(target, data);
+    } else if (type === "categories") {
+      const visibility = data.visibility || "private";
+      const target =
+        visibility === "private"
+          ? this.privateCategories
+          : visibility === "public"
+            ? this.publicCategories
+            : this.sharedCategories;
       addEntityToSignal(target, data);
     } else {
       addEntityToSignal(this.getSignal(type), data);
@@ -71,6 +84,10 @@ export class StorageEntityService {
       updateEntityInSignal(this.privateTodos, data.id, data);
       updateEntityInSignal(this.sharedTodos, data.id, data);
       updateEntityInSignal(this.publicTodos, data.id, data);
+    } else if (type === "categories") {
+      updateEntityInSignal(this.privateCategories, data.id, data);
+      updateEntityInSignal(this.sharedCategories, data.id, data);
+      updateEntityInSignal(this.publicCategories, data.id, data);
     } else {
       updateEntityInSignal(this.getSignal(type) as WritableSignal<any[]>, data.id, data);
     }
@@ -86,6 +103,10 @@ export class StorageEntityService {
       removeEntityFromSignal(this.privateTodos, id);
       removeEntityFromSignal(this.sharedTodos, id);
       removeEntityFromSignal(this.publicTodos, id);
+    } else if (type === "categories") {
+      removeEntityFromSignal(this.privateCategories, id);
+      removeEntityFromSignal(this.sharedCategories, id);
+      removeEntityFromSignal(this.publicCategories, id);
     } else {
       removeEntityFromSignal(this.getSignal(type) as WritableSignal<any[]>, id);
     }
@@ -175,6 +196,9 @@ export class StorageEntityService {
     this.privateTodos.set([]);
     this.sharedTodos.set([]);
     this.publicTodos.set([]);
+    this.privateCategories.set([]);
+    this.sharedCategories.set([]);
+    this.publicCategories.set([]);
     this.tasks.set([]);
     this.subtasks.set([]);
     this.comments.set([]);

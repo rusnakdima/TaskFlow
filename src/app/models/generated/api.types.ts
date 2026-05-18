@@ -172,6 +172,7 @@ export interface Category {
   id: string;
   user_id: string;
   title: string;
+  visibility?: string;
   created_at?: string;
   updated_at?: string;
   deleted_at?: string;

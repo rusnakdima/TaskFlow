@@ -116,6 +116,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     return this.stateService.listTodos();
   }
 
+  override onSearchChange(query: string): void {
+    super.onSearchChange(query);
+    this.stateService.onSearchChange(query);
+  }
+
   highlightTodoId = signal<string | null>(null);
   userId = signal("");
   showStats = signal(false);

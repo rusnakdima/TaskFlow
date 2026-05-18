@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { Todo, User, Profile, Room } from "@models/generated/api.types";
+import { Todo, User, Profile, Room, Category } from "@models/generated/api.types";
 import { Task, TaskStatus } from "@models/generated/api.types";
 import { Subtask } from "@models/generated/api.types";
 import { Comment } from "@models/generated/api.types";
@@ -283,6 +283,10 @@ export class StorageService {
         this._entityService.removeEntity(type, data.id);
         break;
     }
+  }
+
+  updateEntity(type: EntityType, data: any): void {
+    this._entityService.updateEntity(type, data);
   }
 
   updateChat(op: ChatOperation, data?: Chat): void {
@@ -580,6 +584,16 @@ export class StorageService {
       );
       this._entityService.subtasks.update((subtasks) =>
         subtasks.map((s) => (s.id === id ? { ...s, ...update } : s))
+      );
+    } else if (table === "categories") {
+      [
+        this._entityService.privateCategories,
+        this._entityService.sharedCategories,
+        this._entityService.publicCategories,
+      ].forEach((signal) =>
+        signal.update((categories) =>
+          categories.map((c) => (c.id === id ? { ...c, ...update } : c))
+        )
       );
     }
   }
@@ -913,7 +927,6 @@ export class StorageService {
   }
 
   ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
-    if (this.categories().length > 0) return;
     this._queryService.ensureCategoriesLoaded(visibility, limit);
   }
 
@@ -950,6 +963,21 @@ export class StorageService {
       this._queryService.ensureTodosLoaded(visibility);
     }
     return todos;
+  }
+
+  getCategoriesForVisibility(visibility: string): Category[] {
+    const categories =
+      visibility === "private"
+        ? this._entityService.privateCategories()
+        : visibility === "shared"
+          ? this._entityService.sharedCategories()
+          : visibility === "public"
+            ? this._entityService.publicCategories()
+            : [];
+    if (categories.length === 0 && !this._queryService.isEntityLoading("categories")) {
+      this._queryService.ensureCategoriesLoaded(visibility);
+    }
+    return categories;
   }
 
   loadMoreTodos(): void {
