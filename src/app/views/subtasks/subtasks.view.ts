@@ -29,6 +29,7 @@ import { CommentService } from "@services/features/comment.service";
 import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { SearchService } from "@services/core/search.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -108,6 +109,7 @@ export class SubtasksViewComponent extends BaseListView {
 
   kanbanHelper = inject(SubtasksKanbanHelper);
   private syncService = inject(UnifiedSyncService);
+  private searchService = inject(SearchService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -180,12 +182,28 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   listSubtasks = computed(() => {
+    const query = this.searchQuery();
+    if (query.trim()) {
+      const searchResults = this.searchService.subtasksResults();
+      if (searchResults.length > 0) {
+        return FilteredListHelper.filterAndSort(searchResults, {
+          filter: this.activeFilter(),
+          query: "",
+          filterType: "status",
+        });
+      }
+    }
     return FilteredListHelper.filterAndSort(this.taskSubtasks(), {
       filter: this.activeFilter(),
-      query: this.searchQuery(),
+      query: query,
       filterType: "status",
     });
   });
+
+  override onSearchChange(query: string): void {
+    super.onSearchChange(query);
+    this.searchService.search("subtasks", query);
+  }
 
   selectedSubtasks = () => this.selectedItems();
 

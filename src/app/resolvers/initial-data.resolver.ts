@@ -50,6 +50,17 @@ export class InitialDataResolver implements Resolve<unknown> {
     return !!profile?.user_id;
   }
 
+  private hasCompleteProfile(): boolean {
+    const profile = this.storageService.profile();
+    return !!(
+      profile?.user_id &&
+      profile?.name &&
+      profile?.name.trim() !== "" &&
+      profile?.last_name &&
+      profile?.last_name.trim() !== ""
+    );
+  }
+
   private loadProfileInBackground(): Observable<boolean> {
     return new Observable((observer) => {
       if (this.hasValidProfile()) {
@@ -96,11 +107,16 @@ export class InitialDataResolver implements Resolve<unknown> {
     const targetUrl = state.url || this.router.url;
 
     if (targetUrl.startsWith("/profile")) {
+      await lastValueFrom(this.loadProfileInBackground());
       if (targetUrl === "/profile/manage") {
-        const hasProfile = await lastValueFrom(this.loadProfileInBackground());
-        if (hasProfile) {
+        if (this.hasCompleteProfile()) {
           this.router.navigate(["/profile"]);
           return { loaded: true, redirectToProfile: true };
+        }
+      } else if (targetUrl === "/profile") {
+        if (!this.hasCompleteProfile()) {
+          this.router.navigate(["/profile/manage"]);
+          return { loaded: true, redirectToManageProfile: true };
         }
       }
       return { loaded: true, isProfileRoute: true };
@@ -113,15 +129,15 @@ export class InitialDataResolver implements Resolve<unknown> {
       return { loaded: false, redirectToLogin: true };
     }
 
-    const hasProfile = await lastValueFrom(this.loadProfileInBackground());
+    await lastValueFrom(this.loadProfileInBackground());
 
-    if (!hasProfile && !targetUrl.startsWith("/profile")) {
+    if (!this.hasCompleteProfile()) {
       this.router.navigate(["/profile/manage"]);
+      return { loaded: true, redirectToManageProfile: true };
     }
 
     return {
       loaded: true,
-      hasProfile,
       fromCache: this.hasCachedData(),
       isEmpty: !this.hasCachedData(),
     };

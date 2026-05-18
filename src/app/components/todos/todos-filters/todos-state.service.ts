@@ -3,15 +3,22 @@ import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
+import { SearchService } from "@services/core/search.service";
 
 @Injectable({ providedIn: "root" })
 export class TodosStateService {
   private storageService = inject(StorageService);
+  private searchService = inject(SearchService);
 
   activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
   statusFilter = signal("all");
   priorityFilter = signal("all");
   searchQuery = signal("");
+
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+    this.searchService.search("todos", query);
+  }
 
   private getPrivateTodos(): Todo[] {
     return this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at);
@@ -33,6 +40,41 @@ export class TodosStateService {
     const statusFilter = this.statusFilter();
     const priorityFilter = this.priorityFilter();
     const query = this.searchQuery().toLowerCase().trim();
+
+    if (query) {
+      const searchResults = this.searchService.todosResults();
+      if (searchResults.length > 0) {
+        const applyFilters = (todos: Todo[]): Todo[] => {
+          let filtered = todos;
+
+          if (statusFilter && statusFilter !== "all") {
+            switch (statusFilter) {
+              case "active":
+                filtered = filtered.filter((todo) => !this.isCompleted(todo));
+                break;
+              case "completed":
+                filtered = filtered.filter((todo) => this.isCompleted(todo));
+                break;
+              case "week":
+                filtered = FilterHelper.filterThisWeek(filtered);
+                break;
+            }
+          }
+
+          if (priorityFilter && priorityFilter !== "all") {
+            filtered = FilterHelper.filterByPriority(filtered, priorityFilter);
+          }
+
+          return SortHelper.sortByOrder(filtered, "desc");
+        };
+
+        return {
+          private: applyFilters(searchResults.filter((t: Todo) => t.visibility === "private")),
+          shared: applyFilters(searchResults.filter((t: Todo) => t.visibility === "shared")),
+          public: applyFilters(searchResults.filter((t: Todo) => t.visibility === "public")),
+        };
+      }
+    }
 
     const applyFilters = (todos: Todo[]): Todo[] => {
       let filtered = todos;

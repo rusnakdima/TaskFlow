@@ -3,7 +3,7 @@
     <app-segment-selector
       [options]="visibilityOptions()"
       [active]="activeVisibility()"
-      (select)="activeVisibility.set($any($event))"
+      (select)="onVisibilityChange($any($event))"
     />
 
     <app-page-toolbar [config]="getToolbarConfig()" />
@@ -12,6 +12,7 @@
   <app-category-form
     [isVisible]="showCreateForm()"
     [editingCategory]="editingCategory()"
+    [visibility]="activeVisibility() === 'all' ? 'private' : activeVisibility()"
     (close)="onFormClose()"
     (saved)="onFormSaved()"
   />

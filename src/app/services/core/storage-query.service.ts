@@ -673,10 +673,28 @@ export class StorageQueryService {
   }
 
   ensureCategoriesLoaded(visibility: string = "private", limit: number = 10): void {
-    if (this._categoriesLoading() || this._entityService.categories().length > 0) return;
+    if (this._categoriesLoading()) return;
+    const existingKey =
+      visibility === "private"
+        ? "privateCategories"
+        : visibility === "public"
+          ? "publicCategories"
+          : "sharedCategories";
+    const existingSignal = this._entityService[
+      existingKey as keyof typeof this._entityService
+    ] as any;
+    if (existingSignal && existingSignal().length > 0) return;
+
     this._categoriesLoading.set(true);
     this.apiService.categories.getAll({ visibility, limit }).subscribe({
       next: (categories) => {
+        if (visibility === "private") {
+          this._entityService.privateCategories.set(categories);
+        } else if (visibility === "public") {
+          this._entityService.publicCategories.set(categories);
+        } else {
+          this._entityService.sharedCategories.set(categories);
+        }
         this._entityService.categories.set(categories);
       },
       error: () => {},
@@ -970,9 +988,10 @@ export class StorageQueryService {
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
-            this.setCollection("profiles", profiles[0]);
-            if ((profiles[0] as any).user) {
-              this.setCollection("user", (profiles[0] as any).user);
+            const profile = profiles[0];
+            this.setCollection("profiles", profile);
+            if ((profile as any).user) {
+              this.setCollection("user", (profile as any).user);
             }
           } else {
             this.profileRequiredService.setProfileRequiredMode(true);

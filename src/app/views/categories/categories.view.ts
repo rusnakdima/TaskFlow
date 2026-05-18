@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { firstValueFrom, Observable } from "rxjs";
+import { Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -21,12 +21,12 @@ import {
 } from "@components/segment-selector/segment-selector.component";
 
 /* services */
-import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { StorageService } from "@services/storage.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { SearchService } from "@services/core/search.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -70,11 +70,10 @@ import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-dis
 export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
-  private requestService = inject(ApiService);
-  private apiService = inject(ApiService);
   private relationLoadingService = inject(RelationLoadingService);
   protected override storageService = inject(StorageService);
   private mongoConnectionService = inject(MongoConnectionService);
+  private searchService = inject(SearchService);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
@@ -111,22 +110,46 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   searchResults = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (query) {
+      const searchResults = this.searchService.categoriesResults();
+      if (searchResults.length > 0) {
+        return [...searchResults].sort((a, b) => {
+          let comparison = 0;
+          const by = this.sortBy();
+          if (by === "title") {
+            comparison = (a.title || "").localeCompare(b.title || "");
+          } else if (by === "createdAt") {
+            comparison = compareByTimestamp(a, b);
+          } else if (by === "updatedAt") {
+            comparison = compareByTimestamp(a, b);
+          }
+          return this.sortOrder() === "asc" ? comparison : -comparison;
+        });
+      }
+    }
+
     const currentUserId = this.authService.getValueByKey("id") || this.userId();
-    let cats = this.storageService.categories();
+    const visibility = this.activeVisibility();
+    let cats: Category[] = [];
+
+    if (visibility === "all") {
+      cats = [
+        ...this.storageService.getCategoriesForVisibility("private"),
+        ...this.storageService.getCategoriesForVisibility("public"),
+      ];
+    } else {
+      cats = this.storageService.getCategoriesForVisibility(visibility);
+    }
+
     if (currentUserId) {
       cats = cats.filter((cat: Category) => cat.user_id === currentUserId);
     }
-    const visibility = this.activeVisibility();
-    if (visibility === "private") {
-      cats = cats.filter((cat: Category) => !cat.deleted_at);
-    } else if (visibility === "shared") {
-      cats = cats.filter((cat: Category) => !cat.deleted_at);
-    } else if (visibility === "public") {
-      cats = cats.filter((cat: Category) => !cat.deleted_at);
-    } else {
+
+    if (visibility !== "all") {
       cats = cats.filter((cat: Category) => !cat.deleted_at);
     }
-    const query = this.searchQuery().toLowerCase().trim();
+
     if (query) {
       cats = cats.filter((cat: Category) => (cat.title || "").toLowerCase().includes(query));
     }
@@ -144,6 +167,11 @@ export class CategoriesView extends BaseListView implements OnInit {
       return order === "asc" ? comparison : -comparison;
     });
   });
+
+  override onSearchChange(query: string): void {
+    super.onSearchChange(query);
+    this.searchService.search("categories", query);
+  }
 
   userId = signal("");
   showCreateForm = signal(false);
@@ -194,10 +222,14 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   loadCategories(): void {
-    this.storageService.ensureCategoriesLoaded("private", 100);
-    if (this.mongoConnectionService.isConnected()) {
-      this.storageService.ensureCategoriesLoaded("shared", 100);
-      this.storageService.ensureCategoriesLoaded("public", 100);
+    const visibility = this.activeVisibility();
+    if (visibility === "all") {
+      this.storageService.ensureCategoriesLoaded("private", 100);
+      if (this.mongoConnectionService.isConnected()) {
+        this.storageService.ensureCategoriesLoaded("public", 100);
+      }
+    } else {
+      this.storageService.ensureCategoriesLoaded(visibility, 100);
     }
   }
 
@@ -218,6 +250,7 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   onFormSaved() {
     this.onFormClose();
+    this.loadCategories();
   }
 
   onCategoryExpand(item: Category): Observable<any> {
@@ -234,12 +267,22 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       try {
-        const response = await this.adminService.toggleDeleteStatusLocal("categories", categoryId);
+        const response = await this.adminService.toggleDeleteStatusLocal(
+          "categories",
+          categoryId,
+          this.activeVisibility()
+        );
         if (response.status === ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess("Category archived successfully");
-          this.requestService
-            .loadPage("categories", { visibility: "private", limit: 50, skip: 0 })
-            .subscribe();
+          const archivedCategory = this.storageService
+            .getCategoriesForVisibility(this.activeVisibility())
+            .find((c) => c.id === categoryId);
+          if (archivedCategory) {
+            this.storageService.updateEntity("categories", {
+              ...archivedCategory,
+              deleted_at: new Date().toISOString(),
+            });
+          }
           this.searchQuery.set("");
         } else {
           this.notifyService.showError(response.message || "Failed to archive category");
@@ -281,11 +324,22 @@ export class CategoriesView extends BaseListView implements OnInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const archiveRequests = Array.from(selected).map((categoryId) =>
-        firstValueFrom(this.apiService.categories.get(categoryId))
-      );
+      const currentVisibility = this.activeVisibility();
+      const categories = this.storageService.getCategoriesForVisibility(currentVisibility);
+      const archivedAt = new Date().toISOString();
 
-      Promise.all(archiveRequests)
+      Array.from(selected).forEach((categoryId) => {
+        const category = categories.find((c) => c.id === categoryId);
+        if (category) {
+          this.storageService.updateEntity("categories", { ...category, deleted_at: archivedAt });
+        }
+      });
+
+      Promise.all(
+        Array.from(selected).map((categoryId) =>
+          this.adminService.toggleDeleteStatus("categories", categoryId, currentVisibility)
+        )
+      )
         .then(() => {
           this.notifyService.showSuccess(`${selected.size} categori(es) archived successfully`);
           this.clearSelection();
@@ -372,6 +426,11 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   onSearch(query: string): void {
     this.searchQuery.set(query);
+  }
+
+  onVisibilityChange(visibility: string): void {
+    this.activeVisibility.set(visibility as any);
+    this.loadCategories();
   }
 
   onCardClick(event: { event: MouseEvent; id: string }): void {

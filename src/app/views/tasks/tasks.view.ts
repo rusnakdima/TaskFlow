@@ -39,6 +39,7 @@ import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { PromptDialogService } from "@services/core/prompt-dialog.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { SearchService } from "@services/core/search.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -119,6 +120,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   private syncService = inject(UnifiedSyncService);
   private permissionService = inject(PermissionService);
   private jwtTokenService = inject(JwtTokenService);
+  private searchService = inject(SearchService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -302,8 +304,20 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     this.storageService.ensureTasksLoaded(this.visibilityParam(), 10, todoId);
   }
 
+  override onSearchChange(query: string): void {
+    super.onSearchChange(query);
+    this.searchService.search("tasks", query);
+  }
+
   listTasks = computed(() => {
-    return this.filtersHelper.listTasks(this.todoTasks(), this.searchQuery());
+    const query = this.searchQuery();
+    if (query.trim()) {
+      const searchResults = this.searchService.tasksResults();
+      if (searchResults.length > 0) {
+        return this.filtersHelper.listTasks(searchResults, "");
+      }
+    }
+    return this.filtersHelper.listTasks(this.todoTasks(), query);
   });
 
   getTaskUnreadCommentsCount(task: Task): number {

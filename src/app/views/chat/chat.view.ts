@@ -65,6 +65,7 @@ export class ChatView implements OnInit {
   contextMenuConversation = signal<ConversationItem | null>(null);
   showContextMenu = signal(false);
   contextMenuPosition = signal({ x: 0, y: 0 });
+  isMobile = signal(typeof window !== "undefined" && window.innerWidth < 768);
 
   filterType = signal<"all" | "unread" | "groups">("all");
   searchQuery = signal("");
@@ -128,6 +129,7 @@ export class ChatView implements OnInit {
   });
 
   isProfilesLoading = computed(() => this.profileSearchService.isLoading());
+  isSearching = computed(() => this.profileSearchService.isSearching());
   hasMoreProfiles = computed(() => this.profileSearchService.hasMore());
 
   onConversationContextMenu(event: MouseEvent, conv: ConversationItem): void {
@@ -207,6 +209,11 @@ export class ChatView implements OnInit {
 
   ngOnInit(): void {
     this.loadAllUsers();
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", () => {
+        this.isMobile.set(window.innerWidth < 768);
+      });
+    }
   }
 
   private loadAllUsers(): void {
@@ -252,6 +259,7 @@ export class ChatView implements OnInit {
   onSearchChange(value: string): void {
     this.userDropdownSearch.set(value);
     this.searchQuery.set(value);
+    this.profileSearchService.search(value);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -359,6 +367,7 @@ export class ChatView implements OnInit {
   selectConversation(conv: ConversationItem): void {
     this.activeConversationId.set(conv.roomId);
     this.loadMessagesForRoom(conv.roomId);
+    this.showSidebar.set(false);
     if (conv.unreadCount > 0) {
       this.markConversationAsRead(conv.roomId);
     }
@@ -367,6 +376,7 @@ export class ChatView implements OnInit {
   closeConversation(): void {
     this.activeConversationId.set(null);
     this.messages.set([]);
+    this.showSidebar.set(true);
   }
 
   toggleDetailsPanel(): void {
