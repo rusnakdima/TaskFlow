@@ -926,6 +926,11 @@ export class StorageService {
     this._queryService.ensureSubtasksLoaded(visibility, limit);
   }
 
+  ensureChatsLoaded(visibility: string = "private", limit: number = 50): void {
+    if (this.chats().length > 0) return;
+    this._queryService.ensureChatsLoaded(visibility, limit);
+  }
+
   ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
     this._queryService.ensureCategoriesLoaded(visibility, limit);
   }
@@ -974,9 +979,6 @@ export class StorageService {
           : visibility === "public"
             ? this._entityService.publicCategories()
             : [];
-    if (categories.length === 0 && !this._queryService.isEntityLoading("categories")) {
-      this._queryService.ensureCategoriesLoaded(visibility);
-    }
     return categories;
   }
 

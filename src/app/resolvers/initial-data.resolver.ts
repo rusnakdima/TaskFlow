@@ -41,7 +41,8 @@ export class InitialDataResolver implements Resolve<unknown> {
     return (
       this.storageService.privateTodos().length > 0 ||
       this.storageService.sharedTodos().length > 0 ||
-      this.storageService.categories().length > 0
+      this.storageService.categories().length > 0 ||
+      this.storageService.tasks().length > 0
     );
   }
 
@@ -134,6 +135,14 @@ export class InitialDataResolver implements Resolve<unknown> {
     if (!this.hasCompleteProfile()) {
       this.router.navigate(["/profile/manage"]);
       return { loaded: true, redirectToManageProfile: true };
+    }
+
+    if (!this.hasCachedData()) {
+      this.storageService.ensureTodosLoaded("all", 50);
+      this.storageService.ensureTasksLoaded("all", 50);
+      this.storageService.ensureSubtasksLoaded("all", 50);
+      this.storageService.ensureCategoriesLoaded("all", 50);
+      this.storageService.ensureChatsLoaded("all", 50);
     }
 
     return {
