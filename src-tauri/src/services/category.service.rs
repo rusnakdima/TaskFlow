@@ -69,12 +69,13 @@ impl CategoryService {
     Ok(success_response(DataValue::Array(docs)))
   }
 
-  pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
-    let doc = self
-      .base
-      .get_json_provider()
-      .insert("categories", data)
-      .await?;
+  pub async fn create(
+    &self,
+    data: Value,
+    visibility: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let provider = self.base.get_provider(visibility)?;
+    let doc = provider.insert("categories", data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
