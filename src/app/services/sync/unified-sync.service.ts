@@ -116,31 +116,45 @@ export class UnifiedSyncService implements OnDestroy {
         const subject = this.dbChangeSubjects.get(collection);
         if (subject) {
           const payload = event.payload;
-          const operationType = this.mapOperationType(payload.operationType);
+          const operationType = this.mapDbOperationType(payload.operationType);
           subject.next({
             operationType,
             data: payload.data,
             collection,
           });
+
+          if (collection !== "categories") {
+            const eventName = `${this.mapCollectionToType(collection)}-${operationType}`;
+            this.notifyService.handleNotificationEvent(eventName, payload.data);
+          }
         }
       });
       this.tauriUnlisteners.push(unlisten);
     }
   }
 
-  private mapOperationType(operationType: string): "insert" | "update" | "replace" | "delete" {
+  private mapDbOperationType(operationType: string): string {
     switch (operationType) {
-      case "insert":
-        return "insert";
-      case "update":
-        return "update";
-      case "replace":
-        return "replace";
-      case "delete":
-        return "delete";
+      case "created":
+        return "created";
+      case "updated":
+        return "updated";
+      case "deleted":
+        return "deleted";
       default:
-        return "update";
+        return operationType;
     }
+  }
+
+  private mapCollectionToType(collection: string): string {
+    const mapping: Record<string, string> = {
+      todos: "todo",
+      tasks: "task",
+      subtasks: "subtask",
+      comments: "comment",
+      chats: "chat",
+    };
+    return mapping[collection] || collection;
   }
 
   onDbChange(collection: string): Observable<any> {

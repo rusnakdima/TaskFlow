@@ -5,6 +5,7 @@ import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { ProfileSearchService } from "@services/core/profile-search.service";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 
 export type SearchableEntity = "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories";
@@ -36,6 +37,7 @@ export interface GlobalSearchResults {
   categories: GlobalSearchItem[];
   users: GlobalSearchItem[];
   chats: GlobalSearchItem[];
+  rooms: GlobalSearchItem[];
 }
 
 export interface SearchResult<T> {
@@ -50,6 +52,7 @@ export class SearchService {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private mongoConnectionService = inject(MongoConnectionService);
+  private profileSearchService = inject(ProfileSearchService);
 
   private searchSubject = new Subject<{ entity: SearchableEntity; query: string }>();
   private destroy$ = new Subject<void>();
@@ -88,6 +91,7 @@ export class SearchService {
     categories: [],
     users: [],
     chats: [],
+    rooms: [],
   });
 
   readonly globalSearchResults = computed(() => this.globalSearchState());
@@ -290,6 +294,7 @@ export class SearchService {
         categories: [],
         users: [],
         chats: [],
+        rooms: [],
       });
       return;
     }
@@ -303,24 +308,17 @@ export class SearchService {
     this.isGlobalSearching.set(true);
 
     const storageResults = this.performGlobalSearchFromStorage(q);
-    const hasStorageResults =
-      storageResults.projects.length > 0 ||
-      storageResults.tasks.length > 0 ||
-      storageResults.subtasks.length > 0 ||
-      storageResults.categories.length > 0 ||
-      storageResults.chats.length > 0 ||
-      storageResults.users.length > 0;
+    this.globalSearchState.set(storageResults);
 
-    if (hasStorageResults || !this.mongoConnectionService.isConnected()) {
-      this.globalSearchState.set(storageResults);
+    if (this.mongoConnectionService.isConnected()) {
+      this.performGlobalSearchFromApi(query, storageResults);
+    } else {
+      this.profileSearchService.loadInitial().subscribe();
       this.isGlobalSearching.set(false);
-      return;
     }
-
-    this.performGlobalSearchFromApi(query);
   }
 
-  private performGlobalSearchFromApi(query: string): void {
+  private performGlobalSearchFromApi(query: string, baseResults?: GlobalSearchResults): void {
     const token = this.authService.getToken();
 
     forkJoin({
@@ -364,29 +362,40 @@ export class SearchService {
         page: 0,
         limit: 5,
       }),
+      profiles: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "profiles",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+      rooms: this.apiService.invokeCommand<any[]>("get_rooms", {
+        token: token,
+      }),
     }).subscribe({
       next: (results) => {
-        const projects = (results.projects || []).map((t: any) => ({
+        const apiProjects = (results.projects || []).map((t: any) => ({
           id: t.id,
           label: t.title,
           description: t.description?.slice(0, 100) || "",
           icon: "list_alt",
           category: "project" as GlobalSearchCategory,
-          route: `/todos/${t.id}/tasks`,
+          route: `/todos/${t.id}/tasks?visibility=${t.visibility || "private"}`,
           data: t,
         }));
 
-        const tasks = (results.tasks || []).map((t: any) => ({
+        const apiTasks = (results.tasks || []).map((t: any) => ({
           id: t.id,
           label: t.title,
           description: t.description?.slice(0, 100) || "",
           icon: "assignment",
           category: "task" as GlobalSearchCategory,
-          route: `/todos/${t.todo_id}/tasks?highlightTask=${t.id}`,
+          route: `/todos/${t.todo_id}/tasks?highlightTaskId=${t.id}&visibility=${t.visibility || "private"}`,
           data: t,
         }));
 
-        const subtasks = (results.subtasks || []).map((s: any) => {
+        const apiSubtasks = (results.subtasks || []).map((s: any) => {
           const parentTask = this.storageService.getTaskById(s.task_id);
           const route = parentTask
             ? `/todos/${parentTask.todo_id}/tasks/${s.task_id}/subtasks?highlightSubtask=${s.id}`
@@ -402,16 +411,16 @@ export class SearchService {
           };
         });
 
-        const categories = (results.categories || []).map((c: any) => ({
+        const apiCategories = (results.categories || []).map((c: any) => ({
           id: c.id,
           label: c.title,
           icon: "category",
           category: "category" as GlobalSearchCategory,
-          route: "/categories",
+          route: `/categories?highlightCategoryId=${c.id}`,
           data: c,
         }));
 
-        const chats = (results.chats || []).map((c: any) => ({
+        const apiChats = (results.chats || []).map((c: any) => ({
           id: c.id,
           label: c.content?.slice(0, 50) || "Chat message",
           description: c.author_name || "",
@@ -421,26 +430,63 @@ export class SearchService {
           data: c,
         }));
 
-        const profiles = this.getProfilesFromStorage(query.toLowerCase())
+        const apiProfiles = (results.profiles || []).map((p: any) => ({
+          id: p.id,
+          label: p.name && p.last_name ? `${p.name} ${p.last_name}` : p.user?.username || "Unknown",
+          description: p.user?.email || "",
+          icon: "person",
+          category: "user" as GlobalSearchCategory,
+          route: `/profile?userId=${p.id}`,
+          data: p,
+        }));
+
+        const apiRooms = ((results.rooms || []) as any[])
+          .filter((r: any) => r.name?.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 5)
-          .map((p) => ({
-            id: p.id,
-            label:
-              p.name && p.last_name ? `${p.name} ${p.last_name}` : p.user?.username || "Unknown",
-            description: p.user?.email || "",
-            icon: "person",
-            category: "user" as GlobalSearchCategory,
-            route: "/profile",
-            data: p,
+          .map((r: any) => ({
+            id: r.id || r.room,
+            label: r.name || (r.is_group ? "Group" : "Conversation"),
+            description: r.is_group ? "Group" : "Direct message",
+            icon: r.is_group ? "group" : "chat",
+            category: "chat" as GlobalSearchCategory,
+            route: `/chat?room=${r.room || r.id}`,
+            data: r,
           }));
+
+        const profiles =
+          apiProfiles.length > 0
+            ? apiProfiles
+            : this.getProfilesFromStorage(query.toLowerCase())
+                .slice(0, 5)
+                .map((p: any) => ({
+                  id: p.id,
+                  label:
+                    p.name && p.last_name
+                      ? `${p.name} ${p.last_name}`
+                      : p.user?.username || "Unknown",
+                  description: p.user?.email || "",
+                  icon: "person",
+                  category: "user" as GlobalSearchCategory,
+                  route: `/profile?userId=${p.id}`,
+                  data: p,
+                }));
+
+        const projects = apiProjects.length > 0 ? apiProjects : baseResults?.projects || [];
+        const tasks = apiTasks.length > 0 ? apiTasks : baseResults?.tasks || [];
+        const subtasks = apiSubtasks.length > 0 ? apiSubtasks : baseResults?.subtasks || [];
+        const categories = apiCategories.length > 0 ? apiCategories : baseResults?.categories || [];
+        const chats = apiChats.length > 0 ? apiChats : baseResults?.chats || [];
+        const users = profiles.length > 0 ? profiles : baseResults?.users || [];
+        const rooms = apiRooms.length > 0 ? apiRooms : baseResults?.rooms || [];
 
         this.globalSearchState.set({
           projects,
           tasks,
           subtasks,
           categories,
-          users: profiles,
+          users,
           chats,
+          rooms,
         });
         this.isGlobalSearching.set(false);
       },
@@ -455,13 +501,13 @@ export class SearchService {
       .todos()
       .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
       .slice(0, 5)
-      .map((t) => ({
+      .map((t: any) => ({
         id: t.id,
         label: t.title,
         description: t.description?.slice(0, 100),
         icon: "list_alt",
         category: "project" as GlobalSearchCategory,
-        route: `/todos/${t.id}/tasks`,
+        route: `/todos/${t.id}/tasks?visibility=${t.visibility || "private"}`,
         data: t,
       }));
 
@@ -469,13 +515,13 @@ export class SearchService {
       .tasks()
       .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
       .slice(0, 5)
-      .map((t) => ({
+      .map((t: any) => ({
         id: t.id,
         label: t.title,
         description: t.description?.slice(0, 100),
         icon: "assignment",
         category: "task" as GlobalSearchCategory,
-        route: `/todos/${t.todo_id}/tasks?highlightTask=${t.id}`,
+        route: `/todos/${t.todo_id}/tasks?highlightTaskId=${t.id}&visibility=${t.visibility || "private"}`,
         data: t,
       }));
 
@@ -503,12 +549,12 @@ export class SearchService {
       .categories()
       .filter((c) => c.title?.toLowerCase().includes(q))
       .slice(0, 5)
-      .map((c) => ({
+      .map((c: any) => ({
         id: c.id,
         label: c.title,
         icon: "category",
         category: "category" as GlobalSearchCategory,
-        route: "/categories",
+        route: `/categories?highlightCategoryId=${c.id}`,
         data: c,
       }));
 
@@ -520,7 +566,7 @@ export class SearchService {
         description: p.user?.email || "",
         icon: "person",
         category: "user" as GlobalSearchCategory,
-        route: "/profile",
+        route: `/profile?userId=${p.id}`,
         data: p,
       }));
 
@@ -540,7 +586,20 @@ export class SearchService {
         data: c,
       }));
 
-    return { projects, tasks, subtasks, categories, users, chats };
+    const rooms = (this.storageService.rooms() || [])
+      .filter((r: any) => r.name?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((r: any) => ({
+        id: r.id || r.room,
+        label: r.name || (r.is_group ? "Group" : "Conversation"),
+        description: r.is_group ? "Group" : "Direct message",
+        icon: r.is_group ? "group" : "chat",
+        category: "chat" as GlobalSearchCategory,
+        route: `/chat?room=${r.room || r.id}`,
+        data: r,
+      }));
+
+    return { projects, tasks, subtasks, categories, users, chats, rooms };
   }
 
   private getProfilesFromStorage(query: string): any[] {
@@ -562,6 +621,7 @@ export class SearchService {
       categories: [],
       users: [],
       chats: [],
+      rooms: [],
     });
   }
 

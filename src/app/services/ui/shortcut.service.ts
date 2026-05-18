@@ -125,6 +125,12 @@ export class ShortcutService implements OnDestroy {
           return;
         }
 
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "c") {
+          event.preventDefault();
+          this.zone.run(() => this.router.navigate(["/chat"]));
+          return;
+        }
+
         if (event.key === "F1") {
           event.preventDefault();
           this.zone.run(() => this.helpSubject.next());

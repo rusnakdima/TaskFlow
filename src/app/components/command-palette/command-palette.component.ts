@@ -153,6 +153,17 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       });
     });
 
+    results.rooms?.forEach((item) => {
+      items.push({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        icon: item.icon || (item.data?.is_group ? "group" : "chat"),
+        category: "chat",
+        route: item.route,
+      });
+    });
+
     return items;
   });
 
@@ -219,7 +230,7 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       description: "App Settings",
       icon: "settings",
       category: "page",
-      route: "/profile",
+      route: "/settings",
     },
     {
       id: "about",
@@ -236,6 +247,14 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       icon: "sync",
       category: "page",
       route: "/sync",
+    },
+    {
+      id: "chat",
+      label: "Chat",
+      description: "Open Chat",
+      icon: "chat",
+      category: "page",
+      route: "/chat",
     },
   ];
 
