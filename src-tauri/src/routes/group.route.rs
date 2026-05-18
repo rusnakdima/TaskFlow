@@ -77,7 +77,7 @@ pub async fn create_group(
     "avatar": avatar
   });
 
-  state.group_service.create(data, true).await
+  state.group_service.create(data, false).await
 }
 
 #[tauri::command]
@@ -208,7 +208,7 @@ pub async fn send_message(
   )
   .map_err(|e| e)?;
 
-  if user_id.starts_with("dm_") || user_id.starts_with("group_") {
+  if user_id.starts_with("dm_") {
     return Err(err_response("Invalid user_id: cannot be a room ID"));
   }
 

@@ -195,10 +195,10 @@ impl GroupService {
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
-    let doc = mongo.update("groups", id, update_data.clone()).await?;
+    let doc = mongo.patch("groups", id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("groups", id, update_data).await;
+      let _ = p.patch("groups", id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -248,12 +248,10 @@ impl GroupService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
-    let doc = mongo
-      .update("groups", group_id, update_data.clone())
-      .await?;
+    let doc = mongo.patch("groups", group_id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("groups", group_id, update_data).await;
+      let _ = p.patch("groups", group_id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -286,10 +284,10 @@ impl GroupService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
-    let doc = mongo.update("groups", id, update_data.clone()).await?;
+    let doc = mongo.patch("groups", id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("groups", id, update_data).await;
+      let _ = p.patch("groups", id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -300,15 +298,27 @@ impl GroupService {
       .ok_or_else(|| err_response("MongoDB not available"))?;
 
     let is_1on1 = id.starts_with("dm_");
-    let filter = json!({ "room_id": id });
-    let filter_opt = Some(
-      nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
-    );
-    let docs = mongo
-      .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
-      .await?;
-    let existing = docs.first().cloned();
+
+    let existing = if is_1on1 {
+      None
+    } else {
+      let by_id_filter = json!({ "id": id });
+      let by_id_filter_opt = Some(
+        nosql_orm::query::Filter::from_json(&by_id_filter)
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+      );
+      let docs = mongo
+        .find_many(
+          "groups",
+          by_id_filter_opt.as_ref(),
+          None,
+          Some(1),
+          None,
+          true,
+        )
+        .await?;
+      docs.first().cloned()
+    };
 
     let (doc_id, room_id) = if let Some(existing_doc) = existing {
       let d_id = existing_doc
@@ -323,7 +333,34 @@ impl GroupService {
     } else if is_1on1 {
       (id.to_string(), id.to_string())
     } else {
-      return Err(err_response("Group not found"));
+      let by_room_filter = json!({ "room_id": id });
+      let by_room_filter_opt = Some(
+        nosql_orm::query::Filter::from_json(&by_room_filter)
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+      );
+      let docs = mongo
+        .find_many(
+          "groups",
+          by_room_filter_opt.as_ref(),
+          None,
+          Some(1),
+          None,
+          true,
+        )
+        .await?;
+      if let Some(existing_doc) = docs.first().cloned() {
+        let d_id = existing_doc
+          .get("id")
+          .and_then(|v| v.as_str())
+          .unwrap_or(id);
+        let r_id = existing_doc
+          .get("room_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        (d_id.to_string(), r_id.to_string())
+      } else {
+        return Err(err_response("Group not found"));
+      }
     };
 
     println!(
@@ -462,7 +499,7 @@ impl GroupService {
 
     if let Some(mongo) = self.get_mongo_provider() {
       let update_data = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
-      let _ = mongo.update("groups", id, update_data.clone()).await;
+      let _ = mongo.patch("groups", id, update_data.clone()).await;
 
       if !room_id.is_empty() {
         let filter = json!({ "room": room_id });
@@ -473,7 +510,7 @@ impl GroupService {
             .unwrap_or_default();
           for room_doc in rooms {
             if let Some(rid) = room_doc.get("id").and_then(|v| v.as_str()) {
-              let _ = mongo.update("rooms", rid, update_data.clone()).await;
+              let _ = mongo.patch("rooms", rid, update_data.clone()).await;
             }
           }
         }

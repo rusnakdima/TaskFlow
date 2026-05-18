@@ -70,7 +70,7 @@ impl NotificationService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let update = json!({ "read": true });
-    let doc = provider.update("notifications", id, update).await?;
+    let doc = provider.patch("notifications", id, update).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
@@ -93,7 +93,7 @@ impl NotificationService {
           != Some(true)
         {
           let _ = provider
-            .update("notifications", id, json!({ "read": true }))
+            .patch("notifications", id, json!({ "read": true }))
             .await;
         }
       }
