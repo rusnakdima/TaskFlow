@@ -88,11 +88,14 @@ export class ProfileSearchService {
 
     return new Observable((subscriber) => {
       this.apiService
-        .invokeCommand("search_profiles", {
+        .invokeCommand("search_data", {
+          table: "profiles",
           query: query,
           token: token,
           page: 0,
           limit: 50,
+          visibility: "public",
+          load: "user",
         })
         .subscribe({
           next: (result: any) => {
@@ -152,5 +155,13 @@ export class ProfileSearchService {
     this._profiles.set([]);
     this._searchQuery.set("");
     this.loadInitial().subscribe();
+  }
+
+  addProfile(profile: Profile): void {
+    const current = this._profiles();
+    if (!current.find((p) => p.user_id === profile.user_id)) {
+      this._profiles.set([...current, profile]);
+      this.storageService.setCollectionByTable("allProfiles", this._profiles());
+    }
   }
 }
