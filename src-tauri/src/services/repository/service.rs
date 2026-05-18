@@ -381,6 +381,11 @@ impl RepositoryService {
           .handle_sync_to_provider(table, id_str, target, visibility)
           .await
       }
+      "search" => {
+        self
+          .handle_search(table, filter, visibility, offline, user_id, skip, limit)
+          .await
+      }
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
     }
   }
@@ -468,6 +473,110 @@ impl RepositoryService {
     };
 
     let docs = if used_json_fallback || use_json {
+      docs
+    } else {
+      self.filter_out_deleted(docs)
+    };
+
+    let _elapsed = start.elapsed();
+
+    Ok(success_response(DataValue::Array(
+      self.apply_projection_recursive(docs),
+    )))
+  }
+
+  async fn handle_search(
+    &self,
+    table: String,
+    filter: Option<Value>,
+    visibility: Option<String>,
+    offline: bool,
+    user_id: Option<String>,
+    skip: Option<u64>,
+    limit: Option<u64>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let start = Instant::now();
+
+    let search_query = filter
+      .as_ref()
+      .and_then(|f| f.get("query"))
+      .and_then(|q| q.as_str())
+      .unwrap_or("");
+
+    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+
+    let search_filter = if !search_query.is_empty() {
+      let search_regex = serde_json::json!({
+        "$regex": search_query,
+        "$options": "i"
+      });
+
+      let filter_json = match table.as_str() {
+        "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories" => {
+          if table == "todos" {
+            let permission_filter_json = PermissionService::get_todo_filter_for_user(
+              user_id.as_deref().unwrap_or(""),
+              Some(&visibility_str),
+            );
+            serde_json::json!({
+              "$and": [
+                permission_filter_json,
+                {
+                  "$or": [
+                    { "title": search_regex },
+                    { "description": search_regex }
+                  ]
+                }
+              ]
+            })
+          } else {
+            serde_json::json!({
+              "$or": [
+                { "title": search_regex },
+                { "description": search_regex }
+              ]
+            })
+          }
+        }
+        "profiles" => {
+          serde_json::json!({
+            "$or": [
+              { "name": search_regex },
+              { "last_name": search_regex },
+              { "email": search_regex }
+            ]
+          })
+        }
+        _ => {
+          serde_json::json!({
+            "title": search_regex
+          })
+        }
+      };
+
+      Filter::from_json(&filter_json).ok()
+    } else {
+      None
+    };
+
+    let (docs, used_json_fallback) = match provider
+      .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+      .await
+    {
+      Ok(docs) => (docs, false),
+      Err(_e) => {
+        let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+        let docs = json_provider
+          .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+          .await?;
+        (docs, true)
+      }
+    };
+
+    let docs = strip_relation_fields(docs, &table);
+
+    let docs = if used_json_fallback || visibility_str == "private" {
       docs
     } else {
       self.filter_out_deleted(docs)
@@ -599,7 +708,7 @@ impl RepositoryService {
 
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
-    if table == "todos" {
+    if table == "todos" || table == "categories" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
         obj.insert(
           "visibility".to_string(),
