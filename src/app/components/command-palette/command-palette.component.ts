@@ -62,13 +62,31 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
   private allItems: CommandItem[] = [];
 
   allFlatItems = computed(() => {
-    const query = this.searchQuery().trim();
+    const query = this.searchQuery().trim().toLowerCase();
+    const results = this.searchService.globalSearchResults();
+    const items: CommandItem[] = [];
+
     if (!query) {
       return this.allItems;
     }
 
-    const results = this.searchService.globalSearchResults();
-    const items: CommandItem[] = [];
+    this.pages.forEach((page) => {
+      if (
+        page.label.toLowerCase().includes(query) ||
+        page.description?.toLowerCase().includes(query)
+      ) {
+        items.push({ ...page, category: "page" });
+      }
+    });
+
+    this.actions.forEach((action) => {
+      if (
+        action.label.toLowerCase().includes(query) ||
+        action.description?.toLowerCase().includes(query)
+      ) {
+        items.push({ ...action, category: "action" });
+      }
+    });
 
     results.projects.forEach((item) => {
       items.push({
