@@ -596,8 +596,7 @@ export class UnifiedSyncService implements OnDestroy {
 
   private getToken(): string | null {
     try {
-      const token = sessionStorage.getItem("auth_token");
-      return token;
+      return TokenStorageHelper.getToken();
     } catch {
       return null;
     }

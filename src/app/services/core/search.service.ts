@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
-import { Observable, Subject, debounceTime, distinctUntilChanged, switchMap } from "rxjs";
+import { Observable, Subject, debounceTime, distinctUntilChanged, switchMap, forkJoin } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
@@ -300,7 +300,157 @@ export class SearchService {
 
   private performGlobalSearch(query: string): void {
     const q = query.toLowerCase();
+    this.isGlobalSearching.set(true);
 
+    const storageResults = this.performGlobalSearchFromStorage(q);
+    const hasStorageResults =
+      storageResults.projects.length > 0 ||
+      storageResults.tasks.length > 0 ||
+      storageResults.subtasks.length > 0 ||
+      storageResults.categories.length > 0 ||
+      storageResults.chats.length > 0 ||
+      storageResults.users.length > 0;
+
+    if (hasStorageResults || !this.mongoConnectionService.isConnected()) {
+      this.globalSearchState.set(storageResults);
+      this.isGlobalSearching.set(false);
+      return;
+    }
+
+    this.performGlobalSearchFromApi(query);
+  }
+
+  private performGlobalSearchFromApi(query: string): void {
+    const token = this.authService.getToken();
+
+    forkJoin({
+      projects: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "todos",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+      tasks: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "tasks",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+      subtasks: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "subtasks",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+      categories: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "categories",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+      chats: this.apiService.invokeCommand<any[]>("search_data", {
+        table: "chats",
+        query: query,
+        token: token,
+        visibility: "all",
+        page: 0,
+        limit: 5,
+      }),
+    }).subscribe({
+      next: (results) => {
+        const projects = (results.projects || []).map((t: any) => ({
+          id: t.id,
+          label: t.title,
+          description: t.description?.slice(0, 100) || "",
+          icon: "list_alt",
+          category: "project" as GlobalSearchCategory,
+          route: `/todos/${t.id}/tasks`,
+          data: t,
+        }));
+
+        const tasks = (results.tasks || []).map((t: any) => ({
+          id: t.id,
+          label: t.title,
+          description: t.description?.slice(0, 100) || "",
+          icon: "assignment",
+          category: "task" as GlobalSearchCategory,
+          route: `/todos/${t.todo_id}/tasks?highlightTask=${t.id}`,
+          data: t,
+        }));
+
+        const subtasks = (results.subtasks || []).map((s: any) => {
+          const parentTask = this.storageService.getTaskById(s.task_id);
+          const route = parentTask
+            ? `/todos/${parentTask.todo_id}/tasks/${s.task_id}/subtasks?highlightSubtask=${s.id}`
+            : undefined;
+          return {
+            id: s.id,
+            label: s.title,
+            description: s.description?.slice(0, 100) || "",
+            icon: "subdirectory_arrow_right",
+            category: "subtask" as GlobalSearchCategory,
+            route,
+            data: s,
+          };
+        });
+
+        const categories = (results.categories || []).map((c: any) => ({
+          id: c.id,
+          label: c.title,
+          icon: "category",
+          category: "category" as GlobalSearchCategory,
+          route: "/categories",
+          data: c,
+        }));
+
+        const chats = (results.chats || []).map((c: any) => ({
+          id: c.id,
+          label: c.content?.slice(0, 50) || "Chat message",
+          description: c.author_name || "",
+          icon: "chat",
+          category: "chat" as GlobalSearchCategory,
+          route: `/chat?room=${c.room_id || c.user_id}`,
+          data: c,
+        }));
+
+        const profiles = this.getProfilesFromStorage(query.toLowerCase())
+          .slice(0, 5)
+          .map((p) => ({
+            id: p.id,
+            label:
+              p.name && p.last_name ? `${p.name} ${p.last_name}` : p.user?.username || "Unknown",
+            description: p.user?.email || "",
+            icon: "person",
+            category: "user" as GlobalSearchCategory,
+            route: "/profile",
+            data: p,
+          }));
+
+        this.globalSearchState.set({
+          projects,
+          tasks,
+          subtasks,
+          categories,
+          users: profiles,
+          chats,
+        });
+        this.isGlobalSearching.set(false);
+      },
+      error: () => {
+        this.isGlobalSearching.set(false);
+      },
+    });
+  }
+
+  private performGlobalSearchFromStorage(q: string): GlobalSearchResults {
     const projects = this.storageService
       .todos()
       .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
@@ -317,7 +467,7 @@ export class SearchService {
 
     const tasks = this.storageService
       .tasks()
-      .filter((t) => t.title?.toLowerCase().includes(q))
+      .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
       .slice(0, 5)
       .map((t) => ({
         id: t.id,
@@ -331,7 +481,7 @@ export class SearchService {
 
     const subtasks = this.storageService
       .subtasks()
-      .filter((s) => s.title?.toLowerCase().includes(q))
+      .filter((s) => s.title?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
       .slice(0, 5)
       .map((s) => {
         const parentTask = this.storageService.getTaskById(s.task_id);
@@ -390,8 +540,7 @@ export class SearchService {
         data: c,
       }));
 
-    this.globalSearchState.set({ projects, tasks, subtasks, categories, users, chats });
-    this.isGlobalSearching.set(false);
+    return { projects, tasks, subtasks, categories, users, chats };
   }
 
   private getProfilesFromStorage(query: string): any[] {
