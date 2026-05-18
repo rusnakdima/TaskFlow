@@ -112,6 +112,49 @@ async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<Respon
   })
 }
 
+#[tauri::command]
+async fn search_data(
+  state: State<'_, AppState>,
+  table: String,
+  query: String,
+  visibility: Option<String>,
+  page: Option<u64>,
+  limit: Option<u64>,
+  token: Option<String>,
+) -> Result<ResponseModel, String> {
+  use crate::helpers::auth_helper::extract_user_from_token;
+
+  let user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .ok();
+
+  let filter = if !query.is_empty() {
+    Some(serde_json::json!({ "query": query }))
+  } else {
+    None
+  };
+
+  state
+    .repository_service
+    .execute(
+      "search".to_string(),
+      table,
+      None,
+      None,
+      filter,
+      None,
+      visibility,
+      false,
+      user_id,
+      page,
+      limit,
+    )
+    .await
+    .map_err(|e| e.message)
+}
+
 pub struct AppState {
   pub config_helper: Arc<ConfigHelper>,
   pub json_provider: JsonProvider,
@@ -450,6 +493,7 @@ pub fn run() {
       openFile,
       installUpdate,
       getCurrentVersion,
+      search_data,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

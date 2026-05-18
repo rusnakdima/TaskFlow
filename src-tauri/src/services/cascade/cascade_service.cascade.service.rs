@@ -551,4 +551,13 @@ impl CascadeService {
   ) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json(table, id).await
   }
+
+  pub async fn sync_entity_to_json_and_delete_from_source(
+    &self,
+    table: &str,
+    id: &str,
+  ) -> Result<CascadeResult, ResponseModel> {
+    self.sync_entity_to_json(table, id).await?;
+    self.soft_delete_cascade_mongo(table, id).await
+  }
 }
