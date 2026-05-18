@@ -64,7 +64,7 @@ impl CommentService {
     let doc = self
       .base
       .get_json_provider()
-      .update("comments", id, data)
+      .patch("comments", id, data)
       .await?;
     Ok(success_response(DataValue::Object(doc)))
   }

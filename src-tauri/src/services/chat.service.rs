@@ -104,10 +104,10 @@ impl ChatService {
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
-    let doc: Value = mongo.update("chats", id, update_data.clone()).await?;
+    let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("chats", id, update_data).await;
+      let _ = p.patch("chats", id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -139,10 +139,10 @@ impl ChatService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "read_by": read_by, "updated_at": now });
-    let doc: Value = mongo.update("chats", id, update_data.clone()).await?;
+    let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("chats", id, update_data).await;
+      let _ = p.patch("chats", id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -160,13 +160,13 @@ impl ChatService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "deleted_at": now, "updated_at": now });
-    let doc: Value = mongo.update("chats", id, update_data.clone()).await?;
+    let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
 
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let cascade = CascadeManager::new(p.as_ref().clone());
       let _ = cascade.soft_delete("chats", id).await;
-      let _ = p.update("chats", id, update_data).await;
+      let _ = p.patch("chats", id, update_data).await;
     }
 
     Ok(success_response(DataValue::Object(json!({}))))
@@ -192,7 +192,7 @@ impl ChatService {
       .unwrap_or_default();
     for doc in docs {
       if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
-        let _ = mongo.update("chats", id, update_data.clone()).await;
+        let _ = mongo.patch("chats", id, update_data.clone()).await;
       }
     }
 
@@ -213,7 +213,7 @@ impl ChatService {
       for doc in docs {
         if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
           let _ = cascade.soft_delete("chats", id).await;
-          let _ = p.update("chats", id, update_data.clone()).await;
+          let _ = p.patch("chats", id, update_data.clone()).await;
         }
       }
     }

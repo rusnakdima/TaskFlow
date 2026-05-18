@@ -103,7 +103,7 @@ impl CategoryService {
     let stored_visibility = get_visibility(&existing);
     let provider = self.base.get_provider(stored_visibility)?;
 
-    let doc = provider.update("categories", id, data).await?;
+    let doc = provider.patch("categories", id, data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 

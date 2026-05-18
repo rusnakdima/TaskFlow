@@ -173,10 +173,10 @@ impl RoomService {
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
-    let doc = mongo.update("rooms", room_id, update_data.clone()).await?;
+    let doc = mongo.patch("rooms", room_id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("rooms", room_id, update_data).await;
+      let _ = p.patch("rooms", room_id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }
@@ -213,10 +213,10 @@ impl RoomService {
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "participant_ids": participant_ids.clone(), "updated_at": now });
-    let doc = mongo.update("rooms", room_id, update_data.clone()).await?;
+    let doc = mongo.patch("rooms", room_id, update_data.clone()).await?;
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let _ = p.update("rooms", room_id, update_data).await;
+      let _ = p.patch("rooms", room_id, update_data).await;
     }
     Ok(success_response(DataValue::Object(doc)))
   }

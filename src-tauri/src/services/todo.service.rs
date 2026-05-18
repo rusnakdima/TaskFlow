@@ -108,7 +108,7 @@ impl TodoService {
       *v = Value::String(stored_visibility.to_string());
     }
 
-    let doc = provider.update("todos", id, update_data).await?;
+    let doc = provider.patch("todos", id, update_data).await?;
     Ok(success_response(DataValue::Object(doc)))
   }
 
