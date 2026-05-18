@@ -431,7 +431,7 @@
               [class.ml-auto]="message.isMine"
               [class.mr-auto]="!message.isMine"
             >
-              @if (activeConversation()?.isGroup && !message.isMine) {
+              @if (activeConversation()?.isGroup) {
                 <div class="mb-1 flex items-center gap-2">
                   <app-user-avatar
                     [src]="message.senderAvatar"
