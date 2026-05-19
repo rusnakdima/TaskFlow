@@ -436,7 +436,7 @@ export class SearchService {
           description: p.user?.email || "",
           icon: "person",
           category: "user" as GlobalSearchCategory,
-          route: `/profile?userId=${p.id}`,
+          route: `/profile?userId=${p.user_id}`,
           data: p,
         }));
 
@@ -467,7 +467,7 @@ export class SearchService {
                   description: p.user?.email || "",
                   icon: "person",
                   category: "user" as GlobalSearchCategory,
-                  route: `/profile?userId=${p.id}`,
+                  route: `/profile?userId=${p.user_id}`,
                   data: p,
                 }));
 
@@ -566,7 +566,7 @@ export class SearchService {
         description: p.user?.email || "",
         icon: "person",
         category: "user" as GlobalSearchCategory,
-        route: `/profile?userId=${p.id}`,
+        route: `/profile?userId=${p.user_id}`,
         data: p,
       }));
 

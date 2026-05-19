@@ -65,6 +65,12 @@ export const routes: Routes = [
         data: { breadcrumb: "Chat" },
       },
       {
+        path: "chat/create-group",
+        loadComponent: () => import("@views/chat/create-group.view").then((m) => m.CreateGroupView),
+        title: "Create Group",
+        data: { breadcrumb: "Create Group" },
+      },
+      {
         path: "about",
         loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
         title: "About",

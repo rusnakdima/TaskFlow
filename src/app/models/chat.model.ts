@@ -15,6 +15,12 @@ export interface ConversationItem {
   ownerId?: string;
 }
 
+export interface Reaction {
+  emoji: string;
+  count: number;
+  isOwn: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
@@ -26,6 +32,9 @@ export interface ChatMessage {
   isEdited?: boolean;
   isDeleted?: boolean;
   readStatus?: "sent" | "delivered" | "read";
+  reactions?: Reaction[];
+  replyTo?: ChatMessage | null;
+  replyId?: string | null;
   sender?: {
     id?: string;
     email?: string;
