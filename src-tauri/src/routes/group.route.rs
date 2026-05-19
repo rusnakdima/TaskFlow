@@ -198,7 +198,6 @@ pub async fn send_message(
   state: State<'_, AppState>,
   room_id: String,
   sender_id: String,
-  user_id: String,
   content: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -208,28 +207,9 @@ pub async fn send_message(
   )
   .map_err(|e| e)?;
 
-  if user_id.starts_with("dm_") {
-    return Err(err_response("Invalid user_id: cannot be a room ID"));
-  }
-
-  let room_exists = state.room_service.get_by_room(&room_id).await?;
-  let should_create_room = match &room_exists.data {
-    DataValue::Object(obj) => obj.is_null(),
-    _ => true,
-  };
-  if should_create_room {
-    let room_data = serde_json::json!({
-      "room": room_id,
-      "is_group": false,
-      "participant_ids": [sender_id.clone(), user_id.clone()],
-    });
-    state.room_service.create(room_data).await?;
-  }
-
   let data = serde_json::json!({
     "room_id": room_id,
     "sender_id": sender_id,
-    "user_id": user_id,
     "content": content,
     "read_by": [sender_id]
   });
@@ -340,6 +320,37 @@ pub async fn delete_message(
 }
 
 #[tauri::command]
+pub async fn hard_delete_message(
+  state: State<'_, AppState>,
+  id: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let _user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  state.chat_service.hard_delete(&id).await
+}
+
+#[tauri::command]
+pub async fn edit_message(
+  state: State<'_, AppState>,
+  id: String,
+  content: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let _user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  state.chat_service.edit_message(&id, &content).await
+}
+
+#[tauri::command]
 pub async fn delete_room_messages(
   state: State<'_, AppState>,
   room_id: String,
@@ -352,4 +363,19 @@ pub async fn delete_room_messages(
   .map_err(|e| e)?;
 
   state.chat_service.delete_by_room(&room_id).await
+}
+
+#[tauri::command]
+pub async fn hard_delete_room_messages(
+  state: State<'_, AppState>,
+  room_id: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let _user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  state.chat_service.hard_delete_by_room(&room_id).await
 }

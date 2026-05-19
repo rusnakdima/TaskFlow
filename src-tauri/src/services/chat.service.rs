@@ -52,7 +52,70 @@ impl ChatService {
         true,
       )
       .await?;
-    Ok(success_response(DataValue::Array(docs)))
+
+    let mut enriched_docs: Vec<Value> = Vec::new();
+    let json_provider = self.base.get_json_provider();
+
+    for doc in docs {
+      let mut enriched = doc.clone();
+      let sender_id = enriched
+        .get("sender_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+      if let Some(sid) = sender_id {
+        if let Some(user_val) = json_provider.find_by_id("users", &sid).await.ok().flatten() {
+          let mut sender_user = user_val.clone();
+          sender_user.as_object_mut().map(|obj| {
+            obj.remove("password");
+            obj.remove("totp_secret");
+            obj.remove("recovery_codes");
+          });
+
+          if let Some(profile_id) = sender_user.get("profile_id").and_then(|v| v.as_str()) {
+            if let Some(profile_val) = json_provider
+              .find_by_id("profiles", profile_id)
+              .await
+              .ok()
+              .flatten()
+            {
+              sender_user["profile"] = profile_val.clone();
+
+              let sender_name = profile_val
+                .get("name")
+                .and_then(|v| v.as_str())
+                .map(|s| {
+                  let last = profile_val
+                    .get("last_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                  if last.is_empty() {
+                    s.to_string()
+                  } else {
+                    format!("{} {}", s, last)
+                  }
+                })
+                .unwrap_or_else(|| sid.clone());
+
+              let sender_avatar = profile_val
+                .get("image_url")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_default();
+
+              enriched["sender_name"] = serde_json::json!(sender_name);
+              enriched["sender_avatar"] = serde_json::json!(sender_avatar);
+            }
+          }
+
+          enriched["sender"] = sender_user;
+          enriched["sender_id"] = serde_json::json!(sid);
+        }
+      }
+      enriched_docs.push(enriched);
+    }
+
+    Ok(success_response(DataValue::Array(enriched_docs)))
   }
 
   pub async fn get_all(
@@ -172,6 +235,44 @@ impl ChatService {
     Ok(success_response(DataValue::Object(json!({}))))
   }
 
+  pub async fn hard_delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .base
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+    let _ = mongo.delete("chats", id).await;
+
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.delete("chats", id).await;
+    }
+
+    Ok(success_response(DataValue::Object(
+      json!({ "id": id, "deleted": true }),
+    )))
+  }
+
+  pub async fn edit_message(
+    &self,
+    id: &str,
+    content: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .base
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+    let now = chrono::Utc::now().to_rfc3339();
+    let update_data = json!({ "content": content, "updated_at": now, "is_edited": true });
+    let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
+
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.patch("chats", id, update_data).await;
+    }
+
+    Ok(success_response(DataValue::Object(doc)))
+  }
+
   pub async fn delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
@@ -214,6 +315,53 @@ impl ChatService {
         if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
           let _ = cascade.soft_delete("chats", id).await;
           let _ = p.patch("chats", id, update_data.clone()).await;
+        }
+      }
+    }
+
+    Ok(success_response(DataValue::Object(
+      json!({ "room_id": room_id, "deleted": true }),
+    )))
+  }
+
+  pub async fn hard_delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
+    let filter = json!({ "room_id": room_id });
+    let filter_opt = Some(
+      nosql_orm::query::Filter::from_json(&filter)
+        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+    );
+
+    let mongo = self
+      .base
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+
+    let docs: Vec<serde_json::Value> = mongo
+      .find_many("chats", filter_opt.as_ref(), None, None, None, true)
+      .await
+      .unwrap_or_default();
+    for doc in docs {
+      if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
+        let _ = mongo.delete("chats", id).await;
+      }
+    }
+
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
+        p.as_ref(),
+        "chats",
+        filter_opt.as_ref(),
+        None,
+        None,
+        None,
+        true,
+      )
+      .await
+      .unwrap_or_default();
+      for doc in docs {
+        if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
+          let _ = p.delete("chats", id).await;
         }
       }
     }
