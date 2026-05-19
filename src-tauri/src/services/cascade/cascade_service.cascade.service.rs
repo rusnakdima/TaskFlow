@@ -560,4 +560,161 @@ impl CascadeService {
     self.sync_entity_to_json(table, id).await?;
     self.soft_delete_cascade_mongo(table, id).await
   }
+
+  pub async fn sync_todo_with_children(
+    &self,
+    todo_id: &str,
+    source_provider_name: &str,
+    target_provider_name: &str,
+    _delete_from_source: bool,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let mut result = CascadeResult::new();
+
+    let target_visibility = if target_provider_name == "Mongo" {
+      "shared"
+    } else {
+      "private"
+    };
+
+    if source_provider_name == "Mongo" {
+      let _ = self.sync_entity_to_json("todos", todo_id).await?;
+      if let Some(ref mongo) = self.mongodb_provider {
+        let update_data = serde_json::json!({ "visibility": target_visibility });
+        let _ = mongo.patch("todos", todo_id, update_data).await;
+      }
+    } else {
+      let _ = self.sync_entity_to_mongo("todos", todo_id).await?;
+      let update_data = serde_json::json!({ "visibility": target_visibility });
+      let _ = self
+        .json_provider
+        .patch("todos", todo_id, update_data)
+        .await;
+    }
+
+    let task_filter =
+      nosql_orm::query::Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
+
+    let tasks = if source_provider_name == "Mongo" {
+      if let Some(ref mongo) = self.mongodb_provider {
+        mongo
+          .find_many("tasks", Some(&task_filter), None, None, None, true)
+          .await
+          .unwrap_or_default()
+      } else {
+        Vec::new()
+      }
+    } else {
+      self
+        .json_provider
+        .find_many("tasks", Some(&task_filter), None, None, None, true)
+        .await
+        .unwrap_or_default()
+    };
+
+    let target_is_mongo = target_provider_name == "Mongo";
+
+    for task in &tasks {
+      if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
+        let _ = self
+          .sync_task_with_children(task_id, target_is_mongo)
+          .await?;
+        result.task_count += 1;
+      }
+    }
+
+    result.todo_count = 1;
+    Ok(result)
+  }
+
+  async fn sync_task_with_children(
+    &self,
+    task_id: &str,
+    to_mongo: bool,
+  ) -> Result<CascadeResult, ResponseModel> {
+    let subtask_filter =
+      nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
+
+    let subtasks = if to_mongo {
+      if let Some(ref mongo) = self.mongodb_provider {
+        mongo
+          .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+          .await
+          .unwrap_or_default()
+      } else {
+        Vec::new()
+      }
+    } else {
+      self
+        .json_provider
+        .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+        .await
+        .unwrap_or_default()
+    };
+
+    let target_str = if to_mongo { "Mongo" } else { "Json" };
+
+    for subtask in &subtasks {
+      if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
+        let _ = self
+          .sync_child_entity("subtasks", subtask_id, target_str)
+          .await;
+      }
+    }
+
+    Ok(CascadeResult::new())
+  }
+
+  async fn sync_child_entity(
+    &self,
+    table: &str,
+    id: &str,
+    target_provider: &str,
+  ) -> Result<(), ResponseModel> {
+    let entity_opt = if target_provider == "Mongo" {
+      self
+        .json_provider
+        .find_by_id(table, id)
+        .await
+        .ok()
+        .flatten()
+    } else {
+      if let Some(ref mongo) = self.mongodb_provider {
+        mongo.find_by_id(table, id).await.ok().flatten()
+      } else {
+        None
+      }
+    };
+
+    let Some(entity) = entity_opt else {
+      return Ok(());
+    };
+
+    let sanitized = sanitize_for_mongo_replacement(entity);
+
+    if target_provider == "Mongo" {
+      if let Some(ref mongo) = self.mongodb_provider {
+        match mongo.find_by_id(table, id).await {
+          Ok(Some(_)) => {
+            let _ = mongo.update(table, id, sanitized).await;
+          }
+          Ok(None) => {
+            let _ = mongo.insert(table, sanitized).await;
+          }
+          Err(_) => {}
+        }
+      }
+    } else {
+      match self.json_provider.find_by_id(table, id).await {
+        Ok(Some(_)) => {
+          let _ = self.json_provider.update(table, id, sanitized).await;
+        }
+        Ok(None) => {
+          let _ = self.json_provider.insert(table, sanitized).await;
+        }
+        Err(_) => {}
+      }
+    }
+
+    Ok(())
+  }
 }
