@@ -1,0 +1,20 @@
+@if (replyTo) {
+  <div
+    class="mb-2 flex items-start gap-2 rounded-xl border-l-4 border-[var(--accent-color)] bg-[var(--accent-50)]/50 p-3 dark:bg-[var(--accent-900)]/20"
+  >
+    <div class="min-w-0 flex-1 overflow-hidden">
+      <span
+        class="mb-0.5 block text-xs font-semibold tracking-wide text-[var(--accent-color)] uppercase"
+        >{{ replyTo.senderName }}</span
+      >
+      <p class="truncate text-sm text-slate-600 dark:text-zinc-400">{{ replyTo.content }}</p>
+    </div>
+    <button
+      type="button"
+      class="shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+      (click)="cancel.emit()"
+    >
+      <mat-icon fontIcon="close" class="!h-4 !w-4" />
+    </button>
+  </div>
+}

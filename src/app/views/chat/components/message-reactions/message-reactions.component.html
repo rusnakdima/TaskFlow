@@ -1,0 +1,42 @@
+<div class="relative mt-1 flex items-center gap-1">
+  @if (reactions.length > 0) {
+    <div class="flex flex-wrap gap-1">
+      @for (reaction of reactions; track reaction.emoji) {
+        <button
+          class="flex items-center gap-1 rounded-full border border-slate-200/50 bg-white/90 px-2 py-0.5 text-xs font-semibold shadow-sm backdrop-blur-xl transition-transform hover:scale-105 dark:border-zinc-700/50 dark:bg-zinc-800/90"
+          [class.border-[var(--accent-color)]]="reaction.isOwn"
+          [class.bg-[var(--accent-50)]]="reaction.isOwn"
+          (click)="
+            reaction.isOwn ? removeReaction.emit(reaction.emoji) : addReaction.emit(reaction.emoji)
+          "
+        >
+          <span>{{ reaction.emoji }}</span>
+          <span class="text-slate-600 dark:text-zinc-400">{{ reaction.count }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  <button
+    class="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400 opacity-0 transition-all hover:scale-110 hover:border-solid hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] hover:opacity-100 dark:border-zinc-600 dark:text-zinc-500"
+    [class.!opacity-100]="showPicker"
+    (click)="togglePicker.emit()"
+  >
+    <mat-icon fontIcon="add-reaction" class="!h-3.5 !w-3.5" />
+  </button>
+
+  @if (showPicker) {
+    <div
+      class="absolute bottom-full left-0 mb-2 flex gap-0.5 rounded-xl border border-slate-200/50 bg-white/98 p-1.5 shadow-lg backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/98"
+    >
+      @for (emoji of quickReactions; track emoji) {
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-transform hover:scale-125 hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
+          (click)="onQuickReaction(emoji)"
+        >
+          {{ emoji }}
+        </button>
+      }
+    </div>
+  }
+</div>

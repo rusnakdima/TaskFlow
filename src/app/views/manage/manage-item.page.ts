@@ -677,14 +677,6 @@ export class ManageItemPage implements OnInit {
       } else {
         let result: any;
         if (config.type === "todo") {
-          console.log(
-            "[ManageItemPage] Creating todo with payload:",
-            payload,
-            "visibility:",
-            visibility
-          );
-          result = await firstValueFrom(this.apiService.todos.create(payload, visibility));
-          console.log("[ManageItemPage] Todo created, result:", result);
         } else if (config.type === "task") {
           result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
           savedTaskId = result?.id || result?._id || null;
@@ -719,10 +711,6 @@ export class ManageItemPage implements OnInit {
       }
 
       this.location.back();
-      console.log("[ManageItemPage] After location.back() - checking todos in storage:");
-      console.log("[ManageItemPage]   privateTodos:", this.storageService.privateTodos().length);
-      console.log("[ManageItemPage]   sharedTodos:", this.storageService.sharedTodos().length);
-      console.log("[ManageItemPage]   publicTodos:", this.storageService.publicTodos().length);
     } catch (err: any) {
       this.notifyService.showError(err.message || "Failed to save");
     } finally {
@@ -808,6 +796,7 @@ export class ManageItemPage implements OnInit {
       await firstValueFrom(
         this.requestService.invokeCommand("sync_visibility_to_provider", {
           todo_id: todoId,
+          entity_type: "todos",
           source_provider: source,
           target_provider: target,
         })

@@ -1,0 +1,50 @@
+@if (!isRecording) {
+  <div
+    class="flex items-center gap-3 rounded-2xl border border-slate-200/50 bg-white/90 p-3 shadow-sm backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/90"
+    [class.playing]="isPlaying"
+  >
+    <button
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-color)] text-white transition-transform hover:scale-110"
+      (click)="togglePlay.emit()"
+    >
+      @if (isPlaying) {
+        <mat-icon fontIcon="pause" class="!h-4 !w-4" />
+      } @else {
+        <mat-icon fontIcon="play_arrow" class="!h-4 !w-4" />
+      }
+    </button>
+    <div class="flex h-6 flex-1 items-center gap-0.5">
+      @for (height of waveformBars; track $index) {
+        <div
+          class="w-0.5 rounded-full transition-all"
+          [class.bg-[var(--accent-color)]]="isPlaying && $index < 10"
+          [class.bg-slate-300]="!isPlaying || $index >= 10"
+          [style.height.%]="height"
+          [class.dark:bg-zinc-600]="!isPlaying || $index >= 10"
+        ></div>
+      }
+    </div>
+    <span class="text-xs font-medium text-slate-500 dark:text-zinc-400">{{ duration }}</span>
+  </div>
+} @else {
+  <div
+    class="flex items-center gap-3 rounded-2xl border border-red-200/50 bg-red-50/90 p-3 dark:border-red-900/50 dark:bg-red-900/20"
+  >
+    <div class="relative h-3 w-3">
+      <span class="absolute inset-0 animate-ping rounded-full bg-red-500 opacity-75"></span>
+      <span class="absolute inset-0 rounded-full bg-red-500"></span>
+    </div>
+    <span class="flex-1 text-sm font-medium text-red-600 dark:text-red-400">Recording...</span>
+    <div class="flex h-5 flex-1 items-center gap-0.5">
+      @for (bar of waveformBars; track $index) {
+        <div class="w-0.5 animate-pulse rounded-full bg-red-400" [style.height.%]="bar * 1.5"></div>
+      }
+    </div>
+    <button
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white transition-transform hover:scale-110"
+      (click)="onRecordingClick()"
+    >
+      <mat-icon fontIcon="stop" class="!h-4 !w-4" />
+    </button>
+  </div>
+}

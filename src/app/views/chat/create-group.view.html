@@ -1,0 +1,57 @@
+<div class="flex h-full w-full flex-col bg-white dark:bg-zinc-900">
+  <header class="shrink-0 border-b border-slate-200 p-4 dark:border-zinc-800">
+    <div class="flex items-center gap-4">
+      <button
+        type="button"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-all hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        (click)="onCancel()"
+      >
+        <mat-icon fontIcon="arrow_back" class="!h-5 !w-5" />
+      </button>
+      <h1 class="text-lg font-bold text-slate-800 dark:text-zinc-200">Create Group</h1>
+    </div>
+  </header>
+
+  <div class="flex flex-1 flex-col items-center justify-center p-6">
+    <div class="w-full max-w-md">
+      <div class="mb-6 flex justify-center">
+        <div
+          class="flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--accent-50)] text-[var(--accent-color)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
+        >
+          <mat-icon fontIcon="group_add" class="!h-10 !w-10" />
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+          >Group Name</label
+        >
+        <input
+          type="text"
+          [value]="state.newGroupName()"
+          (input)="state.newGroupName.set($any($event.target).value)"
+          placeholder="Enter group name..."
+          class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        />
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          type="button"
+          class="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          (click)="onCancel()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded-xl bg-[var(--accent-color)] px-4 py-3 text-sm font-semibold text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
+          [disabled]="!state.newGroupName().trim()"
+          (click)="onCreateGroup()"
+        >
+          Create Group
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

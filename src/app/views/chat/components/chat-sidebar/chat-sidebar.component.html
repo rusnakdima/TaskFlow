@@ -1,0 +1,268 @@
+<div class="flex h-full w-full flex-col bg-white/85 backdrop-blur-xl dark:bg-zinc-900/85">
+  <header class="shrink-0 border-b border-slate-200 p-4 dark:border-zinc-800">
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <mat-icon
+          fontIcon="search"
+          class="absolute top-1/2 left-3 !h-5 !w-5 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="text"
+          [value]="searchQuery"
+          (input)="onSearchChange($any($event.target).value)"
+          (keydown)="onSearchKeydown($event)"
+          (focus)="onSearchFocus()"
+          (blur)="onSearchBlur()"
+          placeholder="Search conversations..."
+          class="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 pr-4 pl-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        />
+      </div>
+
+      <button
+        type="button"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-color)] text-white transition-all hover:scale-105 hover:shadow-lg"
+        title="Create group"
+        (click)="onOpenCreateGroup()"
+      >
+        <mat-icon fontIcon="group_add" class="!h-5 !w-5" />
+      </button>
+    </div>
+
+    @if (showSearchDropdown) {
+      <div
+        class="absolute right-4 left-4 z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white/98 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+      >
+        @if (isProfilesLoading) {
+          <div class="flex items-center justify-center gap-2 p-4 text-sm text-slate-500">
+            <div
+              class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--accent-color)]"
+            ></div>
+            Loading...
+          </div>
+        } @else {
+          @if (searchDropdownUsers.recent.length > 0) {
+            <div class="border-b border-slate-100 p-2 dark:border-zinc-700">
+              <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                Recent
+              </p>
+              @for (user of searchDropdownUsers.recent; track user.user_id) {
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                  (click)="onStartConversation(user)"
+                >
+                  <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
+                  <span
+                    class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
+                    >{{ user.name }} {{ user.last_name }}</span
+                  >
+                </button>
+              }
+            </div>
+          }
+          @if (searchDropdownUsers.others.length > 0) {
+            <div class="p-2">
+              <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                All Users
+              </p>
+              @for (user of searchDropdownUsers.others; track user.user_id) {
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                  (click)="onStartConversation(user)"
+                >
+                  <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
+                  <span
+                    class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
+                    >{{ user.name }} {{ user.last_name }}</span
+                  >
+                </button>
+              }
+              @if (hasMoreProfiles) {
+                <button
+                  type="button"
+                  class="w-full p-2 text-center text-sm font-medium text-[var(--accent-color)] hover:underline"
+                  (click)="loadMoreProfiles.emit()"
+                >
+                  Load more
+                </button>
+              }
+            </div>
+          }
+          @if (searchDropdownUsers.recent.length === 0 && searchDropdownUsers.others.length === 0) {
+            <div class="flex flex-col items-center gap-2 p-6 text-slate-400">
+              <mat-icon fontIcon="search_off" class="!h-8 !w-8" />
+              <span class="text-sm">No users found</span>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    @if (showUserDropdown) {
+      <div
+        class="absolute right-4 left-4 z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white/98 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+      >
+        <div class="flex items-center gap-2 border-b border-slate-100 p-3 dark:border-zinc-700">
+          <input
+            type="text"
+            [value]="userDropdownSearch"
+            (input)="onSearchChange($any($event.target).value)"
+            placeholder="Search users..."
+            class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+          <button
+            type="button"
+            class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-700"
+            (click)="onCloseUserDropdown()"
+          >
+            <mat-icon fontIcon="close" class="!h-4 !w-4" />
+          </button>
+        </div>
+        @if (searchDropdownUsers.recent.length > 0) {
+          <div class="border-b border-slate-100 p-2 dark:border-zinc-700">
+            <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+              Recent
+            </p>
+            @for (user of searchDropdownUsers.recent; track user.user_id) {
+              <button
+                type="button"
+                class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                (click)="onStartConversation(user)"
+              >
+                <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
+                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
+                  >{{ user.name }} {{ user.last_name }}</span
+                >
+              </button>
+            }
+          </div>
+        }
+        @if (searchDropdownUsers.others.length > 0) {
+          <div class="p-2">
+            <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+              All Users
+            </p>
+            @for (user of searchDropdownUsers.others; track user.user_id) {
+              <button
+                type="button"
+                class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                (click)="onStartConversation(user)"
+              >
+                <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
+                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
+                  >{{ user.name }} {{ user.last_name }}</span
+                >
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <div class="mt-3 flex gap-1 rounded-2xl bg-slate-100/80 p-1 dark:bg-zinc-800/80">
+      <button
+        type="button"
+        class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        [class.bg-white]="filterType === 'all'"
+        [class.text-[var(--accent-color)]]="filterType === 'all'"
+        [class.shadow-sm]="filterType === 'all'"
+        [class.text-slate-500]="filterType !== 'all'"
+        (click)="onFilterChange('all')"
+      >
+        All
+      </button>
+      <button
+        type="button"
+        class="relative flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        [class.bg-white]="filterType === 'unread'"
+        [class.text-[var(--accent-color)]]="filterType === 'unread'"
+        [class.shadow-sm]="filterType === 'unread'"
+        [class.text-slate-500]="filterType !== 'unread'"
+        (click)="onFilterChange('unread')"
+      >
+        Unread
+        @if (hasUnread) {
+          <span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
+        }
+      </button>
+      <button
+        type="button"
+        class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        [class.bg-white]="filterType === 'groups'"
+        [class.text-[var(--accent-color)]]="filterType === 'groups'"
+        [class.shadow-sm]="filterType === 'groups'"
+        [class.text-slate-500]="filterType !== 'groups'"
+        (click)="onFilterChange('groups')"
+      >
+        Groups
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto p-2">
+    @for (conv of filteredConversations; track conv.roomId) {
+      <div
+        class="mb-1 flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-colors"
+        [class.bg-[var(--accent-50)]]="conv.roomId === activeConvId"
+        [class.active]="conv.roomId === activeConvId"
+        (click)="onSelectConversation(conv)"
+        (contextmenu)="onContextMenu($event, conv)"
+      >
+        <div class="relative shrink-0">
+          <app-user-avatar [src]="conv.avatar" [name]="conv.name" size="lg" />
+          @if (conv.isOnline) {
+            <div
+              class="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"
+            ></div>
+          }
+          @if (conv.isTyping) {
+            <div
+              class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[var(--accent-color)] dark:border-zinc-900"
+            ></div>
+          }
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="truncate text-sm font-semibold text-slate-800 dark:text-zinc-200">{{
+              conv.name
+            }}</span>
+            @if (conv.lastMessageTime) {
+              <span class="shrink-0 text-xs text-slate-400">{{ conv.lastMessageTime }}</span>
+            }
+          </div>
+          <div class="flex items-center gap-1">
+            @if (conv.isTyping) {
+              <span class="text-xs font-medium text-[var(--accent-color)]">typing...</span>
+            } @else {
+              <span class="truncate text-xs text-slate-500 dark:text-zinc-400">{{
+                conv.lastMessage
+              }}</span>
+            }
+          </div>
+        </div>
+
+        @if (conv.unreadCount > 0) {
+          <div
+            class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--accent-color)] px-1.5 text-xs font-bold text-white shadow-md"
+          >
+            {{ conv.unreadCount > 9 ? "9+" : conv.unreadCount }}
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="flex flex-col items-center justify-center p-8 text-center">
+        <div
+          class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500"
+        >
+          <mat-icon fontIcon="chat_bubble_outline" class="!h-10 !w-10" />
+        </div>
+        <p class="text-sm font-medium text-slate-600 dark:text-zinc-400">No conversations yet</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-zinc-500">
+          Start a new chat to get started
+        </p>
+      </div>
+    }
+  </div>
+</div>
