@@ -440,6 +440,8 @@ export class ManageItemPage implements OnInit {
       if (item) {
         if (config.type === "todo") {
           await this.loadAndSetUserPermission(item);
+        } else if (config.type === "task" || config.type === "subtask") {
+          await this.loadAndSetUserPermissionForTaskOrSubtask(item, visibility);
         }
         this.applyItemToForm(item);
       }
@@ -475,6 +477,67 @@ export class ManageItemPage implements OnInit {
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       item.id,
       item.visibility || "shared",
+      token
+    );
+
+    this.assigneeRoles.set(assigneeRoles);
+
+    const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
+
+    this.userPermission.set(this.permissionService.fromStr(role));
+    this.updateFormFieldPermissions();
+  }
+
+  private async loadAndSetUserPermissionForTaskOrSubtask(
+    item: any,
+    visibility?: string
+  ): Promise<void> {
+    const userId = this.getCurrentUserId();
+    const profileId = this.getCurrentProfileId();
+    const config = this.currentConfig();
+
+    let parentTodoId: string;
+
+    if (config.type === "subtask") {
+      const parentTask = await firstValueFrom(this.apiService.tasks.get(item.task_id, visibility));
+      parentTodoId = parentTask.todo_id;
+    } else {
+      parentTodoId = item.todo_id;
+    }
+
+    const parentTodo: any = await firstValueFrom(
+      this.apiService.todos.get(parentTodoId, visibility)
+    );
+
+    if (!parentTodo) {
+      this.userPermission.set(TodoPermission.VIEWER);
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    if (parentTodo.user_id === userId) {
+      this.userPermission.set(TodoPermission.OWNER);
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    if (parentTodo.assignee_roles && parentTodo.assignee_roles[userId]) {
+      this.userPermission.set(this.permissionService.fromStr(parentTodo.assignee_roles[userId]));
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    if (parentTodo.visibility === "public") {
+      this.userPermission.set(TodoPermission.VIEWER);
+      this.updateFormFieldPermissions();
+      return;
+    }
+
+    const token = this.jwtTokenService.getToken() || "";
+
+    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
+      parentTodo.id,
+      parentTodo.visibility || "shared",
       token
     );
 
@@ -614,7 +677,14 @@ export class ManageItemPage implements OnInit {
       } else {
         let result: any;
         if (config.type === "todo") {
+          console.log(
+            "[ManageItemPage] Creating todo with payload:",
+            payload,
+            "visibility:",
+            visibility
+          );
           result = await firstValueFrom(this.apiService.todos.create(payload, visibility));
+          console.log("[ManageItemPage] Todo created, result:", result);
         } else if (config.type === "task") {
           result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
           savedTaskId = result?.id || result?._id || null;
@@ -649,6 +719,10 @@ export class ManageItemPage implements OnInit {
       }
 
       this.location.back();
+      console.log("[ManageItemPage] After location.back() - checking todos in storage:");
+      console.log("[ManageItemPage]   privateTodos:", this.storageService.privateTodos().length);
+      console.log("[ManageItemPage]   sharedTodos:", this.storageService.sharedTodos().length);
+      console.log("[ManageItemPage]   publicTodos:", this.storageService.publicTodos().length);
     } catch (err: any) {
       this.notifyService.showError(err.message || "Failed to save");
     } finally {

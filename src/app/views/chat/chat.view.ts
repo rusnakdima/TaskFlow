@@ -1,5 +1,15 @@
 /* sys lib */
-import { Component, OnInit, signal, computed, inject, DestroyRef } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  DestroyRef,
+  ViewChild,
+  ElementRef,
+  AfterViewChecked,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -42,7 +52,9 @@ import { getProfileDisplayName } from "@utils/display-name.util";
   imports: [CommonModule, FormsModule, MatIconModule, UserAvatarComponent, OnlineStatusComponent],
   templateUrl: "./chat.view.html",
 })
-export class ChatView implements OnInit {
+export class ChatView implements OnInit, AfterViewChecked {
+  @ViewChild("scrollSentinel") scrollSentinel?: ElementRef<HTMLDivElement>;
+  private shouldScrollToBottom = false;
   private requestService = inject(ApiService);
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
@@ -62,6 +74,11 @@ export class ChatView implements OnInit {
   contextMenuConversation = signal<ConversationItem | null>(null);
   showContextMenu = signal(false);
   contextMenuPosition = signal({ x: 0, y: 0 });
+  contextMenuMessage = signal<ChatMessage | null>(null);
+  showMessageContextMenu = signal(false);
+  messageContextMenuPosition = signal({ x: 0, y: 0 });
+  editingMessageId = signal<string | null>(null);
+  editingMessageContent = signal("");
   isMobile = signal(typeof window !== "undefined" && window.innerWidth < 768);
   showEmojiPicker = signal(false);
   showAttachmentMenu = signal(false);
@@ -171,6 +188,82 @@ export class ChatView implements OnInit {
     this.contextMenuConversation.set(null);
   }
 
+  closeMessageContextMenu(): void {
+    this.showMessageContextMenu.set(false);
+    this.contextMenuMessage.set(null);
+  }
+
+  onMessageContextMenu(event: MouseEvent, message: ChatMessage): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!message.isMine) return;
+    this.contextMenuMessage.set(message);
+    this.messageContextMenuPosition.set({ x: event.clientX, y: event.clientY });
+    this.showMessageContextMenu.set(true);
+  }
+
+  startEditMessage(): void {
+    const msg = this.contextMenuMessage();
+    if (!msg) return;
+    this.editingMessageId.set(msg.id);
+    this.editingMessageContent.set(msg.content);
+    this.closeMessageContextMenu();
+  }
+
+  cancelEditMessage(): void {
+    this.editingMessageId.set(null);
+    this.editingMessageContent.set("");
+  }
+
+  saveEditMessage(): void {
+    const msgId = this.editingMessageId();
+    const content = this.editingMessageContent().trim();
+    if (!msgId || !content) {
+      this.cancelEditMessage();
+      return;
+    }
+
+    this.requestService
+      .invokeCommand("edit_message", {
+        id: msgId,
+        content: content,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.messages.update((msgs) =>
+            msgs.map((m) => (m.id === msgId ? { ...m, content: content, isEdited: true } : m))
+          );
+          this.cancelEditMessage();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to edit message");
+          this.cancelEditMessage();
+        },
+      });
+  }
+
+  deleteMessage(): void {
+    const msg = this.contextMenuMessage();
+    if (!msg) return;
+
+    this.requestService
+      .invokeCommand("hard_delete_message", {
+        id: msg.id,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.messages.update((msgs) => msgs.filter((m) => m.id !== msg.id));
+          this.closeMessageContextMenu();
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete message");
+          this.closeMessageContextMenu();
+        },
+      });
+  }
+
   removeConversation(): void {
     const conv = this.contextMenuConversation();
     if (!conv) return;
@@ -183,11 +276,9 @@ export class ChatView implements OnInit {
     );
 
     if (conv.isGroup) {
-      // For groups, we need to call delete_group with the group's id (not room_id)
-      // But we don't have the group id in ConversationItem - we need to check the structure
       this.requestService
-        .invokeCommand("delete_group", {
-          id: conv.roomId, // TODO: should be group id, not room id
+        .invokeCommand("delete_group_cascade", {
+          id: conv.roomId,
           token: this.authService.getToken(),
         })
         .subscribe({
@@ -209,13 +300,12 @@ export class ChatView implements OnInit {
         });
     } else {
       this.requestService
-        .invokeCommand("delete_room", {
+        .invokeCommand("hard_delete_room_messages", {
           roomId: conv.roomId,
           token: this.authService.getToken(),
         })
         .subscribe({
           next: () => {
-            console.log("[DEBUG removeConversation] delete_room success");
             this.conversations.update((convs) => convs.filter((c) => c.roomId !== conv.roomId));
             if (this.activeConversationId() === conv.roomId) {
               this.activeConversationId.set(null);
@@ -249,6 +339,13 @@ export class ChatView implements OnInit {
     }
   }
 
+  ngAfterViewChecked(): void {
+    if (this.shouldScrollToBottom && this.scrollSentinel) {
+      this.scrollSentinel.nativeElement.scrollIntoView({ behavior: "smooth" });
+      this.shouldScrollToBottom = false;
+    }
+  }
+
   private openConversationWithUserId(userId: string): void {
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
@@ -268,7 +365,7 @@ export class ChatView implements OnInit {
   private fetchProfileAndOpenChat(userId: string): void {
     this.requestService
       .invokeCommand("get_profile", {
-        id: userId,
+        user_id: userId,
         token: this.authService.getToken(),
         visibility: "public",
       })
@@ -452,7 +549,7 @@ export class ChatView implements OnInit {
     if (!this.getProfileByUserId(userId)) {
       this.requestService
         .invokeCommand("get_profile", {
-          id: userId,
+          user_id: userId,
           token: this.authService.getToken(),
           visibility: "public",
         })
@@ -701,7 +798,6 @@ export class ChatView implements OnInit {
       .invokeCommand("send_message", {
         roomId: conv.roomId,
         senderId: userId,
-        userId: conv.isGroup ? conv.roomId : conv.otherUserId,
         content: content,
         token: this.authService.getToken(),
       })
@@ -815,8 +911,8 @@ export class ChatView implements OnInit {
         let otherUserId: string | undefined;
 
         if (!isGroup) {
-          otherUserId = chat.user_id;
-          if (otherUserId && otherUserId !== currentUserId) {
+          otherUserId = chat.sender_id !== currentUserId ? chat.sender_id : undefined;
+          if (otherUserId) {
             const profile = this.getProfileByUserId(otherUserId);
             if (profile) {
               name = this.getProfileDisplayName(profile);
@@ -947,27 +1043,39 @@ export class ChatView implements OnInit {
           for (const chat of data) {
             if (chat.deleted_at) continue;
 
-            const profile = this.getProfileByUserId(chat.sender_id);
-            if (!profile) {
-              this.fetchProfileIfMissing(chat.sender_id);
-            }
-
-            const senderName = profile
+            const sender = chat.sender || {};
+            const profile = sender.profile || {};
+            const senderName = profile.name
               ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
-              : chat.sender_id;
+              : chat.sender_name || chat.sender_id || "Unknown";
+            const senderAvatar = profile.image_url || chat.sender_avatar || null;
+
+            let readStatus: "sent" | "delivered" | "read" | undefined;
+            if (chat.sender_id === currentUserId) {
+              const readByArr: string[] = chat.read_by || [];
+              const otherReaders = readByArr.filter((id: string) => id !== currentUserId);
+              if (otherReaders.length === 0) {
+                readStatus = "sent";
+              } else {
+                readStatus = "read";
+              }
+            }
 
             msgs.push({
               id: chat.id,
               content: chat.content,
               senderId: chat.sender_id,
               senderName: senderName,
-              senderAvatar: profile?.image_url,
+              senderAvatar: senderAvatar,
               time: this.formatDate(chat.created_at || ""),
               isMine: chat.sender_id === currentUserId,
+              isEdited: chat.is_edited === true,
+              readStatus: readStatus,
             });
           }
 
           this.messages.set(msgs);
+          this.shouldScrollToBottom = true;
         },
         error: () => {
           this.messages.set([]);
@@ -996,5 +1104,22 @@ export class ChatView implements OnInit {
 
   private formatDate(dateStr: string): string {
     return formatTime(dateStr);
+  }
+
+  isTimeGapLarge(time1: string, time2: string): boolean {
+    if (!time1 || !time2) return false;
+    const date1 = new Date(time1);
+    const date2 = new Date(time2);
+    const diffMs = Math.abs(date2.getTime() - date1.getTime());
+    return diffMs > 5 * 60 * 1000;
+  }
+
+  onEditKeydown(event: KeyboardEvent): void {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      this.saveEditMessage();
+    } else if (event.key === "Escape") {
+      this.cancelEditMessage();
+    }
   }
 }
