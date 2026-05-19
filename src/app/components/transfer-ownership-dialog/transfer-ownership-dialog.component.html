@@ -25,7 +25,7 @@
                   <div
                     class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-[10px] font-bold text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
                   >
-                    {{ (profile.name?.[0] || "") + (profile.last_name?.[0] || "") | uppercase }}
+                    {{ (profile.name[0] || "") + (profile.last_name[0] || "") | uppercase }}
                   </div>
                 }
                 <span>{{ profile.name }} {{ profile.last_name }}</span>
@@ -56,7 +56,7 @@
                     <div
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
                     >
-                      {{ (profile.name?.[0] || "") + (profile.last_name?.[0] || "") | uppercase }}
+                      {{ (profile.name[0] || "") + (profile.last_name[0] || "") | uppercase }}
                     </div>
                   }
                   <div class="flex flex-col">

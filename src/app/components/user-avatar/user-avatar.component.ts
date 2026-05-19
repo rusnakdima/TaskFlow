@@ -6,7 +6,7 @@ import { CommonModule } from "@angular/common";
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (src) {
+    @if (src && src.trim() !== "") {
       <img
         [ngClass]="imgClasses"
         [src]="src"
@@ -14,9 +14,7 @@ import { CommonModule } from "@angular/common";
         onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=?'"
       />
     } @else {
-      <div [ngClass]="fallbackClasses">
-        {{ initials }}
-      </div>
+      <img [ngClass]="imgClasses" src="/assets/images/user.png" [alt]="name" />
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
