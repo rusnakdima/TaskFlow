@@ -271,6 +271,16 @@ export class StorageService {
   }
 
   modify(type: EntityType, op: "create" | "update" | "delete", data: any): void {
+    console.log(`[StorageService] === MODIFY OPERATION ===`, { type, op, dataId: data?.id });
+    if (type === "todos" || type === "tasks" || type === "subtasks") {
+      console.log(`[StorageService] BEFORE operation - ${type}:`, {
+        privateTodos: this.privateTodos().length,
+        sharedTodos: this.sharedTodos().length,
+        publicTodos: this.publicTodos().length,
+        tasks: this.tasks().length,
+        subtasks: this.subtasks().length,
+      });
+    }
     if (type === "users") return;
     switch (op) {
       case "create":
@@ -282,6 +292,16 @@ export class StorageService {
       case "delete":
         this._entityService.removeEntity(type, data.id);
         break;
+    }
+    if (type === "todos" || type === "tasks" || type === "subtasks") {
+      console.log(`[StorageService] AFTER operation - ${type}:`, {
+        privateTodos: this.privateTodos().length,
+        sharedTodos: this.sharedTodos().length,
+        publicTodos: this.publicTodos().length,
+        tasks: this.tasks().length,
+        subtasks: this.subtasks().length,
+      });
+      console.log(`[StorageService] === END MODIFY ===`);
     }
   }
 
@@ -530,6 +550,14 @@ export class StorageService {
   }
 
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
+    console.log(`[StorageService] === ARCHIVE/RESTORE OPERATION ===`, { table, id, deletedAt });
+    console.log(`[StorageService] BEFORE archive - state:`, {
+      privateTodos: this.privateTodos().length,
+      sharedTodos: this.sharedTodos().length,
+      publicTodos: this.publicTodos().length,
+      tasks: this.tasks().length,
+      subtasks: this.subtasks().length,
+    });
     const timestamp = TimestampHelper.createTimestamp();
     const update = { deleted_at: deletedAt ? timestamp : undefined, updated_at: timestamp };
     if (table === "todos") {
@@ -596,6 +624,14 @@ export class StorageService {
         )
       );
     }
+    console.log(`[StorageService] AFTER archive - state:`, {
+      privateTodos: this.privateTodos().length,
+      sharedTodos: this.sharedTodos().length,
+      publicTodos: this.publicTodos().length,
+      tasks: this.tasks().length,
+      subtasks: this.subtasks().length,
+    });
+    console.log(`[StorageService] === END ARCHIVE ===`);
   }
 
   loadInitialData(type: string, limit: number): Observable<any> {

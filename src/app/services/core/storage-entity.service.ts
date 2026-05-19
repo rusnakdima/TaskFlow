@@ -45,6 +45,11 @@ export class StorageEntityService {
   readonly publicCategories = signal<Category[]>([]);
 
   addEntity(type: EntityType, data: any): void {
+    console.log("[StorageEntityService] addEntity called:", {
+      type,
+      dataId: data?.id,
+      visibility: data?.visibility,
+    });
     if (!data?.id) return;
     if (type === "profiles") {
       this.profiles.set(data);
@@ -94,6 +99,7 @@ export class StorageEntityService {
   }
 
   removeEntity(type: EntityType, id: string): void {
+    console.log("[StorageEntityService] removeEntity called:", { type, id });
     if (type === "profiles") {
       const current = this.profiles();
       if (current?.id === id) this.profiles.set(null);
@@ -193,6 +199,7 @@ export class StorageEntityService {
   }
 
   clearEntitySignals(): void {
+    console.log("[StorageEntityService] clearEntitySignals called - CLEARING ALL DATA!");
     this.privateTodos.set([]);
     this.sharedTodos.set([]);
     this.publicTodos.set([]);
