@@ -1,0 +1,187 @@
+<div
+  class="chat-message"
+  [class.own]="isOwn"
+  [class.others]="!isOwn"
+  [class.group-chat]="isGroupChat"
+  [class.single-chat]="!isGroupChat"
+  [class.group-start]="isGroupStart"
+  (contextmenu)="onContextMenu($event)"
+>
+  @if (!isOwn) {
+    <div class="message-container others">
+      @if (isGroupChat && isGroupStart) {
+        <app-user-avatar
+          [src]="message.senderAvatar"
+          [name]="message.senderName"
+          size="sm"
+          class="avatar"
+        />
+      } @else {
+        <div class="avatar-spacer"></div>
+      }
+
+      <div class="message-content">
+        @if (isGroupStart && isGroupChat) {
+          <div class="sender-info">
+            <span class="sender-name">{{ message.senderName }}</span>
+          </div>
+        }
+
+        <div class="bubble-wrapper">
+          <div class="bubble" [class.group-start]="isGroupStart">
+            @if (isEditing) {
+              <div class="edit-container">
+                <textarea
+                  class="edit-textarea"
+                  [value]="editingMessageContent"
+                  (input)="onEditInput($event)"
+                  rows="3"
+                ></textarea>
+                <div class="edit-actions">
+                  <button type="button" class="btn-cancel" (click)="onCancelEdit()">Cancel</button>
+                  <button type="button" class="btn-save" (click)="onSaveEdit()">Save</button>
+                </div>
+              </div>
+            } @else {
+              <p class="message-text">{{ message.content }}</p>
+            }
+          </div>
+
+          <div class="hover-actions">
+            <button class="action-btn" title="Reply" (click)="onReply(message)">
+              <mat-icon fontIcon="reply" class="h-4! w-4!" />
+            </button>
+            <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
+              <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
+            </button>
+            <button class="action-btn" title="More" (click)="onContextMenu($event)">
+              <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
+            </button>
+          </div>
+        </div>
+
+        <div class="message-meta">
+          @if (message.isEdited) {
+            <span class="edited-indicator">edited</span>
+          }
+          <span class="time">{{ message.time }}</span>
+          @if (message.readStatus) {
+            <span class="read-status">
+              @if (message.readStatus === "sent") {
+                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+              } @else if (message.readStatus === "delivered") {
+                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
+              } @else if (message.readStatus === "read") {
+                <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
+                <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
+              }
+            </span>
+          }
+        </div>
+
+        @if (message.reactions && message.reactions.length > 0) {
+          <app-message-reactions
+            [reactions]="message.reactions"
+            [showPicker]="false"
+            (togglePicker)="onReact({ message, emoji: '' })"
+            (addReaction)="onReact({ message, emoji: $event })"
+            (removeReaction)="onRemoveReaction({ message, emoji: $event })"
+          />
+        }
+
+        @if (message.replyTo) {
+          <app-reply-preview [replyTo]="message.replyTo" (cancel)="onCancelReply(message)" />
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="message-container own">
+      <div class="message-content">
+        @if (isGroupStart && isGroupChat) {
+          <div class="sender-info own-sender">
+            <span class="sender-name">{{ message.senderName }}</span>
+          </div>
+        }
+
+        <div class="bubble-wrapper own-bubble">
+          <div class="bubble own" [class.group-start]="isGroupStart">
+            @if (isEditing) {
+              <div class="edit-container">
+                <textarea
+                  class="edit-textarea"
+                  [value]="editingMessageContent"
+                  (input)="onEditInput($event)"
+                  rows="3"
+                ></textarea>
+                <div class="edit-actions">
+                  <button type="button" class="btn-cancel" (click)="onCancelEdit()">Cancel</button>
+                  <button type="button" class="btn-save" (click)="onSaveEdit()">Save</button>
+                </div>
+              </div>
+            } @else {
+              <p class="message-text">{{ message.content }}</p>
+            }
+          </div>
+
+          <div class="hover-actions own-actions">
+            <button class="action-btn" title="Reply" (click)="onReply(message)">
+              <mat-icon fontIcon="reply" class="h-4! w-4!" />
+            </button>
+            <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
+              <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
+            </button>
+            <button class="action-btn" title="More" (click)="onContextMenu($event)">
+              <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
+            </button>
+          </div>
+        </div>
+
+        <div class="message-meta own-meta">
+          @if (message.isEdited) {
+            <span class="edited-indicator">edited</span>
+          }
+          <span class="time">{{ message.time }}</span>
+          @if (message.readStatus) {
+            <span class="read-status">
+              @if (message.readStatus === "sent") {
+                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+              } @else if (message.readStatus === "delivered") {
+                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
+              } @else if (message.readStatus === "read") {
+                <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
+                <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
+              }
+            </span>
+          }
+        </div>
+
+        @if (message.reactions && message.reactions.length > 0) {
+          <app-message-reactions
+            [reactions]="message.reactions"
+            [showPicker]="false"
+            (togglePicker)="onReact({ message, emoji: '' })"
+            (addReaction)="onReact({ message, emoji: $event })"
+            (removeReaction)="onRemoveReaction({ message, emoji: $event })"
+          />
+        }
+
+        @if (message.replyTo) {
+          <app-reply-preview [replyTo]="message.replyTo" (cancel)="onCancelReply(message)" />
+        }
+      </div>
+
+      @if (isGroupChat && isGroupStart) {
+        <app-user-avatar
+          [src]="message.senderAvatar"
+          [name]="message.senderName"
+          size="sm"
+          class="avatar"
+        />
+      } @else {
+        <div class="avatar-spacer"></div>
+      }
+    </div>
+  }
+</div>

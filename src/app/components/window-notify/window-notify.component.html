@@ -9,7 +9,11 @@
       [ngClass]="[getColorForStatus(notification.status, 'border')]"
       [style.margin-top.px]="[isHover ? 0 : $index * 15]"
       [style.position]="isHover ? 'relative' : 'absolute'"
+      [style.transform]="'translateX(' + getTranslateX(notification.id) + 'px)'"
       data-id="{{ notification.id }}"
+      (touchstart)="onSwipeStart($event, notification.id)"
+      (touchmove)="onSwipeMove($event, notification.id)"
+      (touchend)="onSwipeEnd($event, notification.id)"
     >
       <div class="flex flex-row justify-between p-1">
         <div class="flex flex-col gap-x-1">
