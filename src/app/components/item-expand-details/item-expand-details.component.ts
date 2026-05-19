@@ -28,7 +28,7 @@ export class ItemExpandDetailsComponent implements OnInit {
   isLoadingUser = signal(false);
 
   ngOnInit(): void {
-    if (this.type === "category" && this.hasUserId) {
+    if (this.hasUserId) {
       this.handleExpand();
     }
   }
@@ -129,7 +129,13 @@ export class ItemExpandDetailsComponent implements OnInit {
   }
 
   get hasUserId(): boolean {
-    return this.type === "category" && !!this.item?.user_id;
+    return (
+      (this.type === "todo" ||
+        this.type === "task" ||
+        this.type === "subtask" ||
+        this.type === "category") &&
+      !!this.item?.user_id
+    );
   }
 
   get hasDailyActivity(): boolean {

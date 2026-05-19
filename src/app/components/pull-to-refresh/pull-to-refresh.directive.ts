@@ -1,13 +1,11 @@
 import {
   Directive,
-  ElementRef,
   EventEmitter,
   HostListener,
   Input,
   OnDestroy,
   OnInit,
   Output,
-  inject,
   signal,
 } from "@angular/core";
 
@@ -27,7 +25,6 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   state = signal<PullToRefreshState>("idle");
   pullDistance = signal(0);
 
-  private el = inject(ElementRef);
   private touchStartY = 0;
   private touchStartX = 0;
   private isPulling = false;
@@ -63,10 +60,10 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
     if (this.pullToRefreshDisabled || this.state() === "refreshing") return;
 
     const touch = event.touches[0];
-    const scrollTop = this.el.nativeElement.scrollTop;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
     const deltaY = touch.clientY - this.touchStartY;
 
-    if (scrollTop <= 0 && deltaY > 0 && !this.isPastTop) {
+    if (scrollTop <= 30 && deltaY > 0 && !this.isPastTop) {
       this.isPastTop = true;
       this.touchStartY = touch.clientY;
       this.hasPassedMinThreshold = false;

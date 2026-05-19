@@ -28,9 +28,12 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
   private nextId = 1;
   private readonly NOTIFICATION_DURATION = 3000;
   private readonly ANIMATION_DURATION = 300;
+  private readonly INTERACTION_TIMER_DURATION = 10000;
   private subscription: Subscription = new Subscription();
 
   isHover: boolean = false;
+  private swipeStates: Map<number, { startX: number; currentX: number }> = new Map();
+  private readonly SWIPE_THRESHOLD = 100;
 
   constructor(private notifyService: NotifyService) {}
 
@@ -67,13 +70,15 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  startNotificationTimer(id: number) {
+  startNotificationTimer(id: number, duration?: number) {
     const notification = this.notifications.find((n) => n.id === id);
     if (!notification) return;
 
+    const effectiveDuration = duration ?? this.NOTIFICATION_DURATION;
+
     const timeoutId = setTimeout(() => {
       this.prepareToRemove(id);
-    }, this.NOTIFICATION_DURATION);
+    }, effectiveDuration);
 
     notification.timeoutId = timeoutId as unknown as number;
   }
@@ -119,6 +124,58 @@ export class WindowNotifyComponent implements OnInit, OnDestroy {
     }
 
     this.prepareToRemove(id);
+  }
+
+  onSwipeStart(event: TouchEvent, id: number) {
+    const touch = event.touches[0];
+    this.swipeStates.set(id, { startX: touch.clientX, currentX: touch.clientX });
+    const element = document.querySelector(`.notification-item[data-id="${id}"]`) as HTMLElement;
+    if (element) {
+      element.style.transition = "none";
+      element.classList.remove("animate-slideInRight");
+    }
+    const notification = this.notifications.find((n) => n.id === id);
+    if (notification?.timeoutId) {
+      clearTimeout(notification.timeoutId);
+      notification.timeoutId = undefined;
+    }
+  }
+
+  onSwipeMove(event: TouchEvent, id: number) {
+    const touch = event.touches[0];
+    const state = this.swipeStates.get(id);
+    if (state) {
+      state.currentX = touch.clientX;
+    }
+  }
+
+  onSwipeEnd(_event: TouchEvent, id: number) {
+    const state = this.swipeStates.get(id);
+    if (!state) return;
+
+    const deltaX = state.currentX - state.startX;
+    this.swipeStates.delete(id);
+
+    if (Math.abs(deltaX) > this.SWIPE_THRESHOLD) {
+      this.closeNotification(id);
+    } else {
+      const element = document.querySelector(`.notification-item[data-id="${id}"]`) as HTMLElement;
+      if (element) {
+        element.style.transition = "transform 0.2s ease-out";
+        element.style.transform = "translateX(0)";
+        setTimeout(() => {
+          element.style.transition = "";
+          element.classList.add("animate-slideInRight");
+        }, 200);
+      }
+      this.startNotificationTimer(id, this.INTERACTION_TIMER_DURATION);
+    }
+  }
+
+  getTranslateX(id: number): number {
+    const state = this.swipeStates.get(id);
+    if (!state) return 0;
+    return state.currentX - state.startX;
   }
 
   getColorForStatus(status: ResponseStatus, type: "border" | "color"): string {
