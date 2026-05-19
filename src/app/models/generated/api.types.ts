@@ -94,6 +94,7 @@ export interface TodoUpdateRequest {
 export interface Task {
   id: string;
   todo_id: string;
+  user_id: string;
   title: string;
   description?: string;
   status: TaskStatus;
@@ -139,6 +140,7 @@ export interface TaskUpdateRequest {
 export interface Subtask {
   id: string;
   task_id: string;
+  user_id: string;
   title: string;
   description?: string;
   status: TaskStatus;

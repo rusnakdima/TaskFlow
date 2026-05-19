@@ -628,7 +628,7 @@ export class StorageQueryService {
     if (targetSignal().length > 0) return;
 
     this._todosLoading.set(true);
-    this.apiService.todos.getAll({ visibility, limit }).subscribe({
+    this.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
         targetSignal.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
@@ -644,7 +644,7 @@ export class StorageQueryService {
     if (this._tasksLoading()) return;
     if (!todoId && this._entityService.tasks().length > 0) return;
     this._tasksLoading.set(true);
-    this.apiService.tasks.getAll({ visibility, limit, todoId }).subscribe({
+    this.apiService.tasks.getAll({ visibility, limit, todoId, load: ["user"] }).subscribe({
       next: (tasks) => {
         this._entityService.tasks.set(tasks);
         this.updatePagination("tasks", 0, limit, tasks.length);
@@ -660,7 +660,7 @@ export class StorageQueryService {
     if (this._subtasksLoading()) return;
     if (!taskId && this._entityService.subtasks().length > 0) return;
     this._subtasksLoading.set(true);
-    this.apiService.subtasks.getAll({ visibility, limit, taskId }).subscribe({
+    this.apiService.subtasks.getAll({ visibility, limit, taskId, load: ["user"] }).subscribe({
       next: (subtasks) => {
         this._entityService.subtasks.set(subtasks);
         this.updatePagination("subtasks", 0, limit, subtasks.length);

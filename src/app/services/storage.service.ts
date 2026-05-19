@@ -271,16 +271,6 @@ export class StorageService {
   }
 
   modify(type: EntityType, op: "create" | "update" | "delete", data: any): void {
-    console.log(`[StorageService] === MODIFY OPERATION ===`, { type, op, dataId: data?.id });
-    if (type === "todos" || type === "tasks" || type === "subtasks") {
-      console.log(`[StorageService] BEFORE operation - ${type}:`, {
-        privateTodos: this.privateTodos().length,
-        sharedTodos: this.sharedTodos().length,
-        publicTodos: this.publicTodos().length,
-        tasks: this.tasks().length,
-        subtasks: this.subtasks().length,
-      });
-    }
     if (type === "users") return;
     switch (op) {
       case "create":
@@ -294,14 +284,6 @@ export class StorageService {
         break;
     }
     if (type === "todos" || type === "tasks" || type === "subtasks") {
-      console.log(`[StorageService] AFTER operation - ${type}:`, {
-        privateTodos: this.privateTodos().length,
-        sharedTodos: this.sharedTodos().length,
-        publicTodos: this.publicTodos().length,
-        tasks: this.tasks().length,
-        subtasks: this.subtasks().length,
-      });
-      console.log(`[StorageService] === END MODIFY ===`);
     }
   }
 
@@ -366,7 +348,17 @@ export class StorageService {
   }
 
   updateEntityVisibility(table: EntityType, id: string, newVisibility: string): void {
-    const entity = this.get(table, id);
+    let entity: any;
+    if (table === "todos") {
+      const allTodos = [
+        ...this._entityService.privateTodos(),
+        ...this._entityService.sharedTodos(),
+        ...this._entityService.publicTodos(),
+      ];
+      entity = allTodos.find((t) => t.id === id);
+    } else {
+      entity = this.get(table, id);
+    }
     if (!entity || entity.visibility === newVisibility) return;
 
     if (table === "todos") {
@@ -384,11 +376,21 @@ export class StorageService {
             ? this._entityService.publicTodos
             : this._entityService.sharedTodos;
 
-      oldList.update((todos) => todos.filter((t) => t.id !== id));
-      newList.update((todos) => [
-        { ...entity, visibility: newVisibility },
-        ...todos.filter((t) => t.id !== id),
-      ]);
+      const updatedEntity = { ...entity, visibility: newVisibility };
+      oldList.update((todos) => {
+        const filtered = todos.filter((t) => t.id !== id);
+        if (filtered.length === todos.length && !todos.some((t) => t.id === id)) {
+          return todos;
+        }
+        return filtered;
+      });
+      newList.update((todos) => {
+        const filtered = todos.filter((t) => t.id !== id);
+        if (filtered.some((t) => t.id === id)) {
+          return todos;
+        }
+        return [updatedEntity, ...filtered];
+      });
     } else {
       this.updateRecord(table, id, { visibility: newVisibility });
     }
@@ -550,14 +552,6 @@ export class StorageService {
   }
 
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
-    console.log(`[StorageService] === ARCHIVE/RESTORE OPERATION ===`, { table, id, deletedAt });
-    console.log(`[StorageService] BEFORE archive - state:`, {
-      privateTodos: this.privateTodos().length,
-      sharedTodos: this.sharedTodos().length,
-      publicTodos: this.publicTodos().length,
-      tasks: this.tasks().length,
-      subtasks: this.subtasks().length,
-    });
     const timestamp = TimestampHelper.createTimestamp();
     const update = { deleted_at: deletedAt ? timestamp : undefined, updated_at: timestamp };
     if (table === "todos") {
@@ -624,14 +618,6 @@ export class StorageService {
         )
       );
     }
-    console.log(`[StorageService] AFTER archive - state:`, {
-      privateTodos: this.privateTodos().length,
-      sharedTodos: this.sharedTodos().length,
-      publicTodos: this.publicTodos().length,
-      tasks: this.tasks().length,
-      subtasks: this.subtasks().length,
-    });
-    console.log(`[StorageService] === END ARCHIVE ===`);
   }
 
   loadInitialData(type: string, limit: number): Observable<any> {

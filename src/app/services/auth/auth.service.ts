@@ -127,7 +127,7 @@ export class AuthService {
 
   changePassword<R>(newPassword: string): Observable<R> {
     const token = this.getToken();
-    return this.requestService.invokeCommand<R>("changePassword", { token, newPassword });
+    return this.requestService.invokeCommand<R>("change_password", { token, newPassword });
   }
 
   logout() {

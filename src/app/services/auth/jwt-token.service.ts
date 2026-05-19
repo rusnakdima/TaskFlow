@@ -49,7 +49,10 @@ export class JwtTokenService {
    * Get user ID from token
    */
   getUserId(token: string | null): string | null {
-    return this.getValueByKey(token, "id");
+    let userId = this.getValueByKey(token, "id");
+    if (!userId) userId = this.getValueByKey(token, "userId");
+    if (!userId) userId = this.getValueByKey(token, "sub");
+    return userId;
   }
 
   /**

@@ -33,6 +33,7 @@ export class VisibilitySyncService {
     await firstValueFrom(
       this.requestService.invokeCommand("sync_visibility_to_provider", {
         todo_id,
+        entity_type: "todos",
         source_provider: source,
         target_provider: target,
       })
