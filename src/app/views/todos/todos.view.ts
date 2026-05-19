@@ -261,6 +261,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
   loadInitialTodos() {
+    console.log("[TodosView] loadInitialTodos called");
+    console.log("[TodosView] privateTodos length:", this.storageService.privateTodos().length);
+    console.log("[TodosView] sharedTodos length:", this.storageService.sharedTodos().length);
+    console.log("[TodosView] publicTodos length:", this.storageService.publicTodos().length);
     const hasAllTodos =
       this.storageService.privateTodos().length > 0 &&
       this.storageService.sharedTodos().length > 0 &&
@@ -296,6 +300,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   override ngOnInit(): void {
+    console.log("[TodosView] ngOnInit called");
     super.ngOnInit();
 
     this.pageKey = this.isSharedMode() ? "shared-tasks" : "todos";
@@ -325,6 +330,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      console.log("[TodosView] Refresh shortcut triggered!");
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");

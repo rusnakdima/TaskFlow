@@ -60,11 +60,17 @@
     <div
       class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <h3 class="textNormal mb-4 text-lg font-semibold">
-        {{ isMyProfile() ? "Quick Actions" : "Profile Details" }}
-      </h3>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        @if (isMyProfile()) {
+      @if (!isMyProfile()) {
+        <button
+          class="flex w-full items-center gap-3 rounded-lg bg-blue-50 p-4 text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+          (click)="openChat()"
+        >
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="chat" />
+          <span class="font-medium">Chat</span>
+        </button>
+      } @else {
+        <h3 class="textNormal mb-4 text-lg font-semibold">Quick Actions</h3>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             class="flex w-full items-center gap-3 rounded-lg bg-blue-50 p-4 text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
             routerLink="/profile/manage"
@@ -139,7 +145,6 @@
             </div>
           }
 
-          <!-- My QR Code Modal -->
           @if (showMyQr() && myQrCode()) {
             <div
               class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -156,7 +161,6 @@
                   </p>
                 </div>
 
-                <!-- Beautiful QR code with glow -->
                 <div class="relative">
                   <div
                     class="absolute inset-0 rounded-2xl bg-gradient-to-br from-green-400/20 to-emerald-400/20 blur-xl"
@@ -177,8 +181,8 @@
               </div>
             </div>
           }
-        }
-      </div>
+        </div>
+      }
     </div>
 
     @if (isMyProfile()) {

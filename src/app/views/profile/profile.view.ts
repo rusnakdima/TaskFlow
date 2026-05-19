@@ -316,4 +316,11 @@ export class ProfileView implements OnInit, OnDestroy {
     this.myQrCode.set(null);
     this.myQrToken.set(null);
   }
+
+  openChat(): void {
+    const userId = this.viewedUserId();
+    if (userId) {
+      this.router.navigate(["/chat"], { queryParams: { userId } });
+    }
+  }
 }
