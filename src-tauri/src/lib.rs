@@ -21,10 +21,10 @@ use routes::{
   archive_route::{get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete},
   auth_data_sync_route::initialize_user_data,
   auth_route::{
-    check_token, disable_totp, enable_totp, get_user_security_status, init_totp_qr_login, login,
-    qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete, qr_status, qr_toggle,
-    register, request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
-    verify_login_totp,
+    change_password, check_token, disable_totp, enable_totp, get_user_security_status,
+    init_totp_qr_login, login, qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete,
+    qr_status, qr_toggle, register, request_password_reset, reset_password, setup_totp,
+    use_recovery_code, verify_code, verify_login_totp,
   },
   cascade_route::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade, hard_remove_data,
@@ -482,6 +482,7 @@ pub fn run() {
       register,
       request_password_reset,
       reset_password,
+      change_password,
       verify_code,
       setup_totp,
       enable_totp,

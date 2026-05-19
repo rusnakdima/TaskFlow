@@ -1,6 +1,6 @@
 /* sys lib */
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tauri_plugin_http::reqwest;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubRepo {
@@ -51,12 +51,12 @@ pub struct GithubOAuthTokens {
 }
 
 pub struct GithubService {
-  http_client: Client,
+  http_client: reqwest::Client,
 }
 
 impl GithubService {
   pub fn new() -> Self {
-    let http_client = Client::builder()
+    let http_client = reqwest::Client::builder()
       .user_agent("TaskFlow/1.0")
       .build()
       .expect("Failed to create HTTP client");

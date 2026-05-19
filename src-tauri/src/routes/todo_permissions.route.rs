@@ -45,8 +45,7 @@ pub async fn change_todo_visibility(
   let doc_value = serde_json::to_value(&doc).unwrap_or_default();
   let old_visibility = get_visibility(&doc_value);
 
-  // If visibility is the same, nothing to do
-  if old_visibility == new_visibility {
+  if old_visibility == new_visibility.as_str() {
     return Ok(success_response(DataValue::Object(
       serde_json::json!({ "message": "Visibility unchanged" }),
     )));
@@ -76,32 +75,22 @@ pub async fn change_todo_visibility(
     .map_err(|e| err_response(&e.message))?;
 
   // Sync todo to the new provider
-  let source_provider =
-    if old_visibility == "private" || old_visibility == "shared" && old_visibility != "public" {
-      "Json"
-    } else {
-      "Mongo"
-    };
+  let source_provider = match old_visibility {
+    "private" => "Json",
+    _ => "Mongo",
+  };
 
-  let target_provider = if new_visibility == "private" {
-    "Json"
-  } else {
-    "Mongo"
+  let target_provider = match new_visibility.as_str() {
+    "private" => "Json",
+    _ => "Mongo",
   };
 
   if source_provider != target_provider {
     let cascade_service = state.cascade_service.clone();
-    if target_provider == "Mongo" {
-      cascade_service
-        .sync_entity_to_mongo("todos", &todo_id)
-        .await
-        .map_err(|e| err_response(&e.message))?;
-    } else {
-      cascade_service
-        .sync_entity_to_json("todos", &todo_id)
-        .await
-        .map_err(|e| err_response(&e.message))?;
-    }
+    cascade_service
+      .sync_todo_with_children(&todo_id, source_provider, target_provider, false)
+      .await
+      .map_err(|e| err_response(&e.message))?;
   }
 
   Ok(success_response(DataValue::Object(
