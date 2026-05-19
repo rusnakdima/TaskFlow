@@ -23,6 +23,41 @@ export interface ChatMessage {
   senderAvatar?: string;
   time: string;
   isMine: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  readStatus?: "sent" | "delivered" | "read";
+  sender?: {
+    id?: string;
+    email?: string;
+    username?: string;
+    role?: string;
+    profile_id?: string;
+    profile?: {
+      id?: string;
+      name?: string;
+      last_name?: string;
+      bio?: string;
+      image_url?: string;
+      user_id?: string;
+    };
+  };
+}
+
+export interface ConversationItem {
+  roomId: string;
+  name: string;
+  avatar: string | null;
+  isOnline: boolean;
+  isTyping: boolean;
+  isGroup: boolean;
+  unreadCount: number;
+  lastMessage: string;
+  lastMessageTime: string;
+  memberIds: string[];
+  memberCount: number;
+  bio: string;
+  otherUserId?: string;
+  ownerId?: string;
 }
 
 export type FilterType = "all" | "unread" | "groups";
