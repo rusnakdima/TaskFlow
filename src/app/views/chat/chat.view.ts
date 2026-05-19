@@ -346,15 +346,6 @@ export class ChatView implements OnInit, AfterViewChecked {
     this.state.setReplyTo(null);
   }
 
-  onVoiceMessage(): void {
-    console.log("Voice message clicked");
-  }
-
-  onVoiceRecorded(blob: Blob): void {
-    console.log("Voice recorded:", blob);
-    // TODO: Send voice message via chatService
-  }
-
   get typingIndicatorVisible(): boolean {
     return !!(this.state.isSomeoneTyping() && this.state.activeConversation()?.isTyping);
   }
