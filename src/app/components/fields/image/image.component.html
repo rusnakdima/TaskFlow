@@ -47,6 +47,14 @@
         [src]="form.get(field.name)?.value"
         alt="img"
       />
+      <button
+        type="button"
+        class="btn-cancel mt-2 flex items-center gap-1"
+        (click)="onRemoveImage()"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="delete" />
+        Remove Image
+      </button>
     </div>
   }
 

@@ -102,6 +102,13 @@ export class ImageComponent {
     this.notifyService.showError(message);
   }
 
+  onRemoveImage() {
+    this.form.get(this.field.name)?.setValue("/assets/images/user.png");
+    this.form.get("original_image_url")?.setValue("");
+    this.urlInput = "";
+    this.pendingOriginalUrl = "";
+  }
+
   onReCropOriginal() {
     const originalUrl = this.form.get("original_image_url")?.value;
     if (originalUrl) {
