@@ -1,0 +1,218 @@
+<div
+  class="relative shrink-0 border-t border-slate-200 bg-white/85 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/85"
+>
+  <form class="mx-auto flex flex-row items-end justify-center" (submit)="onSend()">
+    <div class="relative flex flex-row items-center justify-center">
+      <button
+        type="button"
+        class="shrink-0 rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        title="Attach"
+        (click)="onToggleAttachmentMenu()"
+      >
+        <mat-icon fontIcon="attach_file" class="!h-6 !w-5 text-2xl" />
+      </button>
+
+      @if (showAttachmentMenu) {
+        <div
+          class="absolute bottom-full left-0 mb-2 w-48 rounded-xl border border-slate-200 bg-white/98 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+        >
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            <mat-icon fontIcon="image" class="!h-4 !w-4 text-xl" />
+            Photo
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            <mat-icon fontIcon="videocam" class="!h-4 !w-4" />
+            Video
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            <mat-icon fontIcon="folder" class="!h-4 !w-4" />
+            File
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="relative mr-2 ml-2 flex h-full flex-1 flex-col">
+      @if (replyTo) {
+        <div
+          class="mb-2 flex items-start gap-2 rounded-xl border-l-4 border-[var(--accent-color)] bg-[var(--accent-50)] p-3 dark:bg-[var(--accent-900)]/50"
+        >
+          <div class="flex-1 overflow-hidden">
+            <span
+              class="mb-0.5 block text-xs font-semibold tracking-wide text-[var(--accent-color)] uppercase"
+              >Replying to {{ replyTo.senderName }}</span
+            >
+            <p class="text-sm text-slate-600 dark:text-zinc-400">{{ replyTo.content }}</p>
+          </div>
+          <button
+            type="button"
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+            (click)="onCancelReply()"
+          >
+            <mat-icon fontIcon="close" class="!h-4 !w-4" />
+          </button>
+        </div>
+      }
+
+      @if (isRecordingVoice()) {
+        <div
+          class="absolute right-0 bottom-full left-0 mb-2 overflow-hidden rounded-2xl border-2 border-red-200 bg-red-50/95 p-3 backdrop-blur-xl dark:border-red-900/50 dark:bg-red-900/95"
+        >
+          <div class="flex items-center gap-3">
+            <div class="relative h-10 w-10 shrink-0">
+              <div class="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-50"></div>
+              <div
+                class="relative flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white"
+              >
+                <mat-icon fontIcon="mic" class="!h-5 !w-5" />
+              </div>
+            </div>
+
+            <div class="flex flex-1 flex-col">
+              <div class="mb-1 flex items-center gap-2">
+                <span class="text-sm font-medium text-red-600 dark:text-red-400">Recording...</span>
+                <span class="text-xs text-red-400/70 dark:text-red-500/50">{{
+                  formatRecordingDuration()
+                }}</span>
+              </div>
+              <div class="flex h-6 items-center gap-0.5">
+                @for (amplitude of liveAmplitudes; track $index) {
+                  <div
+                    class="w-1 rounded-full bg-red-400 transition-all"
+                    [style.height.%]="amplitude"
+                  ></div>
+                }
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
+              (mousedown)="onVoiceCancel()"
+            >
+              <mat-icon fontIcon="close" class="!h-4 !w-4" />
+            </button>
+
+            <button
+              type="button"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-color)]/90"
+              (click)="onSendVoice()"
+            >
+              <mat-icon fontIcon="send" class="!h-4 !w-4" />
+            </button>
+          </div>
+        </div>
+      }
+
+      <div
+        class="relative flex items-end rounded-2xl border border-slate-200 bg-slate-50/90 transition-all focus-within:border-[var(--accent-color)] focus-within:shadow-[0_0_0_3px_var(--accent-500)]/15 dark:border-zinc-700 dark:bg-zinc-800/90"
+      >
+        <textarea
+          class="max-h-32 w-full resize-none rounded-2xl border-none bg-transparent py-3 pr-12 pl-4 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-0 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          [value]="messageInput"
+          (input)="onInputChange($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          placeholder="Type a message..."
+          rows="1"
+        ></textarea>
+
+        <button
+          type="button"
+          class="absolute right-14 bottom-2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+          (click)="onToggleEmojiPicker()"
+        >
+          <mat-icon fontIcon="emoji_emotions" class="!h-5 !w-5 align-middle" />
+        </button>
+
+        @if (messageInput.trim()) {
+          <button
+            type="submit"
+            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/30"
+          >
+            <mat-icon fontIcon="send" class="!h-5 !w-5" />
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+            title="Hold to record"
+            (mousedown)="onVoiceDown()"
+            (mouseup)="onVoiceUp()"
+            (mouseleave)="onVoiceUp()"
+            (touchstart)="onVoiceDown()"
+            (touchend)="onVoiceUp()"
+          >
+            <mat-icon fontIcon="mic" class="!h-5 !w-5" />
+          </button>
+        }
+      </div>
+
+      @if (showEmojiPicker) {
+        <div
+          class="absolute right-0 bottom-full mb-3 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/98 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+        >
+          <div class="flex border-b border-slate-100 dark:border-zinc-700">
+            <button
+              type="button"
+              class="flex-1 p-3 text-center transition-colors"
+              [class.text-[var(--accent-color)]]="activeEmojiTab === 'recent'"
+              [class.text-slate-500]="activeEmojiTab !== 'recent'"
+              (click)="onSetEmojiTab('recent')"
+            >
+              <span class="text-lg">🕐</span>
+            </button>
+            <button
+              type="button"
+              class="flex-1 p-3 text-center transition-colors"
+              [class.text-[var(--accent-color)]]="activeEmojiTab === 'smileys'"
+              [class.text-slate-500]="activeEmojiTab !== 'smileys'"
+              (click)="onSetEmojiTab('smileys')"
+            >
+              <span class="text-lg">😊</span>
+            </button>
+            <button
+              type="button"
+              class="flex-1 p-3 text-center transition-colors"
+              [class.text-[var(--accent-color)]]="activeEmojiTab === 'gestures'"
+              [class.text-slate-500]="activeEmojiTab !== 'gestures'"
+              (click)="onSetEmojiTab('gestures')"
+            >
+              <span class="text-lg">👋</span>
+            </button>
+            <button
+              type="button"
+              class="flex-1 p-3 text-center transition-colors"
+              [class.text-[var(--accent-color)]]="activeEmojiTab === 'objects'"
+              [class.text-slate-500]="activeEmojiTab !== 'objects'"
+              (click)="onSetEmojiTab('objects')"
+            >
+              <span class="text-lg">💡</span>
+            </button>
+          </div>
+          <div class="max-h-48 overflow-y-auto p-2">
+            <div class="grid grid-cols-8 gap-1">
+              @for (emoji of currentEmojis; track emoji) {
+                <button
+                  type="button"
+                  class="flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-colors hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
+                  (click)="onEmojiSelect(emoji)"
+                >
+                  {{ emoji }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </form>
+</div>

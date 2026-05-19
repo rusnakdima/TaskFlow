@@ -100,15 +100,35 @@ export class ProfileView implements OnInit, OnDestroy {
   private fetchViewedUserProfile(userId: string): void {
     this.requestService
       .invokeCommand("get_profile", {
-        id: userId,
+        filter: { user_id: userId },
         token: this.authService.getToken(),
         visibility: "public",
         load: "user",
       })
       .subscribe({
-        next: (profile: any) => {
+        next: (profileData: any) => {
+          const profile = Array.isArray(profileData) ? profileData[0] : profileData;
           if (profile) {
-            this.viewedUserProfile.set(profile);
+            const profileWithUser = { ...profile };
+            if (!profileWithUser.user && profileWithUser.user_id) {
+              this.requestService
+                .invokeCommand("get_user", {
+                  id: profileWithUser.user_id,
+                  token: this.authService.getToken(),
+                  visibility: "public",
+                })
+                .subscribe({
+                  next: (user: any) => {
+                    profileWithUser.user = user;
+                    this.viewedUserProfile.set(profileWithUser);
+                  },
+                  error: () => {
+                    this.viewedUserProfile.set(profileWithUser);
+                  },
+                });
+            } else {
+              this.viewedUserProfile.set(profileWithUser);
+            }
           }
         },
         error: () => {
@@ -134,6 +154,9 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   isMyProfile(): boolean {
+    if (this.isViewingOtherUser()) {
+      return false;
+    }
     const profile = this.profile();
     return profile !== null && profile.user_id === this.authService.getValueByKey("id");
   }

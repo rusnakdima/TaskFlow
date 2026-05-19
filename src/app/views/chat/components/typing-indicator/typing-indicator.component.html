@@ -1,0 +1,32 @@
+<div class="flex items-end gap-2 px-2 py-1">
+  @if (avatarUrl) {
+    <app-user-avatar [src]="avatarUrl" [name]="userName" size="sm" class="shrink-0" />
+  } @else {
+    <div class="w-5 shrink-0"></div>
+  }
+  <div
+    class="flex items-center gap-1.5 rounded-2xl border border-slate-200/50 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/90"
+  >
+    <span
+      class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+      style="animation-delay: 0ms"
+    ></span>
+    <span
+      class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+      style="animation-delay: 150ms"
+    ></span>
+    <span
+      class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+      style="animation-delay: 300ms"
+    ></span>
+    @if (userName) {
+      <span class="ml-1 text-xs text-slate-500 italic dark:text-zinc-400"
+        >{{ userName }} is typing...</span
+      >
+    } @else {
+      <span class="ml-1 text-xs text-slate-500 italic dark:text-zinc-400"
+        >Someone is typing...</span
+      >
+    }
+  </div>
+</div>

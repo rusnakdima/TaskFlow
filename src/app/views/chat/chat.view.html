@@ -1,1192 +1,211 @@
-<div class="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-zinc-900">
+<div
+  class="flex h-[calc(100vh-80px)] w-full flex-col bg-white md:h-[calc(100vh-100px)] lg:h-[calc(100vh-120px)] dark:bg-zinc-900"
+>
   <div class="flex flex-1 overflow-hidden">
     <aside
       class="flex w-full shrink-0 flex-col border-r border-slate-200 bg-white md:flex md:w-[360px] lg:w-[400px] dark:border-zinc-800 dark:bg-zinc-900"
-      [class.hidden]="!showSidebar() && isMobile()"
-      [class.fixed]="!showSidebar() && isMobile()"
-      [class.inset-0]="!showSidebar() && isMobile()"
-      [class.z-40]="!showSidebar() && isMobile()"
-      [class.h-screen]="!showSidebar() && isMobile()"
+      [class.hidden]="!state.showSidebar() && state.isMobile()"
+      [class.fixed]="!state.showSidebar() && state.isMobile()"
+      [class.inset-0]="!state.showSidebar() && state.isMobile()"
+      [class.z-40]="!state.showSidebar() && state.isMobile()"
+      [class.h-screen]="!state.showSidebar() && state.isMobile()"
     >
-      <div class="shrink-0 space-y-3 border-b border-slate-200 p-4 dark:border-zinc-800">
-        <div class="flex items-center gap-2">
-          <div class="relative flex-1">
-            <span
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-zinc-500"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                ></path>
-              </svg>
-            </span>
-            <input
-              type="search"
-              placeholder="Search or start conversation..."
-              class="w-full rounded-xl border-0 bg-slate-50 py-2.5 pr-4 pl-10 text-sm text-slate-950 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-500"
-              [value]="searchQuery()"
-              (input)="onSearchChange($any($event.target).value)"
-              (keydown)="onSearchKeydown($event)"
-              (focus)="onSearchFocus()"
-              (blur)="onSearchBlur()"
-            />
-            @if (showSearchDropdown()) {
-              <div
-                class="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-              >
-                <div
-                  class="custom-scrollbar max-h-72 overflow-y-auto p-1"
-                  (scroll)="onSearchDropdownScroll($event)"
-                >
-                  @if (searchDropdownUsers().recent.length > 0) {
-                    <div
-                      class="px-3 py-1.5 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-zinc-400"
-                    >
-                      Recent
-                    </div>
-                    @for (user of searchDropdownUsers().recent; track user.id) {
-                      <div
-                        class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
-                        (mousedown)="startConversationWithUser(user); hideSearchDropdown()"
-                      >
-                        @if (user.image_url) {
-                          <img
-                            class="h-9 w-9 rounded-full object-cover"
-                            [src]="user.image_url"
-                            [alt]="user.name"
-                            onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=?'"
-                          />
-                        } @else {
-                          <div
-                            class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent-100)] text-sm font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
-                          >
-                            {{ (user.name?.charAt(0) || "?").toUpperCase() }}
-                          </div>
-                        }
-                        <div class="min-w-0 flex-1">
-                          <p class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200">
-                            {{ user.name }} {{ user.last_name }}
-                          </p>
-                          <p class="truncate text-xs text-slate-500 dark:text-zinc-400">
-                            {{ user.user?.email || "No email" }}
-                          </p>
-                        </div>
-                      </div>
-                    }
-                  }
-                  @if (searchDropdownUsers().others.length > 0) {
-                    <div
-                      class="mt-1 px-3 py-1.5 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-zinc-400"
-                    >
-                      All Users
-                    </div>
-                    @for (user of searchDropdownUsers().others; track user.id) {
-                      <div
-                        class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
-                        (mousedown)="startConversationWithUser(user); hideSearchDropdown()"
-                      >
-                        <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
-                        <div class="min-w-0 flex-1">
-                          <p class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200">
-                            {{ user.name }} {{ user.last_name }}
-                          </p>
-                          <p class="truncate text-xs text-slate-500 dark:text-zinc-400">
-                            {{ user.user?.email || "No email" }}
-                          </p>
-                        </div>
-                      </div>
-                    }
-                  }
-                  @if (
-                    searchDropdownUsers().recent.length === 0 &&
-                    searchDropdownUsers().others.length === 0
-                  ) {
-                    <div class="p-4 text-center text-sm text-slate-500 dark:text-zinc-400">
-                      No users found
-                    </div>
-                  }
-                  @if (isProfilesLoading() || isSearching()) {
-                    <div class="flex justify-center py-3">
-                      <div
-                        class="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent-color)] border-t-transparent"
-                      ></div>
-                    </div>
-                  } @else if (hasMoreProfiles()) {
-                    <button
-                      class="w-full py-2 text-sm text-[var(--accent-600)] transition-colors hover:bg-slate-50 dark:text-[var(--accent-400)] dark:hover:bg-zinc-700"
-                      (click)="loadMoreProfiles(); $event.stopPropagation()"
-                    >
-                      Load More
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-
-          <button
-            class="shrink-0 rounded-xl bg-[var(--accent-color)] p-2.5 text-white shadow-[var(--accent-color)]/15 shadow-lg transition-all duration-150 hover:bg-[var(--accent-600)] hover:shadow-[var(--accent-color)]/20"
-            (click)="showCreateGroupModal.set(true)"
-            title="Create Group"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        @if (showUserDropdown()) {
-          <div
-            class="absolute z-50 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-          >
-            <div class="border-b border-slate-200 p-2 dark:border-zinc-700">
-              <input
-                type="search"
-                placeholder="Search users..."
-                class="w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm text-slate-950 placeholder-slate-400 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-50 dark:placeholder-zinc-500"
-                [value]="userDropdownSearch()"
-                (input)="userDropdownSearch.set($any($event.target).value)"
-                (click)="$event.stopPropagation()"
-              />
-            </div>
-            <div class="custom-scrollbar max-h-64 overflow-y-auto">
-              @for (
-                user of searchDropdownUsers().recent.concat(searchDropdownUsers().others);
-                track user.id
-              ) {
-                <div
-                  class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
-                  (mousedown)="startConversationWithUser(user); hideSearchDropdown()"
-                >
-                  <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200">
-                      {{ user.name }} {{ user.last_name }}
-                    </p>
-                    <p class="truncate text-xs text-slate-500 dark:text-zinc-400">
-                      {{ user.user?.email || "No email" }}
-                    </p>
-                  </div>
-                </div>
-              } @empty {
-                <div class="p-4 text-center text-sm text-slate-500 dark:text-zinc-400">
-                  No users found
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        <div
-          class="flex space-x-1.5 rounded-xl bg-slate-100 p-1 text-xs font-semibold dark:bg-zinc-800/60"
-        >
-          <button
-            (click)="filterChats('all')"
-            [class]="
-              filterType() === 'all'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
-                : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-            "
-          >
-            All
-          </button>
-          <button
-            (click)="filterChats('unread')"
-            [class]="
-              filterType() === 'unread'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
-                : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-            "
-          >
-            Unread
-          </button>
-          <button
-            (click)="filterChats('groups')"
-            [class]="
-              filterType() === 'groups'
-                ? 'flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[var(--accent-600)] shadow-sm transition-all duration-150 dark:bg-zinc-700 dark:text-zinc-100'
-                : 'flex-1 rounded-lg px-3 py-1.5 text-center text-slate-500 transition-all duration-150 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-            "
-          >
-            Groups
-          </button>
-        </div>
-      </div>
-
-      <div class="custom-scrollbar flex-1 space-y-1 overflow-y-auto p-2">
-        @for (conversation of filteredConversations(); track conversation.roomId) {
-          <div
-            class="flex cursor-pointer items-center justify-between rounded-2xl p-3 transition-all duration-150"
-            [class.bg-[var(--accent-100)]]="activeConversationId() === conversation.roomId"
-            [class.dark:bg-[var(--accent-900)]/30]="activeConversationId() === conversation.roomId"
-            [class.ring-1]="activeConversationId() === conversation.roomId"
-            [class.ring-[var(--accent-color)]/20]="activeConversationId() === conversation.roomId"
-            [class.hover:bg-[var(--accent-50)]]="activeConversationId() !== conversation.roomId"
-            [class.dark:hover:bg-[var(--accent-900)]/30]="
-              activeConversationId() !== conversation.roomId
-            "
-            [class.border]="activeConversationId() !== conversation.roomId"
-            [class.border-slate-200]="activeConversationId() !== conversation.roomId"
-            [class.dark:border-zinc-700]="activeConversationId() !== conversation.roomId"
-            [class.border-0]="activeConversationId() === conversation.roomId"
-            (click)="selectConversation(conversation)"
-            (contextmenu)="onConversationContextMenu($event, conversation)"
-          >
-            <div class="flex min-w-0 items-center space-x-3 overflow-hidden">
-              <div class="relative shrink-0">
-                <app-user-avatar [src]="conversation.avatar" [name]="conversation.name" size="lg" />
-                <app-online-status [isOnline]="conversation.isOnline" />
-              </div>
-              <div class="overflow-hidden">
-                <h4
-                  class="truncate text-sm font-semibold"
-                  [class.text-[var(--accent-600)]]="activeConversationId() === conversation.roomId"
-                  [class.dark:text-[var(--accent-400)]]="
-                    activeConversationId() === conversation.roomId
-                  "
-                  [class.text-slate-800]="activeConversationId() !== conversation.roomId"
-                  [class.dark:text-zinc-200]="activeConversationId() !== conversation.roomId"
-                >
-                  {{ conversation.name }}
-                </h4>
-                @if (conversation.isTyping) {
-                  <span class="animate-pulse text-xs font-semibold text-emerald-500"
-                    >Typing...</span
-                  >
-                } @else {
-                  <span class="block truncate text-xs text-slate-400 dark:text-zinc-500">{{
-                    conversation.lastMessage
-                  }}</span>
-                }
-              </div>
-            </div>
-            <div class="ml-2 flex shrink-0 flex-col items-end space-y-1">
-              <span class="text-[10px] font-medium text-slate-400 dark:text-zinc-500">{{
-                conversation.lastMessageTime
-              }}</span>
-              @if (conversation.unreadCount > 0) {
-                <span
-                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-color)] text-[10px] font-bold text-white shadow-[var(--accent-color)]/20 shadow-md"
-                >
-                  {{ conversation.unreadCount }}
-                </span>
-              }
-            </div>
-          </div>
-        } @empty {
-          <div class="p-6 text-center">
-            <p class="text-xs text-slate-400 dark:text-zinc-500">No matching conversations found</p>
-          </div>
-        }
-      </div>
+      <app-chat-sidebar
+        [conversations]="state.conversations()"
+        [filteredConversations]="state.filteredConversations()"
+        [searchQuery]="state.searchQuery()"
+        [filterType]="state.filterType()"
+        [showUserDropdown]="state.showUserDropdown()"
+        [showSearchDropdown]="state.showSearchDropdown()"
+        [userDropdownSearch]="state.userDropdownSearch()"
+        [searchDropdownUsers]="state.searchDropdownUsers()"
+        [isProfilesLoading]="state.isProfilesLoading()"
+        [isSearching]="state.isSearching()"
+        [hasMoreProfiles]="state.hasMoreProfiles()"
+        [showCreateGroupModal]="state.showCreateGroupModal()"
+        [newGroupName]="state.newGroupName()"
+        [isMobile]="state.isMobile()"
+        [activeConvId]="state.activeConversationId()"
+        (selectConversation)="selectConversation($event)"
+        (conversationContextMenu)="onConversationContextMenu($event)"
+        (searchChange)="onSearchChange($event)"
+        (searchKeydown)="onSearchKeydown($event)"
+        (searchFocus)="onSearchFocus()"
+        (searchBlur)="onSearchBlur()"
+        (searchDropdownScroll)="onSearchDropdownScroll($event)"
+        (loadMoreProfiles)="loadMoreProfiles()"
+        (toggleUserDropdown)="toggleUserDropdown()"
+        (closeUserDropdown)="closeUserDropdown()"
+        (toggleUserForAdd)="toggleUserForAdd($event)"
+        (startConversationWithUser)="startConversationWithUser($event)"
+        (filterChange)="filterChats($event)"
+        (openCreateGroup)="openCreateGroup()"
+        (createGroup)="createGroup($event)"
+        (closeCreateGroup)="closeCreateGroup()"
+      />
     </aside>
 
-    <section
-      class="relative z-10 flex flex-1 flex-col overflow-hidden bg-white dark:bg-zinc-900"
-      style="height: calc(100vh - 72px - 62px - 12px)"
-    >
-      @if (!activeConversationId()) {
+    <section class="relative z-10 flex flex-1 flex-col overflow-hidden bg-white dark:bg-zinc-900">
+      @if (!state.activeConversationId()) {
         <div
           class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-50 p-8 text-center dark:bg-zinc-950"
         >
           <div
             class="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--accent-50)] text-[var(--accent-color)] shadow-[var(--accent-color)]/5 shadow-xl dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
           >
-            <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
-              ></path>
-            </svg>
+            <mat-icon fontIcon="chat" class="h-10 w-10" />
           </div>
-          <h3 class="mb-2 text-xl font-bold">Select a Conversation</h3>
+          <h3 class="mb-2 text-xl font-bold text-slate-800 dark:text-zinc-200">
+            Select a Conversation
+          </h3>
           <p class="max-w-sm text-sm leading-relaxed text-slate-500 dark:text-zinc-400">
             Choose an active dialogue on the left panel or initiate a clean dialogue to start
             swapping messages instantly.
           </p>
         </div>
       } @else {
-        <header
-          class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-zinc-800 dark:bg-zinc-900/80"
-        >
-          <div class="flex items-center space-x-3 overflow-hidden">
-            <button
-              class="-ml-2 rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[var(--accent-600)] md:hidden dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-[var(--accent-400)]"
-              (click)="closeConversation()"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7"
-                ></path>
-              </svg>
-            </button>
-
-            @if (activeConversation()) {
-              <div class="relative shrink-0">
-                <app-user-avatar
-                  [src]="activeConversation()!.avatar"
-                  [name]="activeConversation()!.name"
-                  size="lg"
-                />
-                <app-online-status [isOnline]="activeConversation()!.isOnline" />
-              </div>
-              <div class="overflow-hidden">
-                <h2
-                  class="truncate text-sm font-semibold text-slate-900 sm:text-base dark:text-zinc-100"
-                >
-                  {{ activeConversation()!.name }}
-                </h2>
-                <p class="flex items-center truncate text-xs text-slate-500 dark:text-zinc-400">
-                  @if (activeConversation()!.isTyping) {
-                    <span class="animate-pulse font-semibold text-emerald-500">Typing...</span>
-                  } @else if (activeConversation()!.isOnline) {
-                    <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Active Now
-                  } @else {
-                    Offline
-                  }
-                </p>
-              </div>
-            }
-          </div>
-
-          <div class="relative">
-            <button
-              class="rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[var(--accent-600)] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-[var(--accent-400)]"
-              (click)="toggleDetailsPanel()"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
-              </svg>
-            </button>
-            @if (showDetailsMenu()) {
-              <div
-                class="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-              >
-                <button
-                  class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                  (click)="toggleDetailsPanel()"
-                >
-                  <svg
-                    class="h-4 w-4 text-[var(--accent-color)]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                  View Details
-                </button>
-                <div class="my-1 border-t border-slate-100 dark:border-zinc-700"></div>
-                @if (activeConversation()?.isGroup) {
-                  <button
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                      ></path>
-                    </svg>
-                    Leave Group
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        </header>
+        <app-chat-header
+          [conversation]="state.activeConversation()"
+          [showDetailsPanel]="state.showDetailsPanel()"
+          [isMobile]="state.isMobile()"
+          (back)="closeConversation()"
+          (toggleDetails)="state.toggleDetailsPanel()"
+        />
 
         <div
-          class="custom-scrollbar flex flex-1 flex-col space-y-3 overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 dark:bg-zinc-950/40"
+          class="custom-scrollbar flex flex-1 flex-col space-y-2 overflow-y-auto bg-slate-50 px-4 pt-4 pb-28 sm:px-6 dark:bg-zinc-950/40"
         >
           @for (
-            message of activeMessages();
+            message of state.activeMessages();
             track message.id;
             let idx = $index;
             let first = $first
           ) {
-            @let prevMsg = idx > 0 ? activeMessages()[idx - 1] : null;
+            @let prevMsg = idx > 0 ? state.activeMessages()[idx - 1] : null;
             @let isGroupStart =
               first ||
               (prevMsg && prevMsg.senderId !== message.senderId) ||
               (message.time &&
                 prevMsg &&
                 prevMsg.time &&
-                isTimeGapLarge(prevMsg.time, message.time));
-            @let isOwn = message.isMine;
-            @if (!isOwn) {
-              <div
-                class="flex w-full items-start gap-2"
-                (contextmenu)="onMessageContextMenu($event, message)"
-              >
-                <app-user-avatar
-                  [src]="message.senderAvatar"
-                  [name]="message.senderName"
-                  size="sm"
-                />
-                <div class="flex flex-col items-start">
-                  @if (editingMessageId() === message.id) {
-                    <div
-                      class="rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm dark:bg-zinc-800 dark:text-zinc-200"
-                    >
-                      <textarea
-                        class="w-full resize-none rounded-lg border border-[var(--accent-color)] bg-transparent p-2 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:text-zinc-100"
-                        rows="3"
-                        [value]="editingMessageContent()"
-                        (input)="editingMessageContent.set($any($event.target).value)"
-                        (keydown)="onEditKeydown($event)"
-                      ></textarea>
-                      <div class="mt-2 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          class="rounded-lg px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                          (click)="cancelEditMessage()"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          class="rounded-lg bg-[var(--accent-color)] px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-600)]"
-                          (click)="saveEditMessage()"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  } @else {
-                    <div
-                      class="rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm transition-all duration-150 dark:bg-zinc-800 dark:text-zinc-200"
-                      [class.rounded-tr-none]="!isGroupStart"
-                    >
-                      @if (isGroupStart) {
-                        <div class="mb-1 flex justify-between">
-                          <span
-                            class="text-[10px] font-semibold text-slate-500 dark:text-zinc-400"
-                            >{{ message.senderName }}</span
-                          >
-                          <span class="text-[9px] font-medium tracking-wide opacity-60">{{
-                            message.time
-                          }}</span>
-                        </div>
-                      }
-                      <p class="whitespace-pre-line">{{ message.content }}</p>
-                      <div class="mt-1.5 flex items-center justify-end gap-1">
-                        @if (message.isEdited) {
-                          <span class="text-[9px] font-medium tracking-wide opacity-60"
-                            >(edited)</span
-                          >
-                        }
-                        @if (message.isMine) {
-                          <svg
-                            class="h-3.5 w-3.5 opacity-60"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2.5"
-                              d="M5 13l4 4L19 7"
-                            ></path>
-                          </svg>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            } @else {
-              <div
-                class="flex w-full flex-row-reverse items-start gap-2"
-                (contextmenu)="onMessageContextMenu($event, message)"
-              >
-                <app-user-avatar
-                  [src]="message.senderAvatar"
-                  [name]="message.senderName"
-                  size="sm"
-                />
-                <div class="flex flex-col items-end">
-                  @if (editingMessageId() === message.id) {
-                    <div
-                      class="rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm dark:bg-zinc-800 dark:text-zinc-200"
-                    >
-                      <textarea
-                        class="w-full resize-none rounded-lg border border-[var(--accent-color)] bg-transparent p-2 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:text-zinc-100"
-                        rows="3"
-                        [value]="editingMessageContent()"
-                        (input)="editingMessageContent.set($any($event.target).value)"
-                        (keydown)="onEditKeydown($event)"
-                      ></textarea>
-                      <div class="mt-2 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          class="rounded-lg px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                          (click)="cancelEditMessage()"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          class="rounded-lg bg-[var(--accent-color)] px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-600)]"
-                          (click)="saveEditMessage()"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  } @else {
-                    <div
-                      class="rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm transition-all duration-150 dark:bg-zinc-800 dark:text-zinc-200"
-                      [class.rounded-tl-none]="!isGroupStart"
-                      [class.dark:bg-zinc-700]="isOwn"
-                    >
-                      @if (isGroupStart) {
-                        <div class="mb-1 flex justify-between">
-                          <span
-                            class="text-[10px] font-semibold text-slate-500 dark:text-zinc-400"
-                            >{{ message.senderName }}</span
-                          >
-                        </div>
-                      }
-                      <p class="whitespace-pre-line">{{ message.content }}</p>
-                      <div class="mt-1.5 flex items-center justify-end gap-1">
-                        @if (message.isEdited) {
-                          <span class="text-[9px] font-medium tracking-wide opacity-60"
-                            >(edited)</span
-                          >
-                        }
-                        @if (message.isMine && message.readStatus) {
-                          @if (message.readStatus === "sent") {
-                            <svg
-                              class="h-3.5 w-3.5 opacity-60"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                          } @else if (message.readStatus === "delivered") {
-                            <svg
-                              class="h-3.5 w-3.5 opacity-60"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                            <svg
-                              class="-ml-2 h-3.5 w-3.5 opacity-60"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                          } @else if (message.readStatus === "read") {
-                            <svg
-                              class="h-3.5 w-3.5 opacity-60"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                            <svg
-                              class="-ml-2 h-3.5 w-3.5 text-blue-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2.5"
-                                d="M5 13l4 4L19 7"
-                              ></path>
-                            </svg>
-                          }
-                        }
-                        <span class="text-[9px] font-medium tracking-wide opacity-60">{{
-                          message.time
-                        }}</span>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
+                state.isTimeGapLarge(prevMsg.time, message.time));
+            @let showDateAnchor =
+              first ||
+              (message.time && prevMsg && prevMsg.time && !isSameDay(prevMsg.time, message.time));
+            @if (showDateAnchor) {
+              <app-date-anchor [date]="formatMessageDate(message.time)" />
             }
+            <app-chat-message
+              [message]="message"
+              [isGroupStart]="!!isGroupStart"
+              [isGroupChat]="state.activeConversation()?.isGroup ?? false"
+              [editingMessageId]="state.editingMessageId()"
+              [editingMessageContent]="state.editingMessageContent()"
+              (contextMenu)="onMessageContextMenu($event.event, message)"
+              (editMessageInput)="state.editingMessageContent.set($event)"
+              (saveEdit)="saveEditMessage()"
+              (cancelEdit)="cancelEditMessage()"
+              (reply)="onReplyMessage($event)"
+              (react)="onReactToMessage($event)"
+              (removeReaction)="onRemoveReaction($event)"
+              (cancelReply)="onCancelReply($event)"
+            />
+          }
+          @if (typingIndicatorVisible) {
+            <app-typing-indicator [userName]="typingUserName" />
           }
           <div #scrollSentinel class="h-px w-full"></div>
         </div>
 
-        <div
-          class="shrink-0 border-t border-slate-200 bg-white p-4 pb-8 dark:border-zinc-800 dark:bg-zinc-900"
-        >
-          <form
-            class="mx-auto flex max-w-4xl items-end space-x-2 md:space-x-3"
-            (submit)="sendMessage($event)"
-          >
-            <div class="relative flex items-end">
-              <button
-                type="button"
-                class="shrink-0 rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                title="Attach"
-                (click)="toggleAttachmentMenu()"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  ></path>
-                </svg>
-              </button>
-              @if (showAttachmentMenu()) {
-                <div
-                  class="absolute bottom-full left-0 z-50 mb-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                  <button
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    <svg
-                      class="h-4 w-4 text-[var(--accent-color)]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      ></path>
-                    </svg>
-                    Photo Library
-                  </button>
-                  <button
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    <svg
-                      class="h-4 w-4 text-emerald-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      ></path>
-                    </svg>
-                    Document
-                  </button>
-                  <button
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    <svg
-                      class="h-4 w-4 text-rose-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                      ></path>
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                      ></path>
-                    </svg>
-                    Camera
-                  </button>
-                </div>
-              }
-            </div>
-
-            <div class="relative flex-1">
-              <input
-                type="text"
-                autocomplete="off"
-                placeholder="Write a message..."
-                class="w-full rounded-2xl border-0 bg-slate-100 py-3 pr-24 pl-4 text-sm text-slate-900 placeholder-slate-400 transition-all duration-150 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
-                [value]="messageInput()"
-                (input)="onMessageInputChange($any($event.target).value)"
-                (keydown)="onInputKeydown($event)"
-              />
-              <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
-                <button
-                  type="button"
-                  class="rounded-lg p-1.5 text-slate-400 transition-colors hover:text-amber-500 dark:text-zinc-500 dark:hover:text-amber-400"
-                  title="Emoji"
-                  (click)="toggleEmojiPicker()"
-                >
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-              @if (showEmojiPicker()) {
-                <div
-                  class="absolute right-0 bottom-full z-50 mb-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                  <div class="flex items-center border-b border-slate-100 dark:border-zinc-700">
-                    <button
-                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
-                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'recent'"
-                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'recent'"
-                      [class.border-transparent]="activeEmojiTab() !== 'recent'"
-                      [class.text-slate-400]="activeEmojiTab() !== 'recent'"
-                      (click)="setEmojiTab('recent')"
-                    >
-                      <span>🕐</span>
-                      <span>Recent</span>
-                    </button>
-                    <button
-                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
-                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'smileys'"
-                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'smileys'"
-                      [class.border-transparent]="activeEmojiTab() !== 'smileys'"
-                      [class.text-slate-400]="activeEmojiTab() !== 'smileys'"
-                      (click)="setEmojiTab('smileys')"
-                    >
-                      <span>😀</span>
-                      <span>Smileys</span>
-                    </button>
-                    <button
-                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
-                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'gestures'"
-                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'gestures'"
-                      [class.border-transparent]="activeEmojiTab() !== 'gestures'"
-                      [class.text-slate-400]="activeEmojiTab() !== 'gestures'"
-                      (click)="setEmojiTab('gestures')"
-                    >
-                      <span>👋</span>
-                      <span>Gestures</span>
-                    </button>
-                    <button
-                      class="flex flex-1 flex-col items-center gap-0.5 border-b-2 py-2 text-[10px] transition-colors"
-                      [class.border-[var(--accent-color)]]="activeEmojiTab() === 'objects'"
-                      [class.text-[var(--accent-600)]]="activeEmojiTab() === 'objects'"
-                      [class.border-transparent]="activeEmojiTab() !== 'objects'"
-                      [class.text-slate-400]="activeEmojiTab() !== 'objects'"
-                      (click)="setEmojiTab('objects')"
-                    >
-                      <span>❤️</span>
-                      <span>Objects</span>
-                    </button>
-                  </div>
-                  <div class="custom-scrollbar h-64 overflow-y-auto p-2">
-                    @if (activeEmojiTab() === "recent") {
-                      <div class="grid grid-cols-8 gap-1">
-                        @for (
-                          emoji of recentEmojis().length > 0 ? recentEmojis() : recentEmojisDefault;
-                          track emoji
-                        ) {
-                          <button
-                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
-                            (click)="addEmoji(emoji)"
-                          >
-                            {{ emoji }}
-                          </button>
-                        } @empty {
-                          <div class="col-span-8 py-4 text-center text-xs text-slate-400">
-                            No recent emojis
-                          </div>
-                        }
-                      </div>
-                    }
-                    @if (activeEmojiTab() === "smileys") {
-                      <div class="grid grid-cols-8 gap-1">
-                        @for (emoji of smileysEmojis; track emoji) {
-                          <button
-                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
-                            (click)="addEmoji(emoji)"
-                          >
-                            {{ emoji }}
-                          </button>
-                        }
-                      </div>
-                    }
-                    @if (activeEmojiTab() === "gestures") {
-                      <div class="grid grid-cols-8 gap-1">
-                        @for (emoji of gesturesEmojis; track emoji) {
-                          <button
-                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
-                            (click)="addEmoji(emoji)"
-                          >
-                            {{ emoji }}
-                          </button>
-                        }
-                      </div>
-                    }
-                    @if (activeEmojiTab() === "objects") {
-                      <div class="grid grid-cols-8 gap-1">
-                        @for (emoji of objectsEmojis; track emoji) {
-                          <button
-                            class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
-                            (click)="addEmoji(emoji)"
-                          >
-                            {{ emoji }}
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-
-            <button
-              type="submit"
-              class="shrink-0 rounded-2xl bg-[var(--accent-color)] p-3 text-white shadow-[var(--accent-color)]/15 shadow-lg transition-all duration-150 hover:bg-[var(--accent-600)] hover:shadow-[var(--accent-color)]/20 active:scale-[0.95] disabled:opacity-50"
-              [disabled]="!messageInput().trim()"
-            >
-              <svg
-                class="h-5 w-5 rotate-90 transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                ></path>
-              </svg>
-            </button>
-          </form>
-        </div>
+        <app-chat-input
+          [messageInput]="state.messageInput()"
+          [showEmojiPicker]="state.showEmojiPicker()"
+          [showAttachmentMenu]="state.showAttachmentMenu()"
+          [activeEmojiTab]="state.activeEmojiTab()"
+          [recentEmojis]="state.recentEmojis()"
+          [smileysEmojis]="smileysEmojis"
+          [gesturesEmojis]="gesturesEmojis"
+          [objectsEmojis]="objectsEmojis"
+          [recentEmojisDefault]="recentEmojisDefault"
+          [replyTo]="replyToMessage"
+          (inputChange)="onMessageInputChange($event)"
+          (send)="sendMessage()"
+          (keydown)="onInputKeydown($event)"
+          (emojiSelect)="addEmoji($event)"
+          (toggleEmojiPicker)="state.toggleEmojiPicker()"
+          (toggleAttachmentMenu)="state.toggleAttachmentMenu()"
+          (setEmojiTab)="setEmojiTab($event)"
+          (cancelReply)="onCancelReplyAction()"
+          (voiceClick)="onVoiceMessage()"
+          (voiceRecorded)="onVoiceRecorded($event)"
+        />
       }
     </section>
 
-    @if (showCreateGroupModal()) {
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        (click)="showCreateGroupModal.set(false)"
-      >
-        <div
-          class="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-800"
-          (click)="$event.stopPropagation()"
-        >
-          <div
-            class="flex items-center justify-between border-b border-slate-200 p-4 dark:border-zinc-700"
-          >
-            <h3 class="font-bold text-slate-800 dark:text-zinc-200">Create Group</h3>
-            <button
-              (click)="showCreateGroupModal.set(false)"
-              class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
-            </button>
-          </div>
-          <div class="space-y-4 p-4">
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-zinc-400"
-                >Group Name</label
-              >
-              <input
-                type="text"
-                class="w-full rounded-xl border-0 bg-slate-100 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-100"
-                placeholder="Enter group name..."
-                [value]="newGroupName()"
-                (input)="newGroupName.set($any($event.target).value)"
-              />
-            </div>
-          </div>
-          <div
-            class="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50"
-          >
-            <button
-              class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-              (click)="showCreateGroupModal.set(false)"
-            >
-              Cancel
-            </button>
-            <button
-              class="rounded-xl bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white shadow-[var(--accent-color)]/15 shadow-lg transition-colors hover:bg-[var(--accent-600)]"
-              (click)="createGroup()"
-              [disabled]="!newGroupName().trim()"
-            >
-              Create
-            </button>
-          </div>
-        </div>
-      </div>
-    }
+    <app-chat-details
+      [showDetailsPanel]="state.showDetailsPanel()"
+      [showDetailsMenu]="state.showDetailsMenu()"
+      [members]="state.members()"
+      [showAddMembersDropdown]="state.showAddMembersDropdown()"
+      [addMembersSearch]="state.addMembersSearch()"
+      [addMembersSearchResults]="state.addMembersSearchResults()"
+      [selectedAddMembers]="state.selectedAddMembers()"
+      [isCurrentUserOwner]="chatService.isCurrentUserOwner()"
+      [isGroup]="state.activeConversation()?.isGroup ?? false"
+      (toggleDetailsPanel)="state.toggleDetailsPanel()"
+      (closeDetailsMenu)="state.closeDetailsMenu()"
+      (openAddMembersDropdown)="openAddMembersDropdown()"
+      (closeAddMembersDropdown)="closeAddMembersDropdown()"
+      (addMembersSearchChange)="state.addMembersSearch.set($event)"
+      (toggleUserForAdd)="toggleUserForAdd($event)"
+      (addMembersToGroup)="addMembersToGroup()"
+      (removeMember)="removeMemberFromGroup($event)"
+      (leaveGroup)="leaveGroup()"
+    />
 
-    @if (showContextMenu()) {
+    @if (state.showContextMenu()) {
       <div class="fixed inset-0 z-50" (click)="closeContextMenu()">
         <div
           class="absolute min-w-[160px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-          [style.left.px]="contextMenuPosition().x"
-          [style.top.px]="contextMenuPosition().y"
+          [style.left.px]="state.contextMenuPosition().x"
+          [style.top.px]="state.contextMenuPosition().y"
           (click)="$event.stopPropagation()"
         >
           <button
             class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             (click)="removeConversation()"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              ></path>
-            </svg>
+            <mat-icon fontIcon="delete" class="h-4 w-4 text-xl" />
             Remove Conversation
           </button>
         </div>
       </div>
     }
 
-    @if (showMessageContextMenu()) {
+    @if (state.showMessageContextMenu()) {
       <div class="fixed inset-0 z-50" (click)="closeMessageContextMenu()">
         <div
           class="absolute min-w-[140px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-          [style.left.px]="messageContextMenuPosition().x"
-          [style.top.px]="messageContextMenuPosition().y"
+          [style.left.px]="state.messageContextMenuPosition().x"
+          [style.top.px]="state.messageContextMenuPosition().y"
           (click)="$event.stopPropagation()"
         >
           <button
             class="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
             (click)="startEditMessage()"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              ></path>
-            </svg>
+            <mat-icon fontIcon="edit" class="h-4 w-4 text-xl" />
             Edit Message
           </button>
           <button
             class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             (click)="deleteMessage()"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              ></path>
-            </svg>
+            <mat-icon fontIcon="delete" class="h-4 w-4 text-xl" />
             Delete Message
           </button>
         </div>
       </div>
-    }
-
-    @if (showDetailsPanel()) {
-      <div
-        class="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 md:z-40"
-        (click)="toggleDetailsPanel()"
-      ></div>
-      <aside
-        class="fixed top-0 right-0 z-50 flex h-full w-80 shrink-0 flex-col border-l border-slate-200 bg-white shadow-2xl md:w-80 dark:border-zinc-700 dark:bg-zinc-900"
-      >
-        <div
-          class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-zinc-700"
-        >
-          <h3 class="font-semibold text-slate-800 dark:text-zinc-200">Details</h3>
-          <button
-            class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            (click)="toggleDetailsPanel()"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto">
-          @if (activeConversation()) {
-            <div class="border-b border-slate-100 p-4 dark:border-zinc-800">
-              <div class="mb-4 flex flex-col items-center">
-                <app-user-avatar
-                  [src]="activeConversation()!.avatar"
-                  [name]="activeConversation()!.name"
-                  size="xl"
-                />
-                <h4 class="text-center font-semibold text-slate-800 dark:text-zinc-200">
-                  {{ activeConversation()!.name }}
-                </h4>
-                @if (activeConversation()!.isGroup) {
-                  <span class="mt-1 text-xs text-slate-500 dark:text-zinc-400"
-                    >{{ activeConversation()!.memberCount }} members</span
-                  >
-                }
-              </div>
-            </div>
-
-            @if (activeConversation()!.isGroup) {
-              <div class="relative p-4">
-                <div class="mb-3 flex items-center justify-between">
-                  <span class="text-sm font-medium text-slate-500 dark:text-zinc-400">Members</span>
-                  @if (!groupOwnerId() || groupOwnerId() === currentUserId()) {
-                    <button
-                      class="text-xs font-medium text-[var(--accent-600)] hover:text-[var(--accent-700)] dark:text-[var(--accent-400)] dark:hover:text-[var(--accent-300)]"
-                      (click)="openAddMembersDropdown()"
-                    >
-                      + Add
-                    </button>
-                  }
-                </div>
-                <div class="space-y-1">
-                  @for (member of members(); track member.id) {
-                    <div
-                      class="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800"
-                    >
-                      <app-user-avatar [src]="member.avatar" [name]="member.name" size="sm" />
-                      <span class="flex-1 truncate text-sm text-slate-700 dark:text-zinc-300">{{
-                        member.name
-                      }}</span>
-                      @if (isCurrentUserOwner() && member.id !== groupOwnerId()) {
-                        <button
-                          class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                          (click)="removeMemberFromGroup(member.id)"
-                        >
-                          Remove
-                        </button>
-                      }
-                    </div>
-                  } @empty {
-                    <div class="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
-                      No members yet
-                    </div>
-                  }
-                </div>
-
-                @if (showAddMembersDropdown()) {
-                  <div
-                    class="absolute top-full left-0 z-50 mt-1 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-                    (click)="$event.stopPropagation()"
-                  >
-                    <div class="border-b border-slate-200 p-2 dark:border-zinc-700">
-                      <input
-                        type="search"
-                        placeholder="Search users..."
-                        class="w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:bg-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                        [value]="addMembersSearch()"
-                        (input)="addMembersSearch.set($any($event.target).value)"
-                      />
-                    </div>
-                    <div class="custom-scrollbar max-h-60 overflow-y-auto p-2">
-                      @for (user of addMembersSearchResults(); track user.user_id) {
-                        <label
-                          class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
-                        >
-                          <input
-                            type="checkbox"
-                            [checked]="isUserSelectedForAdd(user.user_id)"
-                            (change)="toggleUserForAdd(user.user_id)"
-                            class="h-4 w-4 rounded border-slate-300 text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
-                          />
-                          <app-user-avatar [src]="user.image_url" [name]="user.name" size="md" />
-                          <div class="min-w-0 flex-1">
-                            <p
-                              class="truncate text-sm font-medium text-slate-900 dark:text-zinc-200"
-                            >
-                              {{ user.name }} {{ user.last_name }}
-                            </p>
-                          </div>
-                        </label>
-                      } @empty {
-                        <div class="py-4 text-center text-xs text-slate-400 dark:text-zinc-500">
-                          No users found
-                        </div>
-                      }
-                    </div>
-                    @if (selectedAddMembers().length > 0) {
-                      <div class="border-t border-slate-200 p-2 dark:border-zinc-700">
-                        <button
-                          class="w-full rounded-lg bg-[var(--accent-color)] py-2 text-sm font-medium text-white hover:bg-[var(--accent-600)]"
-                          (click)="addMembersToGroup()"
-                        >
-                          Add {{ selectedAddMembers().length }} Member(s)
-                        </button>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          }
-        </div>
-      </aside>
     }
   </div>
 </div>
