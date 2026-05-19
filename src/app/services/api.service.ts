@@ -711,14 +711,20 @@ class EntityApi<T> {
   }
 
   create(data: Partial<T>, visibility?: string): Observable<T> {
+    console.log("[EntityApi] create called:", {
+      data,
+      visibility,
+      entityType: this.getEntityType("create"),
+    });
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
-        next: (result) => {
+        next: (result: T) => {
+          console.log("[EntityApi] create got result:", result);
           this.api.storageService.modify(this.getEntityType("create") as any, "create", result);
           subscriber.next(result);
           subscriber.complete();
         },
-        error: (err) => subscriber.error(err),
+        error: (err: any) => subscriber.error(err),
       });
     });
   }
