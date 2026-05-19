@@ -63,56 +63,6 @@
         </div>
       }
 
-      @if (isRecordingVoice()) {
-        <div
-          class="absolute right-0 bottom-full left-0 mb-2 overflow-hidden rounded-2xl border-2 border-red-200 bg-red-50/95 p-3 backdrop-blur-xl dark:border-red-900/50 dark:bg-red-900/95"
-        >
-          <div class="flex items-center gap-3">
-            <div class="relative h-10 w-10 shrink-0">
-              <div class="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-50"></div>
-              <div
-                class="relative flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white"
-              >
-                <mat-icon fontIcon="mic" class="!h-5 !w-5" />
-              </div>
-            </div>
-
-            <div class="flex flex-1 flex-col">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-sm font-medium text-red-600 dark:text-red-400">Recording...</span>
-                <span class="text-xs text-red-400/70 dark:text-red-500/50">{{
-                  formatRecordingDuration()
-                }}</span>
-              </div>
-              <div class="flex h-6 items-center gap-0.5">
-                @for (amplitude of liveAmplitudes; track $index) {
-                  <div
-                    class="w-1 rounded-full bg-red-400 transition-all"
-                    [style.height.%]="amplitude"
-                  ></div>
-                }
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
-              (mousedown)="onVoiceCancel()"
-            >
-              <mat-icon fontIcon="close" class="!h-4 !w-4" />
-            </button>
-
-            <button
-              type="button"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-color)]/90"
-              (click)="onSendVoice()"
-            >
-              <mat-icon fontIcon="send" class="!h-4 !w-4" />
-            </button>
-          </div>
-        </div>
-      }
-
       <div
         class="relative flex items-end rounded-2xl border border-slate-200 bg-slate-50/90 transition-all focus-within:border-[var(--accent-color)] focus-within:shadow-[0_0_0_3px_var(--accent-500)]/15 dark:border-zinc-700 dark:bg-zinc-800/90"
       >
@@ -143,15 +93,10 @@
         } @else {
           <button
             type="button"
-            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-            title="Hold to record"
-            (mousedown)="onVoiceDown()"
-            (mouseup)="onVoiceUp()"
-            (mouseleave)="onVoiceUp()"
-            (touchstart)="onVoiceDown()"
-            (touchend)="onVoiceUp()"
+            disabled
+            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-slate-300 dark:text-zinc-600"
           >
-            <mat-icon fontIcon="mic" class="!h-5 !w-5" />
+            <mat-icon fontIcon="send" class="!h-5 !w-5" />
           </button>
         }
       </div>
