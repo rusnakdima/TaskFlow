@@ -5,20 +5,21 @@ use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
 
+/* crate */
+use crate::entities::user_entity::UserEntity;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("chats")]
 #[soft_delete]
 #[timestamp]
-#[many_to_one("user", "users", "user_id")]
+#[many_to_one("sender", "users", "sender_id")]
 #[many_to_many("read_by_users", "users", "read_by")]
-#[index("user_id", 1)]
 #[index("room_id", 1)]
 #[index("sender_id", 1)]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub room_id: String,
   pub sender_id: String,
-  pub user_id: String,
   pub content: String,
   #[serde(default)]
   pub read_by: Vec<String>,
@@ -28,6 +29,8 @@ pub struct ChatEntity {
   pub updated_at: Option<DateTime<Utc>>,
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
+  #[serde(default)]
+  pub sender: Option<UserEntity>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
@@ -36,8 +39,6 @@ pub struct ChatCreateModel {
   pub room_id: String,
   #[validate(required)]
   pub sender_id: String,
-  #[validate(required)]
-  pub user_id: String,
   #[validate(required)]
   #[validate(length(min = 1, max = 5000))]
   pub content: String,
@@ -50,12 +51,12 @@ impl From<ChatCreateModel> for ChatEntity {
       id: None,
       room_id: create.room_id,
       sender_id: sender.clone(),
-      user_id: create.user_id,
       content: create.content,
       created_at: None,
       updated_at: None,
       deleted_at: None,
       read_by: vec![sender],
+      sender: None,
     }
   }
 }

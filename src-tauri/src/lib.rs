@@ -45,8 +45,9 @@ use routes::{
   },
   group_route::{
     add_group_members, create_group, delete_group, delete_group_cascade, delete_message,
-    delete_room_messages, ensure_rooms_for_groups, get_group_by_room, get_groups,
-    get_messages_by_room, mark_message_read, remove_group_members, send_message, update_group,
+    delete_room_messages, edit_message, ensure_rooms_for_groups, get_group_by_room, get_groups,
+    get_messages_by_room, hard_delete_message, hard_delete_room_messages, mark_message_read,
+    remove_group_members, send_message, update_group,
   },
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
@@ -579,8 +580,11 @@ pub fn run() {
       send_message,
       mark_message_read,
       delete_message,
+      hard_delete_message,
+      edit_message,
       delete_room,
       delete_room_messages,
+      hard_delete_room_messages,
       getBinaryNameFile,
       downloadUpdate,
       openFile,
