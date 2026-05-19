@@ -1090,29 +1090,23 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
 }
 
 /* ---- Notification Type Badges (Dark Mode Fixed) ---- */
-.badge-todo {
-  background-color: var(--accent-100) !important;
-  color: var(--accent-700) !important;
-}
+.badge-todo,
 .badge-task {
-  background-color: var(--accent-200) !important;
-  color: var(--accent-800) !important;
+  background-color: #e5e7eb !important;
+  color: #374151 !important;
 }
 .badge-subtask {
-  background-color: var(--accent-300) !important;
-  color: var(--accent-900) !important;
+  background-color: #d1d5db !important;
+  color: #1f2937 !important;
 }
-.dark .badge-todo {
-  background-color: var(--accent-900) !important;
-  color: var(--accent-300) !important;
-}
+.dark .badge-todo,
 .dark .badge-task {
-  background-color: var(--accent-800) !important;
-  color: var(--accent-200) !important;
+  background-color: #374151 !important;
+  color: #f3f4f6 !important;
 }
 .dark .badge-subtask {
-  background-color: var(--accent-700) !important;
-  color: var(--accent-100) !important;
+  background-color: #4b5563 !important;
+  color: #e5e7eb !important;
 }
 
 /* ---- Nav Item Active ---- */
