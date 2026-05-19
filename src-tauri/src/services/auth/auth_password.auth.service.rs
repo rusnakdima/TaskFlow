@@ -205,7 +205,20 @@ impl AuthPasswordService {
       .await
       .map_err(|e| err_response(&format!("User not found: {}", e)))?;
 
-    let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
+    let user_val = if users.is_empty() {
+      let json_filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
+      let json_users = self
+        .json_provider
+        .find_many(table_name, Some(&json_filter), None, None, None, true)
+        .await
+        .map_err(|e| err_response(&format!("JSON fallback query failed: {}", e)))?;
+      json_users
+        .into_iter()
+        .next()
+        .ok_or_else(|| err_response("User not found in MongoDB or JSON"))?
+    } else {
+      users.pop().ok_or_else(|| err_response("User not found"))?
+    };
 
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;

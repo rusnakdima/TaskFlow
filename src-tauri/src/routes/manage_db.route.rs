@@ -56,7 +56,7 @@ pub async fn check_mongodb_connection(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn sync_visibility_to_provider(
   state: State<'_, AppState>,
-  entity_id: String,
+  todo_id: String,
   entity_type: String,
   source_provider: String,
   target_provider: String,
@@ -88,22 +88,28 @@ pub async fn sync_visibility_to_provider(
   if source_provider == "Json" && target_provider == "Mongo" {
     if delete_from_src {
       cascade_service
-        .sync_entity_to_mongo_and_delete_from_source(table, &entity_id)
+        .sync_entity_to_mongo_and_delete_from_source(table, &todo_id)
+        .await?;
+    } else if table == "todos" {
+      cascade_service
+        .sync_todo_with_children(&todo_id, &source_provider, &target_provider, false)
         .await?;
     } else {
       cascade_service
-        .sync_entity_to_mongo(table, &entity_id)
+        .sync_entity_to_mongo(table, &todo_id)
         .await?;
     }
   } else if source_provider == "Mongo" && target_provider == "Json" {
     if delete_from_src {
       cascade_service
-        .sync_entity_to_json_and_delete_from_source(table, &entity_id)
+        .sync_entity_to_json_and_delete_from_source(table, &todo_id)
+        .await?;
+    } else if table == "todos" {
+      cascade_service
+        .sync_todo_with_children(&todo_id, &source_provider, &target_provider, false)
         .await?;
     } else {
-      cascade_service
-        .sync_entity_to_json(table, &entity_id)
-        .await?;
+      cascade_service.sync_entity_to_json(table, &todo_id).await?;
     }
   }
 
