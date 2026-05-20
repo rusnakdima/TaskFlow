@@ -109,26 +109,7 @@ export class ProfileView implements OnInit, OnDestroy {
         next: (profileData: any) => {
           const profile = Array.isArray(profileData) ? profileData[0] : profileData;
           if (profile) {
-            const profileWithUser = { ...profile };
-            if (!profileWithUser.user && profileWithUser.user_id) {
-              this.requestService
-                .invokeCommand("get_user", {
-                  id: profileWithUser.user_id,
-                  token: this.authService.getToken(),
-                  visibility: "public",
-                })
-                .subscribe({
-                  next: (user: any) => {
-                    profileWithUser.user = user;
-                    this.viewedUserProfile.set(profileWithUser);
-                  },
-                  error: () => {
-                    this.viewedUserProfile.set(profileWithUser);
-                  },
-                });
-            } else {
-              this.viewedUserProfile.set(profileWithUser);
-            }
+            this.viewedUserProfile.set(profile);
           }
         },
         error: () => {
@@ -342,6 +323,7 @@ export class ProfileView implements OnInit, OnDestroy {
 
   openChat(): void {
     const userId = this.viewedUserId();
+    console.log("[Profile] Open chat button clicked, userId:", userId);
     if (userId) {
       this.router.navigate(["/chat"], { queryParams: { userId } });
     }
