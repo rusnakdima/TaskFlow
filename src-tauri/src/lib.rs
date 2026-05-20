@@ -306,8 +306,9 @@ pub fn run() {
     .setup(|app| {
       let config_helper = Arc::new(ConfigHelper::new());
 
-      let document_dir = app.path().document_dir().unwrap();
-      let json_db_path = document_dir
+      let app_data_dir = app.path().app_data_dir()
+        .expect("Failed to get app data directory. Ensure app is properly initialized.");
+      let json_db_path = app_data_dir
         .join(&config_helper.app_home_folder)
         .join(&config_helper.json_db_name);
       std::fs::create_dir_all(&json_db_path).ok();
