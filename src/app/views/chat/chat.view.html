@@ -164,17 +164,41 @@
     @if (state.showContextMenu()) {
       <div class="fixed inset-0 z-50" (click)="closeContextMenu()">
         <div
-          class="absolute min-w-[160px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+          class="absolute min-w-[200px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
           [style.left.px]="state.contextMenuPosition().x"
           [style.top.px]="state.contextMenuPosition().y"
           (click)="$event.stopPropagation()"
         >
           <button
-            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            (click)="togglePinConversation()"
+          >
+            <mat-icon fontIcon="push_pin" class="h-4 w-4" />
+            <span>Pin</span>
+            <span class="ml-auto text-xs text-slate-400">Ctrl+P</span>
+          </button>
+          <button
+            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            (click)="toggleMuteConversation()"
+          >
+            <mat-icon fontIcon="notifications_off" class="h-4 w-4" />
+            <span>Mute</span>
+            <span class="ml-auto text-xs text-slate-400">Ctrl+M</span>
+          </button>
+          <button
+            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            (click)="markAsReadConversation()"
+          >
+            <mat-icon fontIcon="done_all" class="h-4 w-4" />
+            <span>Mark as read</span>
+          </button>
+          <div class="my-1 border-t border-slate-100 dark:border-zinc-700"></div>
+          <button
+            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             (click)="removeConversation()"
           >
-            <mat-icon fontIcon="delete" class="h-4 w-4 text-xl" />
-            Remove Conversation
+            <mat-icon fontIcon="delete" class="h-4 w-4" />
+            <span>Delete</span>
           </button>
         </div>
       </div>

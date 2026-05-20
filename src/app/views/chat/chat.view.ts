@@ -64,19 +64,35 @@ export class ChatView implements OnInit, AfterViewChecked {
   recentEmojisDefault = RECENT_EMOJIS_DEFAULT;
 
   ngOnInit(): void {
+    let pendingUserId: string | null = null;
+
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const userId = params["userId"];
+      console.log("[ChatView] Received userId from queryParams:", userId);
       if (userId) {
-        this.chatService.openConversationWithUserId(userId);
+        pendingUserId = userId;
+        this.tryOpenPendingConversation(pendingUserId!);
       }
     });
 
+    console.log("[ChatView] Calling loadAllUsers...");
     this.chatService.loadAllUsers();
+    console.log("[ChatView] loadAllUsers() started");
+  }
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", () => {
-        this.state.isMobile.set(window.innerWidth < 768);
-      });
+  private tryOpenPendingConversation(userId: string): void {
+    const profiles = this.chatService.getLoadedProfiles();
+    console.log(
+      "[ChatView] tryOpenPendingConversation, userId:",
+      userId,
+      "profiles loaded:",
+      profiles.length
+    );
+    if (profiles.length > 0) {
+      this.chatService.openConversationWithUserId(userId);
+    } else {
+      console.log("[ChatView] Profiles not loaded yet, waiting...");
+      setTimeout(() => this.tryOpenPendingConversation(userId), 100);
     }
   }
 
@@ -88,6 +104,7 @@ export class ChatView implements OnInit, AfterViewChecked {
   }
 
   onConversationContextMenu(event: { event: MouseEvent; conv: ConversationItem }): void {
+    event.event.preventDefault();
     this.state.contextMenuConversation.set(event.conv);
     this.state.contextMenuPosition.set({ x: event.event.clientX, y: event.event.clientY });
     this.state.showContextMenu.set(true);
@@ -132,6 +149,18 @@ export class ChatView implements OnInit, AfterViewChecked {
 
   removeConversation(): void {
     this.chatService.removeConversation();
+  }
+
+  togglePinConversation(): void {
+    this.chatService.togglePinConversation();
+  }
+
+  toggleMuteConversation(): void {
+    this.chatService.toggleMuteConversation();
+  }
+
+  markAsReadConversation(): void {
+    this.chatService.markAsReadConversation();
   }
 
   selectConversation(conv: ConversationItem): void {
