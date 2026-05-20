@@ -22,8 +22,13 @@ export class ChatService {
   constructor() {}
 
   loadAllUsers(): void {
+    console.log("[ChatService] loadAllUsers called");
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
+        console.log(
+          "[ChatService] loadAllUsers completed, profiles:",
+          this.profileSearchService.profiles().length
+        );
         this.loadRooms();
         this.updateConversationsWithProfiles();
       },
@@ -31,6 +36,10 @@ export class ChatService {
         this.loadRooms();
       },
     });
+  }
+
+  getLoadedProfiles(): Profile[] {
+    return this.profileSearchService.profiles();
   }
 
   private updateConversationsWithProfiles(): void {
@@ -588,6 +597,37 @@ export class ChatService {
     }
   }
 
+  togglePinConversation(): void {
+    const conv = this.state.contextMenuConversation();
+    if (!conv) return;
+    this.state.conversations.update((convs) =>
+      convs.map((c) => (c.roomId === conv.roomId ? { ...c, isPinned: !c.isPinned } : c))
+    );
+    this.state.closeContextMenu();
+  }
+
+  toggleMuteConversation(): void {
+    const conv = this.state.contextMenuConversation();
+    if (!conv) return;
+    this.state.conversations.update((convs) =>
+      convs.map((c) => (c.roomId === conv.roomId ? { ...c, isMuted: !c.isMuted } : c))
+    );
+    this.state.closeContextMenu();
+  }
+
+  markAsReadConversation(): void {
+    const conv = this.state.contextMenuConversation();
+    if (!conv || conv.unreadCount === 0) {
+      this.state.closeContextMenu();
+      return;
+    }
+    this.markConversationAsRead(conv.roomId);
+    this.state.conversations.update((convs) =>
+      convs.map((c) => (c.roomId === conv.roomId ? { ...c, unreadCount: 0 } : c))
+    );
+    this.state.closeContextMenu();
+  }
+
   saveEditMessage(): void {
     const msgId = this.state.editingMessageId();
     const content = this.state.editingMessageContent().trim();
@@ -638,12 +678,15 @@ export class ChatService {
   }
 
   openConversationWithUserId(userId: string): void {
+    console.log("[ChatService] openConversationWithUserId called with:", userId);
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
         const profile = this.getProfileByUserId(userId);
+        console.log("[ChatService] Profile found:", profile?.user_id, profile?.name);
         if (profile) {
           this.startConversationWithUser(profile);
         } else {
+          console.log("[ChatService] Profile not found in cache, fetching...");
           this.fetchProfileAndOpenChat(userId);
         }
       },
@@ -679,10 +722,26 @@ export class ChatService {
     if (!userId) return;
 
     const profileUserId = profile.user_id;
+    console.log("[ChatService] startConversationWithUser:", profileUserId, profile.name);
+
     if (!this.state.recentUserIds().includes(profileUserId)) {
       this.state.recentUserIds.update((ids) => [profileUserId, ...ids].slice(0, 20));
     }
 
+    const existing = this.state
+      .conversations()
+      .find((c) => !c.isGroup && c.otherUserId === profileUserId);
+    console.log("[ChatService] Existing conversation found:", existing?.roomId);
+    if (existing) {
+      this.selectConversation(existing);
+      this.state.closeUserDropdown();
+      return;
+    }
+
+    console.log(
+      "[ChatService] No existing conversation, creating new with roomId:",
+      crypto.randomUUID()
+    );
     const roomId = crypto.randomUUID();
     const conv: ConversationItem = {
       roomId: roomId,
@@ -700,10 +759,7 @@ export class ChatService {
       otherUserId: profileUserId,
     };
 
-    const existing = this.state.conversations().find((c) => c.roomId === roomId);
-    if (!existing) {
-      this.state.conversations.update((convs) => [conv, ...convs]);
-    }
+    this.state.conversations.update((convs) => [conv, ...convs]);
 
     this.selectConversation(conv);
     this.state.closeUserDropdown();

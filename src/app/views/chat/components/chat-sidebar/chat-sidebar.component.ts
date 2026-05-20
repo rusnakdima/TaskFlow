@@ -111,6 +111,7 @@ export class ChatSidebarComponent {
   }
 
   onStartConversation(profile: Profile): void {
+    console.log("[ChatSidebar] Starting conversation with user:", profile.user_id, profile.name);
     this.router.navigate(["/chat"], { queryParams: { userId: profile.user_id } });
   }
 
