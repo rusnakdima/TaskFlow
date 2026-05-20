@@ -79,7 +79,7 @@
   }
 
   .styleLinkRedir {
-    @apply cursor-pointer! text-[var(--accent-color)]! underline! decoration-[var(--accent-color)]! decoration-dashed! decoration-1! underline-offset-4! dark:text-[var(--accent-400)]! dark:decoration-[var(--accent-400)]!;
+    @apply cursor-pointer! text-[var(--accent-color)]! underline! decoration-[var(--accent-color)]! decoration-dashed! decoration-1! underline-offset-4! dark:text-[var(--accent-600)]! dark:decoration-[var(--accent-600)]!;
   }
 
   .styleBottomNavItems {
@@ -1045,10 +1045,10 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
   color: var(--accent-700) !important;
 }
 .dark .link-accent {
-  color: var(--accent-500) !important;
+  color: var(--accent-600) !important;
 }
 .dark .link-accent:hover {
-  color: var(--accent-300) !important;
+  color: var(--accent-400) !important;
 }
 
 /* ---- Icon Accent (Dark Mode Fixed) ---- */
