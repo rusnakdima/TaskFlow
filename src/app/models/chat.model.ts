@@ -5,6 +5,8 @@ export interface ConversationItem {
   isOnline: boolean;
   isTyping: boolean;
   isGroup: boolean;
+  isPinned?: boolean;
+  isMuted?: boolean;
   unreadCount: number;
   lastMessage: string;
   lastMessageTime: string;
@@ -50,23 +52,6 @@ export interface ChatMessage {
       user_id?: string;
     };
   };
-}
-
-export interface ConversationItem {
-  roomId: string;
-  name: string;
-  avatar: string | null;
-  isOnline: boolean;
-  isTyping: boolean;
-  isGroup: boolean;
-  unreadCount: number;
-  lastMessage: string;
-  lastMessageTime: string;
-  memberIds: string[];
-  memberCount: number;
-  bio: string;
-  otherUserId?: string;
-  ownerId?: string;
 }
 
 export type FilterType = "all" | "unread" | "groups";
