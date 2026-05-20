@@ -5,7 +5,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "../../models/chat.model";
 import { UserAvatarComponent } from "../user-avatar/user-avatar.component";
 import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
-import { ReplyPreviewComponent } from "../../views/chat/components/reply-preview/reply-preview.component";
 
 @Component({
   selector: "app-chat-message",
@@ -16,7 +15,6 @@ import { ReplyPreviewComponent } from "../../views/chat/components/reply-preview
     MatIconModule,
     UserAvatarComponent,
     MessageReactionsComponent,
-    ReplyPreviewComponent,
   ],
   templateUrl: "./chat-message.component.html",
   styleUrls: ["./chat-message.component.scss"],

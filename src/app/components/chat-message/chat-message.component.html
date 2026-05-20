@@ -43,41 +43,45 @@
                 </div>
               </div>
             } @else {
+              @if (message.replyTo) {
+                <div class="bubble-reply-preview">
+                  <span class="reply-sender">{{ message.replyTo.senderName }}</span>
+                  <p class="reply-content">{{ message.replyTo.content }}</p>
+                </div>
+              }
               <p class="message-text">{{ message.content }}</p>
+              <div class="bubble-meta">
+                @if (message.isEdited) {
+                  <span class="edited-indicator">edited</span>
+                }
+                <span class="time">{{ message.time }}</span>
+                @if (message.readStatus) {
+                  <span class="read-status">
+                    @if (message.readStatus === "sent") {
+                      <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                    } @else if (message.readStatus === "delivered") {
+                      <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                      <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
+                    } @else if (message.readStatus === "read") {
+                      <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
+                      <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
+                    }
+                  </span>
+                }
+              </div>
+              <div class="hover-actions">
+                <button class="action-btn" title="Reply" (click)="onReply(message)">
+                  <mat-icon fontIcon="reply" class="h-4! w-4!" />
+                </button>
+                <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
+                  <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
+                </button>
+                <button class="action-btn" title="More" (click)="onContextMenu($event)">
+                  <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
+                </button>
+              </div>
             }
           </div>
-
-          <div class="hover-actions">
-            <button class="action-btn" title="Reply" (click)="onReply(message)">
-              <mat-icon fontIcon="reply" class="h-4! w-4!" />
-            </button>
-            <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
-              <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
-            </button>
-            <button class="action-btn" title="More" (click)="onContextMenu($event)">
-              <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
-            </button>
-          </div>
-        </div>
-
-        <div class="message-meta">
-          @if (message.isEdited) {
-            <span class="edited-indicator">edited</span>
-          }
-          <span class="time">{{ message.time }}</span>
-          @if (message.readStatus) {
-            <span class="read-status">
-              @if (message.readStatus === "sent") {
-                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
-              } @else if (message.readStatus === "delivered") {
-                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
-                <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
-              } @else if (message.readStatus === "read") {
-                <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
-                <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
-              }
-            </span>
-          }
         </div>
 
         @if (message.reactions && message.reactions.length > 0) {
@@ -88,10 +92,6 @@
             (addReaction)="onReact({ message, emoji: $event })"
             (removeReaction)="onRemoveReaction({ message, emoji: $event })"
           />
-        }
-
-        @if (message.replyTo) {
-          <app-reply-preview [replyTo]="message.replyTo" (cancel)="onCancelReply(message)" />
         }
       </div>
     </div>
@@ -120,41 +120,45 @@
                 </div>
               </div>
             } @else {
+              @if (message.replyTo) {
+                <div class="bubble-reply-preview own-reply">
+                  <span class="reply-sender">{{ message.replyTo.senderName }}</span>
+                  <p class="reply-content">{{ message.replyTo.content }}</p>
+                </div>
+              }
               <p class="message-text">{{ message.content }}</p>
+              <div class="bubble-meta own-meta">
+                @if (message.isEdited) {
+                  <span class="edited-indicator">edited</span>
+                }
+                <span class="time">{{ message.time }}</span>
+                @if (message.readStatus) {
+                  <span class="read-status">
+                    @if (message.readStatus === "sent") {
+                      <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                    } @else if (message.readStatus === "delivered") {
+                      <mat-icon fontIcon="check" class="status-icon"></mat-icon>
+                      <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
+                    } @else if (message.readStatus === "read") {
+                      <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
+                      <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
+                    }
+                  </span>
+                }
+              </div>
+              <div class="hover-actions own-actions">
+                <button class="action-btn" title="Reply" (click)="onReply(message)">
+                  <mat-icon fontIcon="reply" class="h-4! w-4!" />
+                </button>
+                <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
+                  <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
+                </button>
+                <button class="action-btn" title="More" (click)="onContextMenu($event)">
+                  <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
+                </button>
+              </div>
             }
           </div>
-
-          <div class="hover-actions own-actions">
-            <button class="action-btn" title="Reply" (click)="onReply(message)">
-              <mat-icon fontIcon="reply" class="h-4! w-4!" />
-            </button>
-            <button class="action-btn" title="React" (click)="onReact({ message, emoji: '' })">
-              <mat-icon fontIcon="add-reaction" class="h-4! w-4!" />
-            </button>
-            <button class="action-btn" title="More" (click)="onContextMenu($event)">
-              <mat-icon fontIcon="more_vert" class="h-4! w-4!" />
-            </button>
-          </div>
-        </div>
-
-        <div class="message-meta own-meta">
-          @if (message.isEdited) {
-            <span class="edited-indicator">edited</span>
-          }
-          <span class="time">{{ message.time }}</span>
-          @if (message.readStatus) {
-            <span class="read-status">
-              @if (message.readStatus === "sent") {
-                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
-              } @else if (message.readStatus === "delivered") {
-                <mat-icon fontIcon="check" class="status-icon"></mat-icon>
-                <mat-icon fontIcon="check" class="status-icon overlap"></mat-icon>
-              } @else if (message.readStatus === "read") {
-                <mat-icon fontIcon="check" class="status-icon read"></mat-icon>
-                <mat-icon fontIcon="check" class="status-icon overlap read"></mat-icon>
-              }
-            </span>
-          }
         </div>
 
         @if (message.reactions && message.reactions.length > 0) {
@@ -165,10 +169,6 @@
             (addReaction)="onReact({ message, emoji: $event })"
             (removeReaction)="onRemoveReaction({ message, emoji: $event })"
           />
-        }
-
-        @if (message.replyTo) {
-          <app-reply-preview [replyTo]="message.replyTo" (cancel)="onCancelReply(message)" />
         }
       </div>
 
