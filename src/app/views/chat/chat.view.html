@@ -1,5 +1,5 @@
 <div
-  class="flex h-[calc(100vh-80px)] w-full flex-col bg-white md:h-[calc(100vh-100px)] lg:h-[calc(100vh-120px)] dark:bg-zinc-900"
+  class="flex h-[calc(100vh-80px)] w-full flex-col overflow-hidden bg-white md:h-[calc(100vh-100px)] lg:h-[calc(100vh-120px)] dark:bg-zinc-900"
 >
   <div class="flex flex-1 overflow-hidden">
     <aside
@@ -65,6 +65,7 @@
         </div>
       } @else {
         <app-chat-header
+          class="shrink-0"
           [conversation]="state.activeConversation()"
           [showDetailsPanel]="state.showDetailsPanel()"
           [isMobile]="state.isMobile()"
@@ -118,6 +119,7 @@
         </div>
 
         <app-chat-input
+          class="shrink-0"
           [messageInput]="state.messageInput()"
           [showEmojiPicker]="state.showEmojiPicker()"
           [showAttachmentMenu]="state.showAttachmentMenu()"
