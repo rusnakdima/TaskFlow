@@ -230,6 +230,9 @@ export interface Chat {
   deleted_at?: string;
   author_name?: string;
   user?: User;
+  sync_status?: "pending" | "synced" | "failed";
+  temp_id?: string;
+  retry_count?: number;
 }
 
 export interface ChatCreateRequest {

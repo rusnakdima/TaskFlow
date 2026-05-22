@@ -15,6 +15,7 @@ export interface ConversationItem {
   bio: string;
   otherUserId?: string;
   ownerId?: string;
+  isLocal?: boolean;
 }
 
 export interface Reaction {
@@ -37,6 +38,10 @@ export interface ChatMessage {
   reactions?: Reaction[];
   replyTo?: ChatMessage | null;
   replyId?: string | null;
+  syncStatus?: "pending" | "synced" | "failed";
+  tempId?: string;
+  retryCount?: number;
+  lastError?: string;
   sender?: {
     id?: string;
     email?: string;
