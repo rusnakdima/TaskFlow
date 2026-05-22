@@ -73,6 +73,68 @@
   </provides>
 
   <releases>
+    <release version="0.17.2" date="2026-05-22">
+      <description>
+        <p>Release version 0.17.2 with major chat system overhaul, new manage views, enhanced search, and command palette improvements.</p>
+
+        <p>
+          <strong>Chat System Overhaul:</strong>
+        </p>
+        <ul>
+          <li>Complete refactor with new components: chat-message, chat-details, chat-header, chat-input, chat-sidebar, date-anchor, message-reactions, reply-preview, typing-indicator, and voice-message</li>
+          <li>Pin and mute functionality for conversations</li>
+          <li>Hard delete and edit message support with edited/deleted status tracking</li>
+          <li>Message read status and sender information enrichment</li>
+          <li>Enhanced chat-message component with styling improvements and message actions</li>
+        </ul>
+
+        <p>
+          <strong>Backend Improvements:</strong>
+        </p>
+        <ul>
+          <li>Chat message enrichment with sender info, read status, edited/deleted status</li>
+          <li>New cascade service with updated dependencies</li>
+          <li>JSON database path fix using app data directory instead of document directory</li>
+          <li>Formatted backend routes and services</li>
+        </ul>
+
+        <p>
+          <strong>New Manage Views:</strong>
+        </p>
+        <ul>
+          <li>New dedicated views for manage-subtask, manage-task, and manage-todo</li>
+          <li>Removed legacy manage-item pages</li>
+        </ul>
+
+        <p>
+          <strong>Search &amp; Navigation:</strong>
+        </p>
+        <ul>
+          <li>Command palette enhancement with page/action search and username in profiles</li>
+          <li>Page search in data management view</li>
+          <li>Search service with API fallback and initial data resolver improvements</li>
+          <li>Filter sidebar simplification</li>
+        </ul>
+
+        <p>
+          <strong>UI/UX Improvements:</strong>
+        </p>
+        <ul>
+          <li>Form section components and scss for message-reactions</li>
+          <li>Refactored user avatar component</li>
+          <li>Online status indicators and overlay components</li>
+          <li>Image remove button and command palette improvements</li>
+        </ul>
+
+        <p>
+          <strong>Code Quality:</strong>
+        </p>
+        <ul>
+          <li>Comprehensive Prettier and Rustfmt formatting across frontend and backend</li>
+          <li>Format workflow and config files (android, eslint, package)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.1" date="2026-05-18">
       <description>
         <p>Release version 0.17.1 with dependency migration for improved build management.</p>
