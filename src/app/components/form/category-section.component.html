@@ -1,0 +1,74 @@
+<div
+  class="space-y-4 rounded-xl border border-blue-500/30 bg-blue-50/30 p-4 dark:bg-blue-900/10"
+  [attr.data-locked]="!disabled"
+>
+  <mat-form-field class="w-full">
+    <mat-label>Search or Add Category</mat-label>
+    <input
+      matInput
+      [ngModel]="searchQuery"
+      (ngModelChange)="searchQueryChange.emit($event)"
+      (keydown.enter)="addCategory.emit()"
+      placeholder="Type to search or press Enter to add"
+      [readonly]="disabled"
+    />
+    <button
+      matSuffix
+      class="mr-2"
+      type="button"
+      (click)="addCategory.emit()"
+      [disabled]="!searchQuery.trim() || disabled"
+    >
+      <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="add" />
+    </button>
+  </mat-form-field>
+
+  <div class="mb-2 flex items-center gap-2">
+    <app-checkbox
+      class="pointer-events-none"
+      [checked]="isAllSelected"
+      [indeterminate]="selectedIds.size > 0 && !isAllSelected"
+      [highlight]="selectedIds.size > 0 && !isAllSelected"
+    />
+    <button
+      type="button"
+      (click)="toggleSelectAll.emit()"
+      class="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+      [disabled]="disabled"
+    >
+      @if (isAllSelected) {
+        Deselect All
+      } @else if (selectedIds.size > 0) {
+        Clear Selection
+      } @else {
+        Select All
+      }
+    </button>
+  </div>
+
+  <div
+    class="custom-scrollbar flex max-h-40 flex-col gap-2 overflow-y-auto pr-2"
+    [class.pointer-events-none]="disabled"
+  >
+    @for (category of filteredCategories; track category.id) {
+      <div
+        class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+        [ngClass]="{
+          'border-blue-500 bg-blue-100 dark:bg-blue-900/40': isSelected(category.id),
+          'border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800': !isSelected(
+            category.id
+          ),
+          'cursor-pointer': !disabled,
+          'cursor-not-allowed opacity-60': disabled,
+        }"
+        (click)="!disabled && toggleSelection.emit(category.id)"
+      >
+        <app-checkbox class="pointer-events-none" [checked]="isSelected(category.id)" />
+        {{ category.title }}
+      </div>
+    }
+    @if (filteredCategories.length === 0) {
+      <div class="px-4 py-3 text-center text-sm text-gray-500">No categories found</div>
+    }
+  </div>
+</div>
