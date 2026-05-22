@@ -164,7 +164,6 @@ export class DataManagementView implements OnInit {
     { id: "tasks", label: "Tasks", icon: "checklist" },
     { id: "subtasks", label: "Subtasks", icon: "assignment" },
     { id: "comments", label: "Comments", icon: "forum" },
-    { id: "chats", label: "Chats", icon: "chat" },
     { id: "categories", label: "Categories", icon: "category" },
     { id: "daily_activities", label: "Daily Activities", icon: "schedule" },
   ];
@@ -217,7 +216,6 @@ export class DataManagementView implements OnInit {
         else if (type === "tasks") this.adminStorageService.tasksSignal.set(data);
         else if (type === "subtasks") this.adminStorageService.subtasksSignal.set(data);
         else if (type === "comments") this.adminStorageService.commentsSignal.set(data);
-        else if (type === "chats") this.adminStorageService.chatsSignal.set(data);
         else if (type === "categories") this.adminStorageService.categoriesSignal.set(data);
         else if (type === "daily_activities")
           this.adminStorageService.dailyActivitiesSignal.set(data);
@@ -266,7 +264,6 @@ export class DataManagementView implements OnInit {
         else if (type === "tasks") this.archiveStorageService.tasksSignal.set(data);
         else if (type === "subtasks") this.archiveStorageService.subtasksSignal.set(data);
         else if (type === "comments") this.archiveStorageService.commentsSignal.set(data);
-        else if (type === "chats") this.archiveStorageService.chatsSignal.set(data);
         else if (type === "categories") this.archiveStorageService.categoriesSignal.set(data);
         else if (type === "daily_activities")
           this.archiveStorageService.dailyActivitiesSignal.set(data);
@@ -357,9 +354,6 @@ export class DataManagementView implements OnInit {
         break;
       case "comments":
         storage.commentsSignal.update((items: any[]) => [...items, ...newData]);
-        break;
-      case "chats":
-        storage.chatsSignal.update((items: any[]) => [...items, ...newData]);
         break;
       case "categories":
         storage.categoriesSignal.update((items: any[]) => [...items, ...newData]);
@@ -497,8 +491,6 @@ export class DataManagementView implements OnInit {
         return service.subtasks();
       case "comments":
         return service.comments();
-      case "chats":
-        return service.chats();
       case "categories":
         return service.categories();
       case "daily_activities":
@@ -630,7 +622,6 @@ export class DataManagementView implements OnInit {
       tasks: "task",
       subtasks: "subtask",
       comments: "comment",
-      chats: "chat",
       categories: "category",
       daily_activities: "daily_activity",
     };
