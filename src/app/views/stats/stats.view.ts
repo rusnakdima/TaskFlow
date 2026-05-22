@@ -1,7 +1,7 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, inject, DestroyRef } from "@angular/core";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -53,14 +53,13 @@ export class StatsView implements OnInit {
   private syncService = inject(UnifiedSyncService);
   private shortcutService = inject(ShortcutService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
 
-  constructor(
-    private authService: AuthService,
-    private notifyService: NotifyService
-  ) {}
+  private authService = inject(AuthService);
+  private notifyService = inject(NotifyService);
 
   selectedTimeRange = signal<string>("week");
 
@@ -122,6 +121,10 @@ export class StatsView implements OnInit {
     this.loadStatistics();
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      if (!this.authService.isLoggedIn()) {
+        this.router.navigate(["/login"]);
+        return;
+      }
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");

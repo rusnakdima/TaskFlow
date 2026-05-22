@@ -13,6 +13,7 @@ export interface Reaction {
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: "./message-reactions.component.html",
+  styleUrls: ["./message-reactions.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MessageReactionsComponent {
@@ -21,11 +22,12 @@ export class MessageReactionsComponent {
   @Output() togglePicker = new EventEmitter<void>();
   @Output() addReaction = new EventEmitter<string>();
   @Output() removeReaction = new EventEmitter<string>();
+  @Output() pickerClosed = new EventEmitter<void>();
 
   quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
   onQuickReaction(emoji: string): void {
     this.addReaction.emit(emoji);
-    this.togglePicker.emit();
+    this.pickerClosed.emit();
   }
 }

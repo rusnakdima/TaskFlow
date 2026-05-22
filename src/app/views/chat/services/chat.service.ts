@@ -19,7 +19,20 @@ export class ChatService {
   private notifyService = inject(NotifyService);
   state = inject(ChatState);
 
-  constructor() {}
+  constructor() {
+    this.initChatQueueListener();
+  }
+
+  private initChatQueueListener(): void {
+    window.addEventListener("online", () => {
+      console.log("[ChatService] Back online, processing chat queue...");
+      this.processChatQueue();
+    });
+
+    if (navigator.onLine) {
+      this.processChatQueue();
+    }
+  }
 
   loadAllUsers(): void {
     console.log("[ChatService] loadAllUsers called");
@@ -99,18 +112,14 @@ export class ChatService {
     const currentUserId = this.state.currentUserId();
     if (!currentUserId || !Array.isArray(rooms)) return;
 
-    const existingRoomIds = new Set(this.state.conversations().map((c) => c.roomId));
-
     for (const room of rooms) {
-      if (existingRoomIds.has(room.room)) continue;
-
       const isGroup = room.is_group === true || (room.room || "").startsWith("group_");
       const memberIds: string[] = room.participant_ids || [];
       const otherUserId = isGroup
         ? undefined
         : memberIds.find((id: string) => id !== currentUserId);
 
-      let name = isGroup ? room.name || "Group" : "Unknown";
+      let name = isGroup ? room.name || "Group" : room.name || "Unknown";
       let avatar: string | null = null;
 
       if (!isGroup && otherUserId) {
@@ -121,6 +130,26 @@ export class ChatService {
         } else {
           this.fetchProfileIfMissing(otherUserId);
         }
+      }
+
+      const existingIdx = this.state.conversations().findIndex((c) => c.roomId === room.room);
+
+      if (existingIdx !== -1) {
+        const currentConv = this.state.conversations()[existingIdx];
+        if (currentConv.isLocal || currentConv.name === "Unknown") {
+          this.state.conversations.update((convs) => {
+            const updated = [...convs];
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              name: name || updated[existingIdx].name,
+              avatar: avatar || updated[existingIdx].avatar,
+              otherUserId: otherUserId,
+              isLocal: false,
+            };
+            return updated;
+          });
+        }
+        continue;
       }
 
       const conv: ConversationItem = {
@@ -154,6 +183,8 @@ export class ChatService {
       const roomId = chat.room_id;
       if (!roomId) continue;
 
+      const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
+
       if (!convMap.has(roomId)) {
         let name = "Unknown";
         let avatar: string | null = null;
@@ -161,21 +192,27 @@ export class ChatService {
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
 
-        if (!isGroup) {
-          otherUserId = chat.sender_id !== currentUserId ? chat.sender_id : undefined;
-          if (otherUserId) {
-            const profile = this.getProfileByUserId(otherUserId);
-            if (profile) {
-              name = getProfileDisplayName(profile);
-              avatar = profile.image_url || null;
-            } else if (chat.author_name) {
-              name = chat.author_name;
-            } else {
-              this.fetchProfileIfMissing(otherUserId);
-            }
-          }
+        if (existingConv && existingConv.name !== "Unknown") {
+          name = existingConv.name;
+          avatar = existingConv.avatar;
+          otherUserId = existingConv.otherUserId;
         } else {
-          name = "Group";
+          if (!isGroup) {
+            otherUserId = chat.sender_id !== currentUserId ? chat.sender_id : undefined;
+            if (otherUserId) {
+              const profile = this.getProfileByUserId(otherUserId);
+              if (profile) {
+                name = getProfileDisplayName(profile);
+                avatar = profile.image_url || null;
+              } else if (chat.author_name) {
+                name = chat.author_name;
+              } else {
+                this.fetchProfileIfMissing(otherUserId);
+              }
+            }
+          } else {
+            name = "Group";
+          }
         }
 
         convMap.set(roomId, {
@@ -310,7 +347,7 @@ export class ChatService {
               senderId: chat.sender_id,
               senderName: senderName,
               senderAvatar: senderAvatar,
-              time: this.state.formatDate(chat.created_at || ""),
+              time: this.state.formatDate(chat.created_at) || new Date().toISOString(),
               isMine: chat.sender_id === currentUserId,
               isEdited: chat.is_edited === true,
               readStatus: readStatus,
@@ -354,25 +391,213 @@ export class ChatService {
     if (!userId) return;
 
     const replyId = this.state.replyToMessage()?.id || null;
+    const tempId = `temp_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+    const now = new Date().toISOString();
+
+    const localChat: Chat = {
+      id: tempId,
+      room_id: conv.roomId,
+      sender_id: userId,
+      user_id: userId,
+      content: content,
+      read_by: [userId],
+      created_at: now,
+      sync_status: "pending",
+      temp_id: tempId,
+    };
+    this.storageService.addChat(localChat);
+
+    const uiMsg: ChatMessage = {
+      id: tempId,
+      content: content,
+      senderId: userId,
+      senderName: this.authService.getValueByKey("username") || "You",
+      senderAvatar: undefined,
+      time: now,
+      isMine: true,
+      syncStatus: "pending",
+      tempId: tempId,
+      replyId: replyId,
+    };
+    this.state.messages.update((msgs) => [...msgs, uiMsg]);
+
+    this.state.messageInput.set("");
+    this.state.replyToMessage.set(null);
+    this.updateConversationLastMessage(conv.roomId, content);
 
     this.requestService
       .invokeCommand("send_message", {
         roomId: conv.roomId,
         senderId: userId,
+        receiverId: conv.otherUserId,
+        dmName: conv.name,
         content: content,
         replyId: replyId,
         token: this.authService.getToken(),
       })
       .subscribe({
-        next: () => {
-          this.state.messageInput.set("");
-          this.state.replyToMessage.set(null);
-          this.loadMessagesForRoom(conv.roomId);
+        next: (response: any) => {
+          const cloudId = response?.id || response?.chat?.id || tempId;
+          this.storageService.updateChatByTempId(tempId, cloudId, "synced");
+          this.state.messages.update((msgs) =>
+            msgs.map((m) =>
+              m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+            )
+          );
           this.reloadChatsFromApi();
-          this.updateConversationLastMessage(conv.roomId, content);
         },
         error: (err) => {
-          this.notifyService.showError(err.message || "Failed to send message");
+          this.storageService.updateChatSyncStatus(tempId, "failed");
+          this.state.messages.update((msgs) =>
+            msgs.map((m) =>
+              m.tempId === tempId
+                ? { ...m, syncStatus: "failed" as const, lastError: err.message }
+                : m
+            )
+          );
+          this.queueChatMessageForSync(tempId, conv, content, replyId, err.message);
+          this.notifyService.showError("Message saved offline. Will sync when online.");
+        },
+      });
+  }
+
+  private queueChatMessageForSync(
+    tempId: string,
+    conv: ConversationItem,
+    content: string,
+    replyId: string | null,
+    lastError?: string
+  ): void {
+    const queuedOp = {
+      id: tempId,
+      operation: "create" as const,
+      table: "chats",
+      data: {
+        id: tempId,
+        room_id: conv.roomId,
+        sender_id: this.state.currentUserId(),
+        user_id: this.state.currentUserId(),
+        receiver_id: conv.otherUserId,
+        dm_name: conv.name,
+        content: content,
+        reply_id: replyId,
+        created_at: new Date().toISOString(),
+        sync_status: "pending",
+        temp_id: tempId,
+      },
+      timestamp: Date.now(),
+      retries: 0,
+      visibility: "private",
+      isChatOperation: true,
+      lastError: lastError,
+    };
+
+    const queue = this.getChatQueue();
+    queue.push(queuedOp);
+    this.saveChatQueue(queue);
+  }
+
+  private getChatQueue(): any[] {
+    try {
+      const stored = localStorage.getItem("taskflow_chat_offline_queue");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveChatQueue(queue: any[]): void {
+    try {
+      localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
+    } catch {}
+  }
+
+  private processChatQueue(): void {
+    if (!navigator.onLine) return;
+
+    const queue = this.getChatQueue();
+    if (queue.length === 0) return;
+
+    const remaining: any[] = [];
+
+    for (const op of queue) {
+      this.requestService
+        .invokeCommand("send_message", {
+          roomId: op.data.room_id,
+          senderId: op.data.sender_id,
+          receiverId: op.data.receiver_id,
+          dmName: op.data.dm_name,
+          content: op.data.content,
+          replyId: op.data.reply_id,
+          token: this.authService.getToken(),
+        })
+        .subscribe({
+          next: (response: any) => {
+            const cloudId = response?.id || response?.chat?.id || op.id;
+            this.storageService.updateChatByTempId(op.id, cloudId, "synced");
+            this.state.messages.update((msgs) =>
+              msgs.map((m) =>
+                m.tempId === op.id ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+              )
+            );
+          },
+          error: () => {
+            op.retries = (op.retries || 0) + 1;
+            if (op.retries < 3) {
+              remaining.push(op);
+            } else {
+              this.storageService.updateChatSyncStatus(op.id, "failed");
+              this.state.messages.update((msgs) =>
+                msgs.map((m) => (m.tempId === op.id ? { ...m, syncStatus: "failed" as const } : m))
+              );
+            }
+          },
+        });
+    }
+
+    this.saveChatQueue(remaining);
+  }
+
+  retrySendMessage(tempId: string): void {
+    const queue = this.getChatQueue();
+    const op = queue.find((o) => o.id === tempId);
+    if (!op) {
+      console.warn("[ChatService] retrySendMessage: op not found in queue", tempId);
+      return;
+    }
+
+    this.storageService.updateChatSyncStatus(tempId, "pending");
+    this.state.messages.update((msgs) =>
+      msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "pending" as const } : m))
+    );
+
+    this.requestService
+      .invokeCommand("send_message", {
+        roomId: op.data.room_id,
+        senderId: op.data.sender_id,
+        receiverId: op.data.receiver_id,
+        dmName: op.data.dm_name,
+        content: op.data.content,
+        replyId: op.data.reply_id,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: (response: any) => {
+          const cloudId = response?.id || response?.chat?.id || tempId;
+          this.storageService.updateChatByTempId(tempId, cloudId, "synced");
+          this.state.messages.update((msgs) =>
+            msgs.map((m) =>
+              m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+            )
+          );
+          const newQueue = queue.filter((o) => o.id !== tempId);
+          this.saveChatQueue(newQueue);
+        },
+        error: () => {
+          this.storageService.updateChatSyncStatus(tempId, "failed");
+          this.state.messages.update((msgs) =>
+            msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "failed" as const } : m))
+          );
         },
       });
   }
@@ -384,8 +609,20 @@ export class ChatService {
         limit: 100,
       })
       .subscribe({
-        next: (chats) => {
-          this.storageService.setChats(chats);
+        next: (cloudChats) => {
+          const localChats = this.storageService.chats();
+
+          const merged: Chat[] = [...localChats];
+          const existingIds = new Set(localChats.map((c) => c.id));
+
+          for (const cloudChat of cloudChats) {
+            if (!existingIds.has(cloudChat.id)) {
+              merged.push(cloudChat);
+              existingIds.add(cloudChat.id);
+            }
+          }
+
+          this.storageService.setChats(merged);
           this.loadConversations();
         },
         error: () => {
@@ -757,11 +994,14 @@ export class ChatService {
       memberCount: 0,
       bio: profile.bio || "",
       otherUserId: profileUserId,
+      isLocal: true,
     };
 
     this.state.conversations.update((convs) => [conv, ...convs]);
 
-    this.selectConversation(conv);
+    this.state.activeConversationId.set(roomId);
+    this.state.messages.set([]);
+    this.state.showSidebar.set(false);
     this.state.closeUserDropdown();
   }
 

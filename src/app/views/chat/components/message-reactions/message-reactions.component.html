@@ -27,11 +27,11 @@
 
   @if (showPicker) {
     <div
-      class="absolute bottom-full left-0 mb-2 flex gap-0.5 rounded-xl border border-slate-200/50 bg-white/98 p-1.5 shadow-lg backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/98"
+      class="emoji-picker absolute bottom-full left-0 mb-2 flex gap-0.5 rounded-xl border border-slate-200/50 bg-white/98 p-1.5 shadow-lg backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/98"
     >
       @for (emoji of quickReactions; track emoji) {
         <button
-          class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-transform hover:scale-125 hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
+          class="emoji-btn flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-transform hover:scale-125 hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
           (click)="onQuickReaction(emoji)"
         >
           {{ emoji }}
