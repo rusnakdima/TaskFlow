@@ -7,14 +7,9 @@ import { CommonModule } from "@angular/common";
   imports: [CommonModule],
   template: `
     @if (src && src.trim() !== "") {
-      <img
-        [ngClass]="imgClasses"
-        [src]="src"
-        [alt]="name"
-        onerror="this.src = 'https://placehold.co/100x100/6366f1/ffffff?text=?'"
-      />
+      <img [ngClass]="imgClasses" [src]="src" [alt]="name" (error)="onImageError($event)" />
     } @else {
-      <img [ngClass]="imgClasses" src="/assets/images/user.png" [alt]="name" />
+      <img [ngClass]="imgClasses" [src]="defaultSrc" [alt]="name" />
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +18,8 @@ export class UserAvatarComponent {
   @Input() src: string | null | undefined = null;
   @Input() name: string = "";
   @Input() size: "sm" | "md" | "lg" | "xl" = "md";
+
+  defaultSrc = "assets/images/user.png";
 
   get initials(): string {
     return (this.name?.charAt(0) || "?").toUpperCase();
@@ -58,7 +55,8 @@ export class UserAvatarComponent {
     return `${this.dimensionClasses} ${this.roundedClasses} object-cover`;
   }
 
-  get fallbackClasses(): string {
-    return `${this.dimensionClasses} ${this.roundedClasses} flex items-center justify-center bg-[var(--accent-100)] font-semibold text-[var(--accent-600)] dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]`;
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.src = this.defaultSrc;
   }
 }
