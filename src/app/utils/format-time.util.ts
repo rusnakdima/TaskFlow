@@ -1,6 +1,11 @@
 export function formatTime(dateStr: string): string {
-  if (!dateStr) return "";
+  if (!dateStr || dateStr === "Invalid Date") {
+    return new Date().toISOString();
+  }
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    return new Date().toISOString();
+  }
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const dayMs = 24 * 60 * 60 * 1000;
