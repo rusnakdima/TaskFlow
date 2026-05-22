@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+  signal,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
@@ -17,7 +24,7 @@ import { MessageReactionsComponent } from "../../views/chat/components/message-r
     MessageReactionsComponent,
   ],
   templateUrl: "./chat-message.component.html",
-  styleUrls: ["./chat-message.component.scss"],
+  styleUrl: "./chat-message.component.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatMessageComponent {
@@ -35,6 +42,9 @@ export class ChatMessageComponent {
   @Output() react = new EventEmitter<{ message: ChatMessage; emoji: string }>();
   @Output() removeReaction = new EventEmitter<{ message: ChatMessage; emoji: string }>();
   @Output() cancelReply = new EventEmitter<ChatMessage>();
+  @Output() retrySend = new EventEmitter<ChatMessage>();
+
+  showReactionPicker = signal(false);
 
   get isOwn(): boolean {
     return this.message?.isMine ?? false;
@@ -69,6 +79,7 @@ export class ChatMessageComponent {
 
   onReact(payload: { message: ChatMessage; emoji: string }): void {
     this.react.emit(payload);
+    this.showReactionPicker.set(false);
   }
 
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
@@ -77,5 +88,51 @@ export class ChatMessageComponent {
 
   onCancelReply(message: ChatMessage): void {
     this.cancelReply.emit(message);
+  }
+
+  onToggleReactionPicker(): void {
+    this.showReactionPicker.update((v) => !v);
+  }
+
+  onQuickReaction(emoji: string): void {
+    this.react.emit({ message: this.message, emoji });
+  }
+
+  onPickerClosed(): void {
+    this.showReactionPicker.set(false);
+  }
+
+  onRetrySend(): void {
+    this.retrySend.emit(this.message);
+  }
+
+  formatTime(time: string): string {
+    if (!time || time === "Invalid Date") {
+      return new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+    const date = new Date(time);
+    if (isNaN(date.getTime())) {
+      return new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
+  getBubbleClasses(): string {
+    const base =
+      "relative flex flex-col min-h-11 px-4 py-3 rounded-3xl max-w-full word-break transition-all duration-200 ease-out";
+
+    if (this.isOwn) {
+      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-600)] text-white shadow`;
+    }
+
+    return `${base} bg-white backdrop-blur-md border border-black/5 text-zinc-800 shadow-sm dark:bg-zinc-800 dark:border-white/10 dark:text-zinc-100`;
   }
 }
