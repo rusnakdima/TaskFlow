@@ -885,6 +885,18 @@ impl RepositoryService {
       let count_service = self.count_service.clone();
       let task_id_clone = task_id.map(|s| s.to_string());
       let subtask_id_clone = subtask_id.map(|s| s.to_string());
+
+      if let Some(ref sid) = subtask_id_clone {
+        let cid = created_record
+          .get("id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("unknown");
+        println!(
+          "[COMMENT_DEBUG] Comment created for subtask: id={}, subtask_id={}",
+          cid, sid
+        );
+      }
+
       let handle = tokio::spawn(async move {
         let _ = count_service
           .on_comment_created(
@@ -1299,6 +1311,32 @@ impl RepositoryService {
 
     let old_visibility = existing_record.get("visibility").and_then(|v| v.as_str());
     let old_status = existing_record.get("status").and_then(|v| v.as_str());
+    let visibility_changed = old_visibility != new_visibility.as_deref();
+
+    let current_provider: DataProvider = if self
+      .json_provider
+      .find_by_id(&table, &id_str)
+      .await
+      .ok()
+      .flatten()
+      .is_some()
+    {
+      DataProvider::Json(Arc::new(self.json_provider.clone()))
+    } else if let Some(ref mongo) = self.mongodb_provider {
+      if mongo
+        .find_by_id(&table, &id_str)
+        .await
+        .ok()
+        .flatten()
+        .is_some()
+      {
+        DataProvider::Mongo(mongo.clone())
+      } else {
+        DataProvider::Json(Arc::new(self.json_provider.clone()))
+      }
+    } else {
+      DataProvider::Json(Arc::new(self.json_provider.clone()))
+    };
 
     let mut validated_data = validated_data;
     Self::merge_immutable_fields(&existing_record, &mut validated_data);
@@ -1319,7 +1357,6 @@ impl RepositoryService {
     if table == "todos" {
       let is_sharing =
         new_visibility.as_deref() == Some("shared") || new_visibility.as_deref() == Some("public");
-      let visibility_changed = old_visibility != new_visibility.as_deref();
 
       if is_sharing && visibility_changed {
         if let Some(owner_id) = merged_data.get("user_id").and_then(|v| v.as_str()) {
@@ -1381,7 +1418,32 @@ impl RepositoryService {
       }
     }
 
-    let updated_record = provider.update(&table, &id_str, merged_data).await?;
+    let updated_record = current_provider
+      .update(&table, &id_str, merged_data)
+      .await?;
+
+    if table == "todos" && visibility_changed {
+      let source_provider = if matches!(current_provider, DataProvider::Json(_)) {
+        "Json"
+      } else {
+        "Mongo"
+      };
+      let target_provider = if new_visibility.as_deref() == Some("private") {
+        "Json"
+      } else {
+        "Mongo"
+      };
+      self
+        .cascade_service
+        .sync_todo_with_children(
+          &id_str,
+          source_provider,
+          target_provider,
+          new_visibility.as_deref().unwrap_or("private"),
+          false,
+        )
+        .await?;
+    }
 
     if table == "profiles" && !offline {
       if let Some(profile_id) = updated_record.get("id").and_then(|v| v.as_str()) {

@@ -60,6 +60,7 @@ pub async fn sync_visibility_to_provider(
   entity_type: String,
   source_provider: String,
   target_provider: String,
+  new_visibility: Option<String>,
   delete_from_source: Option<bool>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -91,8 +92,21 @@ pub async fn sync_visibility_to_provider(
         .sync_entity_to_mongo_and_delete_from_source(table, &todo_id)
         .await?;
     } else if table == "todos" {
+      let visibility = new_visibility
+        .as_deref()
+        .unwrap_or(if target_provider == "Mongo" {
+          "shared"
+        } else {
+          "private"
+        });
       cascade_service
-        .sync_todo_with_children(&todo_id, &source_provider, &target_provider, false)
+        .sync_todo_with_children(
+          &todo_id,
+          &source_provider,
+          &target_provider,
+          visibility,
+          false,
+        )
         .await?;
     } else {
       cascade_service
@@ -105,8 +119,15 @@ pub async fn sync_visibility_to_provider(
         .sync_entity_to_json_and_delete_from_source(table, &todo_id)
         .await?;
     } else if table == "todos" {
+      let visibility = new_visibility.as_deref().unwrap_or("private");
       cascade_service
-        .sync_todo_with_children(&todo_id, &source_provider, &target_provider, false)
+        .sync_todo_with_children(
+          &todo_id,
+          &source_provider,
+          &target_provider,
+          visibility,
+          false,
+        )
         .await?;
     } else {
       cascade_service.sync_entity_to_json(table, &todo_id).await?;

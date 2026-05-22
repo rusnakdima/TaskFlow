@@ -196,6 +196,10 @@ impl QrAuthService {
           "pending"
         };
 
+        if status == "expired" {
+          let _ = self.delete_qr_token(&qr_token.id).await;
+        }
+
         let mut response_data = json!({
             "status": status,
         });
@@ -229,6 +233,8 @@ impl QrAuthService {
     username: &str,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
+    let _ = self.delete_qr_tokens_by_user_id(user_id).await;
+
     let token = self.generate_token();
     let now = chrono::Utc::now().timestamp();
 
@@ -344,6 +350,68 @@ impl QrAuthService {
     Ok(())
   }
 
+  async fn delete_qr_token(&self, token_id: &str) -> Result<(), ResponseModel> {
+    if let Some(ref mongo_provider) = self.mongodb_provider {
+      let _ = mongo_provider.delete("qr_tokens", token_id).await;
+    }
+    let _ = self.json_provider.delete("qr_tokens", token_id).await;
+    Ok(())
+  }
+
+  async fn delete_qr_tokens_by_user_id(&self, user_id: &str) -> Result<(), ResponseModel> {
+    if let Some(ref mongo_provider) = self.mongodb_provider {
+      if let Ok(results) = mongo_provider.find_all("qr_tokens").await {
+        for token_val in results {
+          if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+            if t.user_id.as_deref() == Some(user_id) {
+              let _ = mongo_provider.delete("qr_tokens", &t.id).await;
+            }
+          }
+        }
+      }
+    }
+
+    if let Ok(results) = self.json_provider.find_all("qr_tokens").await {
+      for token_val in results {
+        if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+          if t.user_id.as_deref() == Some(user_id) {
+            let _ = self.json_provider.delete("qr_tokens", &t.id).await;
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  async fn delete_expired_qr_tokens(&self) -> Result<(), ResponseModel> {
+    let now = chrono::Utc::now().timestamp();
+
+    if let Some(ref mongo_provider) = self.mongodb_provider {
+      if let Ok(results) = mongo_provider.find_all("qr_tokens").await {
+        for token_val in results {
+          if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+            if t.expires_at < now {
+              let _ = mongo_provider.delete("qr_tokens", &t.id).await;
+            }
+          }
+        }
+      }
+    }
+
+    if let Ok(results) = self.json_provider.find_all("qr_tokens").await {
+      for token_val in results {
+        if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
+          if t.expires_at < now {
+            let _ = self.json_provider.delete("qr_tokens", &t.id).await;
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+
   /// Complete QR login: generate a JWT token for the approved user
   pub async fn complete_qr_login(&self, token: &str) -> Result<ResponseModel, ResponseModel> {
     // Verify QR token is approved
@@ -416,6 +484,9 @@ impl QrAuthService {
     let mut updated_token = qr_token.clone();
     updated_token.completed = true;
     self.save_qr_token(&updated_token).await?;
+
+    // Clear all QR tokens for this user from both databases
+    let _ = self.delete_qr_tokens_by_user_id(&user_id).await;
 
     // Cache user locally if from MongoDB
     if self.mongodb_provider.is_some() {

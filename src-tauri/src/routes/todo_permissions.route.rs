@@ -88,7 +88,13 @@ pub async fn change_todo_visibility(
   if source_provider != target_provider {
     let cascade_service = state.cascade_service.clone();
     cascade_service
-      .sync_todo_with_children(&todo_id, source_provider, target_provider, false)
+      .sync_todo_with_children(
+        &todo_id,
+        source_provider,
+        target_provider,
+        &new_visibility,
+        false,
+      )
       .await
       .map_err(|e| err_response(&e.message))?;
   }
