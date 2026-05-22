@@ -503,6 +503,10 @@ export class SubtasksViewComponent extends BaseListView {
     );
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      if (!this.authService.isLoggedIn()) {
+        this.router.navigate(["/login"]);
+        return;
+      }
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");

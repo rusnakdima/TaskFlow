@@ -1,5 +1,5 @@
 <div
-  class="flex h-[calc(100vh-80px)] w-full flex-col overflow-hidden bg-white md:h-[calc(100vh-100px)] lg:h-[calc(100vh-120px)] dark:bg-zinc-900"
+  class="flex h-[calc(100vh-155px)] w-full flex-col overflow-hidden bg-white md:h-[calc(100vh-155px)] lg:h-[calc(100vh-155px)] dark:bg-zinc-900"
 >
   <div class="flex flex-1 overflow-hidden">
     <aside
@@ -48,19 +48,18 @@
     <section class="relative z-10 flex flex-1 flex-col overflow-hidden bg-white dark:bg-zinc-900">
       @if (!state.activeConversationId()) {
         <div
-          class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-50 p-8 text-center dark:bg-zinc-950"
+          class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8 text-center dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950"
         >
           <div
-            class="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--accent-50)] text-[var(--accent-color)] shadow-[var(--accent-color)]/5 shadow-xl dark:bg-[var(--accent-900)]/30 dark:text-[var(--accent-400)]"
+            class="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-50)] to-[var(--accent-100)] text-[var(--accent-color)] shadow-[var(--accent-color)]/10 shadow-xl ring-8 ring-[var(--accent-color)]/5 dark:from-[var(--accent-900)]/40 dark:to-[var(--accent-800)]/30 dark:text-[var(--accent-400)]"
           >
-            <mat-icon fontIcon="chat" class="h-10 w-10" />
+            <mat-icon fontIcon="chat" class="h-12 w-12" />
           </div>
-          <h3 class="mb-2 text-xl font-bold text-slate-800 dark:text-zinc-200">
+          <h3 class="mb-3 text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">
             Select a Conversation
           </h3>
-          <p class="max-w-sm text-sm leading-relaxed text-slate-500 dark:text-zinc-400">
-            Choose an active dialogue on the left panel or initiate a clean dialogue to start
-            swapping messages instantly.
+          <p class="max-w-sm text-base leading-relaxed text-slate-500 dark:text-zinc-400">
+            Choose a dialogue from the sidebar to start messaging, or begin a new conversation.
           </p>
         </div>
       } @else {
@@ -74,7 +73,7 @@
         />
 
         <div
-          class="custom-scrollbar flex flex-1 flex-col space-y-2 overflow-y-auto bg-slate-50 px-4 pt-4 pb-28 sm:px-6 dark:bg-zinc-950/40"
+          class="custom-scrollbar flex flex-1 flex-col space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50/80 to-slate-100/60 px-4 pt-4 pb-32 sm:px-6 dark:from-zinc-950/50 dark:via-zinc-900/40 dark:to-zinc-950/50"
         >
           @for (
             message of state.activeMessages();
@@ -110,6 +109,7 @@
               (react)="onReactToMessage($event)"
               (removeReaction)="onRemoveReaction($event)"
               (cancelReply)="onCancelReply($event)"
+              (retrySend)="onRetrySendMessage($event)"
             />
           }
           @if (typingIndicatorVisible) {

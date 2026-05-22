@@ -90,6 +90,10 @@ export class CalendarView extends BaseListView implements OnInit {
     this.storageService.ensureTasksLoaded("public", 10);
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      if (!this.authService.isLoggedIn()) {
+        this.router.navigate(["/login"]);
+        return;
+      }
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");

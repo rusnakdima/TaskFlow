@@ -1,0 +1,25 @@
+.emoji-picker {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  .emoji-btn {
+    color: #27272a;
+
+    &:hover {
+      background: var(--accent-50);
+    }
+  }
+}
+
+.dark .emoji-picker {
+  background: rgba(38, 38, 45, 0.98);
+  border-color: rgba(255, 255, 255, 0.1);
+
+  .emoji-btn {
+    color: #fafafa;
+
+    &:hover {
+      background: var(--accent-900);
+    }
+  }
+}

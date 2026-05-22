@@ -375,6 +375,11 @@ export class ChatView implements OnInit, AfterViewChecked {
     this.state.setReplyTo(null);
   }
 
+  onRetrySendMessage(message: ChatMessage): void {
+    if (!message.tempId || message.syncStatus !== "failed") return;
+    this.chatService.retrySendMessage(message.tempId);
+  }
+
   get typingIndicatorVisible(): boolean {
     return !!(this.state.isSomeoneTyping() && this.state.activeConversation()?.isTyping);
   }

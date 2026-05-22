@@ -325,6 +325,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.userId.set(this.authService.getValueByKey("id"));
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
+      if (!this.authService.isLoggedIn()) {
+        this.router.navigate(["/login"]);
+        return;
+      }
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");
