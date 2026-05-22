@@ -312,12 +312,22 @@ export class UnifiedSyncService implements OnDestroy {
       const userId = this.getUserId();
       const token = this.getToken();
 
-      if (!userId) {
-        this.notifyService.showError("User not authenticated");
+      if (!token) {
+        this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
           status: ResponseStatus.ERROR,
-          message: "User not authenticated",
+          message: "Not authenticated - no token",
+          data: null as unknown as R,
+        };
+      }
+
+      if (!userId) {
+        this.notifyService.showError("Invalid or expired session. Please log in again.");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
       }
@@ -379,12 +389,22 @@ export class UnifiedSyncService implements OnDestroy {
       const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
-      if (!userId) {
-        this.notifyService.showError("User not authenticated");
+      if (!token) {
+        this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
           status: ResponseStatus.ERROR,
-          message: "User not authenticated",
+          message: "Not authenticated - no token",
+          data: null as unknown as R,
+        };
+      }
+
+      if (!userId) {
+        this.notifyService.showError("Invalid or expired session. Please log in again.");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
       }
@@ -440,12 +460,22 @@ export class UnifiedSyncService implements OnDestroy {
       const token = TokenStorageHelper.getToken();
       const userId = this.jwtTokenService.getUserId(token);
 
-      if (!userId) {
-        this.notifyService.showError("User not authenticated");
+      if (!token) {
+        this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
           status: ResponseStatus.ERROR,
-          message: "User not authenticated",
+          message: "Not authenticated - no token",
+          data: null as unknown as R,
+        };
+      }
+
+      if (!userId) {
+        this.notifyService.showError("Invalid or expired session. Please log in again.");
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
       }
@@ -568,10 +598,18 @@ export class UnifiedSyncService implements OnDestroy {
         const token = this.getToken();
         const userId = this.getUserId();
 
+        if (!token) {
+          return {
+            status: ResponseStatus.ERROR,
+            message: "Not authenticated - no token",
+            data: null,
+          } as Response<any>;
+        }
+
         if (!userId) {
           return {
             status: ResponseStatus.ERROR,
-            message: "User not authenticated",
+            message: "Not authenticated - invalid token",
             data: null,
           } as Response<any>;
         }
@@ -591,10 +629,18 @@ export class UnifiedSyncService implements OnDestroy {
         const token = this.getToken();
         const userId = this.getUserId();
 
+        if (!token) {
+          return {
+            status: ResponseStatus.ERROR,
+            message: "Not authenticated - no token",
+            data: null,
+          } as Response<any>;
+        }
+
         if (!userId) {
           return {
             status: ResponseStatus.ERROR,
-            message: "User not authenticated",
+            message: "Not authenticated - invalid token",
             data: null,
           } as Response<any>;
         }
@@ -617,14 +663,7 @@ export class UnifiedSyncService implements OnDestroy {
   }
 
   private getUserId(): string | null {
-    try {
-      const token = this.getToken();
-      if (!token) return null;
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.userId || payload.sub || null;
-    } catch {
-      return null;
-    }
+    return this.jwtTokenService.getCurrentUserId();
   }
 
   resolveConflict<T extends { updatedAt: string }>(local: T, remote: T): T {
