@@ -24,7 +24,6 @@ import { MessageReactionsComponent } from "../../views/chat/components/message-r
     MessageReactionsComponent,
   ],
   templateUrl: "./chat-message.component.html",
-  styleUrl: "./chat-message.component.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatMessageComponent {
