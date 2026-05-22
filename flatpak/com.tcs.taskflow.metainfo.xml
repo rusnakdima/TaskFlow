@@ -73,6 +73,24 @@
   </provides>
 
   <releases>
+    <release version="0.17.4" date="2026-05-22">
+      <description>
+        <p>Release version 0.17.4</p>
+      </description>
+    </release>
+    <release version="0.17.4" date="2026-05-22">
+      <description>
+        <p>Release version 0.17.4 with chat message styling improvements and component refinements.</p>
+
+        <p>
+          <strong>Chat UI Improvements:</strong>
+        </p>
+        <ul>
+          <li>Added message animations and bubble hover styles for enhanced chat experience</li>
+          <li>Removed styleUrl from chat message component</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.3" date="2026-05-22">
       <description>
         <p>Release version 0.17.3 with chat-message component styling refinements.</p>
