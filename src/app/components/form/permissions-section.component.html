@@ -1,0 +1,139 @@
+<div
+  class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+>
+  <div class="mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30"
+      >
+        <mat-icon
+          class="h-5! w-5! min-w-5 text-xl! text-indigo-600 dark:text-indigo-400"
+          fontIcon="admin_panel_settings"
+        />
+      </div>
+      <div>
+        <h3 class="textNormal text-lg font-semibold">Assignee Permissions</h3>
+        <p class="textMuted text-sm">Set permission levels for each assignee</p>
+      </div>
+    </div>
+    @if (isOwner) {
+      <button type="button" (click)="transferOwnership.emit()" class="btn-accent">
+        Transfer Ownership
+      </button>
+    }
+  </div>
+
+  <div class="mb-4 space-y-3">
+    @for (profileId of selectedIds; track profileId) {
+      <div class="flex items-center justify-between p-4">
+        <div class="flex items-center gap-3">
+          @if (getProfile(profileId); as profile) {
+            @if (profile.image_url) {
+              <img
+                [src]="profile.image_url"
+                class="h-8 w-8 rounded-full object-cover"
+                [alt]="profile.name"
+              />
+            } @else {
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
+              >
+                {{ (profile.name || profile.last_name || "U").charAt(0).toUpperCase() }}
+              </div>
+            }
+            <div class="flex flex-col">
+              <span class="text-sm font-medium">{{ profile.name }} {{ profile.last_name }}</span>
+              @if (profile.user?.email) {
+                <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
+              }
+            </div>
+          }
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
+            [matMenuTriggerFor]="roleMenu"
+          >
+            <mat-icon
+              class="h-4! w-4! min-w-4 text-base!"
+              [fontIcon]="getRoleIcon(roles[profileId] || 'viewer')"
+            />
+            <span>{{ getRoleLabel(roles[profileId] || "viewer") }}</span>
+            <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
+          </button>
+          <mat-menu
+            #roleMenu="matMenu"
+            class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+          >
+            <button
+              mat-menu-item
+              (click)="onRoleChange(profileId, 'viewer')"
+              class="flex w-full items-center gap-3"
+              [class.badge-accent]="roles[profileId] === 'viewer'"
+            >
+              <mat-icon
+                class="size-5! min-w-5 text-xl!"
+                [class.text-black]="roles[profileId] === 'viewer'"
+                [class.dark:text-white]="roles[profileId] === 'viewer'"
+                [class.text-gray-400]="roles[profileId] !== 'viewer'"
+                fontIcon="visibility"
+              />
+              <span [class.font-bold]="roles[profileId] === 'viewer'">Viewer</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onRoleChange(profileId, 'editor')"
+              class="flex w-full items-center gap-3"
+              [class.badge-accent]="roles[profileId] === 'editor'"
+            >
+              <mat-icon
+                class="size-5! min-w-5 text-xl!"
+                [class.text-black]="roles[profileId] === 'editor'"
+                [class.dark:text-white]="roles[profileId] === 'editor'"
+                [class.text-gray-400]="roles[profileId] !== 'editor'"
+                fontIcon="edit"
+              />
+              <span [class.font-bold]="roles[profileId] === 'editor'">Editor</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onRoleChange(profileId, 'admin')"
+              class="flex w-full items-center gap-3"
+              [class.badge-accent]="roles[profileId] === 'admin'"
+            >
+              <mat-icon
+                class="size-5! min-w-5 text-xl!"
+                [class.text-black]="roles[profileId] === 'admin'"
+                [class.dark:text-white]="roles[profileId] === 'admin'"
+                [class.text-gray-400]="roles[profileId] !== 'admin'"
+                fontIcon="admin_panel_settings"
+              />
+              <span [class.font-bold]="roles[profileId] === 'admin'">Admin</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onRoleChange(profileId, 'moderator')"
+              class="flex w-full items-center gap-3"
+              [class.badge-accent]="roles[profileId] === 'moderator'"
+            >
+              <mat-icon
+                class="size-5! min-w-5 text-xl!"
+                [class.text-black]="roles[profileId] === 'moderator'"
+                [class.dark:text-white]="roles[profileId] === 'moderator'"
+                [class.text-gray-400]="roles[profileId] !== 'moderator'"
+                fontIcon="security"
+              />
+              <span [class.font-bold]="roles[profileId] === 'moderator'">Moderator</span>
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+    }
+    @if (selectedIds.size === 0) {
+      <div class="text-center text-sm text-gray-500">
+        No assignees selected. Select assignees above to set permissions.
+      </div>
+    }
+  </div>
+</div>
