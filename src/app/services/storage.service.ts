@@ -310,6 +310,12 @@ export class StorageService {
   deleteChat(chatId: string) {
     this._entityService.updateChat("", "delete", { id: chatId } as Chat);
   }
+  updateChatByTempId(tempId: string, cloudId: string, syncStatus: "pending" | "synced" | "failed") {
+    this._entityService.updateChatByTempId(tempId, cloudId, syncStatus);
+  }
+  updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed") {
+    this._entityService.updateChatSyncStatus(tempId, syncStatus);
+  }
   clearChats() {
     this._entityService.updateChat("", "clear");
   }
@@ -359,36 +365,39 @@ export class StorageService {
     } else {
       entity = this.get(table, id);
     }
-    if (!entity || entity.visibility === newVisibility) return;
+    if (!entity) return;
 
     if (table === "todos") {
-      const oldList =
-        entity.visibility === "private"
-          ? this._entityService.privateTodos
-          : entity.visibility === "public"
-            ? this._entityService.publicTodos
-            : this._entityService.sharedTodos;
+      const privateTodos = this._entityService.privateTodos;
+      const sharedTodos = this._entityService.sharedTodos;
+      const publicTodos = this._entityService.publicTodos;
+
+      const oldList = privateTodos().some((t) => t.id === id)
+        ? privateTodos
+        : sharedTodos().some((t) => t.id === id)
+          ? sharedTodos
+          : publicTodos().some((t) => t.id === id)
+            ? publicTodos
+            : null;
+
+      if (!oldList) return;
 
       const newList =
         newVisibility === "private"
-          ? this._entityService.privateTodos
+          ? privateTodos
           : newVisibility === "public"
-            ? this._entityService.publicTodos
-            : this._entityService.sharedTodos;
+            ? publicTodos
+            : sharedTodos;
+
+      if (newList().some((t) => t.id === id)) {
+        console.warn("[updateEntityVisibility] Entity already in target list, skipping:", id);
+        return;
+      }
 
       const updatedEntity = { ...entity, visibility: newVisibility };
-      oldList.update((todos) => {
-        const filtered = todos.filter((t) => t.id !== id);
-        if (filtered.length === todos.length && !todos.some((t) => t.id === id)) {
-          return todos;
-        }
-        return filtered;
-      });
+      oldList.update((todos) => todos.filter((t) => t.id !== id));
       newList.update((todos) => {
         const filtered = todos.filter((t) => t.id !== id);
-        if (filtered.some((t) => t.id === id)) {
-          return todos;
-        }
         return [updatedEntity, ...filtered];
       });
     } else {

@@ -86,13 +86,21 @@ export class StorageEntityService {
       return;
     }
     if (type === "todos") {
-      updateEntityInSignal(this.privateTodos, data.id, data);
-      updateEntityInSignal(this.sharedTodos, data.id, data);
-      updateEntityInSignal(this.publicTodos, data.id, data);
+      if (this.privateTodos().some((t) => t.id === data.id)) {
+        updateEntityInSignal(this.privateTodos, data.id, data);
+      } else if (this.sharedTodos().some((t) => t.id === data.id)) {
+        updateEntityInSignal(this.sharedTodos, data.id, data);
+      } else if (this.publicTodos().some((t) => t.id === data.id)) {
+        updateEntityInSignal(this.publicTodos, data.id, data);
+      }
     } else if (type === "categories") {
-      updateEntityInSignal(this.privateCategories, data.id, data);
-      updateEntityInSignal(this.sharedCategories, data.id, data);
-      updateEntityInSignal(this.publicCategories, data.id, data);
+      if (this.privateCategories().some((c) => c.id === data.id)) {
+        updateEntityInSignal(this.privateCategories, data.id, data);
+      } else if (this.sharedCategories().some((c) => c.id === data.id)) {
+        updateEntityInSignal(this.sharedCategories, data.id, data);
+      } else if (this.publicCategories().some((c) => c.id === data.id)) {
+        updateEntityInSignal(this.publicCategories, data.id, data);
+      }
     } else {
       updateEntityInSignal(this.getSignal(type) as WritableSignal<any[]>, data.id, data);
     }
@@ -188,6 +196,28 @@ export class StorageEntityService {
         this.chats.set([]);
         break;
     }
+  }
+
+  updateChatByTempId(
+    tempId: string,
+    cloudId: string,
+    syncStatus: "pending" | "synced" | "failed"
+  ): void {
+    this.chats.update((chats) =>
+      chats.map((c) =>
+        c.temp_id === tempId
+          ? { ...c, id: cloudId, sync_status: syncStatus, temp_id: undefined }
+          : c
+      )
+    );
+  }
+
+  updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed"): void {
+    this.chats.update((chats) =>
+      chats.map((c) =>
+        c.temp_id === tempId || c.id === tempId ? { ...c, sync_status: syncStatus } : c
+      )
+    );
   }
 
   bulkUpsertSubtasks(subtasks: Subtask[]): void {
