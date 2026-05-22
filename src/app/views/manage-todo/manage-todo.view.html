@@ -1,0 +1,110 @@
+<div class="mx-auto flex max-w-4xl flex-col gap-6">
+  <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="textNormal text-2xl font-bold sm:text-3xl">
+        {{ pageTitle() }}
+      </h1>
+      <p class="textMuted mt-1">
+        {{
+          isEdit()
+            ? "Update your project details and settings"
+            : "Create a new project to organize your work"
+        }}
+      </p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+    <app-basic-info-section
+      [title]="form.get('title')?.value"
+      [description]="form.get('description')?.value"
+      itemType="todo"
+      (titleChange)="form.patchValue({ title: $event })"
+      (descriptionChange)="form.patchValue({ description: $event })"
+    />
+
+    <app-category-section
+      [categories]="categories()"
+      [selectedIds]="selectedCategoryIds()"
+      [searchQuery]="categorySearchQuery()"
+      [disabled]="!canManageCategories()"
+      (searchQueryChange)="categorySearchQuery.set($event)"
+      (toggleSelection)="toggleCategorySelection($event)"
+      (toggleSelectAll)="toggleSelectAllCategories()"
+      (addCategory)="addCategory()"
+    />
+
+    <app-priority-section
+      [priority]="form.get('priority')?.value"
+      (priorityChange)="form.patchValue({ priority: $event })"
+    />
+
+    <app-visibility-section
+      [visibility]="visibility()"
+      [disabled]="!canEditVisibility()"
+      (visibilityChange)="onVisibilityChange($event)"
+    />
+
+    @if (showAssignees()) {
+      <app-assignees-section
+        [assignees]="assignees()"
+        [selectedIds]="selectedAssigneeIds()"
+        [searchQuery]="assigneeSearchQuery()"
+        [disabled]="!canManageAssignees()"
+        (searchQueryChange)="assigneeSearchQuery.set($event)"
+        (toggleSelection)="toggleAssigneeSelection($event)"
+        (toggleSelectAll)="toggleSelectAllAssignees()"
+      />
+    }
+
+    @if (showPermissionsSection()) {
+      <app-permissions-section
+        [assignees]="assignees()"
+        [selectedIds]="selectedAssigneeIds()"
+        [roles]="assigneeRoles()"
+        [isOwner]="isOwner()"
+        (rolesChange)="onRoleChange($event)"
+        (transferOwnership)="onTransferOwnership()"
+      />
+    }
+
+    <app-github-repo-section
+      [repos]="githubRepos()"
+      [selectedRepoId]="selectedGithubRepoId()"
+      [connected]="githubConnected()"
+      [searchQuery]="githubRepoSearchQuery()"
+      [disabled]="!canManageGhRepo()"
+      (searchQueryChange)="githubRepoSearchQuery.set($event)"
+      (repoChange)="onGithubRepoChange($event)"
+    />
+
+    <div class="flex justify-end gap-3 pt-6">
+      <button type="button" class="btn-cancel" (click)="back()">Cancel</button>
+      <button type="submit" class="btn-accent" [disabled]="form.invalid || isSubmitting()">
+        @if (isSubmitting()) {
+          <div
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+          ></div>
+        } @else {
+          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
+        }
+        <span class="flex items-center gap-2">
+          {{ isEdit() ? "Update" : "Create" }}
+          <kbd
+            class="hidden rounded-md border border-blue-800 bg-blue-700 px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 opacity-80 sm:inline-block"
+          >
+            Ctrl+S
+          </kbd>
+        </span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<app-transfer-ownership-dialog
+  [show]="showTransferOwnershipDialog()"
+  [currentOwnerId]="getCurrentUserId()"
+  [availableProfiles]="assignees()"
+  (confirm)="onTransferOwnershipConfirm($event)"
+  (cancel)="onTransferOwnershipCancel()"
+/>
