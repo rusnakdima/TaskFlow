@@ -73,6 +73,18 @@
   </provides>
 
   <releases>
+    <release version="0.17.3" date="2026-05-22">
+      <description>
+        <p>Release version 0.17.3 with chat-message component styling refinements.</p>
+
+        <p>
+          <strong>Chat Improvements:</strong>
+        </p>
+        <ul>
+          <li>Reverted chat-message component from CSS back to SCSS for better maintainability</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.2" date="2026-05-22">
       <description>
         <p>Release version 0.17.2 with major chat system overhaul, new manage views, enhanced search, and command palette improvements.</p>
