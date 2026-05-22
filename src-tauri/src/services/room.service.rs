@@ -221,6 +221,52 @@ impl RoomService {
     Ok(success_response(DataValue::Object(doc)))
   }
 
+  pub async fn find_or_create_dm_room(
+    &self,
+    room_id: &str,
+    sender_id: &str,
+    receiver_id: &str,
+    dm_name: &str,
+  ) -> Result<Value, ResponseModel> {
+    let filter = json!({ "room": room_id });
+    let filter_obj = nosql_orm::query::Filter::from_json(&filter)
+      .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+    // Check MongoDB first
+    if let Some(mongo) = self.get_mongo_provider() {
+      let existing = mongo
+        .find_many("rooms", Some(&filter_obj), None, Some(1), None, true)
+        .await?;
+
+      if let Some(room) = existing.into_iter().next() {
+        return Ok(room); // Room already exists
+      }
+
+      // Room doesn't exist - create it with both participants
+      let now = chrono::Utc::now().to_rfc3339();
+      let room_data = json!({
+        "room": room_id,
+        "name": dm_name,
+        "is_group": false,
+        "participant_ids": [sender_id, receiver_id],
+        "created_at": now,
+        "updated_at": now
+      });
+
+      let doc = mongo.insert("rooms", room_data.clone()).await?;
+
+      // Sync to JSON provider
+      let json_provider = self.base.get_json_provider();
+      if let DataProvider::Json(p) = json_provider {
+        let _ = p.insert("rooms", doc.clone()).await;
+      }
+
+      return Ok(doc);
+    }
+
+    Err(err_response("MongoDB not available"))
+  }
+
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()

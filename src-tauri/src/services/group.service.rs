@@ -2,7 +2,6 @@ use crate::entities::response_entity::{DataValue, ResponseModel};
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
-use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 
@@ -461,65 +460,138 @@ impl GroupService {
     Ok(())
   }
 
-  pub async fn hard_delete_cascade(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
-    let group = self
-      .base
-      .get_json_provider()
-      .find_by_id("groups", id)
-      .await?
-      .ok_or_else(|| err_response("Group not found"))?;
+  pub async fn hard_delete_cascade(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
+    // Try MongoDB first (primary database), fallback to JSON
+    let filter = json!({ "room_id": room_id });
+    let filter_obj = nosql_orm::query::Filter::from_json(&filter)
+      .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
 
-    let room_id = group.get("room_id").and_then(|v| v.as_str()).unwrap_or("");
+    let group_opt = if let Some(mongo) = self.get_mongo_provider() {
+      mongo
+        .find_many("groups", Some(&filter_obj), None, Some(1), None, true)
+        .await
+        .ok()
+        .and_then(|mut g| g.pop())
+    } else {
+      None
+    };
 
-    if !room_id.is_empty() {
-      let filter = json!({ "room_id": room_id });
-      if let Ok(filter_obj) = nosql_orm::query::Filter::from_json(&filter) {
+    let group = if let Some(g) = group_opt {
+      g
+    } else {
+      let json_docs = self
+        .base
+        .get_json_provider()
+        .find_many("groups", Some(&filter_obj), None, Some(1), None, true)
+        .await?;
+      json_docs
+        .into_iter()
+        .next()
+        .ok_or_else(|| err_response("Group not found"))?
+    };
+
+    let actual_room_id = group
+      .get("room_id")
+      .and_then(|v| v.as_str())
+      .unwrap_or(room_id);
+
+    if !actual_room_id.is_empty() {
+      let chat_filter = json!({ "room_id": actual_room_id });
+      if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
+        // Delete chats from JSON provider
         let json_provider = self.base.get_json_provider();
         if let DataProvider::Json(p) = json_provider {
-          let cascade = CascadeManager::new(p.as_ref().clone());
-          let filter_opt = Some(&filter_obj);
-          let docs: Vec<serde_json::Value> =
-            DatabaseProvider::find_many(p.as_ref(), "chats", filter_opt, None, None, None, true)
-              .await
-              .unwrap_or_default();
-          for doc in docs {
-            if let Some(id) = doc.get("id").and_then(|v| v.as_str()) {
-              let _ = cascade.soft_delete("chats", id).await;
+          let json_chat_docs: Vec<serde_json::Value> = json_provider
+            .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
+            .await
+            .unwrap_or_default();
+          for doc in json_chat_docs {
+            if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
+              let _ = p.delete("chats", doc_id).await;
+            }
+          }
+        }
+
+        // Delete chats from MongoDB
+        if let Some(mongo) = self.get_mongo_provider() {
+          let mongo_docs: Vec<serde_json::Value> = mongo
+            .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
+            .await
+            .unwrap_or_default();
+          for doc in mongo_docs {
+            if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
+              let _ = mongo.delete("chats", doc_id).await;
             }
           }
         }
       }
     }
 
+    // Delete group from JSON provider
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
-      let cascade = CascadeManager::new(p.as_ref().clone());
-      let _ = cascade.soft_delete("groups", id).await;
+      let group_filter = json!({ "room_id": room_id });
+      if let Ok(group_filter_obj) = nosql_orm::query::Filter::from_json(&group_filter) {
+        let group_docs: Vec<serde_json::Value> = json_provider
+          .find_many("groups", Some(&group_filter_obj), None, Some(1), None, true)
+          .await
+          .unwrap_or_default();
+        for doc in group_docs {
+          if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
+            let _ = p.delete("groups", doc_id).await;
+          }
+        }
+      }
     }
 
+    // Delete group from MongoDB
     if let Some(mongo) = self.get_mongo_provider() {
-      let update_data = json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
-      let _ = mongo.patch("groups", id, update_data.clone()).await;
+      let group_filter = json!({ "room_id": room_id });
+      if let Ok(group_filter_obj) = nosql_orm::query::Filter::from_json(&group_filter) {
+        let group_docs: Vec<serde_json::Value> = mongo
+          .find_many("groups", Some(&group_filter_obj), None, None, None, true)
+          .await
+          .unwrap_or_default();
+        for doc in group_docs {
+          if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
+            let _ = mongo.delete("groups", doc_id).await;
+          }
+        }
+      }
 
-      if !room_id.is_empty() {
-        let filter = json!({ "room": room_id });
-        if let Ok(filter_obj) = nosql_orm::query::Filter::from_json(&filter) {
-          let rooms: Vec<serde_json::Value> = mongo
-            .find_many("rooms", Some(&filter_obj), None, None, None, true)
-            .await
-            .unwrap_or_default();
-          for room_doc in rooms {
-            if let Some(rid) = room_doc.get("id").and_then(|v| v.as_str()) {
-              let _ = mongo.patch("rooms", rid, update_data.clone()).await;
-            }
+      // Soft delete related rooms
+      let room_filter = json!({ "room": actual_room_id });
+      if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
+        let rooms: Vec<serde_json::Value> = mongo
+          .find_many("rooms", Some(&room_filter_obj), None, None, None, true)
+          .await
+          .unwrap_or_default();
+        for room_doc in rooms {
+          if let Some(rid) = room_doc.get("id").and_then(|v| v.as_str()) {
+            let _ = mongo.delete("rooms", rid).await;
+          }
+        }
+      }
+    }
+
+    // Delete room from JSON provider
+    if let DataProvider::Json(p) = json_provider {
+      let room_filter = json!({ "room": actual_room_id });
+      if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
+        let room_docs: Vec<serde_json::Value> = json_provider
+          .find_many("rooms", Some(&room_filter_obj), None, Some(1), None, true)
+          .await
+          .unwrap_or_default();
+        for doc in room_docs {
+          if let Some(doc_id) = doc.get("id").and_then(|v| v.as_str()) {
+            let _ = p.delete("rooms", doc_id).await;
           }
         }
       }
     }
 
     Ok(success_response(DataValue::Object(json!({
-      "group_id": id,
-      "room_id": room_id,
+      "room_id": actual_room_id,
       "deleted": true
     }))))
   }

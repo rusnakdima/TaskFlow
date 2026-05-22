@@ -566,29 +566,26 @@ impl CascadeService {
     todo_id: &str,
     source_provider_name: &str,
     target_provider_name: &str,
+    new_visibility: &str,
     _delete_from_source: bool,
   ) -> Result<CascadeResult, ResponseModel> {
     let mut result = CascadeResult::new();
 
-    let target_visibility = if target_provider_name == "Mongo" {
-      "shared"
-    } else {
-      "private"
-    };
+    let target_visibility = new_visibility;
 
     if source_provider_name == "Mongo" {
       let _ = self.sync_entity_to_json("todos", todo_id).await?;
-      if let Some(ref mongo) = self.mongodb_provider {
-        let update_data = serde_json::json!({ "visibility": target_visibility });
-        let _ = mongo.patch("todos", todo_id, update_data).await;
-      }
-    } else {
-      let _ = self.sync_entity_to_mongo("todos", todo_id).await?;
       let update_data = serde_json::json!({ "visibility": target_visibility });
       let _ = self
         .json_provider
         .patch("todos", todo_id, update_data)
         .await;
+    } else {
+      let _ = self.sync_entity_to_mongo("todos", todo_id).await?;
+      if let Some(ref mongo) = self.mongodb_provider {
+        let update_data = serde_json::json!({ "visibility": target_visibility });
+        let _ = mongo.patch("todos", todo_id, update_data).await;
+      }
     }
 
     let task_filter =
@@ -615,10 +612,12 @@ impl CascadeService {
 
     for task in &tasks {
       if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
-        let _ = self
-          .sync_task_with_children(task_id, target_is_mongo)
-          .await?;
-        result.task_count += 1;
+        let sync_result = self
+          .sync_task_with_children(task_id, target_is_mongo, target_visibility)
+          .await;
+        if sync_result.is_ok() {
+          result.task_count += 1;
+        }
       }
     }
 
@@ -630,11 +629,21 @@ impl CascadeService {
     &self,
     task_id: &str,
     to_mongo: bool,
+    visibility: &str,
   ) -> Result<CascadeResult, ResponseModel> {
+    let mut result = CascadeResult::new();
+
     let subtask_filter =
       nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
 
+    // Query SOURCE provider (where data is), not TARGET (where data is going)
     let subtasks = if to_mongo {
+      self
+        .json_provider
+        .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
+        .await
+        .unwrap_or_default()
+    } else {
       if let Some(ref mongo) = self.mongodb_provider {
         mongo
           .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
@@ -643,25 +652,54 @@ impl CascadeService {
       } else {
         Vec::new()
       }
-    } else {
-      self
-        .json_provider
-        .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
-        .await
-        .unwrap_or_default()
     };
 
     let target_str = if to_mongo { "Mongo" } else { "Json" };
 
+    let _ = self
+      .sync_child_entity("tasks", task_id, target_str, visibility)
+      .await;
+
     for subtask in &subtasks {
       if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
         let _ = self
-          .sync_child_entity("subtasks", subtask_id, target_str)
+          .sync_child_entity("subtasks", subtask_id, target_str, visibility)
           .await;
+        result.subtask_count += 1;
       }
     }
 
-    Ok(CascadeResult::new())
+    let comment_filter =
+      nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
+
+    // Query SOURCE provider (where data is), not TARGET (where data is going)
+    let comments = if to_mongo {
+      self
+        .json_provider
+        .find_many("comments", Some(&comment_filter), None, None, None, true)
+        .await
+        .unwrap_or_default()
+    } else {
+      if let Some(ref mongo) = self.mongodb_provider {
+        mongo
+          .find_many("comments", Some(&comment_filter), None, None, None, true)
+          .await
+          .unwrap_or_default()
+      } else {
+        Vec::new()
+      }
+    };
+
+    for comment in &comments {
+      if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
+        let _ = self
+          .sync_child_entity("comments", comment_id, target_str, visibility)
+          .await;
+        result.comment_count += 1;
+      }
+    }
+
+    Ok(result)
   }
 
   async fn sync_child_entity(
@@ -669,6 +707,7 @@ impl CascadeService {
     table: &str,
     id: &str,
     target_provider: &str,
+    _visibility: &str,
   ) -> Result<(), ResponseModel> {
     let entity_opt = if target_provider == "Mongo" {
       self

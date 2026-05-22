@@ -89,7 +89,7 @@ impl ConfigHelper {
     Self {
       name_app: env::var("NAME_APP").unwrap_or_else(|_| "TaskFlow".to_string()),
       app_home_folder: env::var("APP_HOME_FOLDER").unwrap_or_else(|_| ".taskflow".to_string()),
-      json_db_name: env::var("JSONDB_NAME").unwrap_or_else(|_| "task_flow_db.json".to_string()),
+      json_db_name: env::var("JSONDB_NAME").unwrap_or_else(|_| "task_flow_db".to_string()),
       mongo_db_uri: env::var("MONGODB_URI")
         .unwrap_or_else(|_| "mongodb://localhost:27017".to_string()),
       mongo_db_name: env::var("MONGODB_NAME").unwrap_or_else(|_| "taskflow".to_string()),

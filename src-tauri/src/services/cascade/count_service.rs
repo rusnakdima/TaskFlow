@@ -41,21 +41,16 @@ impl CountService {
   where
     P: Clone + nosql_orm::provider::DatabaseProvider,
   {
-    if is_json {
-      let current = provider.find_by_id(collection, id).await?;
-      if let Some(mut doc) = current {
-        if let Some(obj) = doc.as_object_mut() {
-          let current_val = obj.get(field).and_then(|v| v.as_i64()).unwrap_or(0);
-          obj.insert(
-            field.to_string(),
-            serde_json::json!(current_val + delta as i64),
-          );
-          provider.update(collection, id, doc).await?;
-        }
+    let current = provider.find_by_id(collection, id).await?;
+    if let Some(mut doc) = current {
+      if let Some(obj) = doc.as_object_mut() {
+        let current_val = obj.get(field).and_then(|v| v.as_i64()).unwrap_or(0);
+        obj.insert(
+          field.to_string(),
+          serde_json::json!(current_val + delta as i64),
+        );
+        provider.update(collection, id, doc).await?;
       }
-    } else {
-      let update = json!({ "$inc": { field: delta } });
-      provider.patch(collection, id, update).await?;
     }
     Ok(())
   }
