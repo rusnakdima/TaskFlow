@@ -649,20 +649,41 @@ export class StorageQueryService {
     });
   }
 
-  ensureTasksLoaded(visibility: string = "private", limit: number = 10, todoId?: string): void {
+  ensureTasksLoaded(
+    visibility: string = "private",
+    limit: number = 10,
+    todoId?: string,
+    userId?: string,
+    assigneeId?: string
+  ): void {
     if (this._tasksLoading()) return;
     if (!todoId && this._entityService.tasks().length > 0) return;
     this._tasksLoading.set(true);
-    this.apiService.tasks.getAll({ visibility, limit, todoId, load: ["user"] }).subscribe({
-      next: (tasks) => {
-        this._entityService.tasks.set(tasks);
-        this.updatePagination("tasks", 0, limit, tasks.length);
-      },
-      error: () => {},
-      complete: () => {
-        this._tasksLoading.set(false);
-      },
-    });
+    const filter: Record<string, unknown> = {};
+    if (todoId) filter["todo_id"] = todoId;
+    if (userId || assigneeId) {
+      const orConditions: Record<string, string>[] = [];
+      if (userId) orConditions.push({ user_id: userId });
+      if (assigneeId) orConditions.push({ assignees: assigneeId });
+      filter["$or"] = orConditions;
+    }
+    this.apiService.tasks
+      .getAll({
+        visibility,
+        limit,
+        filter: Object.keys(filter).length > 0 ? filter : undefined,
+        load: ["user"],
+      })
+      .subscribe({
+        next: (tasks) => {
+          this._entityService.tasks.set(tasks);
+          this.updatePagination("tasks", 0, limit, tasks.length);
+        },
+        error: () => {},
+        complete: () => {
+          this._tasksLoading.set(false);
+        },
+      });
   }
 
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10, taskId?: string): void {
@@ -697,6 +718,7 @@ export class StorageQueryService {
         } else if (visibility === "cloud") {
           this._entityService.cloudCategories.set(categories);
         }
+        this.updatePagination("categories", 0, limit, categories.length);
       },
       error: () => {},
       complete: () => {

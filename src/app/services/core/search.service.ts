@@ -165,6 +165,13 @@ export class SearchService {
       }
 
       const token = this.authService.getToken();
+      const userId = this.authService.getValueByKey("id");
+
+      const needsUserIdFilter = ["tasks", "subtasks", "comments", "chats"].includes(entity);
+
+      const filter = needsUserIdFilter
+        ? { $or: [{ user_id: userId }, { assignees: userId }] }
+        : undefined;
 
       this.apiService
         .invokeCommand<any[]>("search_data", {
@@ -175,6 +182,7 @@ export class SearchService {
           page: 0,
           limit: 50,
           offline: !this.mongoConnectionService.isConnected(),
+          filter: filter,
         })
         .subscribe({
           next: (items) => {
@@ -321,6 +329,7 @@ export class SearchService {
 
   private performGlobalSearchFromApi(query: string, baseResults?: GlobalSearchResults): void {
     const token = this.authService.getToken();
+    const userId = this.authService.getValueByKey("id");
 
     forkJoin({
       projects: this.apiService.invokeCommand<any[]>("search_data", {
@@ -338,6 +347,7 @@ export class SearchService {
         visibility: "all",
         page: 0,
         limit: 5,
+        filter: { $or: [{ user_id: userId }, { assignees: userId }] },
       }),
       subtasks: this.apiService.invokeCommand<any[]>("search_data", {
         table: "subtasks",
@@ -346,6 +356,7 @@ export class SearchService {
         visibility: "all",
         page: 0,
         limit: 5,
+        filter: { $or: [{ user_id: userId }, { assignees: userId }] },
       }),
       categories: this.apiService.invokeCommand<any[]>("search_data", {
         table: "categories",
@@ -362,6 +373,7 @@ export class SearchService {
         visibility: "all",
         page: 0,
         limit: 5,
+        filter: { user_id: userId },
       }),
       profiles: this.apiService.invokeCommand<any[]>("search_data", {
         table: "profiles",

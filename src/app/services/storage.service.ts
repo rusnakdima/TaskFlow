@@ -168,6 +168,9 @@ export class StorageService {
   get chatsPagination() {
     return this._pagination().chats;
   }
+  get categoriesPagination() {
+    return this._pagination().categories;
+  }
   get hasMoreTodos(): boolean {
     return this._pagination().todos.hasMore;
   }
@@ -942,10 +945,16 @@ export class StorageService {
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
 
-  ensureTasksLoaded(visibility: string = "private", limit: number = 10, todoId?: string): void {
+  ensureTasksLoaded(
+    visibility: string = "private",
+    limit: number = 10,
+    todoId?: string,
+    userId?: string,
+    assigneeId?: string
+  ): void {
     if (todoId && (this.tasksByTodoId().get(todoId)?.length ?? 0) > 0) return;
     if (!todoId && this.tasks().length > 0) return;
-    this._queryService.ensureTasksLoaded(visibility, limit, todoId);
+    this._queryService.ensureTasksLoaded(visibility, limit, todoId, userId, assigneeId);
   }
 
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10): void {

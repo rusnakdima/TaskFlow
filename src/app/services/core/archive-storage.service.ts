@@ -38,9 +38,9 @@ export class ArchiveStorageService extends BaseAdminStorageService {
   /**
    * Load more paginated data for a specific type
    */
-  loadMoreData(type: string, skip: number): Observable<any> {
+  loadMoreData(type: string, skip: number, limit = 10): Observable<any> {
     return new Observable((subscriber) => {
-      this.adminService.getArchiveDataPaginated(type, skip, 10).subscribe({
+      this.adminService.getArchiveDataPaginated(type, skip, limit).subscribe({
         next: (response) => {
           if (response.status === "Success" && response.data) {
             subscriber.next(response);
