@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { Observable } from "rxjs";
 import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
@@ -68,11 +69,18 @@ export class ChatService {
         if (!otherUserId) return conv;
 
         const profile = profiles.find((p) => p.user_id === otherUserId);
-        if (profile && conv.name === "Unknown") {
+        if (profile) {
           return {
             ...conv,
-            name: getProfileDisplayName(profile),
-            avatar: profile.image_url || null,
+            name: conv.name === "Unknown" ? getProfileDisplayName(profile) : conv.name,
+            avatar: profile.image_url || conv.avatar,
+            otherUserAvatar: profile.image_url || conv.otherUserAvatar,
+          };
+        }
+        if (!conv.otherUserAvatar && conv.avatar) {
+          return {
+            ...conv,
+            otherUserAvatar: conv.avatar,
           };
         }
         return conv;
@@ -96,6 +104,7 @@ export class ChatService {
     this.requestService
       .invokeCommand("get_rooms", {
         token: this.authService.getToken(),
+        load: "participants",
       })
       .subscribe({
         next: (result: any) => {
@@ -245,7 +254,9 @@ export class ChatService {
 
     for (const room of rooms) {
       const isGroup = room.is_group === true || (room.room || "").startsWith("group_");
-      const memberIds: string[] = room.participant_ids || [];
+      const memberIds: string[] = (room.participant_ids || []).filter(
+        (id: string) => id && id.trim() !== ""
+      );
       const otherUserId = isGroup
         ? undefined
         : memberIds.find((id: string) => id !== currentUserId);
@@ -274,6 +285,7 @@ export class ChatService {
               ...updated[existingIdx],
               name: name || updated[existingIdx].name,
               avatar: avatar || updated[existingIdx].avatar,
+              otherUserAvatar: avatar || updated[existingIdx].otherUserAvatar,
               otherUserId: otherUserId,
               isLocal: false,
             };
@@ -287,6 +299,7 @@ export class ChatService {
         roomId: room.room,
         name: name,
         avatar: avatar,
+        otherUserAvatar: avatar,
         isOnline: false,
         isTyping: false,
         isGroup: isGroup,
@@ -350,6 +363,7 @@ export class ChatService {
           roomId: roomId,
           name: name,
           avatar: avatar,
+          otherUserAvatar: avatar,
           isOnline: false,
           isTyping: false,
           isGroup: isGroup,
@@ -440,14 +454,18 @@ export class ChatService {
     if (conv.unreadCount > 0) {
       this.markConversationAsRead(conv.roomId);
     }
+    if (!conv.isGroup && conv.otherUserId) {
+      this.fetchProfileIfMissing(conv.otherUserId);
+    }
+    setTimeout(() => this.updateConversationsWithProfiles(), 100);
   }
 
-  private loadMessagesForRoom(roomId: string): void {
+  loadMessagesForRoom(roomId: string, skip = 0, limit = 100): void {
     this.requestService
       .invokeCommand("get_messages_by_room", {
         roomId: roomId,
-        skip: 0,
-        limit: 100,
+        skip: skip,
+        limit: limit,
         token: this.authService.getToken(),
       })
       .subscribe({
@@ -499,6 +517,73 @@ export class ChatService {
           this.state.messages.set([]);
         },
       });
+  }
+
+  loadPreviousMessagesForRoom(
+    roomId: string,
+    skip: number,
+    limit: number = 100
+  ): Observable<ChatMessage[]> {
+    return new Observable<ChatMessage[]>((subscriber) => {
+      this.requestService
+        .invokeCommand("get_messages_by_room", {
+          roomId: roomId,
+          skip: skip,
+          limit: limit,
+          token: this.authService.getToken(),
+        })
+        .subscribe({
+          next: (result: any) => {
+            const currentUserId = this.state.currentUserId();
+            const msgs: ChatMessage[] = [];
+
+            const data = Array.isArray(result) ? result : result.data || [];
+
+            for (const chat of data) {
+              if (chat.deleted_at) continue;
+
+              const sender = chat.sender || {};
+              const profile = sender.profile || {};
+              const senderName = profile.name
+                ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
+                : chat.sender_name || chat.sender_id || "Unknown";
+              const senderAvatar = profile.image_url || chat.sender_avatar || null;
+
+              let readStatus: "sent" | "delivered" | "read" | undefined;
+              if (chat.sender_id === currentUserId) {
+                const readByArr: string[] = chat.read_by || [];
+                const otherReaders = readByArr.filter((id: string) => id !== currentUserId);
+                if (otherReaders.length === 0) {
+                  readStatus = "sent";
+                } else {
+                  readStatus = "read";
+                }
+              }
+
+              msgs.push({
+                id: chat.id,
+                content: chat.content,
+                senderId: chat.sender_id,
+                senderName: senderName,
+                senderAvatar: senderAvatar,
+                time: this.state.formatDate(chat.created_at) || new Date().toISOString(),
+                isMine: chat.sender_id === currentUserId,
+                isEdited: chat.is_edited === true,
+                readStatus: readStatus,
+                replyId: chat.reply_id || null,
+              });
+            }
+
+            this.populateReplyChain(msgs);
+            subscriber.next(msgs);
+            subscriber.complete();
+          },
+          error: (err) => {
+            subscriber.error(err);
+            subscriber.complete();
+          },
+        });
+    });
   }
 
   private populateReplyChain(msgs: ChatMessage[]): void {
@@ -562,40 +647,41 @@ export class ChatService {
     this.state.replyToMessage.set(null);
     this.updateConversationLastMessage(conv.roomId, content);
 
-    this.requestService
-      .invokeCommand("send_message", {
-        roomId: conv.roomId,
-        senderId: userId,
-        receiverId: conv.otherUserId,
-        dmName: conv.name,
-        content: content,
-        replyId: replyId,
-        token: this.authService.getToken(),
-      })
-      .subscribe({
-        next: (response: any) => {
-          const cloudId = response?.id || response?.chat?.id || tempId;
-          this.storageService.updateChatByTempId(tempId, cloudId, "synced");
-          this.state.messages.update((msgs) =>
-            msgs.map((m) =>
-              m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
-            )
-          );
-          this.reloadChatsFromApi();
-        },
-        error: (err) => {
-          this.storageService.updateChatSyncStatus(tempId, "failed");
-          this.state.messages.update((msgs) =>
-            msgs.map((m) =>
-              m.tempId === tempId
-                ? { ...m, syncStatus: "failed" as const, lastError: err.message }
-                : m
-            )
-          );
-          this.queueChatMessageForSync(tempId, conv, content, replyId, err.message);
-          this.notifyService.showError("Message saved offline. Will sync when online.");
-        },
-      });
+    const messagePayload: any = {
+      roomId: conv.roomId,
+      senderId: userId,
+      dmName: conv.name,
+      content: content,
+      replyId: replyId,
+      token: this.authService.getToken(),
+    };
+    if (conv.otherUserId) {
+      messagePayload.receiverId = conv.otherUserId;
+    }
+    this.requestService.invokeCommand("send_message", messagePayload).subscribe({
+      next: (response: any) => {
+        const cloudId = response?.id || response?.chat?.id || tempId;
+        this.storageService.updateChatByTempId(tempId, cloudId, "synced");
+        this.state.messages.update((msgs) =>
+          msgs.map((m) =>
+            m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+          )
+        );
+        this.reloadChatsFromApi();
+      },
+      error: (err) => {
+        this.storageService.updateChatSyncStatus(tempId, "failed");
+        this.state.messages.update((msgs) =>
+          msgs.map((m) =>
+            m.tempId === tempId
+              ? { ...m, syncStatus: "failed" as const, lastError: err.message }
+              : m
+          )
+        );
+        this.queueChatMessageForSync(tempId, conv, content, replyId, err.message);
+        this.notifyService.showError("Message saved offline. Will sync when online.");
+      },
+    });
   }
 
   private queueChatMessageForSync(
@@ -658,38 +744,39 @@ export class ChatService {
     const remaining: any[] = [];
 
     for (const op of queue) {
-      this.requestService
-        .invokeCommand("send_message", {
-          roomId: op.data.room_id,
-          senderId: op.data.sender_id,
-          receiverId: op.data.receiver_id,
-          dmName: op.data.dm_name,
-          content: op.data.content,
-          replyId: op.data.reply_id,
-          token: this.authService.getToken(),
-        })
-        .subscribe({
-          next: (response: any) => {
-            const cloudId = response?.id || response?.chat?.id || op.id;
-            this.storageService.updateChatByTempId(op.id, cloudId, "synced");
+      const queuePayload: any = {
+        roomId: op.data.room_id,
+        senderId: op.data.sender_id,
+        dmName: op.data.dm_name,
+        content: op.data.content,
+        replyId: op.data.reply_id,
+        token: this.authService.getToken(),
+      };
+      if (op.data.receiver_id) {
+        queuePayload.receiverId = op.data.receiver_id;
+      }
+      this.requestService.invokeCommand("send_message", queuePayload).subscribe({
+        next: (response: any) => {
+          const cloudId = response?.id || response?.chat?.id || op.id;
+          this.storageService.updateChatByTempId(op.id, cloudId, "synced");
+          this.state.messages.update((msgs) =>
+            msgs.map((m) =>
+              m.tempId === op.id ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+            )
+          );
+        },
+        error: () => {
+          op.retries = (op.retries || 0) + 1;
+          if (op.retries < 3) {
+            remaining.push(op);
+          } else {
+            this.storageService.updateChatSyncStatus(op.id, "failed");
             this.state.messages.update((msgs) =>
-              msgs.map((m) =>
-                m.tempId === op.id ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
-              )
+              msgs.map((m) => (m.tempId === op.id ? { ...m, syncStatus: "failed" as const } : m))
             );
-          },
-          error: () => {
-            op.retries = (op.retries || 0) + 1;
-            if (op.retries < 3) {
-              remaining.push(op);
-            } else {
-              this.storageService.updateChatSyncStatus(op.id, "failed");
-              this.state.messages.update((msgs) =>
-                msgs.map((m) => (m.tempId === op.id ? { ...m, syncStatus: "failed" as const } : m))
-              );
-            }
-          },
-        });
+          }
+        },
+      });
     }
 
     this.saveChatQueue(remaining);
@@ -707,36 +794,36 @@ export class ChatService {
     this.state.messages.update((msgs) =>
       msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "pending" as const } : m))
     );
-
-    this.requestService
-      .invokeCommand("send_message", {
-        roomId: op.data.room_id,
-        senderId: op.data.sender_id,
-        receiverId: op.data.receiver_id,
-        dmName: op.data.dm_name,
-        content: op.data.content,
-        replyId: op.data.reply_id,
-        token: this.authService.getToken(),
-      })
-      .subscribe({
-        next: (response: any) => {
-          const cloudId = response?.id || response?.chat?.id || tempId;
-          this.storageService.updateChatByTempId(tempId, cloudId, "synced");
-          this.state.messages.update((msgs) =>
-            msgs.map((m) =>
-              m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
-            )
-          );
-          const newQueue = queue.filter((o) => o.id !== tempId);
-          this.saveChatQueue(newQueue);
-        },
-        error: () => {
-          this.storageService.updateChatSyncStatus(tempId, "failed");
-          this.state.messages.update((msgs) =>
-            msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "failed" as const } : m))
-          );
-        },
-      });
+    const retryPayload: any = {
+      roomId: op.data.room_id,
+      senderId: op.data.sender_id,
+      dmName: op.data.dm_name,
+      content: op.data.content,
+      replyId: op.data.reply_id,
+      token: this.authService.getToken(),
+    };
+    if (op.data.receiver_id) {
+      retryPayload.receiverId = op.data.receiver_id;
+    }
+    this.requestService.invokeCommand("send_message", retryPayload).subscribe({
+      next: (response: any) => {
+        const cloudId = response?.id || response?.chat?.id || tempId;
+        this.storageService.updateChatByTempId(tempId, cloudId, "synced");
+        this.state.messages.update((msgs) =>
+          msgs.map((m) =>
+            m.tempId === tempId ? { ...m, id: cloudId, syncStatus: "synced" as const } : m
+          )
+        );
+        const newQueue = queue.filter((o) => o.id !== tempId);
+        this.saveChatQueue(newQueue);
+      },
+      error: () => {
+        this.storageService.updateChatSyncStatus(tempId, "failed");
+        this.state.messages.update((msgs) =>
+          msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "failed" as const } : m))
+        );
+      },
+    });
   }
 
   private reloadChatsFromApi(): void {
@@ -1150,6 +1237,7 @@ export class ChatService {
           next: (profile: any) => {
             if (profile?.user_id) {
               this.profileSearchService.addProfile(profile);
+              setTimeout(() => this.updateConversationsWithProfiles(), 50);
             }
           },
           error: () => {},

@@ -282,29 +282,32 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.taskPagination.update((p) => ({ ...p, loading: true }));
     const visibility = this.visibilityParam();
-    this.apiService.tasks.getAll({ visibility, limit: 10, todoId }).subscribe({
-      next: (tasks) => {
-        this.todoTasks.set(tasks);
-        this.taskPagination.update((p) => ({
-          ...p,
-          skip: tasks.length,
-          total: tasks.length,
-          hasMore: tasks.length >= 10,
-          loading: false,
-        }));
-      },
-      error: () => {
-        this.taskPagination.update((p) => ({ ...p, loading: false }));
-        this.notifyService.showError("Failed to load tasks");
-      },
-    });
+    const userId = this.authService.getValueByKey("id");
+    this.apiService.tasks
+      .getAll({ visibility, limit: 25, filter: { todo_id: todoId, user_id: userId } })
+      .subscribe({
+        next: (tasks) => {
+          this.todoTasks.set(tasks);
+          this.taskPagination.update((p) => ({
+            ...p,
+            skip: tasks.length,
+            total: tasks.length,
+            hasMore: tasks.length >= 25,
+            loading: false,
+          }));
+        },
+        error: () => {
+          this.taskPagination.update((p) => ({ ...p, loading: false }));
+          this.notifyService.showError("Failed to load tasks");
+        },
+      });
   }
 
   loadMoreTasks() {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
     const todoId = this.todoId();
     if (!todoId) return;
-    this.storageService.ensureTasksLoaded(this.visibilityParam(), 10, todoId);
+    this.storageService.loadMoreTasks(todoId);
   }
 
   override onSearchChange(query: string): void {

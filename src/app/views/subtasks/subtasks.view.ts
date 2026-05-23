@@ -358,32 +358,8 @@ export class SubtasksViewComponent extends BaseListView {
   loadMoreSubtasks() {
     if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
     const taskId = this.task()?.id;
-    const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
-
-    this.subtaskPagination.update((p) => ({ ...p, loading: true }));
-
-    this.requestService
-      .loadPage<Subtask>("subtasks", {
-        filter: { task_id: taskId },
-        visibility: visibility as Visibility,
-        skip: this.subtaskPagination().skip,
-        limit: this.subtaskPagination().limit,
-      })
-      .subscribe({
-        next: (subtasks: Subtask[]) => {
-          this.taskSubtasks.update((current) => [...current, ...subtasks]);
-          this.subtaskPagination.update((p) => ({
-            ...p,
-            skip: p.skip + subtasks.length,
-            loading: false,
-            hasMore: subtasks.length === p.limit,
-          }));
-        },
-        error: () => {
-          this.subtaskPagination.update((p) => ({ ...p, loading: false }));
-        },
-      });
+    this.storageService.loadMoreSubtasks(taskId);
   }
 
   constructor() {

@@ -299,7 +299,7 @@ export class DataManagementView implements OnInit {
     const limit = this.paginationState().limit;
 
     if (this.mode === "admin") {
-      const sub = this.adminStorageService.loadMoreData(type, skip).subscribe({
+      const sub = this.adminStorageService.loadMoreData(type, skip, limit).subscribe({
         next: (response: any) => {
           const newData = response?.data || [];
           this.appendDataToSignal(type, this.adminStorageService, newData);
@@ -319,7 +319,7 @@ export class DataManagementView implements OnInit {
       });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     } else {
-      const sub = this.archiveStorageService.loadMoreData(type, skip).subscribe({
+      const sub = this.archiveStorageService.loadMoreData(type, skip, limit).subscribe({
         next: (response: any) => {
           const newData = response?.data || [];
           this.appendDataToSignal(type, this.archiveStorageService, newData);

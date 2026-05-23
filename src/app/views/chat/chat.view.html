@@ -73,43 +73,49 @@
         />
 
         <div
+          #messagesContainer
           class="custom-scrollbar flex flex-1 flex-col space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50/80 to-slate-100/60 px-4 pt-4 pb-32 sm:px-6 dark:from-zinc-950/50 dark:via-zinc-900/40 dark:to-zinc-950/50"
         >
-          @for (
-            message of state.activeMessages();
-            track message.id;
-            let idx = $index;
-            let first = $first
-          ) {
-            @let prevMsg = idx > 0 ? state.activeMessages()[idx - 1] : null;
-            @let isGroupStart =
-              first ||
-              (prevMsg && prevMsg.senderId !== message.senderId) ||
-              (message.time &&
-                prevMsg &&
-                prevMsg.time &&
-                state.isTimeGapLarge(prevMsg.time, message.time));
+          @if (state.isLoadingPreviousMessages()) {
+            <div class="flex justify-center py-2">
+              <span class="text-gray-500">Loading older messages...</span>
+            </div>
+          }
+          @if (state.stickySenderAvatar()) {
+            <div
+              class="sticky top-0 z-50 flex items-center gap-2 px-2 py-2 transition-all duration-300"
+            >
+              <div
+                class="flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 shadow-lg ring-2 ring-[var(--accent-color)] backdrop-blur-md dark:bg-zinc-800/90"
+              >
+                <app-user-avatar
+                  [src]="state.stickySenderAvatar()"
+                  [name]="state.stickySenderName()"
+                  size="sm"
+                  class="ring-2 ring-white dark:ring-zinc-800"
+                />
+                <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">
+                  {{ state.stickySenderName() }}
+                </span>
+              </div>
+            </div>
+          }
+          @for (group of groupedMessages; track group.messages[0]?.id; let groupIdx = $index) {
+            @let firstMsg = group.messages[0];
+            @let prevGroup = groupIdx > 0 ? groupedMessages[groupIdx - 1] : null;
             @let showDateAnchor =
-              first ||
-              (message.time && prevMsg && prevMsg.time && !isSameDay(prevMsg.time, message.time));
+              !prevGroup ||
+              (firstMsg?.time &&
+                prevGroup.messages.length > 0 &&
+                prevGroup.messages[prevGroup.messages.length - 1]?.time &&
+                !isSameDay(prevGroup.messages[prevGroup.messages.length - 1].time, firstMsg.time));
             @if (showDateAnchor) {
-              <app-date-anchor [date]="formatMessageDate(message.time)" />
+              <app-date-anchor [date]="formatMessageDate(firstMsg.time)" />
             }
-            <app-chat-message
-              [message]="message"
-              [isGroupStart]="!!isGroupStart"
+            <app-chat-message-group
+              [messages]="group.messages"
               [isGroupChat]="state.activeConversation()?.isGroup ?? false"
-              [editingMessageId]="state.editingMessageId()"
-              [editingMessageContent]="state.editingMessageContent()"
-              (contextMenu)="onMessageContextMenu($event.event, message)"
-              (editMessageInput)="state.editingMessageContent.set($event)"
-              (saveEdit)="saveEditMessage()"
-              (cancelEdit)="cancelEditMessage()"
-              (reply)="onReplyMessage($event)"
-              (react)="onReactToMessage($event)"
-              (removeReaction)="onRemoveReaction($event)"
-              (cancelReply)="onCancelReply($event)"
-              (retrySend)="onRetrySendMessage($event)"
+              [isOwn]="group.isOwn"
             />
           }
           @if (typingIndicatorVisible) {

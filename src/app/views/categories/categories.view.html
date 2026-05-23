@@ -123,6 +123,21 @@
           />
         }
       </div>
+      @if (categoriesPagination().hasMore) {
+        <div class="flex justify-center py-4">
+          <button
+            (click)="loadMoreCategories()"
+            [disabled]="categoriesPagination().loading"
+            class="bg-primary-500 hover:bg-primary-600 rounded-lg px-4 py-2 text-white disabled:opacity-50"
+          >
+            @if (categoriesPagination().loading) {
+              <span>Loading...</span>
+            } @else {
+              <span>Load More</span>
+            }
+          </button>
+        </div>
+      }
     }
   }
 </div>

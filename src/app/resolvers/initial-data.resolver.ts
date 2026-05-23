@@ -25,6 +25,11 @@ export class InitialDataResolver implements Resolve<unknown> {
   private apiService = inject(ApiService);
 
   private hasCachedData(): boolean {
+    const currentUserId = this.authService.getValueByKey("id");
+    const profile = this.storageService.profile();
+    if (!currentUserId || !profile?.user_id || profile.user_id !== currentUserId) {
+      return false;
+    }
     return (
       this.storageService.privateTodos().length > 0 ||
       this.storageService.sharedTodos().length > 0 ||
@@ -120,8 +125,6 @@ export class InitialDataResolver implements Resolve<unknown> {
 
     if (!this.hasCachedData()) {
       this.storageService.ensureTodosLoaded("all", 50);
-      this.storageService.ensureTasksLoaded("all", 50);
-      this.storageService.ensureSubtasksLoaded("all", 50);
       this.storageService.ensureChatsLoaded("all", 50);
     }
 

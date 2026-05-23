@@ -19,6 +19,7 @@ export interface Reaction {
 export class MessageReactionsComponent {
   @Input() reactions: Reaction[] = [];
   @Input() showPicker = false;
+  @Input() alignLeft = false;
   @Output() togglePicker = new EventEmitter<void>();
   @Output() addReaction = new EventEmitter<string>();
   @Output() removeReaction = new EventEmitter<string>();

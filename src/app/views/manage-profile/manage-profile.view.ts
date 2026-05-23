@@ -57,7 +57,7 @@ export class ManageProfileView implements OnInit {
     name: ["", Validators.required],
     last_name: ["", Validators.required],
     bio: [""],
-    image_url: ["/assets/images/user.png"],
+    image_url: ["/assets/images/avatars/avatar-1.svg"],
     original_image_url: [""],
     user_id: ["", Validators.required],
     created_at: [""],
@@ -88,6 +88,7 @@ export class ManageProfileView implements OnInit {
       name: "image_url",
       type: TypeField.image,
       isShow: () => true,
+      avatarsOnly: true,
     },
   ];
 
