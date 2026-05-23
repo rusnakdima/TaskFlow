@@ -17,6 +17,7 @@ pub struct ProfileEntity {
   pub last_name: String,
   pub bio: String,
   pub image_url: String,
+  pub original_image_url: String,
   pub user_id: String,
   #[serde(default)]
   pub created_at: Option<DateTime<Utc>>,
@@ -34,6 +35,8 @@ pub struct ProfileCreateModel {
   pub bio: Option<String>,
   #[serde(default)]
   pub image_url: Option<String>,
+  #[serde(default)]
+  pub original_image_url: Option<String>,
   #[validate(not_empty)]
   pub user_id: String,
 }
@@ -46,6 +49,7 @@ impl From<ProfileCreateModel> for ProfileEntity {
       last_name: value.last_name.unwrap_or_default(),
       bio: value.bio.unwrap_or_default(),
       image_url: value.image_url.unwrap_or_default(),
+      original_image_url: value.original_image_url.unwrap_or_default(),
       user_id: value.user_id,
       created_at: None,
       updated_at: None,
