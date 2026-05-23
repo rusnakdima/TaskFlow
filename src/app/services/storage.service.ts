@@ -101,6 +101,8 @@ export class StorageService {
   readonly comments = computed(() => this.activeComments());
   readonly chats = computed(() => this.activeChats());
   readonly categories = this._entityService.categories.asReadonly();
+  readonly localCategories = this._entityService.localCategories.asReadonly();
+  readonly cloudCategories = this._entityService.cloudCategories.asReadonly();
   readonly profile = this._entityService.profiles.asReadonly();
   readonly profiles = this._entityService.profiles.asReadonly();
   readonly publicProfiles = this._entityService.publicProfiles.asReadonly();
@@ -1037,7 +1039,14 @@ export class StorageService {
     ) {
       this._queryService.ensureCategoriesLoaded(visibility);
     }
-    return this._entityService.categories();
+    switch (visibility) {
+      case "local":
+        return this._entityService.localCategories();
+      case "cloud":
+        return this._entityService.cloudCategories();
+      default:
+        return this._entityService.categories();
+    }
   }
 
   loadMoreCategories(): void {

@@ -90,13 +90,13 @@ export class CategoriesView extends BaseListView implements OnInit {
       id: "local",
       label: "Local",
       icon: "folder",
-      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
+      count: this.storageService.localCategories().filter((c: Category) => !c.deleted_at).length,
     },
     {
       id: "cloud",
       label: "Cloud",
       icon: "cloud",
-      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
+      count: this.storageService.cloudCategories().filter((c: Category) => !c.deleted_at).length,
     },
   ]);
 
@@ -124,33 +124,25 @@ export class CategoriesView extends BaseListView implements OnInit {
       return [];
     }
 
+    const vis = this.activeVisibility();
+    const cats =
+      vis === "local"
+        ? this.storageService.localCategories()
+        : vis === "cloud"
+          ? this.storageService.cloudCategories()
+          : this.storageService.categories();
+
+    let filtered = cats.filter((c: Category) => !c.deleted_at);
+
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
-      const searchResults = this.searchService.categoriesResults();
-      if (searchResults.length > 0) {
-        return [...searchResults].sort((a, b) => {
-          let comparison = 0;
-          const by = this.sortBy();
-          if (by === "title") {
-            comparison = (a.title || "").localeCompare(b.title || "");
-          } else if (by === "createdAt") {
-            comparison = compareByTimestamp(a, b);
-          } else if (by === "updatedAt") {
-            comparison = compareByTimestamp(a, b);
-          }
-          return this.sortOrder() === "asc" ? comparison : -comparison;
-        });
-      }
-    }
-
-    let cats = this.storageService.categories().filter((c: Category) => !c.deleted_at);
-
-    if (query) {
-      cats = cats.filter((cat: Category) => (cat.title || "").toLowerCase().includes(query));
+      filtered = filtered.filter((cat: Category) =>
+        (cat.title || "").toLowerCase().includes(query)
+      );
     }
     const order = this.sortOrder();
     const by = this.sortBy();
-    return [...cats].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       let comparison = 0;
       if (by === "title") {
         comparison = (a.title || "").localeCompare(b.title || "");
