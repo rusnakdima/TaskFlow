@@ -27,9 +27,59 @@ pub async fn get_all_archive_data(
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_id(&state, &token)?;
-  let user_id_str = user_id.as_deref().unwrap_or("");
-
   let provider = get_json_provider(&state);
+
+  // If no token provided (admin viewing all archive), return all data without user filter
+  if user_id.is_none() {
+    let all_todos = provider
+      .find_many("todos", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_tasks = provider
+      .find_many("tasks", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_subtasks = provider
+      .find_many("subtasks", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_comments = provider
+      .find_many("comments", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_chats = provider
+      .find_many("chats", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_categories = provider
+      .find_many("categories", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let all_activities = provider
+      .find_many("daily_activities", None, None, None, None, true)
+      .await
+      .map_err(|e| err_response(&e.message))?;
+
+    let result = serde_json::json!({
+      "todos": all_todos,
+      "tasks": all_tasks,
+      "subtasks": all_subtasks,
+      "comments": all_comments,
+      "chats": all_chats,
+      "categories": all_categories,
+      "daily_activities": all_activities
+    });
+
+    return Ok(success_response(DataValue::Object(result)));
+  }
+
+  let user_id_str = user_id.unwrap();
 
   let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
@@ -134,179 +184,250 @@ pub async fn get_all_archive_paginated(
   limit: u64,
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_id(&state, &token)?;
-  let user_id_str = user_id.as_deref().unwrap_or("");
 
   let provider = get_json_provider(&state);
 
-  match data_type.as_str() {
-    "todos" => {
-      let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-
-      let all_todos = provider
-        .find_many(
-          "todos",
-          Some(&user_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
-
-      Ok(success_response(DataValue::Array(all_todos)))
-    }
-    "tasks" => {
-      let todos_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-
-      let user_todos = provider
-        .find_many("todos", Some(&todos_filter), None, None, None, true)
-        .await
-        .map_err(|e| err_response(&e.message))?;
-
-      let todo_ids: Vec<String> = user_todos
-        .iter()
-        .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-        .collect();
-
-      if todo_ids.is_empty() {
-        return Ok(success_response(DataValue::Array(vec![])));
+  // If no token provided (admin viewing all archive), return all data without user filter
+  if user_id.is_none() {
+    match data_type.as_str() {
+      "todos" => {
+        let all_todos = provider
+          .find_many("todos", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_todos)))
       }
-
-      let tasks_filter = Filter::from_json(&serde_json::json!({ "todo_id": { "$in": todo_ids } }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-
-      let tasks = provider
-        .find_many(
-          "tasks",
-          Some(&tasks_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
-
-      Ok(success_response(DataValue::Array(tasks)))
-    }
-    "subtasks" => {
-      let tasks_filter = Filter::from_json(&serde_json::json!({}))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-
-      let all_tasks = provider
-        .find_many("tasks", Some(&tasks_filter), None, None, None, true)
-        .await
-        .map_err(|e| err_response(&e.message))?;
-
-      let task_ids: Vec<String> = all_tasks
-        .iter()
-        .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-        .collect();
-
-      if task_ids.is_empty() {
-        return Ok(success_response(DataValue::Array(vec![])));
+      "tasks" => {
+        let all_tasks = provider
+          .find_many("tasks", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_tasks)))
       }
-
-      let subtasks_filter =
-        Filter::from_json(&serde_json::json!({ "task_id": { "$in": task_ids } }))
+      "subtasks" => {
+        let all_subtasks = provider
+          .find_many("subtasks", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_subtasks)))
+      }
+      "comments" => {
+        let all_comments = provider
+          .find_many("comments", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_comments)))
+      }
+      "chats" => {
+        let all_chats = provider
+          .find_many("chats", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_chats)))
+      }
+      "categories" => {
+        let all_categories = provider
+          .find_many("categories", None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_categories)))
+      }
+      "daily_activities" => {
+        let all_activities = provider
+          .find_many(
+            "daily_activities",
+            None,
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_activities)))
+      }
+      _ => {
+        let all_data = provider
+          .find_many(&data_type, None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+        Ok(success_response(DataValue::Array(all_data)))
+      }
+    }
+  } else {
+    let user_id_str = user_id.unwrap();
+    // User-specific archive data (existing behavior)
+    match data_type.as_str() {
+      "todos" => {
+        let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
           .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
 
-      let subtasks = provider
-        .find_many(
-          "subtasks",
-          Some(&subtasks_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        let all_todos = provider
+          .find_many(
+            "todos",
+            Some(&user_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
 
-      Ok(success_response(DataValue::Array(subtasks)))
-    }
-    "comments" => {
-      let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        Ok(success_response(DataValue::Array(all_todos)))
+      }
+      "tasks" => {
+        let todos_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
 
-      let comments = provider
-        .find_many(
-          "comments",
-          Some(&user_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        let user_todos = provider
+          .find_many("todos", Some(&todos_filter), None, None, None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
 
-      Ok(success_response(DataValue::Array(comments)))
-    }
-    "chats" => {
-      let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        let todo_ids: Vec<String> = user_todos
+          .iter()
+          .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+          .collect();
 
-      let chats = provider
-        .find_many(
-          "chats",
-          Some(&user_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        if todo_ids.is_empty() {
+          return Ok(success_response(DataValue::Array(vec![])));
+        }
 
-      Ok(success_response(DataValue::Array(chats)))
-    }
-    "categories" => {
-      let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        let tasks_filter =
+          Filter::from_json(&serde_json::json!({ "todo_id": { "$in": todo_ids } }))
+            .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
 
-      let categories = provider
-        .find_many(
-          "categories",
-          Some(&user_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        let tasks = provider
+          .find_many(
+            "tasks",
+            Some(&tasks_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
 
-      Ok(success_response(DataValue::Array(categories)))
-    }
-    "daily_activities" => {
-      let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        Ok(success_response(DataValue::Array(tasks)))
+      }
+      "subtasks" => {
+        let tasks_filter = Filter::from_json(&serde_json::json!({}))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
 
-      let activities = provider
-        .find_many(
-          "daily_activities",
-          Some(&user_filter),
-          Some(skip),
-          Some(limit),
-          None,
-          true,
-        )
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        let all_tasks = provider
+          .find_many("tasks", Some(&tasks_filter), None, None, None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
 
-      Ok(success_response(DataValue::Array(activities)))
-    }
-    _ => {
-      let all_data = provider
-        .find_many(&data_type, None, Some(skip), Some(limit), None, true)
-        .await
-        .map_err(|e| err_response(&e.message))?;
+        let task_ids: Vec<String> = all_tasks
+          .iter()
+          .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+          .collect();
 
-      Ok(success_response(DataValue::Array(all_data)))
+        if task_ids.is_empty() {
+          return Ok(success_response(DataValue::Array(vec![])));
+        }
+
+        let subtasks_filter =
+          Filter::from_json(&serde_json::json!({ "task_id": { "$in": task_ids } }))
+            .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+        let subtasks = provider
+          .find_many(
+            "subtasks",
+            Some(&subtasks_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(subtasks)))
+      }
+      "comments" => {
+        let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+        let comments = provider
+          .find_many(
+            "comments",
+            Some(&user_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(comments)))
+      }
+      "chats" => {
+        let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+        let chats = provider
+          .find_many(
+            "chats",
+            Some(&user_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(chats)))
+      }
+      "categories" => {
+        let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+        let categories = provider
+          .find_many(
+            "categories",
+            Some(&user_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(categories)))
+      }
+      "daily_activities" => {
+        let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
+          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+
+        let activities = provider
+          .find_many(
+            "daily_activities",
+            Some(&user_filter),
+            Some(skip),
+            Some(limit),
+            None,
+            true,
+          )
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(activities)))
+      }
+      _ => {
+        let all_data = provider
+          .find_many(&data_type, None, Some(skip), Some(limit), None, true)
+          .await
+          .map_err(|e| err_response(&e.message))?;
+
+        Ok(success_response(DataValue::Array(all_data)))
+      }
     }
   }
 }

@@ -198,7 +198,7 @@ pub async fn send_message(
   state: State<'_, AppState>,
   room_id: String,
   sender_id: String,
-  receiver_id: String,
+  receiver_id: Option<String>,
   dm_name: String,
   content: String,
   token: Option<String>,
@@ -211,8 +211,13 @@ pub async fn send_message(
 
   let _ = state
     .room_service
-    .find_or_create_dm_room(&room_id, &sender_id, &receiver_id, &dm_name)
-    .await?;
+    .find_or_create_dm_room(
+      &room_id,
+      &sender_id,
+      receiver_id.as_deref().unwrap_or(""),
+      &dm_name,
+    )
+    .await;
 
   let data = serde_json::json!({
     "room_id": room_id,

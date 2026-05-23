@@ -13,7 +13,6 @@ macro_rules! crud_route {
       page: Option<u64>,
       limit: Option<u64>,
       token: Option<String>,
-      offline: Option<bool>,
     ) -> Result<crate::entities::response_entity::ResponseModel, String> {
       use crate::helpers::auth_helper::extract_user_from_token;
 
@@ -33,7 +32,6 @@ macro_rules! crud_route {
           filter,
           load,
           visibility,
-          offline.unwrap_or(false),
           user_id,
           page,
           limit,
