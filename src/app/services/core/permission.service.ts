@@ -174,10 +174,8 @@ export class PermissionService {
           token: token || "",
         })
       );
-      console.log("[DEBUG getTodoPermissionsAsync] raw result", JSON.stringify(result));
       return result?.assignee_roles || result || {};
     } catch (e) {
-      console.log("[DEBUG getTodoPermissionsAsync] error", e);
       return {};
     }
   }

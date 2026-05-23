@@ -328,10 +328,11 @@ export class TableViewComponent extends ItemRowBaseComponent {
   }
 
   getCommentsForItem(item: any): any[] {
-    if (this.itemType === "subtask") {
-      return this.storageService.getCommentsBySubtaskId(item.id);
-    }
-    return this.storageService.getCommentsByTaskId(item.id);
+    const comments =
+      this.itemType === "subtask"
+        ? this.storageService.getCommentsBySubtaskId(item.id)
+        : this.storageService.getCommentsByTaskId(item.id);
+    return comments;
   }
 
   getSubtaskCommentGroupsForItem(item: any): SubtaskCommentGroup[] {
@@ -342,7 +343,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
     return item.subtasks.map((s: any) => ({
       subtask_id: s.id,
       title: s.title || "Untitled subtask",
-      comments: (s.comments || []).filter((c: any) => !c.deleted_at),
+      comments: this.storageService.getCommentsBySubtaskId(s.id).filter((c) => !c.deleted_at),
     }));
   }
 

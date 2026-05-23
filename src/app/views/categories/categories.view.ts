@@ -25,7 +25,6 @@ import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { StorageService } from "@services/storage.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { SearchService } from "@services/core/search.service";
 
 /* views */
@@ -72,33 +71,32 @@ export class CategoriesView extends BaseListView implements OnInit {
   private confirmDialogService = inject(ConfirmDialogService);
   private relationLoadingService = inject(RelationLoadingService);
   protected override storageService = inject(StorageService);
-  private mongoConnectionService = inject(MongoConnectionService);
   private searchService = inject(SearchService);
   private route = inject(ActivatedRoute);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
 
-  activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
+  activeVisibility = signal<"all" | "local" | "cloud">("all");
 
   visibilityOptions = computed<SegmentOption[]>(() => [
     {
       id: "all",
       label: "All",
       icon: "apps",
-      count: this.storageService.categories().length,
+      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
     },
     {
-      id: "private",
+      id: "local",
       label: "Local",
       icon: "folder",
       count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
     },
     {
-      id: "shared",
+      id: "cloud",
       label: "Cloud",
       icon: "cloud",
-      count: 0,
+      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
     },
   ]);
 
@@ -110,7 +108,22 @@ export class CategoriesView extends BaseListView implements OnInit {
     return this.selectedItems;
   }
 
+  showOfflineBanner = computed(() => {
+    const vis = this.activeVisibility();
+    return vis === "cloud" && this.isOffline();
+  });
+
+  cloudOffline = computed(() => {
+    const vis = this.activeVisibility();
+    const offline = this.isOffline();
+    return vis === "cloud" && offline;
+  });
+
   searchResults = computed(() => {
+    if (this.cloudOffline()) {
+      return [];
+    }
+
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
       const searchResults = this.searchService.categoriesResults();
@@ -130,26 +143,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       }
     }
 
-    const currentUserId = this.authService.getValueByKey("id") || this.userId();
-    const visibility = this.activeVisibility();
-    let cats: Category[] = [];
-
-    if (visibility === "all") {
-      cats = [
-        ...this.storageService.getCategoriesForVisibility("private"),
-        ...this.storageService.getCategoriesForVisibility("public"),
-      ];
-    } else {
-      cats = this.storageService.getCategoriesForVisibility(visibility);
-    }
-
-    if (currentUserId) {
-      cats = cats.filter((cat: Category) => cat.user_id === currentUserId);
-    }
-
-    if (visibility !== "all") {
-      cats = cats.filter((cat: Category) => !cat.deleted_at);
-    }
+    let cats = this.storageService.categories().filter((c: Category) => !c.deleted_at);
 
     if (query) {
       cats = cats.filter((cat: Category) => (cat.title || "").toLowerCase().includes(query));
@@ -174,7 +168,6 @@ export class CategoriesView extends BaseListView implements OnInit {
     this.searchService.search("categories", query);
   }
 
-  userId = signal("");
   showCreateForm = signal(false);
   editingCategory = signal<Category | null>(null);
   sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
@@ -210,7 +203,6 @@ export class CategoriesView extends BaseListView implements OnInit {
   override ngOnInit(): void {
     super.ngOnInit();
 
-    this.userId.set(this.authService.getValueByKey("id"));
     this.pageKey = "categories";
     this.viewMode.set(this.loadViewModePreference());
 
@@ -237,14 +229,10 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   loadCategories(): void {
     const visibility = this.activeVisibility();
-    if (visibility === "all") {
-      this.storageService.ensureCategoriesLoaded("private", 100);
-      if (this.mongoConnectionService.isConnected()) {
-        this.storageService.ensureCategoriesLoaded("public", 100);
-      }
-    } else {
-      this.storageService.ensureCategoriesLoaded(visibility, 100);
+    if (visibility === "cloud" && this.isOffline()) {
+      return;
     }
+    this.storageService.ensureCategoriesLoaded(visibility, 100);
   }
 
   toggleCreateForm() {
@@ -289,7 +277,7 @@ export class CategoriesView extends BaseListView implements OnInit {
         if (response.status === ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess("Category archived successfully");
           const archivedCategory = this.storageService
-            .getCategoriesForVisibility(this.activeVisibility())
+            .categories()
             .find((c) => c.id === categoryId);
           if (archivedCategory) {
             this.storageService.updateEntity("categories", {
@@ -339,7 +327,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       const currentVisibility = this.activeVisibility();
-      const categories = this.storageService.getCategoriesForVisibility(currentVisibility);
+      const categories = this.storageService.categories();
       const archivedAt = new Date().toISOString();
 
       Array.from(selected).forEach((categoryId) => {

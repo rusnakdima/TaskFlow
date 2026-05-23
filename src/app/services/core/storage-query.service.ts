@@ -672,29 +672,14 @@ export class StorageQueryService {
     });
   }
 
-  ensureCategoriesLoaded(visibility: string = "private", limit: number = 10): void {
+  ensureCategoriesLoaded(visibility: string = "all", limit: number = 100): void {
     if (this._categoriesLoading()) return;
-    const existingKey =
-      visibility === "private"
-        ? "privateCategories"
-        : visibility === "public"
-          ? "publicCategories"
-          : "sharedCategories";
-    const existingSignal = this._entityService[
-      existingKey as keyof typeof this._entityService
-    ] as any;
+    const existingSignal = this._entityService.categories;
     if (existingSignal && existingSignal().length > 0) return;
 
     this._categoriesLoading.set(true);
     this.apiService.categories.getAll({ visibility, limit }).subscribe({
       next: (categories) => {
-        if (visibility === "private") {
-          this._entityService.privateCategories.set(categories);
-        } else if (visibility === "public") {
-          this._entityService.publicCategories.set(categories);
-        } else {
-          this._entityService.sharedCategories.set(categories);
-        }
         this._entityService.categories.set(categories);
       },
       error: () => {},
@@ -855,13 +840,19 @@ export class StorageQueryService {
       });
   }
 
+  private _loadingSubtaskComments = new Set<string>();
+
   ensureSubtaskCommentsLoaded(
     subtaskId: string,
     visibility: string = "private",
     limit: number = 10
   ): void {
+    if (this._loadingSubtaskComments.has(subtaskId)) {
+      return;
+    }
     const existingComments = this.commentsBySubtaskId().get(subtaskId) || [];
     if (existingComments.length > 0) return;
+    this._loadingSubtaskComments.add(subtaskId);
     this._commentsLoading.set(true);
     this.apiService.comments
       .getAll({ visibility, limit, filter: { subtask_id: { $in: [subtaskId] } }, load: ["user"] })
@@ -875,6 +866,7 @@ export class StorageQueryService {
         },
         error: () => {},
         complete: () => {
+          this._loadingSubtaskComments.delete(subtaskId);
           this._commentsLoading.set(false);
         },
       });

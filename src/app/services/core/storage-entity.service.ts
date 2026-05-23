@@ -40,16 +40,7 @@ export class StorageEntityService {
   readonly sharedTodos = signal<Todo[]>([]);
   readonly publicTodos = signal<Todo[]>([]);
 
-  readonly privateCategories = signal<Category[]>([]);
-  readonly sharedCategories = signal<Category[]>([]);
-  readonly publicCategories = signal<Category[]>([]);
-
   addEntity(type: EntityType, data: any): void {
-    console.log("[StorageEntityService] addEntity called:", {
-      type,
-      dataId: data?.id,
-      visibility: data?.visibility,
-    });
     if (!data?.id) return;
     if (type === "profiles") {
       this.profiles.set(data);
@@ -63,15 +54,6 @@ export class StorageEntityService {
           : visibility === "public"
             ? this.publicTodos
             : this.sharedTodos;
-      addEntityToSignal(target, data);
-    } else if (type === "categories") {
-      const visibility = data.visibility || "private";
-      const target =
-        visibility === "private"
-          ? this.privateCategories
-          : visibility === "public"
-            ? this.publicCategories
-            : this.sharedCategories;
       addEntityToSignal(target, data);
     } else {
       addEntityToSignal(this.getSignal(type), data);
@@ -93,21 +75,12 @@ export class StorageEntityService {
       } else if (this.publicTodos().some((t) => t.id === data.id)) {
         updateEntityInSignal(this.publicTodos, data.id, data);
       }
-    } else if (type === "categories") {
-      if (this.privateCategories().some((c) => c.id === data.id)) {
-        updateEntityInSignal(this.privateCategories, data.id, data);
-      } else if (this.sharedCategories().some((c) => c.id === data.id)) {
-        updateEntityInSignal(this.sharedCategories, data.id, data);
-      } else if (this.publicCategories().some((c) => c.id === data.id)) {
-        updateEntityInSignal(this.publicCategories, data.id, data);
-      }
     } else {
       updateEntityInSignal(this.getSignal(type) as WritableSignal<any[]>, data.id, data);
     }
   }
 
   removeEntity(type: EntityType, id: string): void {
-    console.log("[StorageEntityService] removeEntity called:", { type, id });
     if (type === "profiles") {
       const current = this.profiles();
       if (current?.id === id) this.profiles.set(null);
@@ -117,10 +90,6 @@ export class StorageEntityService {
       removeEntityFromSignal(this.privateTodos, id);
       removeEntityFromSignal(this.sharedTodos, id);
       removeEntityFromSignal(this.publicTodos, id);
-    } else if (type === "categories") {
-      removeEntityFromSignal(this.privateCategories, id);
-      removeEntityFromSignal(this.sharedCategories, id);
-      removeEntityFromSignal(this.publicCategories, id);
     } else {
       removeEntityFromSignal(this.getSignal(type) as WritableSignal<any[]>, id);
     }
@@ -150,15 +119,18 @@ export class StorageEntityService {
   addCommentToTask(comment: Comment, task_id?: string): void {
     if (!task_id) return;
     addEntityToSignal(this.comments, { ...comment, task_id });
+    updateEntityInSignal(this.tasks, task_id, {
+      comments_count: (this.tasks().find((t) => t.id === task_id)?.comments_count || 0) + 1,
+    });
   }
 
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
-    if (!subtask_id) {
-      console.error("addCommentToSubtask: subtask_id is undefined", comment);
-      return;
-    }
+    if (!subtask_id) return;
     const commentWithSubtaskId = { ...comment, subtask_id };
     addEntityToSignal(this.comments, commentWithSubtaskId);
+    updateEntityInSignal(this.subtasks, subtask_id, {
+      comments_count: (this.subtasks().find((s) => s.id === subtask_id)?.comments_count || 0) + 1,
+    });
   }
 
   removeCommentFromAll(commentId: string): void {
@@ -229,13 +201,9 @@ export class StorageEntityService {
   }
 
   clearEntitySignals(): void {
-    console.log("[StorageEntityService] clearEntitySignals called - CLEARING ALL DATA!");
     this.privateTodos.set([]);
     this.sharedTodos.set([]);
     this.publicTodos.set([]);
-    this.privateCategories.set([]);
-    this.sharedCategories.set([]);
-    this.publicCategories.set([]);
     this.tasks.set([]);
     this.subtasks.set([]);
     this.comments.set([]);

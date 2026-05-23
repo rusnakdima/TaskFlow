@@ -73,7 +73,6 @@ export class FilterSidebarComponent {
   }
 
   onFilterChange(key: string, value: string): void {
-    console.log("[FilterSidebar] onFilterChange:", key, value);
     this.filterChangeEvent.emit({ key, value });
     this.onSearchQueryChange(key, "");
   }

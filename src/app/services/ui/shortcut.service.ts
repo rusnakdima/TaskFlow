@@ -112,7 +112,7 @@ export class ShortcutService implements OnDestroy {
         return;
       }
 
-      if (event.altKey && event.shiftKey && event.key === "N") {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "n") {
         event.preventDefault();
         this.zone.run(() => this.handleNewAction());
         return;

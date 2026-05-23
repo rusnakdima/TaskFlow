@@ -68,30 +68,20 @@ export class ChatView implements OnInit, AfterViewChecked {
 
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const userId = params["userId"];
-      console.log("[ChatView] Received userId from queryParams:", userId);
       if (userId) {
         pendingUserId = userId;
         this.tryOpenPendingConversation(pendingUserId!);
       }
     });
 
-    console.log("[ChatView] Calling loadAllUsers...");
     this.chatService.loadAllUsers();
-    console.log("[ChatView] loadAllUsers() started");
   }
 
   private tryOpenPendingConversation(userId: string): void {
     const profiles = this.chatService.getLoadedProfiles();
-    console.log(
-      "[ChatView] tryOpenPendingConversation, userId:",
-      userId,
-      "profiles loaded:",
-      profiles.length
-    );
     if (profiles.length > 0) {
       this.chatService.openConversationWithUserId(userId);
     } else {
-      console.log("[ChatView] Profiles not loaded yet, waiting...");
       setTimeout(() => this.tryOpenPendingConversation(userId), 100);
     }
   }
