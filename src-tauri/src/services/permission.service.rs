@@ -224,15 +224,19 @@ impl PermissionService {
       }
       "public" => {
         json!({
-            "visibility": "public"
+            "visibility": "public",
+            "$or": [
+                { "user_id": user_id },
+                { "assignees": { "$in": [user_id] } }
+            ]
         })
       }
       "all" => {
         json!({
             "$or": [
                 { "visibility": "private", "user_id": user_id },
-                { "visibility": "shared", "assignees": { "$in": [user_id] } },
-                { "visibility": "public" }
+                { "visibility": "shared", "$or": [{ "user_id": user_id }, { "assignees": { "$in": [user_id] } }] },
+                { "visibility": "public", "$or": [{ "user_id": user_id }, { "assignees": { "$in": [user_id] } }] }
             ]
         })
       }

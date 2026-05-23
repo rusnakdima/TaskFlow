@@ -71,21 +71,14 @@ impl Drop for RepositoryService {
 }
 
 impl RepositoryService {
-  fn determine_source(
-    visibility: Option<&str>,
-    offline: bool,
-    mongodb_available: bool,
-  ) -> DataSource {
+  fn determine_source(visibility: Option<&str>, mongodb_available: bool) -> DataSource {
     eprintln!(
-      "[DEBUG] determine_source: visibility={:?}, offline={}, mongodb_available={}",
-      visibility, offline, mongodb_available
+      "[DEBUG] determine_source: visibility={:?}, mongodb_available={}",
+      visibility, mongodb_available
     );
 
-    if offline || !mongodb_available {
-      eprintln!(
-        "[DEBUG] determine_source: returning Local (offline={}, mongodb_available={})",
-        offline, mongodb_available
-      );
+    if !mongodb_available {
+      eprintln!("[DEBUG] determine_source: returning Local (mongodb_available=false)");
       return DataSource::Local;
     }
 
@@ -113,7 +106,6 @@ impl RepositoryService {
     &self,
     table: &str,
     visibility: Option<&str>,
-    offline: bool,
   ) -> Result<DataProvider, ResponseModel> {
     if table == "daily_activities" {
       return Ok(DataProvider::Json(Arc::new(self.json_provider.clone())));
@@ -122,11 +114,11 @@ impl RepositoryService {
     let json = Arc::new(self.json_provider.clone());
     let mongodb_available = self.mongodb_provider.is_some();
     eprintln!(
-      "[DEBUG] get_provider: table={}, visibility={:?}, offline={}, mongodb_available={}",
-      table, visibility, offline, mongodb_available
+      "[DEBUG] get_provider: table={}, visibility={:?}, mongodb_available={}",
+      table, visibility, mongodb_available
     );
 
-    match Self::determine_source(visibility, offline, mongodb_available) {
+    match Self::determine_source(visibility, mongodb_available) {
       DataSource::Local => {
         eprintln!("[DEBUG] get_provider: returning DataProvider::Json (Local)");
         Ok(DataProvider::Json(json))
@@ -231,20 +223,12 @@ impl RepositoryService {
     let _ = self.app_handle.emit(&event_name, payload);
   }
 
-  fn resolve_visibility_for_offline(&self, visibility: Option<String>, offline: bool) -> String {
-    if let Some(vis) = visibility {
-      return vis;
-    }
-
-    if offline {
-      return "private".to_string();
-    }
-
-    "private".to_string()
+  fn resolve_visibility_for_offline(&self, visibility: Option<String>) -> String {
+    visibility.unwrap_or_else(|| "private".to_string())
   }
 
   async fn get_todo_id_from_task(&self, task_id: &str) -> Option<String> {
-    let provider = self.get_provider("tasks", None, true).ok()?;
+    let provider = self.get_provider("tasks", None).ok()?;
     provider
       .find_by_id("tasks", task_id)
       .await
@@ -337,6 +321,21 @@ impl RepositoryService {
 
   fn filter_out_deleted(&self, docs: Vec<Value>) -> Vec<Value> {
     crate::helpers::common::filter_deleted(docs)
+  }
+
+  fn extract_user_id_from_filter(filter: &Filter) -> Option<String> {
+    match filter {
+      Filter::And(filters) => {
+        for f in filters {
+          if let Some(uid) = Self::extract_user_id_from_filter(f) {
+            return Some(uid);
+          }
+        }
+        None
+      }
+      Filter::Eq(key, value) if key == "user_id" => value.as_str().map(|s| s.to_string()),
+      _ => None,
+    }
   }
 
   async fn fix_todo_counts_if_needed(
@@ -438,80 +437,41 @@ impl RepositoryService {
     filter: Option<Value>,
     load: Option<String>,
     visibility: Option<String>,
-    offline: bool,
     user_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    eprintln!(
-      "[DEBUG] execute: operation={}, table={}, offline={}",
-      operation, table, offline
-    );
+    eprintln!("[DEBUG] execute: operation={}, table={}", operation, table);
 
-    let source = Self::determine_source(
-      visibility.as_deref(),
-      offline,
-      self.mongodb_provider.is_some(),
-    );
-    eprintln!("[DEBUG] execute: determined source, offline={}", offline);
-
-    if offline && (source == DataSource::Cloud || source == DataSource::Both) {
-      eprintln!(
-        "[DEBUG] execute: OFFLINE mode - blocking cloud/both request for table={}",
-        table
-      );
-      return Err(err_response("Offline mode - cloud requests blocked"));
-    }
+    let source = Self::determine_source(visibility.as_deref(), self.mongodb_provider.is_some());
+    eprintln!("[DEBUG] execute: determined source");
 
     eprintln!("[DEBUG] execute: proceeding with source");
 
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(
-            table, filter, load, visibility, offline, user_id, skip, limit,
-          )
+          .handle_get_all(table, filter, load, visibility, user_id, skip, limit)
           .await
       }
       "get" => {
         self
-          .handle_get(table, id, load, visibility, filter, offline, user_id)
+          .handle_get(table, id, load, visibility, filter, user_id)
           .await
       }
-      "create" => {
-        self
-          .handle_create(table, data, visibility, offline, user_id)
-          .await
-      }
-      "update" => {
-        self
-          .handle_update(table, id, data, visibility, offline)
-          .await
-      }
-      "updateAll" => {
-        self
-          .handle_update_all(table, data, visibility, offline)
-          .await
-      }
-      "delete" => {
-        self
-          .handle_delete(table, id, visibility, false, offline)
-          .await
-      }
+      "create" => self.handle_create(table, data, visibility, user_id).await,
+      "update" => self.handle_update(table, id, data, visibility).await,
+      "updateAll" => self.handle_update_all(table, data, visibility).await,
+      "delete" => self.handle_delete(table, id, visibility, false).await,
       "permanent-delete" => {
         self
-          .handle_permanent_delete_cascade(table, id, visibility, offline)
+          .handle_permanent_delete_cascade(table, id, visibility)
           .await
       }
-      "soft-delete-cascade" => {
-        self
-          .handle_soft_delete_cascade(table, id, visibility, offline)
-          .await
-      }
+      "soft-delete-cascade" => self.handle_soft_delete_cascade(table, id, visibility).await,
       "sync-to-provider" => {
         let mongodb_available = self.mongodb_provider.is_some();
-        let target = match Self::determine_source(visibility.as_deref(), offline, mongodb_available)
-        {
+        let target = match Self::determine_source(visibility.as_deref(), mongodb_available) {
           crate::services::repository::service::DataSource::Local => ProviderType::Json,
           _ => ProviderType::Mongo,
         };
@@ -522,9 +482,7 @@ impl RepositoryService {
       }
       "search" => {
         self
-          .handle_search(
-            table, filter, load, visibility, offline, user_id, skip, limit,
-          )
+          .handle_search(table, filter, load, visibility, user_id, skip, limit)
           .await
       }
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
@@ -537,7 +495,6 @@ impl RepositoryService {
     filter: Option<Value>,
     load: Option<String>,
     visibility: Option<String>,
-    offline: bool,
     user_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
@@ -553,9 +510,9 @@ impl RepositoryService {
         Filter::from_json(&filter_val).ok()
       };
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let visibility_str = self.resolve_visibility_for_offline(visibility);
 
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     let load_paths = parse_load_param(load);
 
@@ -579,6 +536,69 @@ impl RepositoryService {
         (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing])),
         (Some(perm), None) => Some(perm),
         (None, existing) => existing,
+      }
+    } else if table == "tasks" {
+      let uid = user_id.as_deref().unwrap_or("");
+      let visibility_is_private = visibility_str == "private";
+
+      // Get accessible todo_ids first
+      let todos_filter_json = PermissionService::get_todo_filter_for_user(
+        user_id.as_deref().unwrap_or(""),
+        Some(&visibility_str),
+      );
+      let todos_filter = Filter::from_json(&todos_filter_json).ok();
+      let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
+        match provider
+          .find_many("todos", Some(&filter), None, None, None, true)
+          .await
+        {
+          Ok(todos) => todos
+            .iter()
+            .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect(),
+          Err(_) => vec![],
+        }
+      } else {
+        vec![]
+      };
+
+      // For private visibility: security check + user ownership filter
+      if visibility_is_private {
+        let filter_user_id = filter_opt
+          .as_ref()
+          .and_then(|f| Self::extract_user_id_from_filter(f));
+        if let Some(fuid) = filter_user_id {
+          if fuid != uid {
+            eprintln!("[DEBUG] handle_get_all (tasks): Unauthorized user_id mismatch");
+            return Err(err_response("Unauthorized: user_id mismatch"));
+          }
+        }
+        // For private, tasks must belong to user
+        if todo_ids.is_empty() {
+          return Ok(success_response(DataValue::Array(vec![])));
+        }
+        let todo_in_filter = Filter::In(
+          "todo_id".to_string(),
+          todo_ids.into_iter().map(Value::String).collect(),
+        );
+        let user_id_check = Filter::Eq("user_id".to_string(), Value::String(uid.to_string()));
+        Some(Filter::And(vec![todo_in_filter, user_id_check]))
+      } else if todo_ids.is_empty() {
+        // For shared/public when no accessible todos
+        Some(Filter::Eq(
+          "todo_id".to_string(),
+          Value::String("".to_string()),
+        ))
+      } else {
+        // For shared/public visibility, use todo-chain permission (assignee check)
+        let todo_in_filter = Filter::In(
+          "todo_id".to_string(),
+          todo_ids.into_iter().map(Value::String).collect(),
+        );
+        match filter_opt {
+          Some(existing) => Some(Filter::And(vec![todo_in_filter, existing])),
+          None => Some(todo_in_filter),
+        }
       }
     } else if table == "categories" {
       let category_filter_json = match visibility_str.as_str() {
@@ -609,6 +629,115 @@ impl RepositoryService {
         (Some(cat_f), Some(existing)) => Some(Filter::And(vec![cat_f, existing])),
         (Some(cat_f), None) => Some(cat_f),
         (None, existing) => existing,
+      }
+    } else if table == "subtasks" || table == "comments" {
+      let uid = user_id.as_deref().unwrap_or("");
+      let visibility_is_private = visibility_str == "private";
+
+      // Get accessible todo_ids
+      let todos_filter_json = PermissionService::get_todo_filter_for_user(
+        user_id.as_deref().unwrap_or(""),
+        Some(&visibility_str),
+      );
+      let todos_filter = Filter::from_json(&todos_filter_json).ok();
+      let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
+        match provider
+          .find_many("todos", Some(&filter), None, None, None, true)
+          .await
+        {
+          Ok(todos) => todos
+            .iter()
+            .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect(),
+          Err(_) => vec![],
+        }
+      } else {
+        vec![]
+      };
+
+      // For private visibility: security check
+      if visibility_is_private {
+        let filter_user_id = filter_opt
+          .as_ref()
+          .and_then(|f| Self::extract_user_id_from_filter(f));
+        if let Some(fuid) = filter_user_id {
+          if fuid != uid {
+            eprintln!(
+              "[DEBUG] handle_get_all ({}): Unauthorized user_id mismatch",
+              table
+            );
+            return Err(err_response("Unauthorized: user_id mismatch"));
+          }
+        }
+      }
+
+      if todo_ids.is_empty() {
+        filter_opt
+      } else {
+        let task_filter = Filter::In(
+          "todo_id".to_string(),
+          todo_ids.into_iter().map(Value::String).collect(),
+        );
+        match provider
+          .find_many("tasks", Some(&task_filter), None, None, None, true)
+          .await
+        {
+          Ok(tasks) => {
+            let task_ids: Vec<String> = tasks
+              .iter()
+              .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+              .collect();
+            if task_ids.is_empty() {
+              Some(Filter::Eq(
+                "task_id".to_string(),
+                Value::String("".to_string()),
+              ))
+            } else {
+              let entity_field = if table == "subtasks" {
+                "task_id"
+              } else {
+                "task_id"
+              };
+              let in_filter = Filter::In(
+                entity_field.to_string(),
+                task_ids.into_iter().map(Value::String).collect(),
+              );
+              match filter_opt {
+                Some(existing) => Some(Filter::And(vec![in_filter, existing])),
+                None => Some(in_filter),
+              }
+            }
+          }
+          Err(_) => Some(Filter::Eq(
+            "task_id".to_string(),
+            Value::String("".to_string()),
+          )),
+        }
+      }
+    } else if table == "chats" {
+      let uid = user_id.as_deref().unwrap_or("");
+      let sender_filter = Filter::Eq("sender_id".to_string(), Value::String(uid.to_string()));
+      match filter_opt {
+        Some(existing) => Some(Filter::And(vec![sender_filter, existing])),
+        None => Some(sender_filter),
+      }
+    } else if table == "profiles" || table == "users" {
+      if let Some(uid) = user_id.as_deref().filter(|u| !u.is_empty()) {
+        let user_field = if table == "profiles" { "user_id" } else { "id" };
+        let user_filter = Filter::Eq(user_field.to_string(), Value::String(uid.to_string()));
+        match filter_opt {
+          Some(existing) => Some(Filter::And(vec![user_filter, existing])),
+          None => Some(user_filter),
+        }
+      } else {
+        filter_opt
+      }
+    } else if table == "daily_activities" {
+      let uid = user_id.as_deref().unwrap_or("");
+      let user_filter = Filter::Eq("user_id".to_string(), Value::String(uid.to_string()));
+      match filter_opt {
+        Some(existing) => Some(Filter::And(vec![user_filter, existing])),
+        None => Some(user_filter),
       }
     } else {
       filter_opt
@@ -736,7 +865,6 @@ impl RepositoryService {
     filter: Option<Value>,
     load: Option<String>,
     visibility: Option<String>,
-    offline: bool,
     user_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
@@ -749,8 +877,8 @@ impl RepositoryService {
       .and_then(|q| q.as_str())
       .unwrap_or("");
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility);
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     let load_paths = parse_load_param(load);
 
@@ -774,6 +902,83 @@ impl RepositoryService {
                   "$or": [
                     { "title": search_regex },
                     { "description": search_regex }
+                  ]
+                }
+              ]
+            })
+          } else if table == "tasks" || table == "subtasks" || table == "comments" {
+            let uid = user_id.as_deref().unwrap_or("");
+            let visibility_is_private = visibility_str == "private";
+
+            // Security check for private visibility
+            if visibility_is_private {
+              if let Some(f) = filter.as_ref() {
+                if let Some(fuid) = f.get("user_id").and_then(|v| v.as_str()) {
+                  if fuid != uid {
+                    eprintln!(
+                      "[DEBUG] handle_search ({}): Unauthorized user_id mismatch",
+                      table
+                    );
+                    return Err(err_response("Unauthorized: user_id mismatch"));
+                  }
+                }
+              }
+            }
+
+            // Get accessible todo_ids via permission filter
+            let todos_filter_json = PermissionService::get_todo_filter_for_user(
+              user_id.as_deref().unwrap_or(""),
+              Some(&visibility_str),
+            );
+            let todos_filter = Filter::from_json(&todos_filter_json).ok();
+            let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
+              match provider
+                .find_many("todos", Some(&filter), None, None, None, true)
+                .await
+              {
+                Ok(todos) => todos
+                  .iter()
+                  .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                  .collect(),
+                Err(_) => vec![],
+              }
+            } else {
+              vec![]
+            };
+
+            if todo_ids.is_empty() {
+              serde_json::json!({
+                "$and": [
+                  { "todo_id": "" },
+                  { "title": search_regex }
+                ]
+              })
+            } else {
+              let todo_in_filter = json!({
+                "todo_id": { "$in": todo_ids }
+              });
+              let title_filter = json!({ "title": search_regex });
+
+              if visibility_is_private {
+                let user_id_check = json!({ "user_id": uid });
+                serde_json::json!({
+                  "$and": [todo_in_filter, user_id_check, title_filter]
+                })
+              } else {
+                serde_json::json!({
+                  "$and": [todo_in_filter, title_filter]
+                })
+              }
+            }
+          } else if table == "chats" {
+            let uid = user_id.as_deref().unwrap_or("");
+            serde_json::json!({
+              "$and": [
+                { "sender_id": uid },
+                {
+                  "$or": [
+                    { "title": search_regex },
+                    { "message": search_regex }
                   ]
                 }
               ]
@@ -906,13 +1111,12 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     filter: Option<Value>,
-    offline: bool,
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility);
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
       match &provider {
@@ -1038,7 +1242,6 @@ impl RepositoryService {
     table: String,
     data: Option<Value>,
     visibility: Option<String>,
-    offline: bool,
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
@@ -1046,14 +1249,14 @@ impl RepositoryService {
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
 
     let visibility_str = if visibility.is_some() {
-      self.resolve_visibility_for_offline(visibility, offline)
+      self.resolve_visibility_for_offline(visibility)
     } else if let Some(serde_json::Value::String(vis_from_data)) = data_val.get("visibility") {
       vis_from_data.clone()
     } else {
-      self.resolve_visibility_for_offline(visibility, offline)
+      self.resolve_visibility_for_offline(visibility)
     };
 
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     if table == "todos" || table == "categories" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
@@ -1125,7 +1328,7 @@ impl RepositoryService {
 
     self.cache_service.invalidate_collection(&table).await;
 
-    if table == "profiles" && !offline {
+    if table == "profiles" {
       if let Some(profile_id) = created_record.get("id").and_then(|v| v.as_str()) {
         if let Some(user_id) = created_record.get("user_id").and_then(|v| v.as_str()) {
           let profile_id_clone = profile_id.to_string();
@@ -1155,7 +1358,7 @@ impl RepositoryService {
         let count_service = self.count_service.clone();
         let todo_id_clone = todo_id.to_string();
         let handle = tokio::spawn(async move {
-          let _ = count_service.on_task_created(&todo_id_clone, offline).await;
+          let _ = count_service.on_task_created(&todo_id_clone).await;
         });
         if let Ok(mut handles) = self.spawned_handles.write() {
           handles.push(handle);
@@ -1170,7 +1373,7 @@ impl RepositoryService {
           let todo_id_clone = todo_id.to_string();
           let handle = tokio::spawn(async move {
             let _ = count_service
-              .on_subtask_created(&task_id_clone, &todo_id_clone, offline)
+              .on_subtask_created(&task_id_clone, &todo_id_clone)
               .await;
           });
           if let Ok(mut handles) = self.spawned_handles.write() {
@@ -1213,24 +1416,10 @@ impl RepositoryService {
       }
     }
 
-    if offline {
-      let monitor = self.activity_monitor.clone();
-      let table_clone = table.to_string();
-      let record_clone = created_record.clone();
-      let handle = tokio::spawn(async move {
-        let _ = monitor
-          .log_action(&table_clone, "create", &record_clone, None)
-          .await;
-      });
-      if let Ok(mut handles) = self.spawned_handles.write() {
-        handles.push(handle);
-      }
-    } else {
-      let _ = self
-        .activity_monitor
-        .log_action(&table, "create", &created_record, None)
-        .await;
-    }
+    let _ = self
+      .activity_monitor
+      .log_action(&table, "create", &created_record, None)
+      .await;
 
     let should_publish_to_github = table == "tasks"
       && created_record
@@ -1240,7 +1429,7 @@ impl RepositoryService {
 
     let mut final_record = created_record.clone();
 
-    if should_publish_to_github && !offline {
+    if should_publish_to_github {
       if let Ok(updated) = self
         .handle_github_publish_for_task(created_record.clone(), visibility_str.clone())
         .await
@@ -1249,7 +1438,7 @@ impl RepositoryService {
       }
     }
 
-    if table == "comments" && !offline {
+    if table == "comments" {
       if let Ok(updated) = self
         .handle_github_sync_comment(created_record, visibility_str)
         .await
@@ -1281,7 +1470,7 @@ impl RepositoryService {
       None => return Ok(comment_record),
     };
 
-    let provider = self.get_provider("tasks", Some(&visibility), false)?;
+    let provider = self.get_provider("tasks", Some(&visibility))?;
     let task = match provider.find_by_id("tasks", task_id).await? {
       Some(t) => t,
       None => return Ok(comment_record),
@@ -1373,7 +1562,7 @@ impl RepositoryService {
       None => return Ok(task_record),
     };
 
-    let provider = self.get_provider("todos", Some(&visibility), false)?;
+    let provider = self.get_provider("todos", Some(&visibility))?;
     let todo = match provider.find_by_id("todos", todo_id).await? {
       Some(t) => t,
       None => return Ok(task_record),
@@ -1507,7 +1696,7 @@ impl RepositoryService {
     task_id: &str,
     visibility: &str,
   ) -> Result<Vec<Value>, ResponseModel> {
-    let provider = self.get_provider("subtasks", Some(visibility), false)?;
+    let provider = self.get_provider("subtasks", Some(visibility))?;
     let filter = nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
     provider
       .find_many("subtasks", Some(&filter), None, None, None, true)
@@ -1519,7 +1708,6 @@ impl RepositoryService {
     table: String,
     data: Option<Value>,
     visibility: Option<String>,
-    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
 
@@ -1531,8 +1719,8 @@ impl RepositoryService {
       .clone();
 
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
-    let visibility_str = self.resolve_visibility_for_offline(visibility.clone(), offline);
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility.clone());
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     for record in raw_records {
       let validated = validate_model(&table, &record, false, visibility.clone())
@@ -1569,7 +1757,6 @@ impl RepositoryService {
     id: Option<String>,
     data: Option<Value>,
     visibility: Option<String>,
-    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
@@ -1584,11 +1771,11 @@ impl RepositoryService {
       .and_then(|v| v.as_str())
       .map(|s| s.to_string());
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
+    let visibility_str = self.resolve_visibility_for_offline(visibility);
 
     let effective_visibility = new_visibility.as_deref().or(Some(visibility_str.as_str()));
 
-    let provider = self.get_provider(&table, effective_visibility, offline)?;
+    let provider = self.get_provider(&table, effective_visibility)?;
 
     let (existing_record, record_provider): (_, DataProvider) =
       match provider.find_by_id(&table, &id_str).await {
@@ -1731,7 +1918,7 @@ impl RepositoryService {
         .await?;
     }
 
-    if table == "profiles" && !offline {
+    if table == "profiles" {
       if let Some(profile_id) = updated_record.get("id").and_then(|v| v.as_str()) {
         let profile_id_clone = profile_id.to_string();
         let profile_service = self.profile_service.clone();
@@ -1763,21 +1950,18 @@ impl RepositoryService {
       if let Some(tid) = todo_id {
         if table == "tasks" {
           if new_status == Some("completed") && old_status != Some("completed") {
-            let _ = self.count_service.on_task_completed(&tid, offline).await;
+            let _ = self.count_service.on_task_completed(&tid).await;
           } else if old_status == Some("completed") && new_status != Some("completed") {
-            let _ = self.count_service.on_task_uncompleted(&tid, offline).await;
+            let _ = self.count_service.on_task_uncompleted(&tid).await;
           }
         } else if table == "subtasks" {
           if let Some(task_id) = updated_record.get("task_id").and_then(|v| v.as_str()) {
             if new_status == Some("completed") && old_status != Some("completed") {
-              let _ = self
-                .count_service
-                .on_subtask_completed(task_id, &tid, offline)
-                .await;
+              let _ = self.count_service.on_subtask_completed(task_id, &tid).await;
             } else if old_status == Some("completed") && new_status != Some("completed") {
               let _ = self
                 .count_service
-                .on_subtask_uncompleted(task_id, &tid, offline)
+                .on_subtask_uncompleted(task_id, &tid)
                 .await;
             }
           }
@@ -1791,8 +1975,8 @@ impl RepositoryService {
     if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
       if new_vis != old_vis {
         let mongodb_available = self.mongodb_provider.is_some();
-        let source = Self::determine_source(Some(old_vis), offline, mongodb_available);
-        let target = Self::determine_source(Some(new_vis), offline, mongodb_available);
+        let source = Self::determine_source(Some(old_vis), mongodb_available);
+        let target = Self::determine_source(Some(new_vis), mongodb_available);
 
         if target == DataSource::Local {
           self.cascade_service.move_todo_to_json(&id_str).await?;
@@ -1818,24 +2002,10 @@ impl RepositoryService {
 
     self.cache_service.invalidate_collection(&table).await;
 
-    if offline {
-      let monitor = self.activity_monitor.clone();
-      let table_clone = table.to_string();
-      let record_clone = updated_record.clone();
-      let handle = tokio::spawn(async move {
-        let _ = monitor
-          .log_action(&table_clone, "update", &record_clone, None)
-          .await;
-      });
-      if let Ok(mut handles) = self.spawned_handles.write() {
-        handles.push(handle);
-      }
-    } else {
-      let _ = self
-        .activity_monitor
-        .log_action(&table, "update", &updated_record, None)
-        .await;
-    }
+    let _ = self
+      .activity_monitor
+      .log_action(&table, "update", &updated_record, None)
+      .await;
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
@@ -1857,18 +2027,15 @@ impl RepositoryService {
     id: Option<String>,
     visibility: Option<String>,
     is_permanent: bool,
-    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
-    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility);
+    let provider = self.get_provider(&table, Some(&visibility_str))?;
 
     if table == "tasks" || table == "subtasks" || table == "comments" {
-      let provider = self
-        .get_provider(&table, Some(&visibility_str), offline)
-        .ok();
+      let provider = self.get_provider(&table, Some(&visibility_str)).ok();
       if let Some(ref p) = provider {
         if let Ok(Some(existing)) = p.find_by_id(&table, &id_str).await {
           if table == "tasks" {
@@ -1878,7 +2045,7 @@ impl RepositoryService {
               let todo_id_clone = todo_id.to_string();
               let handle = tokio::spawn(async move {
                 let _ = count_service
-                  .on_task_deleted(&todo_id_clone, was_completed, offline)
+                  .on_task_deleted(&todo_id_clone, was_completed)
                   .await;
               });
               if let Ok(mut handles) = self.spawned_handles.write() {
@@ -1895,7 +2062,7 @@ impl RepositoryService {
                 let todo_id_clone = todo_id.to_string();
                 let handle = tokio::spawn(async move {
                   let _ = count_service
-                    .on_subtask_deleted(&task_id_clone, &todo_id_clone, was_completed, offline)
+                    .on_subtask_deleted(&task_id_clone, &todo_id_clone, was_completed)
                     .await;
                 });
                 if let Ok(mut handles) = self.spawned_handles.write() {
@@ -1989,24 +2156,10 @@ impl RepositoryService {
 
     self.cache_service.invalidate_collection(&table).await;
 
-    if offline {
-      let monitor = self.activity_monitor.clone();
-      let table_clone = table.to_string();
-      let id_clone = id_str.clone();
-      let handle = tokio::spawn(async move {
-        let _ = monitor
-          .log_action(&table_clone, "delete", &json!({"id": id_clone}), None)
-          .await;
-      });
-      if let Ok(mut handles) = self.spawned_handles.write() {
-        handles.push(handle);
-      }
-    } else {
-      let _ = self
-        .activity_monitor
-        .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
-        .await;
-    }
+    let _ = self
+      .activity_monitor
+      .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
+      .await;
 
     let _elapsed = start.elapsed();
 
@@ -2020,11 +2173,8 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
-    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .handle_delete(table, id, visibility, false, offline)
-      .await
+    self.handle_delete(table, id, visibility, false).await
   }
 
   async fn handle_permanent_delete_cascade(
@@ -2032,11 +2182,8 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
-    offline: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    self
-      .handle_delete(table, id, visibility, true, offline)
-      .await
+    self.handle_delete(table, id, visibility, true).await
   }
 
   async fn handle_sync_to_provider(
