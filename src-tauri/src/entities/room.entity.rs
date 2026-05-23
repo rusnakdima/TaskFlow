@@ -16,6 +16,7 @@ pub struct RoomEntity {
   pub room: String,
   #[serde(default)]
   pub is_group: bool,
+  #[one_to_many("participants", "profiles", "user_id", "participant_ids")]
   #[serde(default)]
   pub participant_ids: Vec<String>,
   #[serde(default)]
