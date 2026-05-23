@@ -232,20 +232,29 @@ impl CountService {
     &self,
     task_id: Option<&str>,
     subtask_id: Option<&str>,
-    offline: bool,
+    visibility: &str,
   ) {
+    let is_private = visibility == "private";
+    let offline_for_counts = is_private;
+
     if let Some(subtask_id) = subtask_id {
       self
-        .increment_count_both("subtasks", subtask_id, "comments_count", 1, offline)
+        .increment_count_both(
+          "subtasks",
+          subtask_id,
+          "comments_count",
+          1,
+          offline_for_counts,
+        )
         .await;
       if let Some(task_id) = task_id {
         self
-          .increment_count_both("tasks", task_id, "comments_count", 1, offline)
+          .increment_count_both("tasks", task_id, "comments_count", 1, offline_for_counts)
           .await;
       }
     } else if let Some(task_id) = task_id {
       self
-        .increment_count_both("tasks", task_id, "comments_count", 1, offline)
+        .increment_count_both("tasks", task_id, "comments_count", 1, offline_for_counts)
         .await;
     }
   }
@@ -254,20 +263,29 @@ impl CountService {
     &self,
     task_id: Option<&str>,
     subtask_id: Option<&str>,
-    offline: bool,
+    visibility: &str,
   ) {
+    let is_private = visibility == "private";
+    let offline_for_counts = is_private;
+
     if let Some(subtask_id) = subtask_id {
       self
-        .decrement_count_both("subtasks", subtask_id, "comments_count", 1, offline)
+        .decrement_count_both(
+          "subtasks",
+          subtask_id,
+          "comments_count",
+          1,
+          offline_for_counts,
+        )
         .await;
       if let Some(task_id) = task_id {
         self
-          .decrement_count_both("tasks", task_id, "comments_count", 1, offline)
+          .decrement_count_both("tasks", task_id, "comments_count", 1, offline_for_counts)
           .await;
       }
     } else if let Some(task_id) = task_id {
       self
-        .decrement_count_both("tasks", task_id, "comments_count", 1, offline)
+        .decrement_count_both("tasks", task_id, "comments_count", 1, offline_for_counts)
         .await;
     }
   }

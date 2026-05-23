@@ -40,6 +40,13 @@ use crate::services::profile_service::ProfileService;
 
 use super::cache::CacheService;
 
+#[derive(PartialEq)]
+pub enum DataSource {
+  Local,
+  Cloud,
+  Both,
+}
+
 pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -64,43 +71,113 @@ impl Drop for RepositoryService {
 }
 
 impl RepositoryService {
+  fn determine_source(
+    visibility: Option<&str>,
+    offline: bool,
+    mongodb_available: bool,
+  ) -> DataSource {
+    eprintln!(
+      "[DEBUG] determine_source: visibility={:?}, offline={}, mongodb_available={}",
+      visibility, offline, mongodb_available
+    );
+
+    if offline || !mongodb_available {
+      eprintln!(
+        "[DEBUG] determine_source: returning Local (offline={}, mongodb_available={})",
+        offline, mongodb_available
+      );
+      return DataSource::Local;
+    }
+
+    match visibility.unwrap_or("all") {
+      "local" | "private" => {
+        eprintln!("[DEBUG] determine_source: returning Local (visibility=local/private)");
+        DataSource::Local
+      }
+      "all" => {
+        eprintln!("[DEBUG] determine_source: returning Both (visibility=all)");
+        DataSource::Both
+      }
+      "cloud" | "shared" | "public" => {
+        eprintln!("[DEBUG] determine_source: returning Cloud (visibility=cloud/shared/public)");
+        DataSource::Cloud
+      }
+      _ => {
+        eprintln!("[DEBUG] determine_source: returning Local (default)");
+        DataSource::Local
+      }
+    }
+  }
+
   fn get_provider(
     &self,
     table: &str,
     visibility: Option<&str>,
     offline: bool,
   ) -> Result<DataProvider, ResponseModel> {
-    let _vis = visibility.unwrap_or("private");
-
-    let is_shared_or_public = visibility
-      .map(|v| v == "shared" || v == "public")
-      .unwrap_or(false);
-
-    if offline && !is_shared_or_public {
+    if table == "daily_activities" {
       return Ok(DataProvider::Json(Arc::new(self.json_provider.clone())));
     }
 
-    let use_json = self.use_json_provider(table, visibility, offline);
+    let json = Arc::new(self.json_provider.clone());
+    let mongodb_available = self.mongodb_provider.is_some();
+    eprintln!(
+      "[DEBUG] get_provider: table={}, visibility={:?}, offline={}, mongodb_available={}",
+      table, visibility, offline, mongodb_available
+    );
 
-    if use_json {
-      Ok(DataProvider::Json(Arc::new(self.json_provider.clone())))
-    } else {
-      match self.mongodb_provider.as_ref() {
-        Some(p) => Ok(DataProvider::Mongo(p.clone())),
-        None => {
-          if visibility == Some("all")
-            || visibility == Some("shared")
-            || visibility == Some("public")
-          {
-            Ok(DataProvider::Json(Arc::new(self.json_provider.clone())))
-          } else {
-            Err(err_response(
-              "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
-            ))
-          }
+    match Self::determine_source(visibility, offline, mongodb_available) {
+      DataSource::Local => {
+        eprintln!("[DEBUG] get_provider: returning DataProvider::Json (Local)");
+        Ok(DataProvider::Json(json))
+      }
+      DataSource::Cloud => self
+        .mongodb_provider
+        .as_ref()
+        .ok_or_else(|| {
+          err_response(
+            "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
+          )
+        })
+        .map(|p| DataProvider::Mongo(p.clone())),
+      DataSource::Both => match self.mongodb_provider.as_ref() {
+        Some(p) => Ok(DataProvider::Both(json, p.clone())),
+        None => Ok(DataProvider::Json(json)),
+      },
+    }
+  }
+
+  fn merge_documents(local: Vec<Value>, cloud: Vec<Value>) -> Vec<Value> {
+    use std::collections::HashMap;
+    let mut map: HashMap<String, Value> = HashMap::new();
+
+    for doc in local {
+      if let Some(id) = doc.get("id").or(doc.get("_id")).and_then(|v| v.as_str()) {
+        map.insert(id.to_string(), doc);
+      }
+    }
+
+    for doc in cloud {
+      if let Some(id) = doc.get("id").or(doc.get("_id")).and_then(|v| v.as_str()) {
+        let keep_newer = map
+          .get(id)
+          .map(|existing| {
+            let existing_ts = existing
+              .get("updated_at")
+              .and_then(|v| v.as_i64())
+              .unwrap_or(0);
+            let new_ts = doc.get("updated_at").and_then(|v| v.as_i64()).unwrap_or(0);
+            new_ts > existing_ts
+          })
+          .unwrap_or(true);
+
+        if keep_newer {
+          map.insert(id.to_string(), doc);
         }
       }
     }
+
+    map.into_values().collect()
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -183,7 +260,7 @@ impl RepositoryService {
 
   async fn load_relations_unified<P: DatabaseProvider + Clone>(
     &self,
-    docs: Vec<Value>,
+    mut docs: Vec<Value>,
     table: &str,
     load_paths: &[String],
     provider: P,
@@ -194,7 +271,7 @@ impl RepositoryService {
 
     let segments: Vec<&str> = load_paths.iter().map(|s| s.as_str()).collect();
 
-    let docs_with_meta = add_collection_metadata(docs, table);
+    let docs_with_meta = add_collection_metadata(docs.clone(), table);
 
     let loader = RelationLoader::new(provider);
 
@@ -203,10 +280,17 @@ impl RepositoryService {
       .await
     {
       Ok(loaded) => Ok(loaded),
-      Err(e) => Err(err_response_formatted(
-        "Relation loading failed",
-        &e.to_string(),
-      )),
+      Err(e) => {
+        let err_msg = e.to_string();
+        if err_msg.contains("Unknown relation") {
+          eprintln!(
+            "[WARN] Relation loading failed for table {} with paths {:?}: {}",
+            table, load_paths, err_msg
+          );
+          return Ok(docs);
+        }
+        Err(err_response_formatted("Relation loading failed", &err_msg))
+      }
     }
   }
 
@@ -293,6 +377,14 @@ impl RepositoryService {
             .refresh_todo_counts(todo_id, ap.as_ref(), false)
             .await
         }
+        DataProvider::Both(json, mongo) => {
+          count_service
+            .refresh_todo_counts(todo_id, json.as_ref(), true)
+            .await;
+          count_service
+            .refresh_todo_counts(todo_id, mongo.as_ref(), false)
+            .await
+        }
       };
     }
 
@@ -304,6 +396,15 @@ impl RepositoryService {
       DataProvider::Mongo(p) => {
         p.find_many("todos", Some(&filter), None, None, None, true)
           .await?
+      }
+      DataProvider::Both(json, mongo) => {
+        let local = json
+          .find_many("todos", Some(&filter), None, None, None, true)
+          .await?;
+        let cloud = mongo
+          .find_many("todos", Some(&filter), None, None, None, true)
+          .await?;
+        Self::merge_documents(local, cloud)
       }
     };
 
@@ -341,6 +442,28 @@ impl RepositoryService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
+    eprintln!(
+      "[DEBUG] execute: operation={}, table={}, offline={}",
+      operation, table, offline
+    );
+
+    let source = Self::determine_source(
+      visibility.as_deref(),
+      offline,
+      self.mongodb_provider.is_some(),
+    );
+    eprintln!("[DEBUG] execute: determined source, offline={}", offline);
+
+    if offline && (source == DataSource::Cloud || source == DataSource::Both) {
+      eprintln!(
+        "[DEBUG] execute: OFFLINE mode - blocking cloud/both request for table={}",
+        table
+      );
+      return Err(err_response("Offline mode - cloud requests blocked"));
+    }
+
+    eprintln!("[DEBUG] execute: proceeding with source");
+
     match operation.as_str() {
       "getAll" => {
         self
@@ -385,10 +508,11 @@ impl RepositoryService {
           .await
       }
       "sync-to-provider" => {
-        let target = if self.use_json_provider(&table, visibility.as_deref(), offline) {
-          ProviderType::Json
-        } else {
-          ProviderType::Mongo
+        let mongodb_available = self.mongodb_provider.is_some();
+        let target = match Self::determine_source(visibility.as_deref(), offline, mongodb_available)
+        {
+          crate::services::repository::service::DataSource::Local => ProviderType::Json,
+          _ => ProviderType::Mongo,
         };
         let id_str = id.ok_or_else(|| err_response("ID required for sync"))?;
         self
@@ -430,16 +554,24 @@ impl RepositoryService {
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
 
-    let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
-
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let load_paths = parse_load_param(load);
+
+    let load_paths = if table == "chats" && load_paths.is_empty() {
+      vec!["sender".to_string()]
+    } else {
+      load_paths
+    };
 
     let final_filter = if table == "todos" {
       let permission_filter_json = PermissionService::get_todo_filter_for_user(
         user_id.as_deref().unwrap_or(""),
         Some(&visibility_str),
+      );
+      eprintln!(
+        "[DEBUG] handle_get_all: visibility_str={}, permission_filter={}",
+        visibility_str, permission_filter_json
       );
       let permission_filter = Filter::from_json(&permission_filter_json).ok();
       match (permission_filter, filter_opt) {
@@ -451,19 +583,64 @@ impl RepositoryService {
       filter_opt
     };
 
-    let (docs, used_json_fallback) = match provider
-      .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
-      .await
-    {
-      Ok(docs) => (docs, false),
-      Err(_e) => {
-        let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
-        let docs = json_provider
+    let (docs, used_json_fallback) = match &provider {
+      DataProvider::Both(json, mongo) => {
+        let mut local_docs = Vec::new();
+        let mut cloud_docs = Vec::new();
+
+        if let Ok(docs) = json
           .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
-          .await?;
-        (docs, true)
+          .await
+        {
+          local_docs = docs;
+        } else {
+          eprintln!("[WARN] JSON find_many failed for table: {}", table);
+        }
+
+        if let Ok(docs) = mongo
+          .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
+          .await
+        {
+          cloud_docs = docs;
+        } else {
+          eprintln!("[WARN] MongoDB find_many failed for table: {}", table);
+        }
+
+        (Self::merge_documents(local_docs, cloud_docs), false)
+      }
+      _ => {
+        eprintln!(
+          "[DEBUG] handle_get_all: using single provider, table={}",
+          table
+        );
+        match provider
+          .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
+          .await
+        {
+          Ok(docs) => {
+            eprintln!(
+              "[DEBUG] handle_get_all: find_many returned {} docs for table={}",
+              docs.len(),
+              table
+            );
+            (docs, false)
+          }
+          Err(_e) => {
+            eprintln!(
+              "[WARN] handle_get_all: find_many failed for table={}",
+              table
+            );
+            let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+            let docs = json_provider
+              .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
+              .await?;
+            (docs, true)
+          }
+        }
       }
     };
+
+    let use_json_only = matches!(&provider, DataProvider::Json(_)) || used_json_fallback;
 
     let docs = if !load_paths.is_empty() {
       match &provider {
@@ -477,10 +654,31 @@ impl RepositoryService {
             .load_relations_unified(docs, &table, &load_paths, (**p).clone())
             .await?
         }
+        DataProvider::Both(json, mongo) => {
+          let local = json
+            .find_many(&table, None, None, None, None, true)
+            .await
+            .unwrap_or_default();
+          let cloud = mongo
+            .find_many(&table, None, None, None, None, true)
+            .await
+            .unwrap_or_default();
+          let merged = Self::merge_documents(local, cloud);
+          self
+            .load_relations_unified(merged, &table, &load_paths, json.as_ref().clone())
+            .await?
+        }
       }
     } else {
       strip_relation_fields(docs, &table)
     };
+
+    eprintln!(
+      "[DEBUG] handle_get_all: table={}, visibility={}, docs_count={}",
+      table,
+      visibility_str,
+      docs.len()
+    );
 
     let docs = if table == "todos" {
       self.fix_todo_counts_if_needed(docs, &provider).await?
@@ -488,7 +686,7 @@ impl RepositoryService {
       docs
     };
 
-    let docs = if used_json_fallback || use_json {
+    let docs = if use_json_only {
       docs
     } else {
       self.filter_out_deleted(docs)
@@ -580,31 +778,49 @@ impl RepositoryService {
       None
     };
 
-    let (docs, used_json_fallback) = match provider
-      .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
-      .await
-    {
-      Ok(docs) => {
-        if docs.is_empty() && visibility_str == "all" {
-          let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
-          match json_provider
-            .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
-            .await
-          {
-            Ok(json_docs) => (json_docs, true),
-            Err(_) => (docs, false),
-          }
-        } else {
-          (docs, false)
-        }
-      }
-      Err(_e) => {
-        let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
-        let docs = json_provider
+    let (docs, used_json_fallback) = match &provider {
+      DataProvider::Both(json, mongo) => {
+        let local_docs = json
           .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
-          .await?;
-        (docs, true)
+          .await
+          .unwrap_or_default();
+        let cloud_docs = mongo
+          .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+          .await
+          .unwrap_or_default();
+        (Self::merge_documents(local_docs, cloud_docs), false)
       }
+      _ => match provider
+        .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+        .await
+      {
+        Ok(docs) => {
+          if docs.is_empty() && visibility_str == "all" {
+            let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+            match json_provider
+              .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+              .await
+            {
+              Ok(json_docs) => (json_docs, true),
+              Err(_) => (docs, false),
+            }
+          } else {
+            (docs, false)
+          }
+        }
+        Err(_e) => {
+          let json_provider = DataProvider::Json(Arc::new(self.json_provider.clone()));
+          let docs = json_provider
+            .find_many(&table, search_filter.as_ref(), skip, limit, None, true)
+            .await?;
+          (docs, true)
+        }
+      },
+    };
+
+    let use_json_only = match &provider {
+      DataProvider::Json(_) | DataProvider::Both(_, _) => true,
+      DataProvider::Mongo(_) => used_json_fallback,
     };
 
     let docs = if !load_paths.is_empty() {
@@ -619,12 +835,27 @@ impl RepositoryService {
             .load_relations_unified(docs, &table, &load_paths, (**p).clone())
             .await?
         }
+        DataProvider::Both(json, mongo) => {
+          let merged = Self::merge_documents(
+            json
+              .find_many(&table, None, None, None, None, true)
+              .await
+              .unwrap_or_default(),
+            mongo
+              .find_many(&table, None, None, None, None, true)
+              .await
+              .unwrap_or_default(),
+          );
+          self
+            .load_relations_unified(merged, &table, &load_paths, json.as_ref().clone())
+            .await?
+        }
       }
     } else {
       strip_relation_fields(docs, &table)
     };
 
-    let docs = if used_json_fallback || visibility_str == "private" {
+    let docs = if use_json_only || visibility_str == "private" {
       docs
     } else {
       self.filter_out_deleted(docs)
@@ -653,26 +884,58 @@ impl RepositoryService {
     let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
-      match provider.find_by_id(&table, id_val).await? {
-        Some(d) => vec![d],
-        None => {
-          if let Some(f) = &filter {
-            let filter_obj = nosql_orm::query::Filter::from_json(f)
-              .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-            provider
-              .find_many(&table, Some(&filter_obj), None, None, None, true)
-              .await?
+      match &provider {
+        DataProvider::Both(json, mongo) => {
+          if let Ok(Some(d)) = json.find_by_id(&table, id_val).await {
+            vec![d]
+          } else if let Ok(result) = mongo.find_by_id(&table, id_val).await {
+            match result {
+              Some(d) => vec![d],
+              None => {
+                if let Some(f) = &filter {
+                  let filter_obj = nosql_orm::query::Filter::from_json(f)
+                    .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+                  provider
+                    .find_many(&table, Some(&filter_obj), None, None, None, true)
+                    .await?
+                } else {
+                  vec![]
+                }
+              }
+            }
           } else {
-            return Err(err_response("Document not found"));
+            vec![]
           }
         }
+        _ => match provider.find_by_id(&table, id_val).await? {
+          Some(d) => vec![d],
+          None => {
+            if let Some(f) = &filter {
+              let filter_obj = nosql_orm::query::Filter::from_json(f)
+                .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+              provider
+                .find_many(&table, Some(&filter_obj), None, None, None, true)
+                .await?
+            } else {
+              return Err(err_response("Document not found"));
+            }
+          }
+        },
       }
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-      provider
+      let filter_docs = provider
         .find_many(&table, Some(&filter_obj), None, None, None, true)
-        .await?
+        .await?;
+
+      if filter_docs.len() == 1 {
+        filter_docs
+      } else if filter_docs.is_empty() {
+        return Err(err_response("Document not found"));
+      } else {
+        return Err(err_response("Multiple documents found, use getAll instead"));
+      }
     } else {
       return Err(err_response("ID or filter is required for get operation"));
     };
@@ -689,6 +952,11 @@ impl RepositoryService {
         DataProvider::Mongo(p) => {
           self
             .load_relations_unified(docs, &table, &load_paths, (**p).clone())
+            .await?
+        }
+        DataProvider::Both(json, _mongo) => {
+          self
+            .load_relations_unified(docs, &table, &load_paths, json.as_ref().clone())
             .await?
         }
       }
@@ -881,10 +1149,13 @@ impl RepositoryService {
       }
     } else if table == "comments" {
       let task_id = created_record.get("task_id").and_then(|v| v.as_str());
-      let subtask_id = created_record.get("subtask_id").and_then(|v| v.as_str());
+      let subtask_id = created_record
+        .get("subtask_id")
+        .and_then(|v: &Value| v.as_str());
       let count_service = self.count_service.clone();
       let task_id_clone = task_id.map(|s| s.to_string());
       let subtask_id_clone = subtask_id.map(|s| s.to_string());
+      let visibility_clone = visibility_str.clone();
 
       if let Some(ref sid) = subtask_id_clone {
         let cid = created_record
@@ -902,7 +1173,7 @@ impl RepositoryService {
           .on_comment_created(
             task_id_clone.as_deref(),
             subtask_id_clone.as_deref(),
-            offline,
+            &visibility_clone,
           )
           .await;
       });
@@ -1288,55 +1559,39 @@ impl RepositoryService {
 
     let provider = self.get_provider(&table, effective_visibility, offline)?;
 
-    let mut existing_record = provider.find_by_id(&table, &id_str).await.ok().flatten();
+    let (existing_record, record_provider): (_, DataProvider) =
+      match provider.find_by_id(&table, &id_str).await {
+        Ok(Some(record)) => (record, provider),
+        _ => {
+          let mut found_record = None;
+          let mut found_provider = None;
 
-    // If not found in target provider, try all other providers
-    if existing_record.is_none() {
-      // Try MongoDB for public/shared records
-      if let Some(ref mongo) = self.mongodb_provider {
-        existing_record = mongo.find_by_id(&table, &id_str).await.ok().flatten();
-      }
-      // Try JSON as last resort
-      if existing_record.is_none() {
-        existing_record = self
-          .json_provider
-          .find_by_id(&table, &id_str)
-          .await
-          .ok()
-          .flatten();
-      }
-    }
+          if let Some(ref mongo) = self.mongodb_provider {
+            if let Ok(Some(record)) = mongo.find_by_id(&table, &id_str).await {
+              found_record = Some(record);
+              found_provider = Some(DataProvider::Mongo(mongo.clone()));
+            }
+          }
 
-    let existing_record = existing_record.ok_or_else(|| err_response("Document not found"))?;
+          if found_record.is_none() {
+            if let Ok(Some(record)) = self.json_provider.find_by_id(&table, &id_str).await {
+              found_record = Some(record);
+              found_provider = Some(DataProvider::Json(Arc::new(self.json_provider.clone())));
+            }
+          }
+
+          (
+            found_record.ok_or_else(|| err_response("Document not found"))?,
+            found_provider.unwrap_or(DataProvider::Json(Arc::new(self.json_provider.clone()))),
+          )
+        }
+      };
 
     let old_visibility = existing_record.get("visibility").and_then(|v| v.as_str());
     let old_status = existing_record.get("status").and_then(|v| v.as_str());
     let visibility_changed = old_visibility != new_visibility.as_deref();
 
-    let current_provider: DataProvider = if self
-      .json_provider
-      .find_by_id(&table, &id_str)
-      .await
-      .ok()
-      .flatten()
-      .is_some()
-    {
-      DataProvider::Json(Arc::new(self.json_provider.clone()))
-    } else if let Some(ref mongo) = self.mongodb_provider {
-      if mongo
-        .find_by_id(&table, &id_str)
-        .await
-        .ok()
-        .flatten()
-        .is_some()
-      {
-        DataProvider::Mongo(mongo.clone())
-      } else {
-        DataProvider::Json(Arc::new(self.json_provider.clone()))
-      }
-    } else {
-      DataProvider::Json(Arc::new(self.json_provider.clone()))
-    };
+    let current_provider = record_provider;
 
     let mut validated_data = validated_data;
     Self::merge_immutable_fields(&existing_record, &mut validated_data);
@@ -1462,19 +1717,18 @@ impl RepositoryService {
 
     let new_status = updated_record.get("status").and_then(|v| v.as_str());
 
-    if (table == "tasks" || table == "subtasks") && old_status != new_status {
-      let todo_id = if table == "tasks" {
-        updated_record
-          .get("todo_id")
-          .and_then(|v| v.as_str())
-          .map(|s| s.to_string())
-      } else {
-        updated_record
-          .get("task_id")
-          .and_then(|v| v.as_str())
-          .and_then(|task_id| tauri::async_runtime::block_on(self.get_todo_id_from_task(task_id)))
-      };
+    let todo_id = if table == "tasks" {
+      updated_record
+        .get("todo_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+    } else if let Some(task_id) = updated_record.get("task_id").and_then(|v| v.as_str()) {
+      self.get_todo_id_from_task(task_id).await
+    } else {
+      None
+    };
 
+    if (table == "tasks" || table == "subtasks") && old_status != new_status {
       if let Some(tid) = todo_id {
         if table == "tasks" {
           if new_status == Some("completed") && old_status != Some("completed") {
@@ -1505,9 +1759,16 @@ impl RepositoryService {
 
     if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
       if new_vis != old_vis {
-        if Self::use_json_provider_for_visibility(new_vis) {
+        let mongodb_available = self.mongodb_provider.is_some();
+        let source = Self::determine_source(Some(old_vis), offline, mongodb_available);
+        let target = Self::determine_source(Some(new_vis), offline, mongodb_available);
+
+        if target == DataSource::Local {
           self.cascade_service.move_todo_to_json(&id_str).await?;
-        } else {
+        } else if source == DataSource::Local && target == DataSource::Cloud {
+          self.cascade_service.migrate_todo_to_mongo(&id_str).await?;
+        } else if target == DataSource::Both {
+          self.cascade_service.move_todo_to_json(&id_str).await?;
           self.cascade_service.migrate_todo_to_mongo(&id_str).await?;
         }
       }
@@ -1547,7 +1808,12 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
-    let _elapsed = start.elapsed();
+    let elapsed = start.elapsed();
+
+    eprintln!(
+      "handle_update({}) id={} elapsed={:?}",
+      table, id_str, elapsed
+    );
 
     self.emit_db_change_event("updated", &table, &response_doc);
 
@@ -1566,7 +1832,7 @@ impl RepositoryService {
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
 
     let visibility_str = self.resolve_visibility_for_offline(visibility, offline);
-    let use_json = self.use_json_provider(&table, Some(&visibility_str), offline);
+    let provider = self.get_provider(&table, Some(&visibility_str), offline)?;
 
     if table == "tasks" || table == "subtasks" || table == "comments" {
       let provider = self
@@ -1612,12 +1878,13 @@ impl RepositoryService {
             let count_service = self.count_service.clone();
             let task_id_clone = task_id.map(|s| s.to_string());
             let subtask_id_clone = subtask_id.map(|s| s.to_string());
+            let visibility_clone = visibility_str.clone();
             let handle = tokio::spawn(async move {
               let _ = count_service
                 .on_comment_deleted(
                   task_id_clone.as_deref(),
                   subtask_id_clone.as_deref(),
-                  offline,
+                  &visibility_clone,
                 )
                 .await;
             });
@@ -1630,31 +1897,63 @@ impl RepositoryService {
     }
 
     if is_permanent {
-      if use_json {
-        let _ = self.json_provider.delete(&table, &id_str).await;
-        self
-          .cascade_service
-          .permanent_delete_cascade_json(&table, &id_str)
-          .await?;
-      } else {
-        if let Some(ref mongo) = self.mongodb_provider {
-          let _ = mongo.delete(&table, &id_str).await;
+      match &provider {
+        DataProvider::Json(_) => {
+          let _ = self.json_provider.delete(&table, &id_str).await;
+          self
+            .cascade_service
+            .permanent_delete_cascade_json(&table, &id_str)
+            .await?;
         }
-        self
-          .cascade_service
-          .permanent_delete_cascade_mongo(&table, &id_str)
-          .await?;
+        DataProvider::Mongo(_) => {
+          if let Some(ref mongo) = self.mongodb_provider {
+            let _ = mongo.delete(&table, &id_str).await;
+          }
+          self
+            .cascade_service
+            .permanent_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
+        DataProvider::Both(_, mongo) => {
+          let _ = self.json_provider.delete(&table, &id_str).await;
+          if let Some(ref mongo) = self.mongodb_provider {
+            let _ = mongo.delete(&table, &id_str).await;
+          }
+          self
+            .cascade_service
+            .permanent_delete_cascade_json(&table, &id_str)
+            .await?;
+          self
+            .cascade_service
+            .permanent_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
       }
-    } else if use_json {
-      self
-        .cascade_service
-        .soft_delete_cascade_json(&table, &id_str)
-        .await?;
     } else {
-      self
-        .cascade_service
-        .soft_delete_cascade_mongo(&table, &id_str)
-        .await?;
+      match &provider {
+        DataProvider::Json(_) => {
+          self
+            .cascade_service
+            .soft_delete_cascade_json(&table, &id_str)
+            .await?;
+        }
+        DataProvider::Mongo(_) => {
+          self
+            .cascade_service
+            .soft_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
+        DataProvider::Both(_, mongo) => {
+          self
+            .cascade_service
+            .soft_delete_cascade_json(&table, &id_str)
+            .await?;
+          self
+            .cascade_service
+            .soft_delete_cascade_mongo(&table, &id_str)
+            .await?;
+        }
+      }
     }
 
     self.cache_service.invalidate_collection(&table).await;
