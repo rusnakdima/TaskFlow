@@ -23,7 +23,7 @@ dotenvy = "0.15.7"
 futures = "0.3.31"
 futures-util = { version = "0.3", features = ["io"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
-jsonwebtoken = "9.3.1"
+jsonwebtoken = { version = "10.4.0", default-features = false, features = ["rust_crypto"] }
 mongodb = "3.2.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
