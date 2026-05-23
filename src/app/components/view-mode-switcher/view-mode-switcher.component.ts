@@ -7,6 +7,7 @@ import {
   Output,
   ChangeDetectionStrategy,
   OnInit,
+  signal,
 } from "@angular/core";
 
 /* materials */
@@ -26,6 +27,8 @@ export class ViewModeSwitcherComponent implements OnInit {
   @Input() pageKey: string = "default";
   @Input() modes?: ViewMode[];
   @Output() modeChange = new EventEmitter<ViewMode>();
+
+  isHovering = signal(false);
 
   private get STORAGE_KEY(): string {
     return `view-mode-${this.pageKey}`;
@@ -52,6 +55,27 @@ export class ViewModeSwitcherComponent implements OnInit {
       return mode !== "kanban";
     }
     return this.modes.includes(mode);
+  }
+
+  onMouseEnter(): void {
+    this.isHovering.set(true);
+  }
+
+  onMouseLeave(): void {
+    this.isHovering.set(false);
+  }
+
+  onWheel(event: WheelEvent): void {
+    if (!this.isHovering()) return;
+    event.preventDefault();
+    const availableModes = (this.modes || ["card", "grid", "table"]).filter((m) =>
+      this.isModeAvailable(m)
+    );
+    if (availableModes.length === 0) return;
+    const currentIndex = availableModes.indexOf(this.mode);
+    const direction = event.deltaY > 0 ? 1 : -1;
+    const nextIndex = (currentIndex + direction + availableModes.length) % availableModes.length;
+    this.setMode(availableModes[nextIndex]);
   }
 
   ngOnInit(): void {

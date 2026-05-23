@@ -1,14 +1,18 @@
-import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
+import { Component, Input, Output, EventEmitter, signal, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { SectionSelectAllComponent } from "@components/section-select-all/section-select-all.component";
-import { ViewModeSwitcherComponent } from "@components/view-mode-switcher/view-mode-switcher.component";
+import {
+  ViewModeTabsComponent,
+  ViewModeTab,
+} from "@components/view-mode-tabs/view-mode-tabs.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
 import { PageToolbarConfig } from "@models/ui.model";
+import { ViewMode } from "@models/view-mode.model";
 
 export { PageToolbarConfig } from "@models/ui.model";
 
@@ -22,12 +26,12 @@ export { PageToolbarConfig } from "@models/ui.model";
     MatButtonModule,
     MatMenuModule,
     SectionSelectAllComponent,
-    ViewModeSwitcherComponent,
+    ViewModeTabsComponent,
     FilterSidebarComponent,
   ],
   templateUrl: "./page-toolbar.component.html",
 })
-export class PageToolbarComponent {
+export class PageToolbarComponent implements OnInit, OnDestroy {
   @Input() config: PageToolbarConfig | null = null;
   @Input() filterFields: FilterField[] = [];
   @Input() searchQuery: string = "";
@@ -35,6 +39,67 @@ export class PageToolbarComponent {
   @Input() excludeFields: string[] = [];
 
   showFilter = signal(false);
+  isHovering = signal(false);
+  isCompact = signal(false);
+
+  ngOnInit(): void {
+    this.updateCompact();
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", this.updateCompact.bind(this));
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("resize", this.updateCompact.bind(this));
+    }
+  }
+
+  private updateCompact(): void {
+    this.isCompact.set(window.innerWidth < 1024);
+  }
+
+  isDesktop(): boolean {
+    return typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
+  }
+
+  onModeSelect(mode: ViewMode): void {
+    this.config?.viewMode?.onModeChange(mode);
+  }
+
+  getActiveViewMode(): ViewMode {
+    return this.config?.viewMode?.mode || "card";
+  }
+
+  getViewModes(): ViewMode[] {
+    return this.config?.viewMode?.modes || ["card", "grid", "list"];
+  }
+
+  getViewModeTabs(): ViewModeTab[] {
+    const modes = this.getViewModes();
+    return modes.map((mode) => ({
+      id: mode,
+      label: mode.charAt(0).toUpperCase() + mode.slice(1),
+      icon: this.getViewModeIcon(mode),
+    }));
+  }
+
+  private getViewModeIcon(mode: ViewMode): string {
+    switch (mode) {
+      case "card":
+        return "view_agenda";
+      case "grid":
+        return "grid_view";
+      case "list":
+        return "view_list";
+      case "table":
+        return "table_rows";
+      case "kanban":
+        return "view_kanban";
+      default:
+        return "view_agenda";
+    }
+  }
 
   @Output() filtersChange = new EventEmitter<Record<string, string | string[] | any>>();
   @Output() searchChange = new EventEmitter<string>();
@@ -46,6 +111,24 @@ export class PageToolbarComponent {
   }
 
   @Output() filterToggle = new EventEmitter<void>();
+
+  onMouseEnter(): void {
+    this.isHovering.set(true);
+  }
+
+  onMouseLeave(): void {
+    this.isHovering.set(false);
+  }
+
+  onWheel(event: WheelEvent): void {
+    if (!this.isHovering() || !this.config?.viewMode?.modes?.length) return;
+    event.preventDefault();
+    const modes = this.getViewModes();
+    const currentIndex = modes.indexOf(this.getActiveViewMode());
+    const direction = event.deltaY > 0 ? 1 : -1;
+    const nextIndex = (currentIndex + direction + modes.length) % modes.length;
+    this.onModeSelect(modes[nextIndex]);
+  }
 
   private activeFilters = signal<Record<string, string>>({});
 
