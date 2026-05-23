@@ -378,12 +378,13 @@ impl RepositoryService {
             .await
         }
         DataProvider::Both(json, mongo) => {
-          count_service
+          let a = count_service
             .refresh_todo_counts(todo_id, json.as_ref(), true)
             .await;
-          count_service
+          let b = count_service
             .refresh_todo_counts(todo_id, mongo.as_ref(), false)
-            .await
+            .await;
+          a.and(b)
         }
       };
     }
@@ -577,6 +578,36 @@ impl RepositoryService {
       match (permission_filter, filter_opt) {
         (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing])),
         (Some(perm), None) => Some(perm),
+        (None, existing) => existing,
+      }
+    } else if table == "categories" {
+      let category_filter_json = match visibility_str.as_str() {
+        "local" | "private" => {
+          json!({ "visibility": "private", "user_id": user_id.as_deref().unwrap_or("") })
+        }
+        "cloud" | "shared" => {
+          json!({
+            "$or": [
+              { "visibility": "shared", "user_id": user_id.as_deref().unwrap_or("") },
+              { "visibility": "public" }
+            ]
+          })
+        }
+        "all" => {
+          json!({
+            "$or": [
+              { "visibility": "private", "user_id": user_id.as_deref().unwrap_or("") },
+              { "visibility": "shared", "user_id": user_id.as_deref().unwrap_or("") },
+              { "visibility": "public" }
+            ]
+          })
+        }
+        _ => json!({ "visibility": "private", "user_id": user_id.as_deref().unwrap_or("") }),
+      };
+      let category_filter = Filter::from_json(&category_filter_json).ok();
+      match (category_filter, filter_opt) {
+        (Some(cat_f), Some(existing)) => Some(Filter::And(vec![cat_f, existing])),
+        (Some(cat_f), None) => Some(cat_f),
         (None, existing) => existing,
       }
     } else {

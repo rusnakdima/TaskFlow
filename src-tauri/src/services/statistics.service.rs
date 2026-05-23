@@ -37,7 +37,12 @@ impl StatisticsService {
     time_range: String,
     _visibility: String,
   ) -> Result<ResponseModel, ResponseModel> {
+    eprintln!(
+      "[STATS] get_statistics called: user_id={}, time_range={}",
+      user_id, time_range
+    );
     let (start_date, end_date) = DateCalculator::calculate_date_range(&time_range);
+    eprintln!("[STATS] Date range: {} to {}", start_date, end_date);
     let start_date_naive = start_date.date_naive();
     let end_date_naive = end_date.date_naive();
 
@@ -49,9 +54,22 @@ impl StatisticsService {
     let daily_activities = self
       .get_daily_activities_filtered(&user_id, &start_date_naive, &end_date_naive)
       .await;
+    eprintln!("[STATS] daily_activities count: {}", daily_activities.len());
+    if daily_activities.is_empty() {
+      eprintln!("[STATS] WARNING: No daily activities found in range!");
+    } else {
+      eprintln!(
+        "[STATS] First daily_activity: {:?}",
+        daily_activities.first()
+      );
+    }
     let previous_daily_activities = self
       .get_daily_activities_filtered(&user_id, &prev_start_naive, &prev_end_naive)
       .await;
+    eprintln!(
+      "[STATS] previous_daily_activities count: {}",
+      previous_daily_activities.len()
+    );
 
     let todos_filter = Filter::from_json(&json!({ "user_id": user_id }))
       .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
@@ -60,6 +78,7 @@ impl StatisticsService {
       .find_many("todos", Some(&todos_filter), None, None, None, true)
       .await
       .unwrap_or_default();
+    eprintln!("[STATS] todos count: {}", todos.len());
 
     let todo_ids: Vec<String> = todos
       .iter()
@@ -130,6 +149,10 @@ impl StatisticsService {
       .find_many("categories", Some(&user_id_filter), None, None, None, true)
       .await
       .unwrap_or_default();
+    eprintln!("[STATS] categories count: {}", categories.len());
+    if !categories.is_empty() {
+      eprintln!("[STATS] First category: {:?}", categories.first());
+    }
 
     let statistics = TaskAnalytics::compute_statistics(
       &daily_activities,
@@ -184,33 +207,21 @@ impl StatisticsService {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    let filter_snake = match Filter::from_json(&serde_json::json!({
-      "user_id": user_id,
-      "date": { "$gte": start_str.clone(), "$lte": end_str.clone() }
-    })) {
-      Ok(f) => f,
-      Err(e) => {
-        err_response(&format!("Filter error: {}", e));
-        return vec![];
-      }
-    };
+    eprintln!(
+      "[STATS] get_daily_activities_filtered: user_id={}, {}-{}",
+      user_id, start_str, end_str
+    );
 
-    let filter_camel = match Filter::from_json(&serde_json::json!({
-      "userId": user_id,
-      "date": { "$gte": end_str, "$lte": end_str }
-    })) {
-      Ok(f) => f,
-      Err(e) => {
-        err_response(&format!("Filter error: {}", e));
-        return vec![];
-      }
-    };
+    let user_filter = Filter::from_json(&serde_json::json!({
+      "user_id": user_id
+    }))
+    .unwrap();
 
-    let docs: Vec<Value> = self
+    let all_user_docs: Vec<Value> = self
       .json_provider
       .find_many(
         "daily_activities",
-        Some(&filter_snake),
+        Some(&user_filter),
         None,
         None,
         None,
@@ -219,24 +230,19 @@ impl StatisticsService {
       .await
       .unwrap_or_default();
 
-    if !docs.is_empty() {
-      return Self::deduplicate_by_date(docs);
-    }
+    eprintln!("[STATS] Total docs for user: {}", all_user_docs.len());
 
-    let docs_camel: Vec<Value> = self
-      .json_provider
-      .find_many(
-        "daily_activities",
-        Some(&filter_camel),
-        None,
-        None,
-        None,
-        true,
-      )
-      .await
-      .unwrap_or_default();
+    let filtered: Vec<Value> = all_user_docs
+      .into_iter()
+      .filter(|doc| {
+        let date_str = doc.get("date").and_then(|v| v.as_str()).unwrap_or("");
+        date_str >= start_str.as_str() && date_str <= end_str.as_str()
+      })
+      .collect();
 
-    Self::deduplicate_by_date(docs_camel)
+    eprintln!("[STATS] Docs after date filter: {}", filtered.len());
+
+    Self::deduplicate_by_date(filtered)
   }
 
   fn deduplicate_by_date(docs: Vec<Value>) -> Vec<Value> {
