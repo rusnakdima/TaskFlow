@@ -5,31 +5,26 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
   signal,
+  OnInit,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "../../models/chat.model";
-import { UserAvatarComponent } from "../user-avatar/user-avatar.component";
 import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
 
 @Component({
   selector: "app-chat-message",
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatIconModule,
-    UserAvatarComponent,
-    MessageReactionsComponent,
-  ],
+  imports: [CommonModule, FormsModule, MatIconModule, MessageReactionsComponent],
   templateUrl: "./chat-message.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChatMessageComponent {
+export class ChatMessageComponent implements OnInit {
   @Input() message!: ChatMessage;
   @Input() isGroupStart = false;
   @Input() isGroupChat = false;
+  @Input() isGrouped = false;
   @Input() editingMessageId: string | null = null;
   @Input() editingMessageContent = "";
 
@@ -44,6 +39,8 @@ export class ChatMessageComponent {
   @Output() retrySend = new EventEmitter<ChatMessage>();
 
   showReactionPicker = signal(false);
+
+  ngOnInit(): void {}
 
   get isOwn(): boolean {
     return this.message?.isMine ?? false;
@@ -129,7 +126,7 @@ export class ChatMessageComponent {
       "relative flex flex-col min-h-11 px-4 py-3 rounded-3xl max-w-full word-break transition-all duration-200 ease-out";
 
     if (this.isOwn) {
-      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-600)] text-white shadow`;
+      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-600)] text-white border border-white/20 shadow`;
     }
 
     return `${base} bg-white backdrop-blur-md border border-black/5 text-zinc-800 shadow-sm dark:bg-zinc-800 dark:border-white/10 dark:text-zinc-100`;

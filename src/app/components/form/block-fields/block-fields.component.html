@@ -11,7 +11,12 @@
         <app-text-area [label]="getLabel()" [form]="formG!" [field]="field" />
       }
       @case ("image") {
-        <app-image [label]="getLabel()" [form]="formG!" [field]="field" />
+        <app-image
+          [label]="getLabel()"
+          [form]="formG!"
+          [field]="field"
+          [avatarsOnly]="field.avatarsOnly ?? false"
+        />
       }
       @case ("select") {
         <app-select
