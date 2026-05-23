@@ -1,8 +1,11 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::helpers::collection_metadata::add_collection_metadata;
+use crate::helpers::load_param::parse_load_param;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
 use nosql_orm::provider::DatabaseProvider;
+use nosql_orm::relations::RelationLoader;
 use serde_json::{json, Value};
 
 pub struct RoomService {
@@ -101,6 +104,7 @@ impl RoomService {
     filter: Option<Value>,
     skip: Option<u64>,
     limit: Option<u64>,
+    load: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let filter_opt = if let Some(f) = filter {
       Some(
@@ -143,6 +147,26 @@ impl RoomService {
           .any(|d| d.get("id") == doc.get("id") || d.get("room") == doc.get("room"))
         {
           all_docs.push(doc);
+        }
+      }
+    }
+
+    let load_paths = parse_load_param(load);
+    if !load_paths.is_empty() && !all_docs.is_empty() {
+      if let Some(DataProvider::Mongo(mongo_arc)) = self.get_mongo_provider() {
+        let loader = RelationLoader::new(mongo_arc.as_ref().clone());
+        let docs_with_meta = add_collection_metadata(all_docs.clone(), "rooms");
+        let segments: Vec<&str> = load_paths.iter().map(|s| s.as_str()).collect();
+        match loader
+          .load_relations_on_docs(docs_with_meta, "rooms", &segments, true)
+          .await
+        {
+          Ok(loaded) => {
+            all_docs = loaded;
+          }
+          Err(e) => {
+            eprintln!("[WARN] Relation loading failed for rooms: {}", e);
+          }
         }
       }
     }
