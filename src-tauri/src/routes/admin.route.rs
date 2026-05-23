@@ -22,7 +22,7 @@ pub async fn get_all_admin_data(
 pub async fn get_all_admin_paginated(
   state: State<'_, AppState>,
   token: String,
-  dataType: String,
+  data_type: String,
   skip: u64,
   limit: u64,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -35,6 +35,6 @@ pub async fn get_all_admin_paginated(
   .await?;
   state
     .manage_db_service
-    .get_admin_data_paginated(dataType, skip, limit)
+    .get_admin_data_paginated(data_type, skip, limit)
     .await
 }
