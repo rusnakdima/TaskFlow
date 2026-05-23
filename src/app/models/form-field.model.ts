@@ -40,6 +40,7 @@ export interface TextareaField extends CommonFormField {
 }
 export interface ImageField extends CommonFormField {
   type: TypeField.image;
+  avatarsOnly?: boolean;
 }
 export interface SelectField extends CommonFormField {
   type: TypeField.select;
