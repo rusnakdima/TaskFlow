@@ -150,7 +150,6 @@ async fn search_data(
       filter,
       load,
       visibility,
-      offline.unwrap_or(false),
       user_id,
       page,
       limit,
@@ -278,6 +277,7 @@ pub fn run() {
   use crate::entities::chat_entity::ChatEntity;
   use crate::entities::comment_entity::CommentEntity;
   use crate::entities::profile_entity::ProfileEntity;
+  use crate::entities::room_entity::RoomEntity;
   use crate::entities::subtask_entity::SubtaskEntity;
   use crate::entities::task_entity::TaskEntity;
   use crate::entities::todo_entity::TodoEntity;
@@ -287,6 +287,7 @@ pub fn run() {
   use nosql_orm::relations::register_relations_for_entity;
 
   // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
+  register_relations_for_entity::<RoomEntity>();
   register_relations_for_entity::<CategoryEntity>();
   register_relations_for_entity::<TodoEntity>();
   register_relations_for_entity::<TaskEntity>();
