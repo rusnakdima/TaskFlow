@@ -11,8 +11,9 @@
   }
 }
 
+:host(.dark) .emoji-picker,
 .dark .emoji-picker {
-  background: rgba(38, 38, 45, 0.98);
+  background: rgba(24, 24, 27, 0.98);
   border-color: rgba(255, 255, 255, 0.1);
 
   .emoji-btn {

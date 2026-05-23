@@ -283,7 +283,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-    this.storageService.ensureTodosLoaded(this.stateService.activeVisibility());
+    this.storageService.loadMoreTodos();
   }
 
   onVisibilityChange(visibility: string): void {

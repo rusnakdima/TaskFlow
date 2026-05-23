@@ -1,4 +1,4 @@
-<div class="relative mt-1 flex items-center gap-1">
+<div class="relative mt-1 flex items-center gap-1" [class.flex-row-reverse]="alignLeft">
   @if (reactions.length > 0) {
     <div class="flex flex-wrap gap-1">
       @for (reaction of reactions; track reaction.emoji) {
@@ -27,7 +27,9 @@
 
   @if (showPicker) {
     <div
-      class="emoji-picker absolute bottom-full left-0 mb-2 flex gap-0.5 rounded-xl border border-slate-200/50 bg-white/98 p-1.5 shadow-lg backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/98"
+      class="emoji-picker absolute bottom-full mb-2 flex gap-0.5 rounded-xl border border-slate-200/50 bg-white/98 p-1.5 shadow-lg backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/98"
+      [class.left-0]="!alignLeft"
+      [class.right-0]="alignLeft"
     >
       @for (emoji of quickReactions; track emoji) {
         <button

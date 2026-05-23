@@ -79,6 +79,14 @@ export class CategoriesView extends BaseListView implements OnInit {
 
   activeVisibility = signal<"all" | "local" | "cloud">("all");
 
+  categoriesPagination = signal<{
+    skip: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
+
   visibilityOptions = computed<SegmentOption[]>(() => [
     {
       id: "all",
@@ -224,7 +232,20 @@ export class CategoriesView extends BaseListView implements OnInit {
     if (visibility === "cloud" && this.isOffline()) {
       return;
     }
+    this.categoriesPagination.update((p) => ({ ...p, loading: true }));
     this.storageService.ensureCategoriesLoaded(visibility, 100);
+    this.categoriesPagination.update((p) => ({
+      ...p,
+      loading: false,
+      skip: p.limit,
+      hasMore: true,
+    }));
+  }
+
+  loadMoreCategories(): void {
+    if (this.categoriesPagination().loading || !this.categoriesPagination().hasMore) return;
+    this.categoriesPagination.update((p) => ({ ...p, loading: true }));
+    this.storageService.loadMoreCategories();
   }
 
   toggleCreateForm() {

@@ -210,7 +210,20 @@
         (contextmenu)="onContextMenu($event, conv)"
       >
         <div class="relative shrink-0">
-          <app-user-avatar [src]="conv.avatar" [name]="conv.name" size="lg" />
+          @if (conv.isGroup) {
+            <app-user-avatar
+              [src]="conv.avatar"
+              [name]="conv.name"
+              size="lg"
+              [showGroupIcon]="!conv.avatar"
+            />
+          } @else {
+            <app-user-avatar
+              [src]="conv.otherUserAvatar || conv.avatar"
+              [name]="conv.name"
+              size="lg"
+            />
+          }
           @if (conv.isOnline) {
             <div
               class="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"

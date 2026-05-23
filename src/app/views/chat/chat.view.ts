@@ -1,11 +1,13 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   inject,
   DestroyRef,
   ViewChild,
   ElementRef,
   AfterViewChecked,
+  AfterViewInit,
   ChangeDetectionStrategy,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -14,6 +16,7 @@ import { ActivatedRoute } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { MatIconModule } from "@angular/material/icon";
 import { ChatMessageComponent } from "@components/chat-message/chat-message.component";
+import { ChatMessageGroupComponent } from "@components/chat-message-group/chat-message-group.component";
 import { ChatState } from "./state/chat.state";
 import { ChatService } from "./services/chat.service";
 import { ChatSidebarComponent } from "./components/chat-sidebar/chat-sidebar.component";
@@ -22,6 +25,7 @@ import { ChatInputComponent } from "./components/chat-input/chat-input.component
 import { ChatDetailsComponent } from "./components/chat-details/chat-details.component";
 import { TypingIndicatorComponent } from "./components/typing-indicator/typing-indicator.component";
 import { DateAnchorComponent } from "./components/date-anchor/date-anchor.component";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 import { ConversationItem, ChatMessage } from "@models/chat.model";
 import { EmojiTab, FilterType } from "@models/chat.model";
 import { Profile } from "@models/generated/api.types";
@@ -40,23 +44,31 @@ import {
     FormsModule,
     MatIconModule,
     ChatMessageComponent,
+    ChatMessageGroupComponent,
     ChatSidebarComponent,
     ChatHeaderComponent,
     ChatInputComponent,
     ChatDetailsComponent,
     TypingIndicatorComponent,
     DateAnchorComponent,
+    UserAvatarComponent,
   ],
   templateUrl: "./chat.view.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChatView implements OnInit, AfterViewChecked {
+export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDestroy {
   @ViewChild("scrollSentinel") scrollSentinel?: ElementRef<HTMLDivElement>;
+  @ViewChild("messagesContainer") messagesContainer?: ElementRef<HTMLDivElement>;
   private shouldScrollToBottom = false;
   chatService = inject(ChatService);
   state = inject(ChatState);
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
+  private scrollHandler = () => this.onMessagesScroll();
+  private scrollRAF: number | null = null;
+  private readonly MAX_PAGINATION_PAGES = 10;
+  private isLoadingPreviousMessages = false;
+  private debounceTimeout: any = null;
 
   smileysEmojis = SMILEYS_EMOJIS;
   gesturesEmojis = GESTURES_EMOJIS;
@@ -90,6 +102,107 @@ export class ChatView implements OnInit, AfterViewChecked {
     if (this.shouldScrollToBottom && this.scrollSentinel) {
       this.scrollSentinel.nativeElement.scrollIntoView({ behavior: "smooth" });
       this.shouldScrollToBottom = false;
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.messagesContainer?.nativeElement.addEventListener("scroll", this.scrollHandler, {
+      passive: true,
+    });
+    window.addEventListener("resize", this.onWindowResize);
+  }
+
+  ngOnDestroy(): void {
+    if (this.messagesContainer?.nativeElement) {
+      this.messagesContainer.nativeElement.removeEventListener("scroll", this.scrollHandler);
+    }
+    window.removeEventListener("resize", this.onWindowResize);
+    if (this.scrollRAF) {
+      cancelAnimationFrame(this.scrollRAF);
+    }
+    this.state.resetStickySender();
+  }
+
+  private onWindowResize = () => {
+    this.state.updateWindowWidth();
+  };
+
+  onMessagesScroll(): void {
+    if (this.scrollRAF) {
+      cancelAnimationFrame(this.scrollRAF);
+    }
+    this.scrollRAF = requestAnimationFrame(() => {
+      this.updateStickyAvatar();
+
+      if (this.debounceTimeout) {
+        clearTimeout(this.debounceTimeout);
+      }
+
+      this.debounceTimeout = setTimeout(() => {
+        const container = this.messagesContainer?.nativeElement;
+        if (!container) return;
+
+        const scrollTop = container.scrollTop;
+
+        if (scrollTop < 50) {
+          this.loadPreviousMessages();
+        }
+      }, 200);
+    });
+  }
+
+  updateStickyAvatar(): void {
+    const container = this.messagesContainer?.nativeElement;
+    if (!container) return;
+
+    const scrollTop = container.scrollTop;
+    const clientHeight = container.clientHeight;
+    const scrollHeight = container.scrollHeight;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+    this.state.setScrolledToBottom(isNearBottom);
+
+    if (isNearBottom) {
+      const messages = this.state.activeMessages();
+      if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        this.state.updateStickySender(
+          lastMsg.senderId,
+          lastMsg.senderName,
+          lastMsg.senderAvatar || null
+        );
+      }
+      return;
+    }
+
+    const messageElements = container.querySelectorAll(".group-message");
+    let topmostSenderId: string | null = null;
+    let topmostSenderName = "";
+    let topmostSenderAvatar: string | null = null;
+    let topmostBottom = -1;
+
+    messageElements.forEach((el, idx) => {
+      const rect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const relativeTop = rect.top - containerRect.top;
+      const relativeBottom = rect.bottom - containerRect.top;
+
+      if (relativeTop < clientHeight && relativeBottom > 0) {
+        if (relativeBottom > topmostBottom) {
+          topmostBottom = relativeBottom;
+          const messages = this.state.activeMessages();
+          const msg = messages[idx];
+          if (msg) {
+            topmostSenderId = msg.senderId;
+            topmostSenderName = msg.senderName;
+            topmostSenderAvatar = msg.senderAvatar || null;
+          }
+        }
+      }
+    });
+
+    if (topmostSenderId) {
+      this.state.updateStickySender(topmostSenderId, topmostSenderName, topmostSenderAvatar);
     }
   }
 
@@ -155,7 +268,76 @@ export class ChatView implements OnInit, AfterViewChecked {
 
   selectConversation(conv: ConversationItem): void {
     this.shouldScrollToBottom = true;
+    this.state.resetStickySender();
+    this.state.messagesPagination.set({ skip: 0, limit: 100, hasMore: true, loading: false });
     this.chatService.selectConversation(conv);
+  }
+
+  loadInitialMessages(roomId: string): void {
+    this.state.messagesPagination.set({ skip: 0, limit: 100, hasMore: true, loading: true });
+    this.chatService.loadMessagesForRoom(roomId, 0, 100);
+    this.state.messagesPagination.update((p) => ({
+      ...p,
+      skip: 100,
+      hasMore: true,
+      loading: false,
+    }));
+  }
+
+  loadPreviousMessages(): void {
+    if (this.isLoadingPreviousMessages) return;
+
+    const pagination = this.state.messagesPagination();
+    if (pagination.loading || !pagination.hasMore) return;
+
+    const currentPage = pagination.skip / pagination.limit;
+    if (currentPage >= this.MAX_PAGINATION_PAGES - 1) {
+      this.state.messagesPagination.update((p) => ({ ...p, hasMore: false }));
+      return;
+    }
+
+    const roomId = this.state.activeConversationId();
+    if (!roomId) return;
+
+    this.isLoadingPreviousMessages = true;
+    this.state.isLoadingPreviousMessages.set(true);
+
+    const previousScrollHeight = this.messagesContainer?.nativeElement?.scrollHeight || 0;
+
+    this.chatService
+      .loadPreviousMessagesForRoom(roomId, pagination.skip, pagination.limit)
+      .subscribe({
+        next: (olderMessages: ChatMessage[]) => {
+          if (olderMessages.length === 0) {
+            this.state.messagesPagination.update((p) => ({ ...p, hasMore: false, loading: false }));
+            this.isLoadingPreviousMessages = false;
+            this.state.isLoadingPreviousMessages.set(false);
+            return;
+          }
+
+          this.state.messages.update((existing) => [...olderMessages, ...existing]);
+
+          this.state.messagesPagination.update((p) => ({
+            ...p,
+            skip: p.skip + olderMessages.length,
+            hasMore: olderMessages.length >= p.limit,
+            loading: false,
+          }));
+
+          if (this.messagesContainer?.nativeElement && previousScrollHeight > 0) {
+            const newScrollHeight = this.messagesContainer.nativeElement.scrollHeight;
+            this.messagesContainer.nativeElement.scrollTop +=
+              newScrollHeight - previousScrollHeight;
+          }
+
+          this.isLoadingPreviousMessages = false;
+          this.state.isLoadingPreviousMessages.set(false);
+        },
+        error: () => {
+          this.isLoadingPreviousMessages = false;
+          this.state.isLoadingPreviousMessages.set(false);
+        },
+      });
   }
 
   closeConversation(): void {
@@ -376,6 +558,46 @@ export class ChatView implements OnInit, AfterViewChecked {
 
   get typingUserName(): string {
     return this.state.typingUserName();
+  }
+
+  get groupedMessages(): { messages: ChatMessage[]; isOwn: boolean }[] {
+    const msgs = this.state.activeMessages();
+    if (msgs.length === 0) return [];
+
+    const groups: { messages: ChatMessage[]; isOwn: boolean }[] = [];
+    let currentGroup: ChatMessage[] = [];
+    let currentSenderId = "";
+    let currentIsOwn = false;
+
+    for (const msg of msgs) {
+      const isTimeGap = this.isTimeGapLarge(
+        currentGroup[currentGroup.length - 1]?.time || "",
+        msg.time
+      );
+
+      if (currentGroup.length === 0 || (currentSenderId === msg.senderId && !isTimeGap)) {
+        currentGroup.push(msg);
+      } else {
+        if (currentGroup.length > 0) {
+          groups.push({
+            messages: [...currentGroup],
+            isOwn: currentIsOwn,
+          });
+        }
+        currentGroup = [msg];
+      }
+      currentSenderId = msg.senderId;
+      currentIsOwn = msg.isMine;
+    }
+
+    if (currentGroup.length > 0) {
+      groups.push({
+        messages: [...currentGroup],
+        isOwn: currentIsOwn,
+      });
+    }
+
+    return groups;
   }
 
   get replyToMessage(): ChatMessage | null {

@@ -41,7 +41,9 @@ export class ChatState {
   editingMessageId = signal<string | null>(null);
   editingMessageContent = signal("");
 
-  isMobile = signal(typeof window !== "undefined" && window.innerWidth < 768);
+  private windowWidth = signal(typeof window !== "undefined" ? window.innerWidth : 1024);
+  isMobile = computed(() => this.windowWidth() < 768);
+
   showEmojiPicker = signal(false);
   showAttachmentMenu = signal(false);
   showDetailsMenu = signal(false);
@@ -63,6 +65,20 @@ export class ChatState {
   replyToMessage = signal<ChatMessage | null>(null);
   isSomeoneTyping = signal(false);
   typingUserName = signal("");
+
+  stickySenderId = signal<string | null>(null);
+  stickySenderName = signal("");
+  stickySenderAvatar = signal<string | null>(null);
+  isScrolledToBottom = signal(true);
+
+  messagesPagination = signal<{
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ skip: 0, limit: 100, hasMore: true, loading: false });
+
+  isLoadingPreviousMessages = signal(false);
 
   currentUserId = computed(() => this.authService.getValueByKey("id"));
 
@@ -211,5 +227,27 @@ export class ChatState {
   setTypingIndicator(isTyping: boolean, userName = ""): void {
     this.isSomeoneTyping.set(isTyping);
     this.typingUserName.set(userName);
+  }
+
+  updateStickySender(senderId: string, senderName: string, senderAvatar: string | null): void {
+    if (this.stickySenderId() !== senderId) {
+      this.stickySenderId.set(senderId);
+      this.stickySenderName.set(senderName);
+      this.stickySenderAvatar.set(senderAvatar);
+    }
+  }
+
+  setScrolledToBottom(isBottom: boolean): void {
+    this.isScrolledToBottom.set(isBottom);
+  }
+
+  resetStickySender(): void {
+    this.stickySenderId.set(null);
+    this.stickySenderName.set("");
+    this.stickySenderAvatar.set(null);
+  }
+
+  updateWindowWidth(): void {
+    this.windowWidth.set(window.innerWidth);
   }
 }

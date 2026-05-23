@@ -206,6 +206,21 @@
             (statusToggle)="onTaskStatusToggle($event)"
           />
         }
+        @if (taskPagination().hasMore) {
+          <div class="flex justify-center py-4">
+            <button
+              (click)="loadMoreTasks()"
+              [disabled]="taskPagination().loading"
+              class="bg-primary-500 hover:bg-primary-600 rounded-lg px-4 py-2 text-white disabled:opacity-50"
+            >
+              @if (taskPagination().loading) {
+                <span>Loading...</span>
+              } @else {
+                <span>Load More</span>
+              }
+            </button>
+          </div>
+        }
       </div>
     }
   }
