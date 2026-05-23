@@ -3,7 +3,16 @@ import { Injectable, inject, signal, computed, Injector, WritableSignal } from "
 import { Observable, of } from "rxjs";
 
 /* models */
-import { Todo, Task, Subtask, Comment, Chat, User, Profile } from "@models/generated/api.types";
+import {
+  Todo,
+  Task,
+  Subtask,
+  Comment,
+  Chat,
+  User,
+  Profile,
+  Category,
+} from "@models/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
 
 /* services */
@@ -674,19 +683,37 @@ export class StorageQueryService {
 
   ensureCategoriesLoaded(visibility: string = "all", limit: number = 100): void {
     if (this._categoriesLoading()) return;
-    const existingSignal = this._entityService.categories;
-    if (existingSignal && existingSignal().length > 0) return;
+
+    const targetSignal = this.getCategoriesSignal(visibility);
+    if (targetSignal().length > 0) return;
 
     this._categoriesLoading.set(true);
     this.apiService.categories.getAll({ visibility, limit }).subscribe({
       next: (categories) => {
-        this._entityService.categories.set(categories);
+        if (visibility === "all") {
+          this._entityService.categories.set(categories);
+        } else if (visibility === "local") {
+          this._entityService.localCategories.set(categories);
+        } else if (visibility === "cloud") {
+          this._entityService.cloudCategories.set(categories);
+        }
       },
       error: () => {},
       complete: () => {
         this._categoriesLoading.set(false);
       },
     });
+  }
+
+  private getCategoriesSignal(visibility: string): WritableSignal<Category[]> {
+    switch (visibility) {
+      case "local":
+        return this._entityService.localCategories;
+      case "cloud":
+        return this._entityService.cloudCategories;
+      default:
+        return this._entityService.categories;
+    }
   }
 
   ensureChatsLoaded(visibility: string = "private", limit: number = 10): void {

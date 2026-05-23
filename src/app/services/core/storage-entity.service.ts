@@ -30,6 +30,8 @@ export class StorageEntityService {
   readonly comments = signal<Comment[]>([]);
   readonly chats = signal<Chat[]>([]);
   readonly categories = signal<Category[]>([]);
+  readonly localCategories = signal<Category[]>([]);
+  readonly cloudCategories = signal<Category[]>([]);
   readonly profiles = signal<Profile | null>(null);
   readonly publicProfiles = signal<Profile[]>([]);
   readonly users = signal<User[]>([]);
@@ -209,6 +211,8 @@ export class StorageEntityService {
     this.comments.set([]);
     this.chats.set([]);
     this.categories.set([]);
+    this.localCategories.set([]);
+    this.cloudCategories.set([]);
     this.profiles.set(null);
     this.publicProfiles.set([]);
     this.users.set([]);

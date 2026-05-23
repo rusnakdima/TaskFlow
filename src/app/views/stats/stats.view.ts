@@ -147,8 +147,7 @@ export class StatsView implements OnInit {
           timeRange: this.selectedTimeRange(),
         })
         .subscribe({
-          next: (response: any) => {
-            const data = response?.data;
+          next: (data: any) => {
             if (data?.statistics) {
               this.statistics.set(data.statistics);
               this.chartData.set(
