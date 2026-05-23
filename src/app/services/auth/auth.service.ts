@@ -15,6 +15,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
+import { StorageService } from "@services/storage.service";
 import { Router } from "@angular/router";
 
 // ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
@@ -29,6 +30,7 @@ export class AuthService {
   private _notifyService: NotifyService | null = null;
   private _router: Router | null = null;
   private _userValidationService: UserValidationService | null = null;
+  private _storageService: StorageService | null = null;
   private _injector = inject(Injector);
 
   private get requestService(): ApiService {
@@ -51,6 +53,10 @@ export class AuthService {
     if (!this._userValidationService)
       this._userValidationService = this._injector.get(UserValidationService);
     return this._userValidationService;
+  }
+  private get storageService(): StorageService {
+    if (!this._storageService) this._storageService = this._injector.get(StorageService);
+    return this._storageService;
   }
 
   constructor() {}
@@ -132,6 +138,7 @@ export class AuthService {
 
   logout() {
     this.jwtTokenService.clearToken();
+    this.storageService.clear();
     window.location.reload();
   }
 
@@ -140,6 +147,7 @@ export class AuthService {
    */
   logoutAll() {
     this.jwtTokenService.clearToken();
+    this.storageService.clear();
     window.location.reload();
   }
 
