@@ -139,6 +139,12 @@ impl TodoService {
         let cascade = CascadeManager::new((&*p).clone());
         let _ = cascade.soft_delete("todos", id).await;
       }
+      DataProvider::Both(json, mongo) => {
+        let cascade_json = CascadeManager::new((&*json).clone());
+        let cascade_mongo = CascadeManager::new((&*mongo).clone());
+        let _ = cascade_json.soft_delete("todos", id).await;
+        let _ = cascade_mongo.soft_delete("todos", id).await;
+      }
     }
     Ok(success_response(DataValue::Object(json!({}))))
   }

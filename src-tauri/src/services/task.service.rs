@@ -200,6 +200,12 @@ impl TaskService {
         let cascade = CascadeManager::new(p.as_ref().clone());
         let _ = cascade.soft_delete("tasks", id).await;
       }
+      DataProvider::Both(json, mongo) => {
+        let cascade_json = CascadeManager::new(json.as_ref().clone());
+        let cascade_mongo = CascadeManager::new(mongo.as_ref().clone());
+        let _ = cascade_json.soft_delete("tasks", id).await;
+        let _ = cascade_mongo.soft_delete("tasks", id).await;
+      }
     }
     Ok(success_response(DataValue::Object(json!({}))))
   }

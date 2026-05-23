@@ -252,6 +252,12 @@ impl SubtaskService {
         let cascade = CascadeManager::new(p.as_ref().clone());
         let _ = cascade.soft_delete("subtasks", id).await;
       }
+      DataProvider::Both(json, mongo) => {
+        let cascade_json = CascadeManager::new(json.as_ref().clone());
+        let cascade_mongo = CascadeManager::new(mongo.as_ref().clone());
+        let _ = cascade_json.soft_delete("subtasks", id).await;
+        let _ = cascade_mongo.soft_delete("subtasks", id).await;
+      }
     }
     Ok(success_response(DataValue::Object(json!({}))))
   }

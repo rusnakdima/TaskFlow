@@ -124,6 +124,7 @@ async fn search_data(
   limit: Option<u64>,
   token: Option<String>,
   load: Option<String>,
+  offline: Option<bool>,
 ) -> Result<ResponseModel, String> {
   use crate::helpers::auth_helper::extract_user_from_token;
 
@@ -149,7 +150,7 @@ async fn search_data(
       filter,
       load,
       visibility,
-      false,
+      offline.unwrap_or(false),
       user_id,
       page,
       limit,
