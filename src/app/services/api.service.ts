@@ -142,7 +142,7 @@ export class ApiService {
   }
 
   isOffline(): boolean {
-    return !navigator.onLine;
+    return !navigator.onLine || !this.mongoConnectionService.isConnected();
   }
 
   isMongoConnected(): boolean {
@@ -182,7 +182,9 @@ export class ApiService {
 
   invokeCommand<T>(command: string, args?: Record<string, unknown>): Observable<T> {
     return new Observable((subscriber) => {
-      invoke<Response<T>>(command, args)
+      const offline = this.isOffline();
+      const invokeArgs = { ...args, offline };
+      invoke<Response<T>>(command, invokeArgs)
         .then((response) => {
           if (response.status === ResponseStatus.SUCCESS) {
             subscriber.next(response.data as T);
@@ -390,6 +392,42 @@ export class ApiService {
     });
   }
 
+  crudByFilter<T>(
+    route: string,
+    params: {
+      filter?: Record<string, unknown>;
+      visibility?: string;
+      load?: string | string[];
+    } = {}
+  ): Observable<T> {
+    const token = this.jwtTokenService.getToken();
+
+    const args: Record<string, unknown> = { token };
+
+    if (params.visibility) args["visibility"] = params.visibility;
+    if (params.load) args["load"] = JSON.stringify(params.load);
+    if (params.filter) args["filter"] = params.filter;
+
+    return new Observable((subscriber) => {
+      invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+          }
+        })
+        .catch((err) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as any).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
+    });
+  }
+
   crudList<T>(
     route: string,
     params: {
@@ -402,11 +440,13 @@ export class ApiService {
       limit?: number;
       todoId?: string;
       taskId?: string;
+      offline?: boolean;
     } = {}
   ): Observable<T[]> {
     const token = this.jwtTokenService.getToken();
+    const offlineParam = params.offline ?? this.isOffline();
 
-    const args: Record<string, unknown> = { token };
+    const args: Record<string, unknown> = { token, offline: offlineParam };
 
     if (params.id) args["id"] = params.id;
     if (params.data) args["data"] = params.data;
@@ -711,15 +751,9 @@ class EntityApi<T> {
   }
 
   create(data: Partial<T>, visibility?: string): Observable<T> {
-    console.log("[EntityApi] create called:", {
-      data,
-      visibility,
-      entityType: this.getEntityType("create"),
-    });
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
         next: (result: T) => {
-          console.log("[EntityApi] create got result:", result);
           this.api.storageService.modify(this.getEntityType("create") as any, "create", result);
           subscriber.next(result);
           subscriber.complete();

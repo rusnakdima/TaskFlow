@@ -174,6 +174,7 @@ export class SearchService {
           visibility: this.getVisibility(entity),
           page: 0,
           limit: 50,
+          offline: !this.mongoConnectionService.isConnected(),
         })
         .subscribe({
           next: (items) => {

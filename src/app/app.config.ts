@@ -9,7 +9,16 @@ import { routes } from "@app/app.routes";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
 function initializeDataSync(dataSyncService: UnifiedSyncService) {
-  return () => dataSyncService.initTauriListeners();
+  return async () => {
+    const timeoutMs = 10000;
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      setTimeout(() => reject(new Error("Tauri init timeout")), timeoutMs);
+    });
+    const initPromise = dataSyncService.initTauriListeners();
+    return Promise.race([initPromise, timeoutPromise]).catch((err) => {
+      console.warn("Tauri listeners init skipped:", err.message);
+    });
+  };
 }
 
 export const appConfig: ApplicationConfig = {
@@ -17,7 +26,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideNativeDateAdapter(),
     provideHttpClient(),
-    UnifiedSyncService,
     {
       provide: APP_INITIALIZER,
       useFactory: initializeDataSync,

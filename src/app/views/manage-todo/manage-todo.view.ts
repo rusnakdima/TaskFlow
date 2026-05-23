@@ -193,6 +193,7 @@ export class ManageTodoPage implements OnInit {
       assignees: [[]],
       assignee_roles: [{}],
       github_repo_id: [""],
+      order: [0],
     });
   }
 
@@ -395,6 +396,7 @@ export class ManageTodoPage implements OnInit {
       assignee_roles: this.assigneeRoles(),
       github_repo_id: formValue.github_repo_id || "",
       github_repo_name: this.getRepoName(formValue.github_repo_id),
+      order: formValue.order ?? 0,
     };
   }
 

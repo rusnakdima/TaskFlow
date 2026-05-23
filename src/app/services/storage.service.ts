@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { Todo, User, Profile, Room, Category } from "@models/generated/api.types";
+import { Todo, User, Profile, Room } from "@models/generated/api.types";
 import { Task, TaskStatus } from "@models/generated/api.types";
 import { Subtask } from "@models/generated/api.types";
 import { Comment } from "@models/generated/api.types";
@@ -617,14 +617,8 @@ export class StorageService {
         subtasks.map((s) => (s.id === id ? { ...s, ...update } : s))
       );
     } else if (table === "categories") {
-      [
-        this._entityService.privateCategories,
-        this._entityService.sharedCategories,
-        this._entityService.publicCategories,
-      ].forEach((signal) =>
-        signal.update((categories) =>
-          categories.map((c) => (c.id === id ? { ...c, ...update } : c))
-        )
+      this._entityService.categories.update((categories) =>
+        categories.map((c) => (c.id === id ? { ...c, ...update } : c))
       );
     }
   }
@@ -999,18 +993,6 @@ export class StorageService {
       this._queryService.ensureTodosLoaded(visibility);
     }
     return todos;
-  }
-
-  getCategoriesForVisibility(visibility: string): Category[] {
-    const categories =
-      visibility === "private"
-        ? this._entityService.privateCategories()
-        : visibility === "shared"
-          ? this._entityService.sharedCategories()
-          : visibility === "public"
-            ? this._entityService.publicCategories()
-            : [];
-    return categories;
   }
 
   loadMoreTodos(): void {

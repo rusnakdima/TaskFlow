@@ -1,7 +1,8 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
-import { Observable, lastValueFrom } from "rxjs";
+import { lastValueFrom, of, Observable } from "rxjs";
+import { timeout, catchError } from "rxjs/operators";
 
 /* services */
 import { ApiService } from "@services/api.service";
@@ -9,22 +10,9 @@ import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { UserValidationService } from "@services/auth/user-validation.service";
 
-/**
- * Initial Data Resolver - Cache-First, Non-Blocking Architecture
- *
- * Algorithm:
- * 1. Return cached data IMMEDIATELY (no blocking)
- * 2. Fire API calls in BACKGROUND (fire-and-forget)
- * 3. WS delivers live updates
- * 4. Profile redirect happens AFTER background loads confirm no profile
- *
- * This resolver NEVER blocks the UI. Data flows via:
- * - Cache (immediate)
- * - WS (real-time)
- * - API fallback (background seed)
- */
+const RESOLVER_TIMEOUT_MS = 10000;
+
 @Injectable({
   providedIn: "root",
 })
@@ -34,7 +22,6 @@ export class InitialDataResolver implements Resolve<unknown> {
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
   private router = inject(Router);
-  private userValidationService = inject(UserValidationService);
   private apiService = inject(ApiService);
 
   private hasCachedData(): boolean {
@@ -44,11 +31,6 @@ export class InitialDataResolver implements Resolve<unknown> {
       this.storageService.categories().length > 0 ||
       this.storageService.tasks().length > 0
     );
-  }
-
-  private hasValidProfile(): boolean {
-    const profile = this.storageService.profile();
-    return !!profile?.user_id;
   }
 
   private hasCompleteProfile(): boolean {
@@ -62,9 +44,9 @@ export class InitialDataResolver implements Resolve<unknown> {
     );
   }
 
-  private loadProfileInBackground(): Observable<boolean> {
-    return new Observable((observer) => {
-      if (this.hasValidProfile()) {
+  private loadProfileWithTimeout() {
+    return new Observable<boolean>((observer) => {
+      if (this.hasCompleteProfile()) {
         observer.next(true);
         observer.complete();
         return;
@@ -101,23 +83,24 @@ export class InitialDataResolver implements Resolve<unknown> {
             observer.complete();
           },
         });
-    });
+    }).pipe(
+      timeout(RESOLVER_TIMEOUT_MS),
+      catchError(() => of(false))
+    );
   }
 
   async resolve(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<unknown> {
     const targetUrl = state.url || this.router.url;
 
     if (targetUrl.startsWith("/profile")) {
-      await lastValueFrom(this.loadProfileInBackground());
+      await lastValueFrom(this.loadProfileWithTimeout());
       if (targetUrl === "/profile/manage") {
         if (this.hasCompleteProfile()) {
-          this.router.navigate(["/profile"]);
-          return { loaded: true, redirectToProfile: true };
+          return this.router.createUrlTree(["/profile"]);
         }
       } else if (targetUrl === "/profile") {
         if (!this.hasCompleteProfile()) {
-          this.router.navigate(["/profile/manage"]);
-          return { loaded: true, redirectToManageProfile: true };
+          return this.router.createUrlTree(["/profile/manage"]);
         }
       }
       return { loaded: true, isProfileRoute: true };
@@ -126,22 +109,19 @@ export class InitialDataResolver implements Resolve<unknown> {
     const token = this.jwtTokenService.getToken();
     if (!token) {
       this.notifyService.showError("Error: Token not found");
-      this.userValidationService.redirectToLogin();
-      return { loaded: false, redirectToLogin: true };
+      return this.router.createUrlTree(["/login"]);
     }
 
-    await lastValueFrom(this.loadProfileInBackground());
+    await lastValueFrom(this.loadProfileWithTimeout());
 
     if (!this.hasCompleteProfile()) {
-      this.router.navigate(["/profile/manage"]);
-      return { loaded: true, redirectToManageProfile: true };
+      return this.router.createUrlTree(["/profile/manage"]);
     }
 
     if (!this.hasCachedData()) {
       this.storageService.ensureTodosLoaded("all", 50);
       this.storageService.ensureTasksLoaded("all", 50);
       this.storageService.ensureSubtasksLoaded("all", 50);
-      this.storageService.ensureCategoriesLoaded("all", 50);
       this.storageService.ensureChatsLoaded("all", 50);
     }
 

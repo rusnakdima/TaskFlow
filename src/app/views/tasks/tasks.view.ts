@@ -264,19 +264,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
 
     const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
-    console.log("[TasksView] loadInitialTasks:", {
-      todoId,
-      cachedTasksCount: cachedTasks.length,
-      paginationTotal: this.taskPagination().total,
-      forceRefresh,
-    });
 
     if (cachedTasks.length > 0 && !forceRefresh) {
-      // If we have cached tasks, still need to check if we have ALL tasks
-      // Use the pagination total to determine if cache is complete
       const storedTotal = this.taskPagination().total;
       if (storedTotal > 0 && cachedTasks.length >= storedTotal) {
-        console.log("[TasksView] Using cached tasks (complete)", cachedTasks.length);
         this.todoTasks.set(cachedTasks);
         this.taskPagination.update((p) => ({
           ...p,
@@ -287,16 +278,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         }));
         return;
       }
-      // If cachedTasks < storedTotal, we need to fetch more (pagination case)
-      // Fall through to API call
-      console.log("[TasksView] Cache incomplete, fetching from API");
     }
 
     this.taskPagination.update((p) => ({ ...p, loading: true }));
     const visibility = this.visibilityParam();
     this.apiService.tasks.getAll({ visibility, limit: 10, todoId }).subscribe({
       next: (tasks) => {
-        console.log("[TasksView] API returned tasks:", tasks.length);
         this.todoTasks.set(tasks);
         this.taskPagination.update((p) => ({
           ...p,

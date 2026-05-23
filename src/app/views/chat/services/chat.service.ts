@@ -5,6 +5,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { ProfileSearchService } from "@services/core/profile-search.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { Chat, Profile } from "@models/generated/api.types";
 import { ConversationItem } from "@models/chat.model";
 import { ChatMessage } from "@models/chat.model";
@@ -17,6 +18,7 @@ export class ChatService {
   private storageService = inject(StorageService);
   private profileSearchService = inject(ProfileSearchService);
   private notifyService = inject(NotifyService);
+  private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
 
   constructor() {
@@ -25,7 +27,6 @@ export class ChatService {
 
   private initChatQueueListener(): void {
     window.addEventListener("online", () => {
-      console.log("[ChatService] Back online, processing chat queue...");
       this.processChatQueue();
     });
 
@@ -35,7 +36,6 @@ export class ChatService {
   }
 
   loadAllUsers(): void {
-    console.log("[ChatService] loadAllUsers called");
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
         console.log(
@@ -88,6 +88,11 @@ export class ChatService {
       return;
     }
 
+    if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
+      this.loadRoomsFromLocal();
+      return;
+    }
+
     this.requestService
       .invokeCommand("get_rooms", {
         token: this.authService.getToken(),
@@ -102,10 +107,136 @@ export class ChatService {
         },
         error: (err) => {
           console.error("get_rooms error:", err);
-          this.loadConversations();
-          this.loadGroups();
+          this.loadRoomsFromLocal();
         },
       });
+  }
+
+  private loadRoomsFromLocal(): void {
+    this.requestService.chats.getAll({ visibility: "private", limit: 100 }).subscribe({
+      next: () => {
+        this.loadConversationsFromLocal();
+        this.loadGroupsFromLocal();
+      },
+      error: () => {
+        this.loadConversationsFromLocal();
+        this.loadGroupsFromLocal();
+      },
+    });
+  }
+
+  private loadConversationsFromLocal(): void {
+    const chats = this.storageService.chats();
+    const currentUserId = this.state.currentUserId();
+    const convMap = new Map<string, ConversationItem>();
+
+    for (const chat of chats) {
+      if (chat.deleted_at) continue;
+
+      const roomId = chat.room_id;
+      if (!roomId) continue;
+
+      const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
+
+      if (!convMap.has(roomId)) {
+        let name = "Unknown";
+        let avatar: string | null = null;
+        let isGroup = roomId.startsWith("group_");
+        let memberIds: string[] = [];
+        let otherUserId: string | undefined;
+
+        if (existingConv && existingConv.name !== "Unknown") {
+          name = existingConv.name;
+          avatar = existingConv.avatar;
+          otherUserId = existingConv.otherUserId;
+        } else {
+          if (!isGroup) {
+            otherUserId = chat.sender_id !== currentUserId ? chat.sender_id : undefined;
+            if (otherUserId) {
+              const profile = this.getProfileByUserId(otherUserId);
+              if (profile) {
+                name = getProfileDisplayName(profile);
+                avatar = profile.image_url || null;
+              } else if (chat.author_name) {
+                name = chat.author_name;
+              } else {
+                this.fetchProfileIfMissing(otherUserId);
+              }
+            }
+          } else {
+            name = "Group";
+          }
+        }
+
+        convMap.set(roomId, {
+          roomId: roomId,
+          name: name,
+          avatar: avatar,
+          isOnline: false,
+          isTyping: false,
+          isGroup: isGroup,
+          unreadCount: 0,
+          lastMessage: chat.content || "",
+          lastMessageTime: this.state.formatDate(chat.created_at || ""),
+          memberIds: memberIds,
+          memberCount: memberIds.length,
+          bio: "",
+          otherUserId: otherUserId,
+          isLocal: true,
+        });
+      } else {
+        const existing = convMap.get(roomId)!;
+        existing.lastMessage = chat.content || existing.lastMessage;
+        existing.lastMessageTime = this.state.formatDate(chat.created_at || "");
+      }
+    }
+
+    const existingConversations = this.state.conversations();
+    for (const conv of existingConversations) {
+      if (!convMap.has(conv.roomId)) {
+        convMap.set(conv.roomId, { ...conv, isLocal: true });
+      }
+    }
+
+    const sorted = Array.from(convMap.values()).sort((a, b) => {
+      const timeA = a.lastMessageTime || "";
+      const timeB = b.lastMessageTime || "";
+      return timeB.localeCompare(timeA);
+    });
+
+    this.state.conversations.set(sorted);
+  }
+
+  private loadGroupsFromLocal(): void {
+    // Groups from local storage - chats with room_id starting with "group_"
+    const chats = this.storageService.chats();
+    const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
+
+    for (const chat of chats) {
+      if (chat.deleted_at) continue;
+      const roomId = chat.room_id;
+      if (!roomId || !roomId.startsWith("group_")) continue;
+
+      if (!existingRooms.has(roomId)) {
+        const conv: ConversationItem = {
+          roomId: roomId,
+          name: "Group",
+          avatar: null,
+          isOnline: false,
+          isTyping: false,
+          isGroup: true,
+          unreadCount: 0,
+          lastMessage: "",
+          lastMessageTime: this.state.formatDate(chat.created_at || ""),
+          memberIds: [],
+          memberCount: 0,
+          bio: "",
+          otherUserId: undefined,
+          isLocal: true,
+        };
+        this.state.conversations.update((convs) => [...convs, conv]);
+      }
+    }
   }
 
   private loadRoomsIntoConversations(rooms: any[]): void {
@@ -254,6 +385,11 @@ export class ChatService {
     const userId = this.state.currentUserId();
     if (!userId) return;
 
+    if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
+      this.loadGroupsFromLocal();
+      return;
+    }
+
     this.requestService
       .invokeCommand("get_groups", {
         userId: userId,
@@ -292,6 +428,7 @@ export class ChatService {
         },
         error: (err) => {
           console.error("Load groups error:", err);
+          this.loadGroupsFromLocal();
         },
       });
   }
@@ -915,15 +1052,12 @@ export class ChatService {
   }
 
   openConversationWithUserId(userId: string): void {
-    console.log("[ChatService] openConversationWithUserId called with:", userId);
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
         const profile = this.getProfileByUserId(userId);
-        console.log("[ChatService] Profile found:", profile?.user_id, profile?.name);
         if (profile) {
           this.startConversationWithUser(profile);
         } else {
-          console.log("[ChatService] Profile not found in cache, fetching...");
           this.fetchProfileAndOpenChat(userId);
         }
       },
@@ -959,7 +1093,6 @@ export class ChatService {
     if (!userId) return;
 
     const profileUserId = profile.user_id;
-    console.log("[ChatService] startConversationWithUser:", profileUserId, profile.name);
 
     if (!this.state.recentUserIds().includes(profileUserId)) {
       this.state.recentUserIds.update((ids) => [profileUserId, ...ids].slice(0, 20));
@@ -968,17 +1101,12 @@ export class ChatService {
     const existing = this.state
       .conversations()
       .find((c) => !c.isGroup && c.otherUserId === profileUserId);
-    console.log("[ChatService] Existing conversation found:", existing?.roomId);
     if (existing) {
       this.selectConversation(existing);
       this.state.closeUserDropdown();
       return;
     }
 
-    console.log(
-      "[ChatService] No existing conversation, creating new with roomId:",
-      crypto.randomUUID()
-    );
     const roomId = crypto.randomUUID();
     const conv: ConversationItem = {
       roomId: roomId,

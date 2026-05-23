@@ -75,43 +75,26 @@ export class PageSearchComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log("[PageSearch] ngOnChanges:", Object.keys(changes));
     if (changes["data"] || changes["config"]) {
       this.performSearch();
     }
   }
 
   private performSearch(): void {
-    console.log(
-      "[PageSearch] performSearch called, config:",
-      this.config,
-      "searchQuery:",
-      this.searchQuery
-    );
-
     if (!this.config?.includeFields?.length) {
-      console.log("[PageSearch] No includeFields configured, emitting undefined");
       this.filteredDataChange.emit(undefined);
       return;
     }
 
     if (!this.searchQuery.trim()) {
-      console.log("[PageSearch] Empty query, emitting undefined");
       this.filteredDataChange.emit(undefined);
       return;
     }
 
     if (!this.data || this.data.length === 0) {
-      console.log("[PageSearch] No data to search, emitting undefined");
       this.filteredDataChange.emit(undefined);
       return;
     }
-
-    console.log("[PageSearch] Searching:", {
-      query: this.searchQuery,
-      dataLength: this.data.length,
-      includeFields: this.config.includeFields,
-    });
 
     const excludeFields = new Set([
       ...DEFAULT_EXCLUDE_FIELDS,
@@ -130,7 +113,6 @@ export class PageSearchComponent implements OnChanges {
       });
     });
 
-    console.log("[PageSearch] Filtered results:", filtered.length, "items");
     this.filteredDataChange.emit(filtered);
   }
 }

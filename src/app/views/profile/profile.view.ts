@@ -323,7 +323,6 @@ export class ProfileView implements OnInit, OnDestroy {
 
   openChat(): void {
     const userId = this.viewedUserId();
-    console.log("[Profile] Open chat button clicked, userId:", userId);
     if (userId) {
       this.router.navigate(["/chat"], { queryParams: { userId } });
     }

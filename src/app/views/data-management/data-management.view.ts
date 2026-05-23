@@ -1014,11 +1014,8 @@ export class DataManagementView implements OnInit {
   };
 
   onDynamicFilterChange(event: { key: string; value: string }): void {
-    console.log("[DataManagement] Filter change:", event);
     const signal = this.getFilterSignal(event.key);
-    console.log("[DataManagement] Signal for", event.key, ":", signal);
     signal.set(event.value);
-    console.log("[DataManagement] Signal value after set:", signal());
     this.showFilters.set(true);
   }
 
