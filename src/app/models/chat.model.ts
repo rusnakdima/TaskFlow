@@ -2,6 +2,7 @@ export interface ConversationItem {
   roomId: string;
   name: string;
   avatar: string | null;
+  otherUserAvatar?: string | null;
   isOnline: boolean;
   isTyping: boolean;
   isGroup: boolean;
