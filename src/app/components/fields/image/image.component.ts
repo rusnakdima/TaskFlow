@@ -37,6 +37,7 @@ export class ImageComponent {
   @Input() label: string = "";
   @Input() form!: FormGroup;
   @Input() field!: ImageField;
+  @Input() avatarsOnly: boolean = false;
 
   @Output() imageCropped: EventEmitter<string> = new EventEmitter<string>();
 
@@ -46,6 +47,14 @@ export class ImageComponent {
   cropImageSource: string = "";
   urlInput: string = "";
   pendingOriginalUrl: string = "";
+  showAvatarPicker: boolean = false;
+
+  preparedAvatars: string[] = Array.from(
+    { length: 12 },
+    (_, i) => `/assets/images/avatars/avatar-${i + 1}.svg`
+  );
+
+  selectedAvatarIndex: number | null = null;
 
   isInvalid(attr: string) {
     return (
@@ -103,10 +112,26 @@ export class ImageComponent {
   }
 
   onRemoveImage() {
-    this.form.get(this.field.name)?.setValue("/assets/images/user.png");
-    this.form.get("original_image_url")?.setValue("");
+    if (this.avatarsOnly) {
+      this.selectedAvatarIndex = 0;
+      this.form.get(this.field.name)?.setValue(this.preparedAvatars[0]);
+      this.form.get("original_image_url")?.setValue("");
+    } else {
+      this.form.get(this.field.name)?.setValue("/assets/images/user.png");
+      this.form.get("original_image_url")?.setValue("");
+    }
     this.urlInput = "";
     this.pendingOriginalUrl = "";
+  }
+
+  onSelectAvatar(avatar: string, index: number) {
+    this.selectedAvatarIndex = index;
+    this.form.get(this.field.name)?.setValue(avatar);
+    this.form.get("original_image_url")?.setValue(avatar);
+  }
+
+  onToggleAvatarPicker() {
+    this.showAvatarPicker = !this.showAvatarPicker;
   }
 
   onReCropOriginal() {
