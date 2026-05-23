@@ -47,6 +47,7 @@ pub async fn get_room(
 pub async fn get_rooms(
   state: State<'_, AppState>,
   token: Option<String>,
+  load: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
@@ -60,7 +61,7 @@ pub async fn get_rooms(
 
   state
     .room_service
-    .get_all("all", Some(filter), None, None)
+    .get_all("all", Some(filter), None, None, load)
     .await
 }
 
