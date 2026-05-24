@@ -44,7 +44,8 @@ impl TodoService {
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.base.get_provider(visibility)?;
-    let permission_filter = PermissionService::get_todo_filter_for_user(user_id, Some(visibility));
+    let permission_filter =
+      PermissionService::get_todo_filter_for_user(user_id, None, Some(visibility));
 
     let final_filter = if let Some(f) = filter {
       let combined = serde_json::json!({

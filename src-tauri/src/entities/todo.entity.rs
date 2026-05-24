@@ -10,7 +10,7 @@ use nosql_orm::Validate;
 /* helpers */
 use crate::helpers::common::format_date;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("todos")]
 #[soft_delete]
 #[timestamp]
@@ -35,6 +35,7 @@ pub struct TodoEntity {
   pub assignees: Vec<String>,
   pub assignee_roles: HashMap<String, String>,
   pub visibility: String,
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   pub order: i32,
   pub github_repo_id: Option<String>,
@@ -64,6 +65,7 @@ pub struct TodoCreateModel {
   pub assignee_roles: Option<HashMap<String, String>>,
   #[validate(not_empty)]
   pub visibility: String,
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   pub order: i32,
   pub github_repo_id: Option<String>,
