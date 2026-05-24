@@ -14,9 +14,15 @@ macro_rules! crud_route {
       limit: Option<u64>,
       token: Option<String>,
     ) -> Result<crate::entities::response_entity::ResponseModel, String> {
-      use crate::helpers::auth_helper::extract_user_from_token;
+      use crate::helpers::auth_helper::{extract_profile_from_token, extract_user_from_token};
 
       let user_id = extract_user_from_token(
+        token.as_deref().unwrap_or(""),
+        &state.config_helper.jwt_secret,
+      )
+      .ok();
+
+      let profile_id = extract_profile_from_token(
         token.as_deref().unwrap_or(""),
         &state.config_helper.jwt_secret,
       )
@@ -33,6 +39,7 @@ macro_rules! crud_route {
           load,
           visibility,
           user_id,
+          profile_id,
           page,
           limit,
         )

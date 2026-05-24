@@ -30,6 +30,7 @@ pub async fn change_todo_visibility(
       None,
       None,
       Some(user_id.clone()),
+      None, // profile_id
       None,
       None,
     )
@@ -66,6 +67,7 @@ pub async fn change_todo_visibility(
       None,
       None,
       Some(user_id.clone()),
+      None, // profile_id
       None,
       None,
     )
@@ -126,6 +128,7 @@ pub async fn update_todo_permissions(
       None,
       None,
       Some(user_id),
+      None, // profile_id
       None,
       None,
     )
@@ -161,6 +164,7 @@ pub async fn transfer_todo_ownership(
       None,
       None,
       Some(user_id),
+      None, // profile_id
       None,
       None,
     )
@@ -195,6 +199,7 @@ pub async fn get_todo_permissions(
       None,
       None,
       Some(user_id),
+      None, // profile_id
       None,
       None,
     )
