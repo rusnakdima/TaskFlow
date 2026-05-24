@@ -1,6 +1,5 @@
 /* sys lib */
-import { Component, EventEmitter, Output } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { EventEmitter, Output } from "@angular/core";
 
 /* models */
 import { TaskStatus } from "@models/generated/api.types";

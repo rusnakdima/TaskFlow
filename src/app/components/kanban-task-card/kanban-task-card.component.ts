@@ -5,6 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
+import { TodoPermission } from "@services/core/permission.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -25,12 +26,33 @@ export class KanbanTaskCardComponent {
   @Input() todo_id: string = "";
   @Input() subtasks: Subtask[] = [];
   @Input() isSelected: boolean = false;
+  @Input() userPermission: TodoPermission = TodoPermission.VIEWER;
 
   @Output() statusCycle = new EventEmitter<Task>();
   @Output() selectionChange = new EventEmitter<boolean>();
   @Output() cardClick = new EventEmitter<Task>();
 
   TaskStatus = TaskStatus;
+  TodoPermission = TodoPermission;
+
+  private readonly isAdminPermission = [
+    TodoPermission.ADMIN,
+    TodoPermission.MODERATOR,
+    TodoPermission.OWNER,
+  ];
+
+  isStatusToggleDisabled(): boolean {
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (this.isAdminPermission.includes(this.userPermission)) {
+      return false;
+    }
+    if (this.userPermission === TodoPermission.EDITOR) {
+      return false;
+    }
+    return true;
+  }
 
   getPriorityDotColor(priority: string): string {
     const p = (priority || "medium").toLowerCase();

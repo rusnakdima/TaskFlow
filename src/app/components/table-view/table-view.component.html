@@ -289,12 +289,15 @@
                       class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
                       [class.opacity-50]="isActionDisabledForItem(item)"
                       [class.cursor-not-allowed]="isActionDisabledForItem(item)"
+                      [class.pointer-events-none]="isActionDisabledForItem(item)"
                       [disabled]="isActionDisabledForItem(item)"
                       [class]="getActionColor(action)"
                       (click)="
                         onActionClickHandler(action.key || '', item); $event.stopPropagation()
                       "
-                      [title]="action.label"
+                      [title]="
+                        isActionDisabledForItem(item) ? 'You do not have permission' : action.label
+                      "
                     >
                       <mat-icon class="text-2xl!" [fontIcon]="action.icon || ''" />
                     </button>

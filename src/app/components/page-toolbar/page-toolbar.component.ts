@@ -72,7 +72,7 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
   }
 
   getViewModes(): ViewMode[] {
-    return this.config?.viewMode?.modes || ["card", "grid", "list"];
+    return this.config?.viewMode?.modes || ["grid", "table", "list"];
   }
 
   getViewModeTabs(): ViewModeTab[] {

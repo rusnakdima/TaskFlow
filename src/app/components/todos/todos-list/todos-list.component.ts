@@ -270,11 +270,22 @@ export class TodosListComponent {
   }
 
   onTodoAction(event: { action: string; item: Todo }): void {
+    const perm = this.getUserTodoPermission(event.item);
     switch (event.action) {
       case "archive":
+        if (
+          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
+        ) {
+          return;
+        }
         this.todoArchived.emit(event.item.id);
         break;
       case "restore":
+        if (
+          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
+        ) {
+          return;
+        }
         this.todoRestored.emit(event.item.id);
         break;
       case "blueprint":
@@ -284,6 +295,9 @@ export class TodosListComponent {
         this.todoSavedAsBlueprint.emit(event.item);
         break;
       case "delete":
+        if (perm !== TodoPermission.OWNER) {
+          return;
+        }
         this.todoDeleted.emit({
           id: event.item.id,
           isOwner: event.item.user_id === this.userId,
@@ -316,11 +330,22 @@ export class TodosListComponent {
 
   onTodoCardAction(event: { action: string; item: Todo }): void {
     const todo = event.item;
+    const perm = this.getUserTodoPermission(todo);
     switch (event.action) {
       case "archive":
+        if (
+          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
+        ) {
+          return;
+        }
         this.todoArchived.emit(todo.id);
         break;
       case "restore":
+        if (
+          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
+        ) {
+          return;
+        }
         this.todoRestored.emit(todo.id);
         break;
       case "blueprint":
@@ -330,6 +355,9 @@ export class TodosListComponent {
         this.todoSavedAsBlueprint.emit(todo);
         break;
       case "delete":
+        if (perm !== TodoPermission.OWNER) {
+          return;
+        }
         this.todoDeleted.emit({
           id: todo.id,
           isOwner: todo.user_id === this.userId,
