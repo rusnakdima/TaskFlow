@@ -19,11 +19,18 @@
     </div>
     <div class="flex items-center gap-2">
       <mat-icon
-        class="h-5! w-5! min-w-5 cursor-pointer text-xl! transition-colors hover:opacity-75"
+        class="h-5! w-5! min-w-5 text-xl! transition-colors hover:opacity-75"
         [ngClass]="getStatusColorClass(task.status)"
         [fontIcon]="getStatusIcon(task.status)"
-        (click)="onStatusCycleClick($event)"
-        [title]="'Status: ' + task.status + ' (click to change)'"
+        (click)="isStatusToggleDisabled() ? null : onStatusCycleClick($event)"
+        [class.cursor-pointer]="!isStatusToggleDisabled()"
+        [class.cursor-default]="isStatusToggleDisabled()"
+        [class.opacity-30]="isStatusToggleDisabled()"
+        [title]="
+          isStatusToggleDisabled()
+            ? 'You cannot change status'
+            : 'Status: ' + task.status + ' (click to change)'
+        "
       />
       <button
         class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-600 dark:hover:text-gray-300"

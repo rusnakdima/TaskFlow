@@ -313,17 +313,15 @@ export class TableViewComponent extends ItemRowBaseComponent {
   toggleCommentsById(id: string): void {
     this.toggleCommentsEvent.emit(id);
     const item = this.data.find((d) => d.id === id);
-    if (item) queueMicrotask(() => this.setCurrentItem(item));
-    queueMicrotask(() => {
-      this.expandedComments.update((expanded) => {
-        const newExpanded = new Set(expanded);
-        if (newExpanded.has(id)) {
-          newExpanded.delete(id);
-        } else {
-          newExpanded.add(id);
-        }
-        return newExpanded;
-      });
+    if (item) this.setCurrentItem(item);
+    this.expandedComments.update((expanded) => {
+      const newExpanded = new Set(expanded);
+      if (newExpanded.has(id)) {
+        newExpanded.delete(id);
+      } else {
+        newExpanded.add(id);
+      }
+      return newExpanded;
     });
   }
 
@@ -467,23 +465,15 @@ export class TableViewComponent extends ItemRowBaseComponent {
     if (this.isAdminPermission.includes(this.userPermission)) {
       return false;
     }
-    if (this.userPermission === TodoPermission.EDITOR && item) {
-      const userId = this.authServiceLocal.getValueByKey("id");
-      return item.user_id !== userId;
-    }
     return true;
   }
 
-  isStatusToggleDisabledForItem(item: any): boolean {
+  isStatusToggleDisabledForItem(_item: any): boolean {
     if (this.userPermission === TodoPermission.VIEWER) {
       return true;
     }
     if (this.isAdminPermission.includes(this.userPermission)) {
       return false;
-    }
-    if (this.userPermission === TodoPermission.EDITOR && item) {
-      const userId = this.authServiceLocal.getValueByKey("id");
-      return item.user_id !== userId;
     }
     return true;
   }

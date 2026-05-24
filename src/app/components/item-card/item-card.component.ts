@@ -96,7 +96,6 @@ export class ItemCardComponent {
   ];
 
   isActionDisabled(): boolean {
-    // For categories, check ownership directly since they don't use TodoPermission
     if (this.itemType === "category" && this.item) {
       const currentUserId = this.authService.getValueByKey("id");
       return (this.item as any).user_id !== currentUserId;
@@ -107,10 +106,6 @@ export class ItemCardComponent {
     }
     if (this.isAdminPermission.includes(this.userPermission)) {
       return false;
-    }
-    if (this.userPermission === TodoPermission.EDITOR && this.item) {
-      const userId = this.authService.getValueByKey("id");
-      return (this.item as any).user_id !== userId;
     }
     return true;
   }
