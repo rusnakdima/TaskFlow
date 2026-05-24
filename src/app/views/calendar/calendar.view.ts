@@ -67,7 +67,7 @@ export class CalendarView extends BaseListView implements OnInit {
   ];
 
   private allEvents = computed<CalendarEvent[]>(() => {
-    const tasks = this.storageService.tasks();
+    const tasks = this.storage.activeTasks();
     return this.buildEventsFromTasks(tasks);
   });
 
@@ -85,9 +85,9 @@ export class CalendarView extends BaseListView implements OnInit {
 
   override ngOnInit(): void {
     super.ngOnInit();
-    this.storageService.ensureTasksLoaded("private", 10);
-    this.storageService.ensureTasksLoaded("shared", 10);
-    this.storageService.ensureTasksLoaded("public", 10);
+    this.storage.ensureTasksLoaded(undefined, "private", 10);
+    this.storage.ensureTasksLoaded(undefined, "shared", 10);
+    this.storage.ensureTasksLoaded(undefined, "public", 10);
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       if (!this.authService.isLoggedIn()) {

@@ -24,7 +24,6 @@ import {
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
-import { StorageService } from "@services/storage.service";
 import { SearchService } from "@services/core/search.service";
 
 /* views */
@@ -70,7 +69,6 @@ export class CategoriesView extends BaseListView implements OnInit {
   private adminService = inject(AdminService);
   private confirmDialogService = inject(ConfirmDialogService);
   private relationLoadingService = inject(RelationLoadingService);
-  protected override storageService = inject(StorageService);
   private searchService = inject(SearchService);
   private route = inject(ActivatedRoute);
 
@@ -92,19 +90,23 @@ export class CategoriesView extends BaseListView implements OnInit {
       id: "all",
       label: "All",
       icon: "apps",
-      count: this.storageService.categories().filter((c: Category) => !c.deleted_at).length,
+      count: this.storage.categories().filter((c: Category) => !c.deleted_at).length,
     },
     {
       id: "local",
       label: "Local",
       icon: "folder",
-      count: this.storageService.localCategories().filter((c: Category) => !c.deleted_at).length,
+      count: this.storage
+        .categories()
+        .filter((c: Category) => !c.deleted_at && c.visibility === "local").length,
     },
     {
       id: "cloud",
       label: "Cloud",
       icon: "cloud",
-      count: this.storageService.cloudCategories().filter((c: Category) => !c.deleted_at).length,
+      count: this.storage
+        .categories()
+        .filter((c: Category) => !c.deleted_at && c.visibility === "cloud").length,
     },
   ]);
 
@@ -135,10 +137,10 @@ export class CategoriesView extends BaseListView implements OnInit {
     const vis = this.activeVisibility();
     const cats =
       vis === "local"
-        ? this.storageService.localCategories()
+        ? this.storage.categories().filter((c: Category) => c.visibility === "local")
         : vis === "cloud"
-          ? this.storageService.cloudCategories()
-          : this.storageService.categories();
+          ? this.storage.categories().filter((c: Category) => c.visibility === "cloud")
+          : this.storage.categories();
 
     let filtered = cats.filter((c: Category) => !c.deleted_at);
 
@@ -233,7 +235,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       return;
     }
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
-    this.storageService.ensureCategoriesLoaded(visibility, 100);
+    this.storage.ensureCategoriesLoaded("all", 100);
     this.categoriesPagination.update((p) => ({
       ...p,
       loading: false,
@@ -245,7 +247,7 @@ export class CategoriesView extends BaseListView implements OnInit {
   loadMoreCategories(): void {
     if (this.categoriesPagination().loading || !this.categoriesPagination().hasMore) return;
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
-    this.storageService.loadMoreCategories();
+    this.storage.loadMoreCategories();
   }
 
   toggleCreateForm() {
@@ -289,11 +291,9 @@ export class CategoriesView extends BaseListView implements OnInit {
         );
         if (response.status === ResponseStatus.SUCCESS) {
           this.notifyService.showSuccess("Category archived successfully");
-          const archivedCategory = this.storageService
-            .categories()
-            .find((c) => c.id === categoryId);
+          const archivedCategory = this.storage.categories().find((c) => c.id === categoryId);
           if (archivedCategory) {
-            this.storageService.updateEntity("categories", {
+            this.storage.updateEntity("categories", archivedCategory.id, {
               ...archivedCategory,
               deleted_at: new Date().toISOString(),
             });
@@ -340,13 +340,16 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       const currentVisibility = this.activeVisibility();
-      const categories = this.storageService.categories();
+      const categories = this.storage.categories();
       const archivedAt = new Date().toISOString();
 
       Array.from(selected).forEach((categoryId) => {
         const category = categories.find((c) => c.id === categoryId);
         if (category) {
-          this.storageService.updateEntity("categories", { ...category, deleted_at: archivedAt });
+          this.storage.updateEntity("categories", category.id, {
+            ...category,
+            deleted_at: archivedAt,
+          });
         }
       });
 

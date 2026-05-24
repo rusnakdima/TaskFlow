@@ -127,14 +127,15 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   userPermission = signal<TodoPermission>(TodoPermission.VIEWER);
 
-  canCreateTask = computed(() =>
-    [
+  canCreateTask = computed(() => {
+    if (this.permissionService.isGlobalAdmin()) return true;
+    return [
       TodoPermission.EDITOR,
       TodoPermission.ADMIN,
       TodoPermission.MODERATOR,
       TodoPermission.OWNER,
-    ].includes(this.userPermission())
-  );
+    ].includes(this.userPermission());
+  });
 
   protected get selectedTasks() {
     return this.selectedItems;
@@ -235,11 +236,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       return;
     }
 
-    if (todo.visibility === "public") {
-      this.userPermission.set(TodoPermission.VIEWER);
-      return;
-    }
-
     const token = this.jwtTokenService.getToken() || "";
     const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
       todo.id,
@@ -263,7 +259,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    const cachedTasks = this.storageService.tasksByTodoId().get(todoId) || [];
+    const cachedTasks = this.storage.tasksByTodoId().get(todoId) || [];
 
     if (cachedTasks.length > 0 && !forceRefresh) {
       const storedTotal = this.taskPagination().total;
@@ -307,7 +303,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
     const todoId = this.todoId();
     if (!todoId) return;
-    this.storageService.loadMoreTasks(todoId);
+    this.storage.loadMoreTasks(todoId);
   }
 
   override onSearchChange(query: string): void {
@@ -330,7 +326,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
 
-    const currentChats = this.storageService.chats();
+    const currentChats = this.storage.chats();
     if (currentChats.length === 0) return 0;
 
     let count = 0;
@@ -348,7 +344,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskSubtasks(taskId: string): Subtask[] {
-    return this.storageService.subtasksByTaskId().get(taskId) || [];
+    return this.storage.subtasksByTaskId().get(taskId) || [];
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -510,7 +506,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
     this.apiService.tasks.update(task.id, { status }, todo.visibility || "private").subscribe({
       next: (updatedTask) => {
-        this.storageService.modify("tasks", "update", { ...updatedTask, id: task.id });
+        this.storage.updateEntitySignal("tasks", task.id, { ...updatedTask, id: task.id });
         this.todoTasks.update((tasks) =>
           tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
         );
@@ -548,7 +544,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .update(subtask.id, { status: newStatus }, todo.visibility || "private")
       .subscribe({
         next: (updatedSubtask) => {
-          this.storageService.modify("subtasks", "update", { ...updatedSubtask, id: subtask.id });
+          this.storage.updateEntitySignal("subtasks", subtask.id, {
+            ...updatedSubtask,
+            id: subtask.id,
+          });
         },
         error: () => {
           this.notifyService.showError("Failed to update subtask status");
@@ -606,8 +605,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         if (createdTask?.todo_id) {
           const parentTodo = this.todo();
           if (parentTodo) {
-            this.storageService.modify("todos", "update", {
-              id: createdTask.todo_id,
+            this.storage.updateEntitySignal("todos", parentTodo.id, {
               tasks_count: (parentTodo.tasks_count || 0) + 1,
             });
           }
@@ -635,7 +633,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .update(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
       .subscribe({
         next: (updatedTask) => {
-          this.storageService.modify("tasks", "update", { ...updatedTask, id: event.task.id });
+          this.storage.updateEntitySignal("tasks", event.task.id, {
+            ...updatedTask,
+            id: event.task.id,
+          });
         },
         error: () => {
           this.notifyService.showError("Failed to update task");
@@ -999,7 +1000,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storageService.todoMap().get(todoId);
+    const todo = this.storage.todoMap().get(todoId);
     return todo?.title || "-";
   }
 

@@ -226,8 +226,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTask(taskId: string): void {
-    const taskReactive = this.storageService.watch("tasks", taskId);
-    const reactiveTask = taskReactive();
+    const reactiveTask = this.storage.taskMap().get(taskId);
     if (reactiveTask) {
       this.task.set(reactiveTask);
       if (reactiveTask.todo_id) {
@@ -238,7 +237,7 @@ export class SubtasksViewComponent extends BaseListView {
       this.apiService.tasks.get(taskId).subscribe({
         next: (task) => {
           if (task) {
-            this.storageService.modify("tasks", "create", task as any);
+            this.storage.addEntity("tasks", task as any);
             this.task.set(task);
             if (task.todo_id) {
               this.loadTodo(task.todo_id);
@@ -256,8 +255,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTodo(todoId: string): void {
-    const todoReactive = this.storageService.watch("todos", todoId);
-    const reactiveTodo = todoReactive();
+    const reactiveTodo = this.storage.todoMap().get(todoId);
     if (reactiveTodo) {
       this.todo.set(reactiveTodo);
       this.todoId.set(reactiveTodo.id);
@@ -359,7 +357,7 @@ export class SubtasksViewComponent extends BaseListView {
     if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
     const taskId = this.task()?.id;
     if (!taskId) return;
-    this.storageService.loadMoreSubtasks(taskId);
+    this.storage.loadMoreSubtasks(taskId);
   }
 
   constructor() {
@@ -430,8 +428,7 @@ export class SubtasksViewComponent extends BaseListView {
     } else {
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const taskReactive = this.storageService.watch("tasks", taskId);
-        const reactiveTask = taskReactive();
+        const reactiveTask = this.storage.taskMap().get(taskId);
         if (reactiveTask) {
           this.task.set(reactiveTask);
           this.loadTodo(reactiveTask.todo_id);
@@ -554,9 +551,7 @@ export class SubtasksViewComponent extends BaseListView {
   getUnreadCountForSubtask(subtaskId: string): number {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
-    const comments = this.storageService
-      .comments()
-      .filter((c) => c.subtask_id === subtaskId && !c.deleted_at);
+    const comments = this.storage.commentsBySubtaskId().get(subtaskId) || [];
     return comments.filter(
       (c) => c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
     ).length;
@@ -898,7 +893,7 @@ export class SubtasksViewComponent extends BaseListView {
     const subtask_id = event.itemId;
     this.commentService.createComment(event.content, { subtaskId: subtask_id }).subscribe({
       next: (comment) => {
-        this.storageService.addCommentToSubtask(comment, subtask_id);
+        this.storage.addEntity("comments", comment);
       },
       error: () => {
         this.notifyService.showError("Failed to add comment");
@@ -907,7 +902,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskCommentDelete(commentId: string): void {
-    this.storageService.removeCommentFromAll(commentId);
+    this.storage.removeEntity("comments", commentId);
     this.apiService.comments.delete(commentId).subscribe();
   }
 
@@ -965,10 +960,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskCommentToggle(subtaskId: string): void {
-    this.storageService.ensureSubtaskCommentsLoaded(
-      subtaskId,
-      this.todo()?.visibility || "private"
-    );
+    this.storage.ensureCommentsLoaded(undefined, this.todo()?.visibility || "private");
     this.commentExpandedSubtasks.update((set) => {
       const newSet = new Set(set);
       if (newSet.has(subtaskId)) {
@@ -1021,7 +1013,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storageService.taskMap().get(taskId);
+    const task = this.storage.taskMap().get(taskId);
     return task?.title || "-";
   }
 

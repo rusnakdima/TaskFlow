@@ -26,7 +26,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { AdminStorageService } from "@services/core/admin-storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -102,7 +102,7 @@ export class DataManagementView implements OnInit {
 
   protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
-  protected storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected adminCascadeService = inject(AdminCascadeService);
@@ -847,33 +847,33 @@ export class DataManagementView implements OnInit {
   }
 
   resolveUserName(userId: string): string {
-    return this.storageService.getUsername(userId);
+    return this.storage.getUsername(userId);
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storageService.todoMap().get(todoId);
+    const todo = this.storage.todoMap().get(todoId);
     return todo?.title || "-";
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storageService.taskMap().get(taskId);
+    const task = this.storage.taskMap().get(taskId);
     return task?.title || "-";
   }
 
   resolveSubtaskTitle(subtaskId: string): string {
-    const subtask = this.storageService.subtaskMap().get(subtaskId);
+    const subtask = this.storage.subtaskMap().get(subtaskId);
     return subtask?.title || "-";
   }
 
   populateFilterLists(): void {
     this.userList.set(
-      this.storageService.users().map((u) => ({
+      this.storage.users().map((u) => ({
         id: u.id,
-        label: this.storageService.getUsername(u.id),
+        label: this.storage.getUsername(u.id),
       }))
     );
 
-    const todos = this.storageService.todos();
+    const todos = this.storage.todos();
     this.todoList.set(
       todos.map((t) => ({
         id: t.id,
@@ -881,7 +881,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const tasks = this.storageService.tasks();
+    const tasks = this.storage.tasks();
     this.taskList.set(
       tasks.map((t) => ({
         id: t.id,
@@ -889,7 +889,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const subtasks = this.storageService.subtasks();
+    const subtasks = this.storage.subtasks();
     this.subtaskList.set(
       subtasks.map((s) => ({
         id: s.id,
@@ -897,7 +897,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const categories = this.storageService.categories();
+    const categories = this.storage.categories();
     this.categoryList.set(
       categories.map((c) => ({
         id: c.id,

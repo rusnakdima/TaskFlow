@@ -12,7 +12,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { GithubService } from "@services/github/github.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ApiService } from "@services/api.service";
@@ -54,7 +54,7 @@ export class ManageTodoPage implements OnInit {
   private location = inject(Location);
   private authService = inject(AuthService);
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private githubService = inject(GithubService);
@@ -100,6 +100,11 @@ export class ManageTodoPage implements OnInit {
       this.userPermission()
     )
   );
+  canEditPriority = computed(() =>
+    [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      this.userPermission()
+    )
+  );
 
   visibility = signal<string>("private");
 
@@ -123,11 +128,12 @@ export class ManageTodoPage implements OnInit {
 
     if (!this.isEdit()) {
       this.userPermission.set(TodoPermission.OWNER);
+      this.isOwner.set(true);
     }
   }
 
   private loadCategories(): void {
-    this.categories.set(this.storageService.categories());
+    this.categories.set(this.storage.categories());
 
     this.requestService
       .loadPage<Category>("categories", { visibility: "private", limit: 50, skip: 0 })
@@ -136,7 +142,7 @@ export class ManageTodoPage implements OnInit {
           this.categories.set(categories);
         },
         error: () => {
-          this.categories.set(this.storageService.categories());
+          this.categories.set(this.storage.categories());
         },
       });
   }
@@ -356,7 +362,7 @@ export class ManageTodoPage implements OnInit {
       if (this.isEdit()) {
         const id = formValue._id || formValue.id;
         const result = await firstValueFrom(this.apiService.todos.update(id, payload, visibility));
-        this.storageService.modify("todos", "update", { ...result, id });
+        this.storage.updateEntitySignal("todos", id, { ...result, id });
 
         await this.syncTodoVisibilityOnChange(
           formValue.id,
@@ -420,7 +426,7 @@ export class ManageTodoPage implements OnInit {
       const target = toVisibility === "private" ? "Json" : "Mongo";
 
       if (source === target) {
-        this.storageService.updateEntityVisibility("todos", todoId, toVisibility);
+        this.storage.updateEntitySignal("todos", todoId, { id: todoId, visibility: toVisibility });
         return;
       }
 
@@ -434,7 +440,7 @@ export class ManageTodoPage implements OnInit {
         })
       );
 
-      this.storageService.updateEntityVisibility("todos", todoId, toVisibility);
+      this.storage.updateEntitySignal("todos", todoId, { id: todoId, visibility: toVisibility });
 
       await firstValueFrom(this.apiService.todos.get(todoId, toVisibility));
     } catch (error: any) {

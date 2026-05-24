@@ -6,7 +6,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 
 export type ViewMode = "card" | "grid" | "table" | "list" | "kanban";
 
@@ -37,7 +37,7 @@ export abstract class BaseListView implements OnInit, OnDestroy {
   protected shortcutService = inject(ShortcutService);
   protected bulkActionService = inject(BulkActionService);
   protected authService = inject(AuthService);
-  protected storageService = inject(StorageService);
+  protected storage = inject(UnifiedStorageService);
   protected dataLoader = inject(ApiService);
   protected dataService = inject(ApiService);
 

@@ -23,7 +23,7 @@ import { FormField, TypeField } from "@models/form-field.model";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
 @Component({
@@ -42,13 +42,14 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
 export class ManageProfileView implements OnInit {
   isEditMode: boolean = false;
   isProfileRequired: boolean = false;
+  private userId: string = "";
   private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private apiService = inject(ApiService);
-  private storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
   private profileRequiredService = inject(ProfileRequiredService);
 
   form: FormGroup = this.fb.group({
@@ -93,33 +94,33 @@ export class ManageProfileView implements OnInit {
   ];
 
   ngOnInit() {
-    const userId = this.authService.getValueByKey("id");
-    if (!userId) {
+    this.userId = this.authService.getValueByKey("id") || "";
+    if (!this.userId) {
       this.notifyService.showError("You are not logged in");
       this.router.navigate(["/login"]);
       return;
     }
 
-    this.form.controls["user_id"].setValue(userId);
+    this.form.controls["user_id"].setValue(this.userId);
     this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
 
-    let profile = this.storageService.profile();
+    let profile = this.storage.profiles().find((p) => p.user_id === this.userId);
 
     if (!profile) {
       let attempts = 0;
       const maxAttempts = 10;
       const checkProfile = setInterval(() => {
         attempts++;
-        profile = this.storageService.profile();
+        profile = this.storage.profiles().find((p) => p.user_id === this.userId);
         if (profile || attempts >= maxAttempts) {
           clearInterval(checkProfile);
-          if (profile && profile.user_id === userId) {
+          if (profile && profile.user_id === this.userId) {
             this.isEditMode = true;
             this.form.patchValue(profile);
           }
         }
       }, 100);
-    } else if (profile.user_id === userId) {
+    } else if (profile.user_id === this.userId) {
       this.isEditMode = true;
       this.form.patchValue(profile);
     }
@@ -146,12 +147,12 @@ export class ManageProfileView implements OnInit {
       const body = this.form.value;
 
       if (this.isEditMode) {
-        const profile = this.storageService.profile();
-        if (profile) {
+        const currentProfile = this.storage.profiles().find((p) => p.user_id === this.userId);
+        if (currentProfile) {
           const { _id, ...updateData } = body;
-          const sub = this.apiService.profiles.update(profile.id, updateData).subscribe({
+          const sub = this.apiService.profiles.update(currentProfile.id, updateData).subscribe({
             next: (updatedProfile) => {
-              this.storageService.setCollection("profiles", updatedProfile);
+              this.storage.updateEntitySignal("profiles", updatedProfile.id, updatedProfile);
               this.notifyService.showSuccess("Profile updated successfully");
               this.profileRequiredService.setProfileRequiredMode(false);
               this.router.navigate(["/profile"]);
@@ -166,7 +167,7 @@ export class ManageProfileView implements OnInit {
       } else {
         const sub = this.apiService.profiles.create(body).subscribe({
           next: (newProfile) => {
-            this.storageService.setCollection("profiles", newProfile);
+            this.storage.addEntity("profiles", newProfile);
             this.notifyService.showSuccess("Profile created successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
             this.router.navigate(["/"]);
