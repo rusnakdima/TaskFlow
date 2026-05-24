@@ -1,6 +1,5 @@
 import { Injectable } from "@angular/core";
 import { Router, NavigationEnd } from "@angular/router";
-import { Location } from "@angular/common";
 import { filter } from "rxjs";
 import { ShortcutEmittersService } from "./shortcut-emitters.service";
 
@@ -12,7 +11,6 @@ export class NavigationContextService {
 
   constructor(
     private router: Router,
-    private location: Location,
     private emitters: ShortcutEmittersService
   ) {
     this.router.events

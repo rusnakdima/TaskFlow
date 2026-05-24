@@ -864,13 +864,19 @@ export class StorageQueryService {
     });
   }
 
+  private _loadingTaskComments = new Set<string>();
+
   ensureTaskCommentsLoaded(
     taskId: string,
     visibility: string = "private",
     limit: number = 10
   ): void {
+    if (this._loadingTaskComments.has(taskId)) {
+      return;
+    }
     const existingComments = this.commentsByTaskId().get(taskId) || [];
     if (existingComments.length > 0) return;
+    this._loadingTaskComments.add(taskId);
     this._commentsLoading.set(true);
     this.apiService.comments
       .getAll({ visibility, limit, filter: { task_id: taskId }, load: ["user"] })
@@ -884,6 +890,7 @@ export class StorageQueryService {
         },
         error: () => {},
         complete: () => {
+          this._loadingTaskComments.delete(taskId);
           this._commentsLoading.set(false);
         },
       });

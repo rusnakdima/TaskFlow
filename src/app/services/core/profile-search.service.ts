@@ -13,12 +13,14 @@ import { Profile } from "@models/generated/api.types";
 import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
+import { MongoConnectionService } from "@services/core/mongo-connection.service";
 
 @Injectable({ providedIn: "root" })
 export class ProfileSearchService {
   private apiService = inject(ApiService);
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
+  private mongoConnectionService = inject(MongoConnectionService);
 
   private _profiles = signal<Profile[]>([]);
   private _isLoading = signal(false);
@@ -64,6 +66,17 @@ export class ProfileSearchService {
       return of(stored);
     }
 
+    if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
+      const localProfiles = this.storageService.allProfiles() || [];
+      if (localProfiles.length > 0) {
+        this._profiles.set(localProfiles);
+        this._isInitialized.set(true);
+        this._hasMore.set(false);
+        return of(localProfiles);
+      }
+      return of([]);
+    }
+
     return this.loadFromDb(0);
   }
 
@@ -81,6 +94,22 @@ export class ProfileSearchService {
   private performSearch(query: string): Observable<Profile[]> {
     if (!query.trim()) {
       return this.loadInitial();
+    }
+
+    if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
+      const stored = this.storageService.allProfiles() || [];
+      const lowerQuery = query.toLowerCase();
+      const filtered = stored.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(lowerQuery) ||
+          p.last_name?.toLowerCase().includes(lowerQuery) ||
+          p.bio?.toLowerCase().includes(lowerQuery)
+      );
+      this._profiles.set(filtered);
+      this._hasMore.set(false);
+      this._isLoading.set(false);
+      this._isSearching.set(false);
+      return of(filtered);
     }
 
     this._isLoading.set(true);
