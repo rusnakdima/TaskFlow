@@ -47,6 +47,7 @@ export interface Todo {
   category_ids?: string[];
   assignees: string[];
   assignee_ids?: string[];
+  assignee_roles?: Record<string, string>;
   visibility: string;
   priority: string;
   order: number;

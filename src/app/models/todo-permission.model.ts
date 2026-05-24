@@ -2,6 +2,7 @@ export enum TodoPermission {
   VIEWER = "viewer",
   EDITOR = "editor",
   ADMIN = "admin",
+  MODERATOR = "moderator",
   OWNER = "owner",
 }
 
@@ -32,6 +33,8 @@ export function getPermissionFromRole(role: string): TodoPermission {
       return TodoPermission.EDITOR;
     case "admin":
       return TodoPermission.ADMIN;
+    case "moderator":
+      return TodoPermission.MODERATOR;
     case "owner":
       return TodoPermission.OWNER;
     default:
@@ -40,7 +43,11 @@ export function getPermissionFromRole(role: string): TodoPermission {
 }
 
 export function hasEditPermission(permission: TodoPermission): boolean {
-  return permission === TodoPermission.ADMIN || permission === TodoPermission.OWNER;
+  return (
+    permission === TodoPermission.ADMIN ||
+    permission === TodoPermission.MODERATOR ||
+    permission === TodoPermission.OWNER
+  );
 }
 
 export function hasDeletePermission(permission: TodoPermission): boolean {
@@ -48,7 +55,11 @@ export function hasDeletePermission(permission: TodoPermission): boolean {
 }
 
 export function hasManagePermissionsPermission(permission: TodoPermission): boolean {
-  return permission === TodoPermission.ADMIN || permission === TodoPermission.OWNER;
+  return (
+    permission === TodoPermission.ADMIN ||
+    permission === TodoPermission.MODERATOR ||
+    permission === TodoPermission.OWNER
+  );
 }
 
 export function hasTransferOwnershipPermission(permission: TodoPermission): boolean {
@@ -59,6 +70,7 @@ export function hasCreateTaskPermission(permission: TodoPermission): boolean {
   return (
     permission === TodoPermission.EDITOR ||
     permission === TodoPermission.ADMIN ||
+    permission === TodoPermission.MODERATOR ||
     permission === TodoPermission.OWNER
   );
 }

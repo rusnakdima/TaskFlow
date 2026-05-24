@@ -15,6 +15,7 @@ export class ScrollingMixin {
   ): void {
     if (typeof window === "undefined") return;
 
+    this.observer?.disconnect();
     this.observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

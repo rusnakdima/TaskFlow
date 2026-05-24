@@ -1,5 +1,4 @@
 import { Todo, Task, Subtask, Comment, Chat } from "./generated/api.types";
-import { Category } from "./category.model";
 
 export interface ArchiveDataMap {
   [key: string]: any[];
@@ -14,7 +13,7 @@ export interface DailyActivity {
   deleted_at?: string | null;
 }
 
-export type ArchiveRecord = Todo | Task | Subtask | Comment | Chat | Category | DailyActivity;
+export type ArchiveRecord = Todo | Task | Subtask | Comment | Chat | DailyActivity;
 
 export interface ArchiveDataTypes {
   id: string;
