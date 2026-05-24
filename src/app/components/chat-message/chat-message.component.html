@@ -14,6 +14,19 @@
       </div>
     }
 
+    @if (message.replyTo) {
+      <div
+        class="mb-1.5 flex items-center gap-1.5 border-l-4 border-[var(--accent-color)] pl-2.5 opacity-85"
+      >
+        <span class="text-xs font-semibold whitespace-nowrap text-[var(--accent-color)]">{{
+          message.replyTo.senderName
+        }}</span>
+        <span class="truncate text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {{ message.replyTo.content }}
+        </span>
+      </div>
+    }
+
     <div class="group relative flex max-w-full flex-col">
       <div
         class="bubble word-break relative flex min-h-11 max-w-full flex-col rounded-2xl px-4 py-3 transition-all duration-200 ease-out hover:-translate-y-px"
@@ -49,20 +62,6 @@
             </div>
           </div>
         } @else {
-          @if (message.replyTo) {
-            <div
-              class="mb-2 flex flex-col border-l-4 border-[var(--accent-color)] pl-2.5 opacity-85"
-            >
-              <span class="mb-0.5 text-xs font-semibold text-[var(--accent-color)]">{{
-                message.replyTo.senderName
-              }}</span>
-              <p
-                class="m-0 max-w-56 overflow-hidden text-xs leading-relaxed text-ellipsis whitespace-nowrap text-zinc-600 dark:text-zinc-400"
-              >
-                {{ message.replyTo.content }}
-              </p>
-            </div>
-          }
           <p class="m-0 flex-1 text-sm leading-relaxed whitespace-pre-wrap">
             {{ message.content }}
           </p>

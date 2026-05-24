@@ -12,5 +12,6 @@ import { MatIconModule } from "@angular/material/icon";
 })
 export class PrioritySectionComponent {
   @Input() priority = "medium";
+  @Input() disabled = false;
   @Output() priorityChange = new EventEmitter<string>();
 }
