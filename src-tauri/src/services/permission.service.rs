@@ -205,7 +205,11 @@ impl PermissionService {
     false
   }
 
-  pub fn get_todo_filter_for_user(user_id: &str, visibility: Option<&str>) -> Value {
+  pub fn get_todo_filter_for_user(
+    user_id: &str,
+    profile_id: Option<&str>,
+    visibility: Option<&str>,
+  ) -> Value {
     match visibility.unwrap_or("private") {
       "private" => {
         json!({
@@ -214,29 +218,33 @@ impl PermissionService {
         })
       }
       "shared" => {
+        let assignee_filter = if let Some(pid) = profile_id {
+          json!({ "assignees": { "$in": [pid] } })
+        } else {
+          json!({ "assignees": { "$in": [user_id] } })
+        };
         json!({
             "visibility": "shared",
             "$or": [
                 { "user_id": user_id },
-                { "assignees": { "$in": [user_id] } }
+                assignee_filter
             ]
         })
       }
       "public" => {
-        json!({
-            "visibility": "public",
-            "$or": [
-                { "user_id": user_id },
-                { "assignees": { "$in": [user_id] } }
-            ]
-        })
+        json!({ "visibility": "public" })
       }
       "all" => {
+        let shared_assignee_filter = if let Some(pid) = profile_id {
+          json!({ "assignees": { "$in": [pid] } })
+        } else {
+          json!({ "assignees": { "$in": [user_id] } })
+        };
         json!({
             "$or": [
                 { "visibility": "private", "user_id": user_id },
-                { "visibility": "shared", "$or": [{ "user_id": user_id }, { "assignees": { "$in": [user_id] } }] },
-                { "visibility": "public", "$or": [{ "user_id": user_id }, { "assignees": { "$in": [user_id] } }] }
+                { "visibility": "shared", "$or": [{ "user_id": user_id }, shared_assignee_filter] },
+                { "visibility": "public" }
             ]
         })
       }

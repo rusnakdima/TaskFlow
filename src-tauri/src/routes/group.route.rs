@@ -201,6 +201,7 @@ pub async fn send_message(
   receiver_id: Option<String>,
   dm_name: String,
   content: String,
+  reply_id: Option<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_from_token(
@@ -219,12 +220,16 @@ pub async fn send_message(
     )
     .await;
 
-  let data = serde_json::json!({
+  let mut data = serde_json::json!({
     "room_id": room_id,
     "sender_id": sender_id,
     "content": content,
     "read_by": [sender_id]
   });
+
+  if let Some(ref rid) = reply_id {
+    data["reply_id"] = serde_json::json!(rid);
+  }
 
   state.chat_service.create(data).await
 }
