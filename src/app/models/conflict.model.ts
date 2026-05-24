@@ -2,14 +2,17 @@ import { Todo, Task, Subtask } from "./generated/api.types";
 
 export interface Conflict {
   id: string;
-  entityType: "todo" | "task" | "subtask";
+  entityType: "todo" | "task" | "subtask" | "category";
   entityId: string;
-  localVersion: Todo | Task | Subtask;
-  remoteVersion: Todo | Task | Subtask;
-  timestamp: number;
+  localVersion: number;
+  remoteVersion: number;
+  localData: Todo | Task | Subtask | any;
+  remoteData: Todo | Task | Subtask | any;
+  timestamp: string;
+  resolved: boolean;
 }
 
-export type ConflictResolution = "keep_local" | "keep_remote" | "merge" | "skip";
+export type ConflictResolution = "local" | "remote" | "merge" | "skip";
 
 export interface ConflictDetectionStats {
   totalConflicts: number;

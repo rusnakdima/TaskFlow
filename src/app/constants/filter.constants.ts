@@ -71,7 +71,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
     options: [
       { value: "all", label: "All" },
       { value: "private", label: "Private" },
-      { value: "team", label: "Team" },
+      { value: "shared", label: "Shared" },
     ],
     dataType: ["todos"],
   },
