@@ -10,7 +10,7 @@ import { Todo } from "@models/generated/api.types";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { GithubService } from "@services/github/github.service";
 import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
@@ -40,7 +40,7 @@ export class ManageTaskPage implements OnInit {
   private route = inject(ActivatedRoute);
   private location = inject(Location);
   private jwtTokenService = inject(JwtTokenService);
-  private storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
   private notifyService = inject(NotifyService);
   private shortcutService = inject(ShortcutService);
   private githubService = inject(GithubService);
@@ -107,7 +107,7 @@ export class ManageTaskPage implements OnInit {
   }
 
   private async loadData(params: any): Promise<void> {
-    this.todos.set(this.storageService.todos());
+    this.todos.set(this.storage.todos());
 
     const todoId = params.todoId;
     const taskId = params.taskId;
@@ -123,7 +123,7 @@ export class ManageTaskPage implements OnInit {
   }
 
   private async loadParentEntities(): Promise<void> {
-    this.todos.set(this.storageService.todos());
+    this.todos.set(this.storage.todos());
   }
 
   private async loadExistingTask(taskId: string): Promise<void> {
@@ -179,7 +179,7 @@ export class ManageTaskPage implements OnInit {
         if (result?.todo_id) {
           const todo = this.todos().find((t) => t.id === result.todo_id);
           if (todo) {
-            this.storageService.modify("todos", "update", {
+            this.storage.updateEntitySignal("todos", result.todo_id, {
               id: result.todo_id,
               tasks_count: (todo.tasks_count || 0) + 1,
             });
@@ -229,7 +229,7 @@ export class ManageTaskPage implements OnInit {
 
     const [owner, repo] = parentTodo.github_repo_name.split("/");
     const issueBody = this.buildIssueBody(formValue);
-    const existingTask = this.storageService.tasks().find((t) => t.id === taskId);
+    const existingTask = this.storage.tasks().find((t) => t.id === taskId);
 
     if (existingTask?.github_issue_id) {
       this.githubService
@@ -238,7 +238,7 @@ export class ManageTaskPage implements OnInit {
     } else if (formValue.publish_to_github) {
       this.githubService.createIssue(owner, repo, formValue.title, issueBody).subscribe({
         next: (result) => {
-          this.storageService.modify("tasks", "update", {
+          this.storage.updateEntitySignal("tasks", taskId, {
             id: taskId,
             github_issue_id: String(result.id),
             github_issue_number: result.number,

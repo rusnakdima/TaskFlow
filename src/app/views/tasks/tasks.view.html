@@ -148,6 +148,7 @@
                     [subtasks]="getTaskSubtasks(task.id)"
                     [isSelected]="isKanbanTaskSelected(task.id)"
                     [highlight]="highlightTaskId() === task.id"
+                    [userPermission]="userPermission()"
                     (statusCycle)="onKanbanStatusCycle($event)"
                     (selectionChange)="onKanbanSelectionChange(task.id, $event)"
                     (cardClick)="onKanbanTaskClick($event)"

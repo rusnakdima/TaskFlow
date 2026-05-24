@@ -29,6 +29,7 @@ import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
 
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
@@ -53,6 +54,7 @@ import {
   PullToRefreshIndicatorComponent,
 } from "@components/pull-to-refresh";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+import { VisibilityFilter } from "@models/storage.model";
 
 @Component({
   selector: "app-todos",
@@ -104,6 +106,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private destroyRef = inject(DestroyRef);
   private confirmDialogService = inject(ConfirmDialogService);
   private bulkActionHelper = inject(BulkActionHelper);
+  private permissionService = inject(PermissionService);
 
   stateService = inject(TodosStateService);
   private syncService = inject(UnifiedSyncService);
@@ -131,19 +134,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       id: "private",
       label: "Private",
       icon: "lock",
-      count: this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.storage.privateTodos().filter((t: Todo) => !t.deleted_at).length,
     },
     {
       id: "shared",
       label: "Shared",
       icon: "group",
-      count: this.storageService.sharedTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.storage.sharedTodos().filter((t: Todo) => !t.deleted_at).length,
     },
     {
       id: "public",
       label: "Public",
       icon: "public",
-      count: this.storageService.publicTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.storage.publicTodos().filter((t: Todo) => !t.deleted_at).length,
     },
   ]);
 
@@ -262,33 +265,33 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const hasAllTodos =
-      this.storageService.privateTodos().length > 0 &&
-      this.storageService.sharedTodos().length > 0 &&
-      this.storageService.publicTodos().length > 0;
+      this.storage.privateTodos().length > 0 &&
+      this.storage.sharedTodos().length > 0 &&
+      this.storage.publicTodos().length > 0;
     if (hasAllTodos) {
       this.todoPagination.update((p) => ({
         ...p,
-        skip: this.storageService.todos().length,
-        hasMore: this.storageService.hasMoreTodos,
-        total: this.storageService.todos().length,
+        skip: this.storage.todos().length,
+        hasMore: this.storage.hasMoreTodos(),
+        total: this.storage.todos().length,
         loading: false,
       }));
       return;
     }
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
-    this.storageService.ensureTodosLoaded("all");
+    this.storage.ensureTodosLoaded("all");
     this.todoPagination.update((p) => ({ ...p, loading: false }));
   }
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-    this.storageService.loadMoreTodos();
+    this.storage.loadMoreTodos();
   }
 
   onVisibilityChange(visibility: string): void {
     this.stateService.activeVisibility.set(visibility as any);
-    this.storageService.ensureTodosLoaded(visibility);
+    this.storage.ensureTodosLoaded(visibility as VisibilityFilter);
   }
 
   onPullToRefresh(): Promise<void> {
@@ -305,8 +308,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
     this.bulkService.updateTotalCount(
       this.isSharedMode()
-        ? this.storageService.sharedTodos().filter((t: Todo) => !t.deleted_at).length
-        : this.storageService.privateTodos().filter((t: Todo) => !t.deleted_at).length
+        ? this.storage.sharedTodos().filter((t: Todo) => !t.deleted_at).length
+        : this.storage.privateTodos().filter((t: Todo) => !t.deleted_at).length
     );
 
     this.subscriptions.add(
@@ -333,7 +336,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");
       });
-      if (this.storageService.todos().length === 0) {
+      if (this.storage.todos().length === 0) {
         this.loadInitialTodos();
       }
     });
@@ -371,7 +374,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     const sub = this.apiService.todos.delete(todoId!, { visibility }).subscribe({
       next: () => {
-        this.storageService.modify("todos", "delete", { id: todoId });
+        this.storage.removeEntity("todos", todoId!);
         this.notifyService.showSuccess("Todo deleted successfully");
       },
       error: (err) => {
@@ -392,7 +395,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
-          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, true);
+          this.storage.updateEntitySignal("todos", todoId!, {
+            deleted_at: true ? new Date().toISOString() : undefined,
+          });
           this.notifyService.showSuccess("Todo archived successfully");
         } else {
           this.notifyService.showError(response.message || "Failed to archive todo");
@@ -402,7 +407,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
       const sub = this.apiService.todos.delete(todoId!).subscribe({
         next: () => {
-          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, true);
+          this.storage.updateEntitySignal("todos", todoId!, {
+            deleted_at: true ? new Date().toISOString() : undefined,
+          });
           this.notifyService.showSuccess("Todo archived successfully");
         },
         error: (err) => {
@@ -422,7 +429,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-green-600 hover:bg-green-700",
     });
     if (confirmed) {
-      const todo = this.storageService.todos().find((t: Todo) => t.id === todoId);
+      const todo = this.storage.todos().find((t: Todo) => t.id === todoId);
       if (!todo) {
         this.notifyService.showError("Todo not found");
         return;
@@ -431,7 +438,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
-          this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, false);
+          this.storage.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
           this.notifyService.showSuccess("Todo restored successfully");
         } else {
           this.notifyService.showError(response.message || "Failed to restore todo");
@@ -443,7 +450,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         .update(todoId!, { deleted_at: undefined } as any, todo.visibility)
         .subscribe({
           next: () => {
-            this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId!, false);
+            this.storage.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
             this.notifyService.showSuccess("Todo restored successfully");
           },
           error: (err) => {
@@ -460,7 +467,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       .update(todo.id, { [field]: value }, todo.visibility)
       .subscribe({
         next: (updatedTodo) => {
-          this.storageService.modify("todos", "update", { ...updatedTodo, id: todo.id });
+          this.storage.updateEntitySignal("todos", todo.id, { ...updatedTodo, id: todo.id });
           this.notifyService.showSuccess("Project updated successfully");
         },
         error: (err) => {
@@ -503,6 +510,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   async onTableAction(event: { action: string; item: Todo }): Promise<void> {
     const { action, item } = event;
+    const perm = this.getUserTodoPermission(item);
     switch (action) {
       case "blueprint":
         if (item.user_id !== this.currentUserId) {
@@ -511,11 +519,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.saveAsBlueprint(item);
         break;
       case "edit":
+        if (!this.permissionService.canEditTodoFields(perm)) {
+          break;
+        }
         this.router.navigate(["/todos", item.id, "edit_todo"], {
           queryParams: { visibility: item.visibility },
         });
         break;
       case "archive":
+        if (
+          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
+        ) {
+          break;
+        }
         const archiveConfirmed = await this.confirmDialogService.confirm({
           title: "Archive Project",
           message: "Are you sure you want to archive this project?",
@@ -527,7 +543,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             .delete(item.id, { visibility: item.visibility })
             .subscribe({
               next: () => {
-                this.storageService.updateRecordDeleteStatusWithCascade("todos", item.id, true);
+                this.storage.updateEntitySignal("todos", item.id, {
+                  deleted_at: new Date().toISOString(),
+                });
                 this.notifyService.showSuccess("Project archived successfully");
               },
               error: (err) =>
@@ -537,9 +555,29 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }
         break;
       case "delete":
+        if (perm !== TodoPermission.OWNER) {
+          break;
+        }
         this.deleteTodoById(item.id, item.visibility, item.user_id === this.currentUserId);
         break;
     }
+  }
+
+  private getUserTodoPermission(todo: Todo): TodoPermission {
+    const userId = this.currentUserId;
+    if (todo.user_id === userId) {
+      return TodoPermission.OWNER;
+    }
+    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
+      return this.permissionService.fromStr((todo as any).assignee_roles[userId]);
+    }
+    if (todo.visibility === "public") {
+      return TodoPermission.VIEWER;
+    }
+    if (todo.visibility === "shared" && todo.assignees?.includes(userId)) {
+      return TodoPermission.VIEWER;
+    }
+    return TodoPermission.VIEWER;
   }
 
   ngAfterViewInit(): void {
@@ -640,7 +678,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         for (const todoId of selected) {
           const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId);
           if (response.status === ResponseStatus.SUCCESS) {
-            this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId, true);
+            this.storage.updateEntitySignal("todos", todoId, {
+              deleted_at: new Date().toISOString(),
+            });
             successCount++;
           } else {
             errorCount++;
@@ -665,7 +705,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             this.clearSelection();
             if (result.errorCount === 0) {
               selected.forEach((todoId) => {
-                this.storageService.updateRecordDeleteStatusWithCascade("todos", todoId, true);
+                this.storage.updateEntitySignal("todos", todoId, {
+                  deleted_at: new Date().toISOString(),
+                });
               });
               this.notifyService.showSuccess(
                 `${result.successCount} project(s) archived successfully`

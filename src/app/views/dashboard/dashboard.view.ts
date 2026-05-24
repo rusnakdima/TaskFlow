@@ -10,7 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { TaskStatus } from "@models/generated/api.types";
 
 /* services */
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 
@@ -50,7 +50,7 @@ interface DisplayTask {
 export class DashboardView implements OnInit {
   public TaskStatus = TaskStatus;
 
-  private storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
   private router = inject(Router);
   private syncService = inject(UnifiedSyncService);
   private shortcutService = inject(ShortcutService);
@@ -59,13 +59,15 @@ export class DashboardView implements OnInit {
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
 
-  profile = computed(() => this.storageService.profile());
+  profile = computed(() => {
+    const profiles = this.storage.profiles();
+    return profiles.length > 0 ? profiles[0] : null;
+  });
 
   private allTasksData = computed<DisplayTask[]>(() => {
-    const currentTasks = this.storageService.tasks();
+    const currentTasks = this.storage.activeTasks();
 
     return currentTasks
-      .filter((t) => !t.deleted_at)
       .map((task) => ({
         id: task.id,
         title: task.title,
@@ -127,9 +129,9 @@ export class DashboardView implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    this.storageService.ensureUserLoaded();
-    this.storageService.ensureProfileLoaded();
-    this.storageService.ensureTasksLoaded();
+    this.storage.ensureUserLoaded();
+    this.storage.ensureProfileLoaded();
+    this.storage.ensureTasksLoaded();
 
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       this.refreshState.set("refreshing");

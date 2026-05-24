@@ -36,6 +36,7 @@
 
     <app-priority-section
       [priority]="form.get('priority')?.value"
+      [disabled]="!canEditPriority()"
       (priorityChange)="form.patchValue({ priority: $event })"
     />
 
@@ -51,6 +52,7 @@
         [selectedIds]="selectedAssigneeIds()"
         [searchQuery]="assigneeSearchQuery()"
         [disabled]="!canManageAssignees()"
+        [currentUserId]="getCurrentUserId()"
         (searchQueryChange)="assigneeSearchQuery.set($event)"
         (toggleSelection)="toggleAssigneeSelection($event)"
         (toggleSelectAll)="toggleSelectAllAssignees()"

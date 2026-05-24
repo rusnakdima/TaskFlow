@@ -19,7 +19,7 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 import { ThemeService } from "@services/ui/theme.service";
@@ -34,13 +34,13 @@ export class ProfileView implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
+  private storage = inject(UnifiedStorageService);
 
   constructor(
     private location: Location,
     private authService: AuthService,
     private notifyService: NotifyService,
     private requestService: ApiService,
-    private storageService: StorageService,
     private confirmDialogService: ConfirmDialogService,
     private shortcutEmitters: ShortcutEmittersService,
     private themeService: ThemeService,
@@ -52,13 +52,13 @@ export class ProfileView implements OnInit, OnDestroy {
   isViewingOtherUser = signal(false);
   viewedUserProfile = signal<any | null>(null);
 
-  profile = computed(() => this.storageService.profile());
+  profile = computed(() => this.storage.profiles()[0]);
   displayProfile = computed(() =>
     this.isViewingOtherUser() ? this.viewedUserProfile() : this.profile()
   );
   currentUsername = computed(() => this.displayProfile()?.user?.username || "");
   currentEmail = computed(() => this.displayProfile()?.user?.email || "");
-  role = computed(() => this.storageService.user()?.role || "");
+  role = computed(() => this.storage.currentUser()?.role || "");
 
   isDarkTheme = computed(() => this.themeService.getEffectiveMode() === "dark");
 
@@ -91,8 +91,8 @@ export class ProfileView implements OnInit, OnDestroy {
     });
 
     this.userId = this.authService.getValueByKey("id");
-    this.storageService.ensureUserLoaded();
-    this.storageService.ensureProfileLoaded();
+    this.storage.ensureUserLoaded();
+    this.storage.ensureProfileLoaded();
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
   }
@@ -230,7 +230,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private approveQrLogin(token: string): void {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.storage.profiles()[0]?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in to approve QR login");
       return;
@@ -254,7 +254,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   private completeDesktopLoginFromMobileScan(token: string): void {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.storage.profiles()[0]?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in");
       return;
@@ -284,7 +284,7 @@ export class ProfileView implements OnInit, OnDestroy {
   }
 
   async showMyQrCode(): Promise<void> {
-    const username = this.storageService.profile()?.user?.username;
+    const username = this.storage.profiles()[0]?.user?.username;
     const userId = this.authService.getValueByKey("id");
     if (!username || !userId) {
       this.notifyService.showError("You must be logged in to show QR code");
