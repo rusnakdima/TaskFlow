@@ -338,6 +338,29 @@ impl RepositoryService {
     }
   }
 
+  fn extract_task_id_from_filter(filter: &Filter) -> Option<String> {
+    match filter {
+      Filter::And(filters) => {
+        for f in filters {
+          if let Some(tid) = Self::extract_task_id_from_filter(f) {
+            return Some(tid);
+          }
+        }
+        None
+      }
+      Filter::Eq(key, value) if key == "task_id" => value.as_str().map(|s| s.to_string()),
+      Filter::In(key, values) if key == "task_id" => {
+        if values.len() == 1 {
+          if let serde_json::Value::String(s) = &values[0] {
+            return Some(s.clone());
+          }
+        }
+        None
+      }
+      _ => None,
+    }
+  }
+
   async fn fix_todo_counts_if_needed(
     &self,
     mut docs: Vec<Value>,
@@ -438,6 +461,7 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     user_id: Option<String>,
+    profile_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -451,7 +475,9 @@ impl RepositoryService {
     match operation.as_str() {
       "getAll" => {
         self
-          .handle_get_all(table, filter, load, visibility, user_id, skip, limit)
+          .handle_get_all(
+            table, filter, load, visibility, user_id, profile_id, skip, limit,
+          )
           .await
       }
       "get" => {
@@ -482,7 +508,9 @@ impl RepositoryService {
       }
       "search" => {
         self
-          .handle_search(table, filter, load, visibility, user_id, skip, limit)
+          .handle_search(
+            table, filter, load, visibility, user_id, profile_id, skip, limit,
+          )
           .await
       }
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
@@ -496,6 +524,7 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     user_id: Option<String>,
+    profile_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -525,6 +554,7 @@ impl RepositoryService {
     let final_filter = if table == "todos" {
       let permission_filter_json = PermissionService::get_todo_filter_for_user(
         user_id.as_deref().unwrap_or(""),
+        profile_id.as_deref(),
         Some(&visibility_str),
       );
       eprintln!(
@@ -544,6 +574,7 @@ impl RepositoryService {
       // Get accessible todo_ids first
       let todos_filter_json = PermissionService::get_todo_filter_for_user(
         user_id.as_deref().unwrap_or(""),
+        profile_id.as_deref(),
         Some(&visibility_str),
       );
       let todos_filter = Filter::from_json(&todos_filter_json).ok();
@@ -583,14 +614,11 @@ impl RepositoryService {
         );
         let user_id_check = Filter::Eq("user_id".to_string(), Value::String(uid.to_string()));
         Some(Filter::And(vec![todo_in_filter, user_id_check]))
-      } else if todo_ids.is_empty() {
-        // For shared/public when no accessible todos
-        Some(Filter::Eq(
-          "todo_id".to_string(),
-          Value::String("".to_string()),
-        ))
       } else {
         // For shared/public visibility, use todo-chain permission (assignee check)
+        if todo_ids.is_empty() {
+          return Ok(success_response(DataValue::Array(vec![])));
+        }
         let todo_in_filter = Filter::In(
           "todo_id".to_string(),
           todo_ids.into_iter().map(Value::String).collect(),
@@ -634,9 +662,69 @@ impl RepositoryService {
       let uid = user_id.as_deref().unwrap_or("");
       let visibility_is_private = visibility_str == "private";
 
+      // Check if filter contains a specific task_id
+      let specific_task_id = filter_opt
+        .as_ref()
+        .and_then(|f| Self::extract_task_id_from_filter(f));
+
+      // If a specific task_id is provided, validate access through the task's parent todo
+      if let Some(task_id) = specific_task_id {
+        let task_filter = Filter::Eq("id".to_string(), Value::String(task_id.clone()));
+        match provider
+          .find_many("tasks", Some(&task_filter), None, None, None, true)
+          .await
+        {
+          Ok(tasks) => {
+            if let Some(task) = tasks.first() {
+              let todo_id = task.get("todo_id").and_then(|v| v.as_str());
+              if let Some(tid) = todo_id {
+                let todo_filter = Filter::Eq("id".to_string(), Value::String(tid.to_string()));
+                match provider
+                  .find_many("todos", Some(&todo_filter), None, None, None, true)
+                  .await
+                {
+                  Ok(todos) => {
+                    if let Some(todo) = todos.first() {
+                      if !PermissionService::can_view_todo(todo, uid) {
+                        return Err(err_response("Unauthorized: access denied to this task"));
+                      }
+                    } else {
+                      return Err(err_response("Unauthorized: todo not found"));
+                    }
+                  }
+                  Err(_) => return Err(err_response("Unauthorized: error checking todo")),
+                }
+              } else {
+                return Err(err_response("Unauthorized: task has no parent todo"));
+              }
+            } else {
+              return Err(err_response("Unauthorized: task not found"));
+            }
+          }
+          Err(_) => return Err(err_response("Unauthorized: error checking task")),
+        }
+      }
+
+      // For private visibility: security check
+      if visibility_is_private {
+        let filter_user_id = filter_opt
+          .as_ref()
+          .and_then(|f| Self::extract_user_id_from_filter(f));
+        if let Some(fuid) = filter_user_id {
+          if fuid != uid {
+            eprintln!(
+              "[DEBUG] handle_get_all ({}): Unauthorized user_id mismatch",
+              table
+            );
+            return Err(err_response("Unauthorized: user_id mismatch"));
+          }
+        }
+      }
+
       // Get accessible todo_ids
       let todos_filter_json = PermissionService::get_todo_filter_for_user(
         user_id.as_deref().unwrap_or(""),
+        profile_id.as_deref(),
         Some(&visibility_str),
       );
       let todos_filter = Filter::from_json(&todos_filter_json).ok();
@@ -654,22 +742,6 @@ impl RepositoryService {
       } else {
         vec![]
       };
-
-      // For private visibility: security check
-      if visibility_is_private {
-        let filter_user_id = filter_opt
-          .as_ref()
-          .and_then(|f| Self::extract_user_id_from_filter(f));
-        if let Some(fuid) = filter_user_id {
-          if fuid != uid {
-            eprintln!(
-              "[DEBUG] handle_get_all ({}): Unauthorized user_id mismatch",
-              table
-            );
-            return Err(err_response("Unauthorized: user_id mismatch"));
-          }
-        }
-      }
 
       if todo_ids.is_empty() {
         filter_opt
@@ -722,15 +794,21 @@ impl RepositoryService {
         None => Some(sender_filter),
       }
     } else if table == "profiles" || table == "users" {
-      if let Some(uid) = user_id.as_deref().filter(|u| !u.is_empty()) {
-        let user_field = if table == "profiles" { "user_id" } else { "id" };
-        let user_filter = Filter::Eq(user_field.to_string(), Value::String(uid.to_string()));
-        match filter_opt {
-          Some(existing) => Some(Filter::And(vec![user_filter, existing])),
-          None => Some(user_filter),
+      // Only filter by user_id for private visibility (own profiles)
+      // For public/all visibility, return all profiles without user_id filtering
+      if visibility_str == "private" {
+        if let Some(uid) = user_id.as_deref().filter(|u| !u.is_empty()) {
+          let user_field = if table == "profiles" { "user_id" } else { "id" };
+          let user_filter = Filter::Eq(user_field.to_string(), Value::String(uid.to_string()));
+          match filter_opt {
+            Some(existing) => Some(Filter::And(vec![user_filter, existing])),
+            None => Some(user_filter),
+          }
+        } else {
+          filter_opt
         }
       } else {
-        filter_opt
+        filter_opt // public/all visibility - no user_id filter
       }
     } else if table == "daily_activities" {
       let uid = user_id.as_deref().unwrap_or("");
@@ -866,6 +944,7 @@ impl RepositoryService {
     load: Option<String>,
     visibility: Option<String>,
     user_id: Option<String>,
+    profile_id: Option<String>,
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
@@ -893,6 +972,7 @@ impl RepositoryService {
           if table == "todos" {
             let permission_filter_json = PermissionService::get_todo_filter_for_user(
               user_id.as_deref().unwrap_or(""),
+              profile_id.as_deref(),
               Some(&visibility_str),
             );
             serde_json::json!({
@@ -928,6 +1008,7 @@ impl RepositoryService {
             // Get accessible todo_ids via permission filter
             let todos_filter_json = PermissionService::get_todo_filter_for_user(
               user_id.as_deref().unwrap_or(""),
+              profile_id.as_deref(),
               Some(&visibility_str),
             );
             let todos_filter = Filter::from_json(&todos_filter_json).ok();
@@ -1115,47 +1196,83 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
 
-    let visibility_str = self.resolve_visibility_for_offline(visibility);
-    let provider = self.get_provider(&table, Some(&visibility_str))?;
+    let visibility_str = self.resolve_visibility_for_offline(visibility.clone());
+
+    // For get by ID without explicit visibility (None defaults to "private"),
+    // check both providers since document might be in either JSON or MongoDB
+    let use_both_providers = visibility.is_none();
+    let provider = if use_both_providers {
+      self.get_provider(&table, Some("all"))?
+    } else {
+      self.get_provider(&table, Some(&visibility_str))?
+    };
 
     let docs: Vec<Value> = if let Some(ref id_val) = id {
       match &provider {
         DataProvider::Both(json, mongo) => {
+          // Check JSON first, then MongoDB
           if let Ok(Some(d)) = json.find_by_id(&table, id_val).await {
             vec![d]
-          } else if let Ok(result) = mongo.find_by_id(&table, id_val).await {
-            match result {
-              Some(d) => vec![d],
-              None => {
-                if let Some(f) = &filter {
-                  let filter_obj = nosql_orm::query::Filter::from_json(f)
-                    .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-                  provider
-                    .find_many(&table, Some(&filter_obj), None, None, None, true)
-                    .await?
-                } else {
-                  vec![]
-                }
-              }
-            }
+          } else if let Ok(Some(d)) = mongo.find_by_id(&table, id_val).await {
+            vec![d]
           } else {
-            vec![]
-          }
-        }
-        _ => match provider.find_by_id(&table, id_val).await? {
-          Some(d) => vec![d],
-          None => {
+            // If not found by ID, try filter as fallback
             if let Some(f) = &filter {
               let filter_obj = nosql_orm::query::Filter::from_json(f)
                 .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-              provider
+              let json_docs = json
                 .find_many(&table, Some(&filter_obj), None, None, None, true)
-                .await?
+                .await
+                .unwrap_or_default();
+              let mongo_docs = mongo
+                .find_many(&table, Some(&filter_obj), None, None, None, true)
+                .await
+                .unwrap_or_default();
+              let mut combined = Self::merge_documents(json_docs, mongo_docs);
+              if combined.len() == 1 {
+                combined
+              } else if combined.is_empty() {
+                return Err(err_response("Document not found"));
+              } else {
+                return Err(err_response("Multiple documents found, use getAll instead"));
+              }
             } else {
               return Err(err_response("Document not found"));
             }
           }
-        },
+        }
+        _ => {
+          // Single provider - try find_by_id first
+          match provider.find_by_id(&table, id_val).await? {
+            Some(d) => vec![d],
+            None => {
+              // Fallback: try filter if provided, or check the other provider if we have access to both
+              if let Some(f) = &filter {
+                let filter_obj = nosql_orm::query::Filter::from_json(f)
+                  .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+                provider
+                  .find_many(&table, Some(&filter_obj), None, None, None, true)
+                  .await?
+              } else if use_both_providers {
+                // visibility was None - we might be using wrong provider, try the other one
+                let json_provider = self.json_provider.clone();
+                let mongo_provider = self.mongodb_provider.clone();
+                if visibility_str == "private" {
+                  // We used "all" but fell through here - try mongo directly
+                  if let Some(mongo) = mongo_provider {
+                    match mongo.find_by_id(&table, id_val).await {
+                      Ok(Some(d)) => return Ok(success_response(DataValue::Object(d))),
+                      _ => {}
+                    }
+                  }
+                }
+                return Err(err_response("Document not found"));
+              } else {
+                return Err(err_response("Document not found"));
+              }
+            }
+          }
+        }
       }
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
@@ -1263,6 +1380,70 @@ impl RepositoryService {
         obj.insert(
           "visibility".to_string(),
           serde_json::Value::String(visibility_str.clone()),
+        );
+      }
+    }
+
+    // For tasks, subtasks, and comments - inherit visibility from parent todo
+    let parent_todo_visibility: Option<String> = if table == "tasks" {
+      // Task directly has todo_id
+      let todo_id = data_val.get("todo_id").and_then(|v| v.as_str());
+      if let Some(tid) = todo_id {
+        let todo_provider = self.get_provider("todos", Some(&visibility_str)).ok();
+        if let Some(provider) = todo_provider {
+          let todo = provider.find_by_id("todos", tid).await.ok().flatten();
+          todo.and_then(|t| {
+            t.get("visibility")
+              .and_then(|v| v.as_str())
+              .map(|s| s.to_string())
+          })
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    } else {
+      // Subtask or comment - need to look up task first to get todo_id
+      let task_id = data_val.get("task_id").and_then(|v| v.as_str());
+      if let Some(tid) = task_id {
+        let task_provider = self.get_provider("tasks", Some(&visibility_str)).ok();
+        if let Some(provider) = task_provider {
+          let task = provider.find_by_id("tasks", tid).await.ok().flatten();
+          if let Some(task) = task {
+            let todo_id = task.get("todo_id").and_then(|v| v.as_str());
+            if let Some(tid) = todo_id {
+              let todo_provider = self.get_provider("todos", Some(&visibility_str)).ok();
+              if let Some(provider) = todo_provider {
+                let todo = provider.find_by_id("todos", tid).await.ok().flatten();
+                todo.and_then(|t| {
+                  t.get("visibility")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                })
+              } else {
+                None
+              }
+            } else {
+              None
+            }
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    };
+
+    // Inject visibility into the data if we found a parent todo with visibility
+    if let Some(todo_vis) = parent_todo_visibility {
+      if let serde_json::Value::Object(ref mut obj) = data_val {
+        obj.insert(
+          "visibility".to_string(),
+          serde_json::Value::String(todo_vis),
         );
       }
     }

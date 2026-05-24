@@ -151,6 +151,7 @@ async fn search_data(
       load,
       visibility,
       user_id,
+      None, // profile_id - not available in search_data
       page,
       limit,
     )
