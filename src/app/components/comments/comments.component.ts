@@ -26,7 +26,7 @@ import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/
 /* models */
 import { SubtaskCommentGroup } from "@models/comment-ext.model";
 import { Comment, Todo } from "@models/generated/api.types";
-import { StorageService } from "@services/storage.service";
+import { UnifiedStorageService } from "@services/core/unified-storage.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
@@ -46,7 +46,7 @@ export class CommentsComponent
   implements AfterViewInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private authService = inject(AuthService);
-  private storageService = inject(StorageService);
+  private storage = inject(UnifiedStorageService);
 
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
@@ -79,13 +79,7 @@ export class CommentsComponent
   ngOnChanges(changes: SimpleChanges) {
     if (changes["comments"] && !changes["comments"].isFirstChange()) {
       this.shouldScroll.set(true);
-      setTimeout(
-        () =>
-          this.initIntersectionObserver(".unread-comment", "data-comment-id", (id: string) =>
-            this.markAsReadEvent.emit([id])
-          ),
-        100
-      );
+      this.destroyObserver();
     }
     if ((changes["task_id"] || changes["subtaskId"]) && !changes["task_id"]?.isFirstChange()) {
       this.isFirstLoad.set(true);
@@ -112,8 +106,7 @@ export class CommentsComponent
   }
 
   private loadProfiles(): void {
-    this.storageService.ensurePublicProfilesLoaded();
-    const publicProfiles = this.storageService.publicProfiles();
+    const publicProfiles = this.storage.publicProfiles();
     publicProfiles.forEach((profile) => {
       const userId = profile.user_id;
       if (userId) {

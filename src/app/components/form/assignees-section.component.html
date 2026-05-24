@@ -102,7 +102,12 @@
               </div>
             }
             <div class="flex flex-col">
-              <span class="text-sm font-medium">{{ profile.name }} {{ profile.last_name }}</span>
+              <span class="text-sm font-medium">
+                {{ profile.name }} {{ profile.last_name }}
+                @if (profile.user_id === currentUserId) {
+                  <span class="text-xs text-blue-600 dark:text-blue-400">(You)</span>
+                }
+              </span>
               @if (profile.user?.email) {
                 <span class="text-xs text-gray-500">{{ profile.user?.email }}</span>
               }

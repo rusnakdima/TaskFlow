@@ -17,6 +17,7 @@ export class AssigneesSectionComponent {
   @Input() selectedIds: Set<string> = new Set();
   @Input() searchQuery = "";
   @Input() disabled = false;
+  @Input() currentUserId = "";
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() toggleSelection = new EventEmitter<string>();
   @Output() toggleSelectAll = new EventEmitter<void>();
