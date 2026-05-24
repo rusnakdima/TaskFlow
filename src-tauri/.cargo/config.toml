@@ -1,0 +1,7 @@
+[target.aarch64-linux-android]
+linker = "/home/dmitriy/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+ar = "/home/dmitriy/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+[target.aarch64-linux-android.aarch64-linux-android]
+linker = "/home/dmitriy/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+ar = "/home/dmitriy/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"

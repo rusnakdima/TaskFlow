@@ -1394,3 +1394,263 @@ html[data-gradient-intensity="bold"] .gradient-grouped-block {
 .border-accent-dark {
   border-color: var(--accent-600) !important;
 }
+
+/* ============================================
+   DISCORD-STYLE CHAT COMPONENTS
+   ============================================ */
+
+/* Discord-style message bubbles - full rounded corners */
+.discord-bubble {
+  border-radius: 16px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* Avatar at top of bubble edge - centered horizontally at edge */
+/* sm size avatar = 32px, center at 16px from edge */
+.avatar-at-edge {
+  position: absolute;
+  top: 0;
+  z-index: 10;
+}
+
+.avatar-at-edge.edge-left {
+  left: -16px;
+}
+
+.avatar-at-edge.edge-right {
+  right: -16px;
+}
+
+.avatar-at-edge app-user-avatar {
+  display: block;
+}
+
+/* Hover actions - Discord style, show only on hover */
+.discord-hover-actions {
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
+  top: -44px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.group:hover .discord-hover-actions {
+  opacity: 1;
+  visibility: visible;
+}
+
+.discord-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.discord-action-btn:hover {
+  background: #e3e5e8;
+  border-radius: 4px;
+}
+
+.dark .discord-action-btn:hover {
+  background: #3f3f46;
+}
+
+/* Avatar overlaps bubble by half - 36px avatar, 18px overlap */
+.avatar-at-edge {
+  position: absolute;
+  top: 0;
+  z-index: 10;
+}
+
+.avatar-at-edge.edge-left {
+  left: -18px;
+}
+
+.avatar-at-edge.edge-right {
+  right: -18px;
+}
+
+/* Bubble positioning for avatar overlap */
+.group-message {
+  position: relative;
+}
+
+.group-message .relative {
+  position: relative;
+}
+
+.discord-bubble {
+  position: relative;
+}
+
+/* Avatar ring to match background */
+.avatar-at-edge app-user-avatar {
+  display: block;
+  border-radius: 50%;
+  border: 2px solid #f9fafb;
+}
+
+.dark .avatar-at-edge app-user-avatar {
+  border-color: #18181b;
+}
+
+/* Discord-style edit inputs */
+.discord-edit-input {
+  border-radius: 8px;
+}
+
+/* Discord-style buttons */
+.discord-btn-cancel,
+.discord-btn-save {
+  min-height: 36px;
+  min-width: 60px;
+}
+
+.discord-btn-save {
+  min-height: 36px;
+}
+
+/* Discord-style reply preview */
+.discord-reply {
+  border-left-width: 2px;
+}
+
+/* Discord-style avatar in message groups */
+.discord-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+/* Discord-style messages container */
+.discord-messages-container {
+  background: #f8f9fa;
+}
+
+.dark .discord-messages-container {
+  background: #1a1a1a;
+}
+
+/* Discord-style loading indicator */
+.discord-loading-indicator {
+  min-height: 44px;
+}
+
+/* Discord-style sticky sender */
+.discord-sticky-sender {
+  min-height: 44px;
+}
+
+/* Discord-style context menu */
+.discord-context-menu {
+  min-width: 180px;
+  border-radius: 8px;
+}
+
+/* Touch-optimized styles */
+@media (max-width: 768px) {
+  .discord-action-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .discord-hover-actions {
+    min-height: 52px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .discord-hover-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .discord-hover-actions {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) scale(95);
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+  }
+
+  .dark .discord-hover-actions {
+    background: #2d2d2d;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .discord-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .discord-bubble {
+    max-width: 90%;
+  }
+
+  .discord-msg-with-avatar {
+    gap: 8px;
+  }
+
+  .discord-messages-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* Presence indicators */
+.discord-presence-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.discord-presence-online {
+  background: #3ba55c;
+}
+
+.discord-presence-offline {
+  background: #727067;
+}
+
+/* Read receipt animations */
+@keyframes discord-read-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.discord-read-icon {
+  animation: discord-read-in 0.2s ease-out forwards;
+}
+
+/* Message sync status animations */
+@keyframes discord-sync-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.discord-sync-pending {
+  animation: discord-sync-pulse 1.5s ease-in-out infinite;
+}

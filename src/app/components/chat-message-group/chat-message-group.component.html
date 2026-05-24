@@ -1,0 +1,25 @@
+<div class="relative flex py-0.5" [class.justify-end]="isOwn" [class.justify-start]="!isOwn">
+  <div
+    class="flex max-w-[85%] flex-col gap-0.5"
+    [class.items-start]="!isOwn"
+    [class.items-end]="isOwn"
+  >
+    @for (message of messages; track message.id; let i = $index; let last = $last) {
+      <app-chat-message
+        [message]="message"
+        [isGroupStart]="i === 0"
+        [isGroupChat]="isGroupChat"
+        [isGrouped]="!last"
+        (reply)="reply.emit($event)"
+        (react)="react.emit($event)"
+        (removeReaction)="removeReaction.emit($event)"
+        (contextMenu)="contextMenu.emit($event)"
+        (saveEdit)="saveEdit.emit()"
+        (cancelEdit)="cancelEdit.emit()"
+        (editMessageInput)="editMessageInput.emit($event)"
+        (cancelReply)="cancelReply.emit($event)"
+        (retrySend)="retrySend.emit($event)"
+      />
+    }
+  </div>
+</div>
