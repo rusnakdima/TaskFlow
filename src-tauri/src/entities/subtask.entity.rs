@@ -24,7 +24,7 @@ pub struct SubtaskEntity {
   pub description: String,
   pub status: crate::entities::task_entity::TaskStatus,
   #[validate(not_empty)]
-  #[validate(pattern("^(low|medium|high)$"))]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,
@@ -52,7 +52,7 @@ pub struct SubtaskCreateModel {
   pub title: String,
   pub description: Option<String>,
   #[validate(not_empty)]
-  #[validate(pattern("^(low|medium|high)$"))]
+  #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,

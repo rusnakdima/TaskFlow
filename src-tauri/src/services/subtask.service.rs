@@ -67,7 +67,7 @@ impl SubtaskService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.base.get_provider(visibility)?;
 
-    let todos_filter = PermissionService::get_todo_filter_for_user(user_id, Some(visibility));
+    let todos_filter = PermissionService::get_todo_filter_for_user(user_id, None, Some(visibility));
 
     let todos = provider
       .find_many(
