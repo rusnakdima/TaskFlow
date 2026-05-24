@@ -1,8 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { ApiService } from "@services/api.service";
-import { ApiService } from "@services/api.service";
-import { Todo } from "@models/generated/api.types";
 
 @Injectable({
   providedIn: "root",

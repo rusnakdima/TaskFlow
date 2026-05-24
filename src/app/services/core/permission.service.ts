@@ -1,6 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { ApiService } from "@services/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 export enum TodoPermission {
   VIEWER = "viewer",
@@ -19,6 +20,12 @@ export interface TodoPermissionContext {
 @Injectable({ providedIn: "root" })
 export class PermissionService {
   private api = inject(ApiService);
+  private jwtTokenService = inject(JwtTokenService);
+
+  isGlobalAdmin(): boolean {
+    const token = this.jwtTokenService.getToken();
+    return this.jwtTokenService.hasRole(token, "admin");
+  }
 
   getUserPermission(context: TodoPermissionContext): TodoPermission {
     const { todo, assigneeRoles, userId } = context;
@@ -69,9 +76,7 @@ export class PermissionService {
   }
 
   canDeleteTodo(permission: TodoPermission): boolean {
-    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      permission
-    );
+    return permission === TodoPermission.OWNER;
   }
 
   canManageAssignees(permission: TodoPermission): boolean {
@@ -93,6 +98,7 @@ export class PermissionService {
   }
 
   canCreateTask(permission: TodoPermission): boolean {
+    if (this.isGlobalAdmin()) return true;
     return [
       TodoPermission.EDITOR,
       TodoPermission.ADMIN,

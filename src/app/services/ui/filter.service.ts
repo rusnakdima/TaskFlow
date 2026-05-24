@@ -1,8 +1,8 @@
 /* sys lib */
-import { Injectable, signal, computed } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 
 /* models */
-import { FilterField, FilterFieldOption } from "@models/filter-config.model";
+import { FilterField } from "@models/filter-config.model";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -77,12 +77,12 @@ export class FilterService {
       }
 
       if (fieldKey === "status") {
-        filtered = FilterHelper.filterByStatus(filtered, value as string);
+        filtered = FilterHelper.filterByStatus(filtered as any, value as string) as typeof filtered;
       } else if (fieldKey === "priority") {
         if (Array.isArray(value)) {
-          filtered = filtered.filter((item) => value.includes(item.priority));
+          filtered = filtered.filter((item) => item.priority && value.includes(item.priority));
         } else if (value !== "all") {
-          filtered = FilterHelper.filterByPriority(filtered, value);
+          filtered = FilterHelper.filterByPriority(filtered as any, value) as typeof filtered;
         }
       } else if (fieldKey === "dateRange") {
         filtered = FilterHelper.filterThisWeek(filtered);
@@ -113,7 +113,7 @@ export class FilterService {
     return counts;
   }
 
-  buildFilterFields(type: "todos" | "tasks" | "subtasks", items?: any[]): FilterField[] {
+  buildFilterFields(type: "todos" | "tasks" | "subtasks", _items?: any[]): FilterField[] {
     const fields: FilterField[] = [];
 
     if (type === "todos") {

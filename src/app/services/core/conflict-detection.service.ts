@@ -7,8 +7,7 @@ import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
-import { Conflict, ConflictResolution, ConflictDetectionStats } from "@models/conflict.model";
-import { Todo, Task, Subtask } from "@models/generated/api.types";
+import { Conflict, ConflictResolution } from "@models/conflict.model";
 
 const CONFLICT_TTL_MS = 10 * 60 * 1000;
 const MAX_CONFLICTS_SIZE = 100;
@@ -74,8 +73,10 @@ export class ConflictDetectionService {
 
     if (remoteVersion < localVersion) {
       this.enforceConflictLimits();
+      const entityTypeSingular = entityType.replace(/s$/, "") as Conflict["entityType"];
       const conflict: Conflict = {
-        entityType,
+        id: `${entityType}:${entityId}`,
+        entityType: entityTypeSingular,
         entityId,
         localVersion,
         remoteVersion,
@@ -97,8 +98,10 @@ export class ConflictDetectionService {
 
     if (Math.abs(localTime - remoteTime) < 2000 && localTime !== remoteTime) {
       this.enforceConflictLimits();
+      const entityTypeSingular = entityType.replace(/s$/, "") as Conflict["entityType"];
       const conflict: Conflict = {
-        entityType,
+        id: `${entityType}:${entityId}`,
+        entityType: entityTypeSingular,
         entityId,
         localVersion,
         remoteVersion,
@@ -199,17 +202,16 @@ export class ConflictDetectionService {
 
   private notifyUserOfConflict(conflict: Conflict): void {
     const entityNames: Record<string, string> = {
-      todos: "project",
-      tasks: "task",
-      subtasks: "subtask",
-      categories: "category",
-      comments: "comment",
+      todo: "project",
+      task: "task",
+      subtask: "subtask",
+      category: "category",
     };
 
     const entityName = entityNames[conflict.entityType] || conflict.entityType;
 
     const isPrivateTodo =
-      conflict.entityType === "todos" && conflict.localData?.visibility === "private";
+      conflict.entityType === "todo" && conflict.localData?.visibility === "private";
 
     if (isPrivateTodo) {
       this.notifyService.showInfo(`Version conflict on ${entityName}. Your version will be kept.`);
