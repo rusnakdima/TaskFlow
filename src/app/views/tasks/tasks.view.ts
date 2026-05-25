@@ -129,12 +129,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
 
   canCreateTask = computed(() => {
     if (this.permissionService.isGlobalAdmin()) return true;
-    return [
-      TodoPermission.EDITOR,
-      TodoPermission.ADMIN,
-      TodoPermission.MODERATOR,
-      TodoPermission.OWNER,
-    ].includes(this.userPermission());
+    return [TodoPermission.EDITOR, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      this.userPermission()
+    );
   });
 
   protected get selectedTasks() {
@@ -178,6 +175,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     return this.permissionService.canDeleteTask(task, this.userPermission(), this.userId);
   }
 
+  canArchiveTask(task: Task): boolean {
+    return this.permissionService.canArchiveTask(task, this.userPermission(), this.userId);
+  }
+
   isPrivate(): boolean {
     const todo = this.todo();
     return todo?.visibility !== "shared";
@@ -204,7 +205,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
               loading: false,
             }));
           } else {
-            this.loadInitialTasks();
+            this.loadInitialTasks(false, todo.visibility);
           }
         } else {
           this.notifyService.showError("Todo not found.");
@@ -255,13 +256,13 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
-  loadInitialTasks(forceRefresh = false) {
+  loadInitialTasks(forceRefresh = false, visibilityOverride?: string) {
     const todoId = this.todoId();
     if (!todoId) return;
 
     const cachedTasks = this.storage.tasksByTodoId().get(todoId) || [];
 
-    if (cachedTasks.length > 0 && !forceRefresh) {
+    if (cachedTasks.length > 0 && !forceRefresh && !visibilityOverride) {
       const storedTotal = this.taskPagination().total;
       if (storedTotal > 0 && cachedTasks.length >= storedTotal) {
         this.todoTasks.set(cachedTasks);
@@ -277,10 +278,14 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     this.taskPagination.update((p) => ({ ...p, loading: true }));
-    const visibility = this.visibilityParam();
+    const visibility = visibilityOverride || this.todo()?.visibility || this.visibilityParam();
     const userId = this.authService.getValueByKey("id");
     this.apiService.tasks
-      .getAll({ visibility, limit: 25, filter: { todo_id: todoId, user_id: userId } })
+      .getAll({
+        visibility,
+        limit: 25,
+        filter: { todo_id: todoId, $or: [{ user_id: userId }, { assignees: userId }] },
+      })
       .subscribe({
         next: (tasks) => {
           this.todoTasks.set(tasks);
@@ -303,7 +308,9 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (this.taskPagination().loading || !this.taskPagination().hasMore) return;
     const todoId = this.todoId();
     if (!todoId) return;
-    this.storage.loadMoreTasks(todoId);
+    const visibility = this.todo()?.visibility || this.visibilityParam();
+    const userId = this.authService.getValueByKey("id");
+    this.storage.loadMoreTasks(todoId, visibility, userId, userId);
   }
 
   override onSearchChange(query: string): void {
@@ -745,6 +752,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
     }
+    if (event.action === "archive") {
+      if (!this.canArchiveTask(event.item)) {
+        this.notifyService.showError("You don't have permission to archive this task");
+        return;
+      }
+    }
     this.onTaskTableAction(event);
   }
 
@@ -944,6 +957,24 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   async bulkArchive(): Promise<void> {
+    const permission = this.userPermission();
+    if (permission === TodoPermission.VIEWER) {
+      this.notifyService.showError("You don't have permission to archive tasks");
+      return;
+    }
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      // Allow bulk archive
+    } else {
+      // EDITOR - check ownership of each selected task
+      const allTasks = this.listTasks();
+      const selectedIds = Array.from(this.selectedTasks());
+      const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
+      const ownedCount = allSelected.filter((t) => t.user_id === this.userId).length;
+      if (ownedCount !== allSelected.length) {
+        this.notifyService.showError("You can only archive tasks you created");
+        return;
+      }
+    }
     await this.actionsHelper.bulkArchive(
       this.selectedTasks(),
       () => this.listTasks(),
