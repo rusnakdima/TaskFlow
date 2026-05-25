@@ -26,6 +26,7 @@ import { DisplayMode } from "@models/item-display.types";
 import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/generated/api.types";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
+import { ActionColors } from "@constants/table-field.constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { TodoPermission } from "@services/core/permission.service";
@@ -89,11 +90,7 @@ export class ItemCardComponent {
   commentsExpanded = signal(false);
 
   readonly isViewerPermission = TodoPermission.VIEWER;
-  readonly isAdminPermission = [
-    TodoPermission.ADMIN,
-    TodoPermission.MODERATOR,
-    TodoPermission.OWNER,
-  ];
+  readonly isAdminPermission = [TodoPermission.MODERATOR, TodoPermission.OWNER];
 
   isActionDisabled(): boolean {
     if (this.itemType === "category" && this.item) {
@@ -104,10 +101,7 @@ export class ItemCardComponent {
     if (this.userPermission === TodoPermission.VIEWER) {
       return true;
     }
-    if (this.isAdminPermission.includes(this.userPermission)) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   canToggleStatus(): boolean {
@@ -203,6 +197,42 @@ export class ItemCardComponent {
       cls += " " + config.getClass(this.item);
     }
     return cls.trim();
+  }
+
+  getActionColor(action: ItemDisplayAction): string {
+    const colorKey = action.key as keyof typeof ActionColors;
+    const disabledKey = (action.key + "_disabled") as keyof typeof ActionColors;
+    if (action.permission && this.isActionDisabledByPermission(action)) {
+      return ActionColors[disabledKey] || ActionColors.default_disabled;
+    }
+    return ActionColors[colorKey] || ActionColors.default;
+  }
+
+  isActionDisabledByPermission(action: ItemDisplayAction): boolean {
+    if (!action.permission) {
+      return this.isActionDisabled();
+    }
+    const required = action.permission;
+    const currentUserId = this.authService.getValueByKey("id");
+    if (this.userPermission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (required === TodoPermission.EDITOR) {
+      if (this.userPermission === TodoPermission.EDITOR) {
+        return (this.item as any).user_id !== currentUserId;
+      }
+      return false;
+    }
+    if (required === TodoPermission.MODERATOR) {
+      if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(this.userPermission)) {
+        return false;
+      }
+      if (this.userPermission === TodoPermission.EDITOR) {
+        return (this.item as any).user_id !== currentUserId;
+      }
+      return true;
+    }
+    return this.userPermission !== required;
   }
 
   getChipColor(config: ItemDisplayConfig): string {

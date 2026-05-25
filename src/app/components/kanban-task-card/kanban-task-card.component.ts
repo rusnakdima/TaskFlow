@@ -35,11 +35,7 @@ export class KanbanTaskCardComponent {
   TaskStatus = TaskStatus;
   TodoPermission = TodoPermission;
 
-  private readonly isAdminPermission = [
-    TodoPermission.ADMIN,
-    TodoPermission.MODERATOR,
-    TodoPermission.OWNER,
-  ];
+  private readonly isAdminPermission = [TodoPermission.MODERATOR, TodoPermission.OWNER];
 
   isStatusToggleDisabled(): boolean {
     if (this.userPermission === TodoPermission.VIEWER) {
