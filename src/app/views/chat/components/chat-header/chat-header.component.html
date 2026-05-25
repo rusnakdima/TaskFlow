@@ -1,11 +1,11 @@
 <header
-  class="shrink-0 border-b border-slate-200 bg-white/90 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/90"
+  class="shrink-0 border-b border-slate-200/60 bg-white/90 p-4 backdrop-blur-xl transition-colors duration-200 dark:border-zinc-800/60 dark:bg-zinc-900/90"
 >
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-4">
     @if (isMobile) {
       <button
         type="button"
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
         (click)="back.emit()"
       >
         <mat-icon fontIcon="arrow_back" class="!h-5 !w-5" />
@@ -16,40 +16,45 @@
       <app-user-avatar [src]="conversation?.avatar" [name]="conversation?.name || ''" size="lg" />
       @if (conversation?.isOnline) {
         <div
-          class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"
+          class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500 shadow-sm dark:border-zinc-900"
         ></div>
       }
       @if (conversation?.isTyping) {
         <div
-          class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[var(--accent-color)] dark:border-zinc-900"
-        ></div>
+          class="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-[var(--accent-color)] shadow-sm dark:border-zinc-900"
+        >
+          <span class="text-[6px] text-white">...</span>
+        </div>
       }
     </div>
 
     <div class="min-w-0 flex-1">
-      <h2 class="truncate text-base font-semibold text-slate-800 dark:text-zinc-200">
+      <h2 class="truncate text-base font-bold text-slate-800 dark:text-zinc-100">
         {{ conversation?.name || "Chat" }}
       </h2>
       @if (conversation?.isTyping) {
-        <p class="flex items-center gap-1 text-xs font-medium text-[var(--accent-color)]">
-          <span class="flex gap-0.5">
+        <div class="flex items-center gap-1.5">
+          <span class="flex gap-1">
             <span
-              class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+              class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
               style="animation-delay: 0ms"
             ></span>
             <span
-              class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+              class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
               style="animation-delay: 150ms"
             ></span>
             <span
-              class="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent-color)]"
+              class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
               style="animation-delay: 300ms"
             ></span>
           </span>
-          typing...
-        </p>
+          <span class="text-xs font-medium text-[var(--accent-color)]">typing</span>
+        </div>
       } @else if (conversation?.isOnline) {
-        <p class="text-xs font-medium text-green-600 dark:text-green-400">Active now</p>
+        <p class="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+          <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+          Active now
+        </p>
       } @else if (conversation?.isGroup) {
         <p class="text-xs text-slate-500 dark:text-zinc-500">
           {{ conversation?.memberCount || 0 }} members
@@ -61,13 +66,14 @@
 
     <button
       type="button"
-      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors"
-      [class.bg-slate-100]="showDetailsPanel"
-      [class.text-slate-600]="!showDetailsPanel"
-      [class.dark:bg-zinc-800]="showDetailsPanel"
-      [class.dark:text-zinc-300]="!showDetailsPanel"
+      class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200"
+      [class.bg-[var(--accent-50)]]="showDetailsPanel"
       [class.text-[var(--accent-color)]]="showDetailsPanel"
-      [class.bg-[var(--accent-50)]]]="showDetailsPanel"
+      [class.text-slate-500]="!showDetailsPanel"
+      [class.hover:bg-slate-100]="!showDetailsPanel"
+      [class.dark:bg-zinc-800]="showDetailsPanel"
+      [class.dark:text-zinc-200]="showDetailsPanel"
+      [class.dark:hover:bg-zinc-800]="!showDetailsPanel"
       (click)="toggleDetails.emit()"
     >
       <mat-icon fontIcon="more_vert" class="!h-5 !w-5" />

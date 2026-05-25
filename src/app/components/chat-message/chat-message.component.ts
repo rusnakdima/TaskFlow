@@ -12,11 +12,18 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "../../models/chat.model";
 import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 
 @Component({
   selector: "app-chat-message",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MessageReactionsComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    MessageReactionsComponent,
+    UserAvatarComponent,
+  ],
   templateUrl: "./chat-message.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +44,8 @@ export class ChatMessageComponent implements OnInit {
   @Output() removeReaction = new EventEmitter<{ message: ChatMessage; emoji: string }>();
   @Output() cancelReply = new EventEmitter<ChatMessage>();
   @Output() retrySend = new EventEmitter<ChatMessage>();
+  @Output() deleteMessage = new EventEmitter<ChatMessage>();
+  @Output() startEditMessage = new EventEmitter<ChatMessage>();
 
   showReactionPicker = signal(false);
 
@@ -102,6 +111,14 @@ export class ChatMessageComponent implements OnInit {
     this.retrySend.emit(this.message);
   }
 
+  onDeleteMessage(): void {
+    this.deleteMessage.emit(this.message);
+  }
+
+  startEditMessageInline(): void {
+    this.startEditMessage.emit(this.message);
+  }
+
   formatTime(time: string): string {
     if (!time || time === "Invalid Date") {
       return new Date().toLocaleTimeString("en-US", {
@@ -123,12 +140,12 @@ export class ChatMessageComponent implements OnInit {
 
   getBubbleClasses(): string {
     const base =
-      "relative flex flex-col min-h-11 px-4 py-3 rounded-3xl max-w-full word-break transition-all duration-200 ease-out";
+      "relative flex flex-col min-h-[44px] px-4 py-2.5 rounded-2xl max-w-full word-break transition-all duration-200 ease-out";
 
     if (this.isOwn) {
-      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-600)] text-white border border-white/20 shadow`;
+      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-500)] text-white border border-white/20 shadow-md`;
     }
 
-    return `${base} bg-white backdrop-blur-md border border-black/5 text-zinc-800 shadow-sm dark:bg-zinc-800 dark:border-white/10 dark:text-zinc-100`;
+    return `${base} bg-white/95 backdrop-blur-sm border border-slate-200/50 text-zinc-800 dark:bg-zinc-800/95 dark:border-zinc-700/50 dark:text-zinc-100`;
   }
 }

@@ -1,14 +1,24 @@
 <div
-  class="group-message relative flex w-full py-1"
+  class="group-message chat-message-enter relative flex w-full py-1.5"
   [class.justify-end]="isOwn"
   [class.justify-start]="!isOwn"
   [attr.data-message-id]="message?.id"
   (contextmenu)="onContextMenu($event)"
 >
-  <div class="flex max-w-[80%] flex-col" [class.items-start]="!isOwn" [class.items-end]="isOwn">
-    @if (isGroupStart && isGroupChat) {
-      <div class="mb-1" [class.ml-1]="!isOwn" [class.mr-1]="isOwn">
-        <span class="text-sm font-medium text-[var(--accent-color)] opacity-80">
+  <div
+    class="flex w-full max-w-[95%] flex-col sm:max-w-[85%]"
+    [class.items-end]="isOwn"
+    [class.items-start]="!isOwn"
+  >
+    @if (isGroupStart && isGroupChat && !isOwn) {
+      <div class="mb-1 ml-1 flex items-center gap-2">
+        <app-user-avatar
+          [src]="message.senderAvatar || null"
+          [name]="message.senderName"
+          size="sm"
+          class="ring-2 ring-white dark:ring-zinc-900"
+        />
+        <span class="text-xs font-semibold text-[var(--accent-color)] sm:text-sm">
           {{ message.senderName }}
         </span>
       </div>
@@ -16,30 +26,47 @@
 
     @if (message.replyTo) {
       <div
-        class="mb-1.5 flex items-center gap-1.5 border-l-4 border-[var(--accent-color)] pl-2.5 opacity-85"
+        class="mb-1.5 flex w-full max-w-[90%] items-start gap-2.5 rounded-2xl border-l-[3px] border-[var(--accent-color)] bg-gradient-to-r from-[var(--accent-50)]/80 to-transparent px-3 py-2 backdrop-blur-sm dark:from-[var(--accent-900)]/30 dark:to-transparent"
+        [class.mr-2]="isOwn"
+        [class.ml-2]="!isOwn"
       >
-        <span class="text-xs font-semibold whitespace-nowrap text-[var(--accent-color)]">{{
-          message.replyTo.senderName
-        }}</span>
-        <span class="truncate text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-          {{ message.replyTo.content }}
-        </span>
+        <div
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-100)] dark:bg-[var(--accent-900)]/50"
+        >
+          <mat-icon fontIcon="reply" class="!h-3.5 !w-3.5 text-[var(--accent-color)]" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <span
+            class="mb-0.5 block text-[10px] font-bold tracking-wide text-[var(--accent-color)] sm:text-xs"
+          >
+            {{ message.replyTo.senderName }}
+          </span>
+          <p
+            class="truncate text-[10px] leading-relaxed text-slate-600 sm:text-xs dark:text-zinc-400"
+          >
+            {{ message.replyTo.content }}
+          </p>
+        </div>
       </div>
     }
 
-    <div class="group relative flex max-w-full flex-col">
+    <div class="group relative w-full max-w-full">
       <div
-        class="bubble word-break relative flex min-h-11 max-w-full flex-col rounded-2xl px-4 py-3 transition-all duration-200 ease-out hover:-translate-y-px"
+        class="bubble word-break relative flex min-h-[44px] max-w-full flex-col rounded-2xl px-4 py-2.5 transition-all duration-200"
         [ngClass]="getBubbleClasses()"
-        [class.rounded-bl-none]="!isOwn"
-        [class.rounded-br-none]="isOwn"
+        [class.rounded-tr-sm]="isOwn"
+        [class.rounded-tl-sm]="!isOwn"
+        [class.shadow-sm]="!isOwn"
+        [class.shadow-md]="isOwn"
       >
         @if (isEditing) {
-          <div class="flex min-w-56 flex-col gap-2.5">
+          <div class="flex min-w-48 flex-col gap-2.5 sm:min-w-52 sm:gap-3">
             <textarea
-              class="w-full min-w-48 resize-none rounded-2xl border-2 border-[var(--accent-color)] bg-transparent px-3.5 py-2.5 text-sm leading-relaxed transition-all duration-150 outline-none focus:shadow-[0_0_0_4px_var(--accent-100)]"
+              class="w-full min-w-44 resize-none rounded-xl border-2 border-[var(--accent-color)]/50 bg-transparent px-3 py-2 text-sm leading-relaxed transition-all duration-200 outline-none focus:border-[var(--accent-color)] focus:shadow-[0_0_0_3px_var(--accent-100)] sm:min-w-48 sm:px-4 sm:py-2.5"
               [class.text-white]="isOwn"
-              [class.dark:text-zinc-100]="!isOwn"
+              [class.text-zinc-100]="!isOwn"
+              [class.bg-white/10]="isOwn"
+              [class.bg-zinc-700/50]="!isOwn"
               [value]="editingMessageContent"
               (input)="onEditInput($event)"
               rows="3"
@@ -47,14 +74,16 @@
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded-xl border border-black/10 bg-black/5 px-3.5 py-1.5 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/15"
+                class="rounded-xl border border-white/20 bg-black/10 px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:bg-black/20 active:scale-95 sm:px-4 sm:py-2 sm:text-sm dark:bg-white/10 dark:hover:bg-white/20"
+                [class.text-white]="isOwn"
+                [class.text-zinc-300]="!isOwn"
                 (click)="onCancelEdit()"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                class="rounded-xl border-none bg-[var(--accent-color)] px-3.5 py-1.5 text-sm font-medium text-white shadow transition-all duration-150 hover:-translate-y-px hover:opacity-90 hover:shadow-md active:translate-y-0"
+                class="rounded-xl border-none bg-[var(--accent-color)] px-3 py-1.5 text-xs font-medium text-white shadow-md transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-100 sm:px-4 sm:py-2 sm:text-sm"
                 (click)="onSaveEdit()"
               >
                 Save
@@ -62,41 +91,49 @@
             </div>
           </div>
         } @else {
-          <p class="m-0 flex-1 text-sm leading-relaxed whitespace-pre-wrap">
+          <p class="m-0 flex-1 text-sm leading-[1.5] break-words whitespace-pre-wrap">
             {{ message.content }}
           </p>
-          <div class="mt-1.5 flex items-center justify-end gap-1.5">
+          <div class="mt-1 flex items-center justify-end gap-1.5 sm:mt-1.5 sm:gap-2">
+            <span class="text-[10px] font-medium tracking-wide opacity-60 sm:text-xs">
+              {{ formatTime(message.time) }}
+            </span>
             @if (message.isEdited) {
-              <span class="text-xs font-medium italic opacity-55">edited</span>
+              <span class="text-[9px] font-medium italic opacity-40 sm:text-[10px]">(edited)</span>
             }
-            <span class="text-xs font-medium tracking-wide opacity-65">{{
-              formatTime(message.time)
-            }}</span>
             @if (message.syncStatus === "pending") {
               <mat-icon
                 fontIcon="schedule"
-                class="animate-sync-pulse h-3.5 w-3.5 opacity-50"
+                class="h-3 w-3 animate-pulse opacity-50 sm:h-3.5 sm:w-3.5"
                 title="Sending..."
               />
             } @else if (message.syncStatus === "failed") {
               <mat-icon
                 fontIcon="error_outline"
-                class="h-3.5 w-3.5 cursor-pointer text-red-400 transition-all duration-150 hover:scale-110 hover:opacity-75"
+                class="h-3 w-3 cursor-pointer text-red-400 transition-all duration-200 hover:scale-110 hover:text-red-500 sm:h-3.5 sm:w-3.5"
                 title="Failed to send. Tap to retry."
                 (click)="onRetrySend()"
               />
             } @else if (message.readStatus) {
-              <span class="-ml-0.5 flex items-center">
+              <span class="-ml-0.5 flex items-center sm:-ml-1">
                 @if (message.readStatus === "sent") {
-                  <mat-icon fontIcon="check" class="h-3 w-3 opacity-75"></mat-icon>
-                } @else if (message.readStatus === "delivered") {
-                  <mat-icon fontIcon="check" class="h-3 w-3 opacity-75"></mat-icon>
-                  <mat-icon fontIcon="check" class="-ml-1.5 h-3 w-3 opacity-75"></mat-icon>
-                } @else if (message.readStatus === "read") {
-                  <mat-icon fontIcon="check" class="h-3 w-3 text-blue-400 opacity-75"></mat-icon>
                   <mat-icon
                     fontIcon="check"
-                    class="-ml-1.5 h-3 w-3 text-blue-400 opacity-75"
+                    class="chat-status-check h-3 w-3 opacity-60 sm:h-3.5 sm:w-3.5"
+                  ></mat-icon>
+                } @else if (message.readStatus === "delivered") {
+                  <mat-icon
+                    fontIcon="check"
+                    class="chat-status-check h-3 w-3 opacity-60 sm:h-3.5 sm:w-3.5"
+                  ></mat-icon>
+                  <mat-icon
+                    fontIcon="check"
+                    class="chat-status-check -ml-0.5 h-3 w-3 opacity-40 sm:-ml-1 sm:h-3.5 sm:w-3.5"
+                  ></mat-icon>
+                } @else if (message.readStatus === "read") {
+                  <mat-icon
+                    fontIcon="done_all"
+                    class="chat-status-check h-3 w-3 text-blue-400 opacity-70 sm:h-3.5 sm:w-3.5"
                   ></mat-icon>
                 }
               </span>
@@ -104,41 +141,63 @@
           </div>
         }
       </div>
+
       <div
-        class="hover-actions invisible absolute -top-9 flex hidden origin-top scale-95 gap-1 rounded-xl border border-black/5 bg-white/98 p-1.5 opacity-0 shadow-md backdrop-blur-md transition-all duration-180 ease-out group-hover:visible group-hover:scale-100 group-hover:opacity-100 md:flex lg:flex dark:border-white/10 dark:bg-zinc-800/98 dark:shadow-xl"
-        [class.right-0]="!isOwn"
-        [class.left-1]="isOwn"
-        [class.origin-top-right]="!isOwn"
-        [class.origin-top-left]="isOwn"
+        class="action-bar chat-action-bar-enter invisible absolute right-0 bottom-full left-0 mb-2 flex items-center justify-center opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 sm:invisible sm:opacity-0 sm:group-hover:visible sm:group-hover:opacity-100"
       >
-        <button
-          class="action-btn h-7.5 w-7.5 cursor-pointer rounded-xl border-none bg-transparent text-zinc-500 transition-all duration-150 hover:scale-105 hover:bg-[var(--accent-50)] hover:text-[var(--accent-color)] active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-          title="Reply"
-          (click)="onReply(message)"
+        <div
+          class="flex items-center gap-1 rounded-2xl border border-slate-200/60 bg-white/90 px-2 py-1.5 shadow-lg backdrop-blur-xl transition-all duration-200 sm:gap-1.5 dark:border-zinc-700/60 dark:bg-zinc-800/90 dark:shadow-black/20"
         >
-          <mat-icon fontIcon="reply" class="!h-4 !w-4" />
-        </button>
-        <button
-          class="action-btn h-7.5 w-7.5 cursor-pointer rounded-xl border-none bg-transparent text-zinc-500 transition-all duration-150 hover:scale-105 hover:bg-[var(--accent-50)] hover:text-[var(--accent-color)] active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-          title="React"
-          (click)="onToggleReactionPicker()"
-        >
-          <mat-icon fontIcon="sentiment_satisfied" class="!h-4 !w-4" />
-        </button>
-        <button
-          class="action-btn h-7.5 w-7.5 cursor-pointer rounded-xl border-none bg-transparent text-zinc-500 transition-all duration-150 hover:scale-105 hover:bg-[var(--accent-50)] hover:text-[var(--accent-color)] active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-          title="More"
-          (click)="onContextMenu($event)"
-        >
-          <mat-icon fontIcon="more_vert" class="!h-4 !w-4" />
-        </button>
+          <button
+            class="action-btn flex items-center gap-1 rounded-xl px-2 py-1.5 text-slate-600 transition-all duration-200 hover:bg-[var(--accent-50)] hover:text-[var(--accent-color)] active:scale-95 sm:gap-1.5 sm:px-3 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+            title="Reply"
+            (click)="onReply(message)"
+          >
+            <mat-icon fontIcon="reply" class="!h-4 !w-4" />
+            <span class="hidden text-xs font-medium sm:inline">Reply</span>
+          </button>
+          <button
+            class="action-btn flex items-center gap-1 rounded-xl px-2 py-1.5 text-slate-600 transition-all duration-200 hover:bg-[var(--accent-50)] hover:text-[var(--accent-color)] active:scale-95 sm:gap-1.5 sm:px-3 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+            title="React"
+            (click)="onToggleReactionPicker()"
+          >
+            <mat-icon fontIcon="add_reaction" class="!h-4 !w-4" />
+            <span class="hidden text-xs font-medium sm:inline">React</span>
+          </button>
+          @if (isOwn) {
+            <button
+              class="action-btn flex items-center gap-1 rounded-xl px-2 py-1.5 text-slate-600 transition-all duration-200 hover:bg-blue-50 hover:text-blue-500 active:scale-95 sm:gap-1.5 sm:px-3 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+              title="Edit"
+              (click)="startEditMessageInline()"
+            >
+              <mat-icon fontIcon="edit" class="!h-4 !w-4" />
+              <span class="hidden text-xs font-medium sm:inline">Edit</span>
+            </button>
+            <button
+              class="action-btn flex items-center gap-1 rounded-xl px-2 py-1.5 text-slate-600 transition-all duration-200 hover:bg-red-50 hover:text-red-500 active:scale-95 sm:gap-1.5 sm:px-3 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+              title="Delete"
+              (click)="onDeleteMessage()"
+            >
+              <mat-icon fontIcon="delete" class="!h-4 !w-4" />
+              <span class="hidden text-xs font-medium sm:inline">Delete</span>
+            </button>
+          }
+          <button
+            class="action-btn flex items-center gap-1 rounded-xl px-2 py-1.5 text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95 sm:gap-1.5 sm:px-3 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+            title="More"
+            (click)="onContextMenu($event)"
+          >
+            <mat-icon fontIcon="more_horiz" class="!h-4 !w-4" />
+            <span class="hidden text-xs font-medium sm:inline">More</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <app-message-reactions
       [reactions]="message.reactions || []"
       [showPicker]="showReactionPicker()"
-      [alignLeft]="isOwn"
+      [alignLeft]="!isOwn"
       (togglePicker)="onToggleReactionPicker()"
       (pickerClosed)="onPickerClosed()"
       (addReaction)="onReact({ message, emoji: $event })"
