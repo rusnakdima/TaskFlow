@@ -361,6 +361,23 @@ impl RepositoryService {
     }
   }
 
+  fn filter_contains_field(filter: &Filter, field: &str) -> bool {
+    match filter {
+      Filter::And(filters) | Filter::Or(filters) => filters
+        .iter()
+        .any(|f| Self::filter_contains_field(f, field)),
+      Filter::Eq(key, _)
+      | Filter::In(key, _)
+      | Filter::Gte(key, _)
+      | Filter::Lte(key, _)
+      | Filter::Gt(key, _)
+      | Filter::Lt(key, _)
+      | Filter::Contains(key, _) => key == field,
+      Filter::Not(f) => Self::filter_contains_field(f, field),
+      _ => false,
+    }
+  }
+
   async fn fix_todo_counts_if_needed(
     &self,
     mut docs: Vec<Value>,
@@ -558,18 +575,37 @@ impl RepositoryService {
         Some(&visibility_str),
       );
       eprintln!(
-        "[DEBUG] handle_get_all: visibility_str={}, permission_filter={}",
-        visibility_str, permission_filter_json
+        "[DEBUG] handle_get_all: user_id={}, profile_id={:?}, visibility_str={}, permission_filter={}",
+        user_id.unwrap_or_default(),
+        profile_id,
+        visibility_str,
+        permission_filter_json
       );
       let permission_filter = Filter::from_json(&permission_filter_json).ok();
-      match (permission_filter, filter_opt) {
-        (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing])),
-        (Some(perm), None) => Some(perm),
-        (None, existing) => existing,
-      }
+      let computed_filter = match (permission_filter, filter_opt) {
+        (Some(perm), Some(existing)) => {
+          eprintln!("[DEBUG] Combining permission_filter AND existing_filter");
+          Some(Filter::And(vec![perm, existing]))
+        }
+        (Some(perm), None) => {
+          eprintln!("[DEBUG] Using only permission_filter");
+          Some(perm)
+        }
+        (None, existing) => {
+          eprintln!("[DEBUG] Using only existing_filter (no permission filter)");
+          existing
+        }
+      };
+      eprintln!("[DEBUG] final_filter = {:?}", computed_filter);
+      computed_filter
     } else if table == "tasks" {
       let uid = user_id.as_deref().unwrap_or("");
       let visibility_is_private = visibility_str == "private";
+
+      eprintln!(
+        "[DEBUG] handle_get_all tasks: visibility_str={}, user_id={}",
+        visibility_str, uid
+      );
 
       // Get accessible todo_ids first
       let todos_filter_json = PermissionService::get_todo_filter_for_user(
@@ -577,21 +613,51 @@ impl RepositoryService {
         profile_id.as_deref(),
         Some(&visibility_str),
       );
+      eprintln!(
+        "[DEBUG] handle_get_all tasks: todos_filter_json={}",
+        todos_filter_json
+      );
       let todos_filter = Filter::from_json(&todos_filter_json).ok();
+      eprintln!(
+        "[DEBUG] handle_get_all tasks: todos_filter={:?}",
+        todos_filter
+      );
       let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
         match provider
           .find_many("todos", Some(&filter), None, None, None, true)
           .await
         {
-          Ok(todos) => todos
-            .iter()
-            .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            .collect(),
-          Err(_) => vec![],
+          Ok(todos) => {
+            eprintln!("[DEBUG] handle_get_all tasks: found {} todos", todos.len());
+            for todo in &todos {
+              eprintln!(
+                "[DEBUG] handle_get_all tasks: todo id={}, visibility={}, user_id={}",
+                todo.get("id").and_then(|v| v.as_str()).unwrap_or("?"),
+                todo
+                  .get("visibility")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("?"),
+                todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("?")
+              );
+            }
+            todos
+              .iter()
+              .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+              .collect()
+          }
+          Err(e) => {
+            eprintln!("[DEBUG] handle_get_all tasks: error finding todos: {:?}", e);
+            vec![]
+          }
         }
       } else {
+        eprintln!("[DEBUG] handle_get_all tasks: todos_filter is None");
         vec![]
       };
+      eprintln!(
+        "[DEBUG] handle_get_all tasks: todo_ids count={}",
+        todo_ids.len()
+      );
 
       // For private visibility: security check + user ownership filter
       if visibility_is_private {
@@ -616,6 +682,10 @@ impl RepositoryService {
         Some(Filter::And(vec![todo_in_filter, user_id_check]))
       } else {
         // For shared/public visibility, use todo-chain permission (assignee check)
+        eprintln!(
+          "[DEBUG] handle_get_all tasks: todo_ids is_empty={}",
+          todo_ids.is_empty()
+        );
         if todo_ids.is_empty() {
           return Ok(success_response(DataValue::Array(vec![])));
         }
@@ -623,10 +693,64 @@ impl RepositoryService {
           "todo_id".to_string(),
           todo_ids.into_iter().map(Value::String).collect(),
         );
-        match filter_opt {
-          Some(existing) => Some(Filter::And(vec![todo_in_filter, existing])),
-          None => Some(todo_in_filter),
-        }
+        eprintln!(
+          "[DEBUG] handle_get_all tasks: todo_in_filter={:?}",
+          todo_in_filter
+        );
+
+        // For public visibility, ignore filter_opt if it contains todo_id or $or
+        // since our todo_in_filter already properly handles access control
+        let should_override_filter =
+          matches!(visibility_str.as_str(), "public" | "shared" | "cloud");
+
+        let final_filter = if should_override_filter {
+          // Check if filter_opt has conflicting todo_id or $or conditions
+          let has_conflicting_filter = filter_opt
+            .as_ref()
+            .map(|f| {
+              Self::filter_contains_field(f, "todo_id") || Self::filter_contains_field(f, "$or")
+            })
+            .unwrap_or(false);
+
+          if has_conflicting_filter {
+            eprintln!(
+              "[DEBUG] handle_get_all tasks: overriding conflicting filter for {}",
+              visibility_str
+            );
+            Some(todo_in_filter)
+          } else {
+            match filter_opt {
+              Some(existing) => {
+                let combined = Filter::And(vec![todo_in_filter, existing]);
+                eprintln!(
+                  "[DEBUG] handle_get_all tasks: combined filter={:?}",
+                  combined
+                );
+                Some(combined)
+              }
+              None => {
+                eprintln!("[DEBUG] handle_get_all tasks: using only todo_in_filter");
+                Some(todo_in_filter)
+              }
+            }
+          }
+        } else {
+          match filter_opt {
+            Some(existing) => {
+              let combined = Filter::And(vec![todo_in_filter, existing]);
+              eprintln!(
+                "[DEBUG] handle_get_all tasks: combined filter={:?}",
+                combined
+              );
+              Some(combined)
+            }
+            None => {
+              eprintln!("[DEBUG] handle_get_all tasks: using only todo_in_filter");
+              Some(todo_in_filter)
+            }
+          }
+        };
+        final_filter
       }
     } else if table == "categories" {
       let category_filter_json = match visibility_str.as_str() {
@@ -662,6 +786,11 @@ impl RepositoryService {
       let uid = user_id.as_deref().unwrap_or("");
       let visibility_is_private = visibility_str == "private";
 
+      eprintln!(
+        "[DEBUG] handle_get_all subtasks/comments: visibility_str={}, user_id={}",
+        visibility_str, uid
+      );
+
       // Check if filter contains a specific task_id
       let specific_task_id = filter_opt
         .as_ref()
@@ -669,39 +798,128 @@ impl RepositoryService {
 
       // If a specific task_id is provided, validate access through the task's parent todo
       if let Some(task_id) = specific_task_id {
+        eprintln!(
+          "[DEBUG] handle_get_all subtasks/comments: specific_task_id={}",
+          task_id
+        );
         let task_filter = Filter::Eq("id".to_string(), Value::String(task_id.clone()));
-        match provider
+
+        let task_opt = match provider
           .find_many("tasks", Some(&task_filter), None, None, None, true)
           .await
         {
           Ok(tasks) => {
-            if let Some(task) = tasks.first() {
-              let todo_id = task.get("todo_id").and_then(|v| v.as_str());
-              if let Some(tid) = todo_id {
-                let todo_filter = Filter::Eq("id".to_string(), Value::String(tid.to_string()));
-                match provider
-                  .find_many("todos", Some(&todo_filter), None, None, None, true)
-                  .await
-                {
-                  Ok(todos) => {
-                    if let Some(todo) = todos.first() {
-                      if !PermissionService::can_view_todo(todo, uid) {
-                        return Err(err_response("Unauthorized: access denied to this task"));
-                      }
-                    } else {
-                      return Err(err_response("Unauthorized: todo not found"));
-                    }
-                  }
-                  Err(_) => return Err(err_response("Unauthorized: error checking todo")),
-                }
-              } else {
-                return Err(err_response("Unauthorized: task has no parent todo"));
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: found {} tasks by id in current provider",
+              tasks.len()
+            );
+            tasks.first().cloned()
+          }
+          Err(e) => {
+            eprintln!("[DEBUG] handle_get_all subtasks/comments: error in current provider, trying other: {:?}", e);
+            None
+          }
+        };
+
+        if let Some(task) = task_opt {
+          let todo_id = task.get("todo_id").and_then(|v| v.as_str());
+          if let Some(tid) = todo_id {
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: found todo_id={}",
+              tid
+            );
+            let todo_filter = Filter::Eq("id".to_string(), Value::String(tid.to_string()));
+            let todo_opt = match provider
+              .find_many("todos", Some(&todo_filter), None, None, None, true)
+              .await
+            {
+              Ok(todos) => {
+                eprintln!(
+                  "[DEBUG] handle_get_all subtasks/comments: found {} todos by id",
+                  todos.len()
+                );
+                todos.first().cloned()
+              }
+              Err(e) => {
+                eprintln!(
+                  "[DEBUG] handle_get_all subtasks/comments: error finding todo: {:?}",
+                  e
+                );
+                None
+              }
+            };
+
+            if let Some(todo) = todo_opt {
+              let can_view = PermissionService::can_view_todo(&todo, uid);
+              eprintln!(
+                "[DEBUG] handle_get_all subtasks/comments: can_view_todo={}",
+                can_view
+              );
+              if !can_view {
+                return Err(err_response("Unauthorized: access denied to this task"));
               }
             } else {
-              return Err(err_response("Unauthorized: task not found"));
+              return Err(err_response("Unauthorized: todo not found"));
+            }
+          } else {
+            return Err(err_response("Unauthorized: task has no parent todo"));
+          }
+        } else {
+          eprintln!("[DEBUG] handle_get_all subtasks/comments: task not found in current provider, checking other providers");
+          let mut found_todo_id: Option<String> = None;
+
+          if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", &task_id).await {
+            found_todo_id = task
+              .get("todo_id")
+              .and_then(|v| v.as_str())
+              .map(|s| s.to_string());
+          }
+
+          if found_todo_id.is_none() {
+            if let Some(mongo_provider) = &self.mongodb_provider {
+              if let Ok(Some(task)) = mongo_provider.find_by_id("tasks", &task_id).await {
+                found_todo_id = task
+                  .get("todo_id")
+                  .and_then(|v| v.as_str())
+                  .map(|s| s.to_string());
+              }
             }
           }
-          Err(_) => return Err(err_response("Unauthorized: error checking task")),
+
+          if let Some(todo_id) = found_todo_id {
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: found todo_id from alternate provider={}",
+              todo_id
+            );
+
+            let can_view = if visibility_str == "private" || visibility_str == "local" {
+              if let Ok(Some(todo)) = self.json_provider.find_by_id("todos", &todo_id).await {
+                PermissionService::can_view_todo(&todo, uid)
+              } else {
+                false
+              }
+            } else {
+              if let Some(mongo) = &self.mongodb_provider {
+                if let Ok(Some(todo)) = mongo.find_by_id("todos", &todo_id).await {
+                  PermissionService::can_view_todo(&todo, uid)
+                } else {
+                  false
+                }
+              } else {
+                false
+              }
+            };
+
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: can_view_todo from alt provider={}",
+              can_view
+            );
+            if !can_view {
+              return Err(err_response("Unauthorized: access denied to this task"));
+            }
+          } else {
+            return Err(err_response("Unauthorized: task not found"));
+          }
         }
       }
 
@@ -727,21 +945,47 @@ impl RepositoryService {
         profile_id.as_deref(),
         Some(&visibility_str),
       );
+      eprintln!(
+        "[DEBUG] handle_get_all subtasks/comments: todos_filter_json={}",
+        todos_filter_json
+      );
       let todos_filter = Filter::from_json(&todos_filter_json).ok();
+      eprintln!(
+        "[DEBUG] handle_get_all subtasks/comments: todos_filter={:?}",
+        todos_filter
+      );
       let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
         match provider
           .find_many("todos", Some(&filter), None, None, None, true)
           .await
         {
-          Ok(todos) => todos
-            .iter()
-            .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            .collect(),
-          Err(_) => vec![],
+          Ok(todos) => {
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: found {} todos",
+              todos.len()
+            );
+            todos
+              .iter()
+              .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
+              .collect()
+          }
+          Err(e) => {
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: error finding todos: {:?}",
+              e
+            );
+            vec![]
+          }
         }
       } else {
+        eprintln!("[DEBUG] handle_get_all subtasks/comments: todos_filter is None");
         vec![]
       };
+
+      eprintln!(
+        "[DEBUG] handle_get_all subtasks/comments: todo_ids count={}",
+        todo_ids.len()
+      );
 
       if todo_ids.is_empty() {
         filter_opt
@@ -755,6 +999,10 @@ impl RepositoryService {
           .await
         {
           Ok(tasks) => {
+            eprintln!(
+              "[DEBUG] handle_get_all subtasks/comments: found {} tasks",
+              tasks.len()
+            );
             let task_ids: Vec<String> = tasks
               .iter()
               .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
@@ -826,20 +1074,60 @@ impl RepositoryService {
         let mut local_docs = Vec::new();
         let mut cloud_docs = Vec::new();
 
+        eprintln!(
+          "[DEBUG] handle_get_all (Both): calling JSON find_many with filter={:?}",
+          final_filter
+        );
         if let Ok(docs) = json
           .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
           .await
         {
           local_docs = docs;
+          eprintln!(
+            "[DEBUG] handle_get_all: JSON returned {} docs",
+            local_docs.len()
+          );
+          for doc in local_docs.iter().take(5) {
+            eprintln!(
+              "  JSON doc: id={}, title={:?}, visibility={:?}, user_id={:?}, assignees={:?}",
+              doc.get("id").and_then(|v| v.as_str()).unwrap_or("?"),
+              doc.get("title").and_then(|v| v.as_str()),
+              doc.get("visibility").and_then(|v| v.as_str()),
+              doc.get("user_id").and_then(|v| v.as_str()),
+              doc.get("assignees").and_then(|v| v
+                .as_array()
+                .map(|a| a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>()))
+            );
+          }
         } else {
           eprintln!("[WARN] JSON find_many failed for table: {}", table);
         }
 
+        eprintln!(
+          "[DEBUG] handle_get_all (Both): calling MongoDB find_many with filter={:?}",
+          final_filter
+        );
         if let Ok(docs) = mongo
           .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
           .await
         {
           cloud_docs = docs;
+          eprintln!(
+            "[DEBUG] handle_get_all: MongoDB returned {} docs",
+            cloud_docs.len()
+          );
+          for doc in cloud_docs.iter().take(5) {
+            eprintln!(
+              "  Mongo doc: id={}, title={:?}, visibility={:?}, user_id={:?}, assignees={:?}",
+              doc.get("id").and_then(|v| v.as_str()).unwrap_or("?"),
+              doc.get("title").and_then(|v| v.as_str()),
+              doc.get("visibility").and_then(|v| v.as_str()),
+              doc.get("user_id").and_then(|v| v.as_str()),
+              doc.get("assignees").and_then(|v| v
+                .as_array()
+                .map(|a| a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>()))
+            );
+          }
         } else {
           eprintln!("[WARN] MongoDB find_many failed for table: {}", table);
         }

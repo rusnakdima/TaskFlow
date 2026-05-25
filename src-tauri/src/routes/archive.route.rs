@@ -1,8 +1,9 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
-use crate::helpers::auth_helper::extract_user_from_token;
+use crate::helpers::auth_helper::{extract_user_from_token, validate_admin_role};
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::AppState;
+use nosql_orm::prelude::DatabaseProvider;
 use nosql_orm::query::Filter;
 use std::sync::Arc;
 use tauri::State;
@@ -438,9 +439,106 @@ pub async fn soft_delete(
   token: Option<String>,
   table: String,
   id: String,
+  todo_id: Option<String>,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_id(&state, &token)?;
+  let user_id = extract_user_id(&state, &token)?;
+  let is_global_admin = validate_admin_role(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+    &state.json_provider,
+    state.mongodb_provider.as_ref(),
+  )
+  .await
+  .is_ok();
+
+  if let Some(tid) = todo_id {
+    let todo_json = state.json_provider.find_by_id("todos", &tid).await;
+    let todo = if let Ok(Some(t)) = todo_json {
+      Some(t)
+    } else if let Some(mongo) = state.mongodb_provider.as_ref() {
+      match mongo.find_by_id("todos", &tid).await {
+        Ok(Some(t)) => Some(t),
+        _ => None,
+      }
+    } else {
+      None
+    };
+
+    let todo = todo.ok_or_else(|| err_response("Todo not found"))?;
+
+    let user_id_str = user_id
+      .as_ref()
+      .ok_or_else(|| err_response("User not found"))?;
+    let permission = crate::services::permission_service::PermissionService::get_todo_permission_with_profile_and_admin(
+      &todo,
+      user_id_str,
+      None,
+      is_global_admin,
+    );
+
+    if let Some(perm) = permission {
+      match table.as_str() {
+        "todos" => {
+          if !perm.can_archive_todo() {
+            return Err(err_response(
+              "You don't have permission to archive this project",
+            ));
+          }
+        }
+        "tasks" | "subtasks" | "comments" => {
+          let can_archive = if perm.can_archive_task()
+            || perm.can_archive_subtask()
+            || perm.can_archive_comment()
+          {
+            true
+          } else if perm == crate::entities::permission_entity::TodoPermission::EDITOR {
+            let mut item: Option<serde_json::Value> = None;
+            if table == "tasks" {
+              if let Ok(Some(i)) = state.json_provider.find_by_id("tasks", &id).await {
+                item = Some(i);
+              } else if let Some(m) = state.mongodb_provider.as_ref() {
+                if let Ok(Some(i)) = m.find_by_id("tasks", &id).await {
+                  item = Some(i);
+                }
+              }
+            } else if table == "subtasks" {
+              if let Ok(Some(i)) = state.json_provider.find_by_id("subtasks", &id).await {
+                item = Some(i);
+              } else if let Some(m) = state.mongodb_provider.as_ref() {
+                if let Ok(Some(i)) = m.find_by_id("subtasks", &id).await {
+                  item = Some(i);
+                }
+              }
+            } else {
+              if let Ok(Some(i)) = state.json_provider.find_by_id("comments", &id).await {
+                item = Some(i);
+              } else if let Some(m) = state.mongodb_provider.as_ref() {
+                if let Ok(Some(i)) = m.find_by_id("comments", &id).await {
+                  item = Some(i);
+                }
+              }
+            };
+            if let Some(i) = item {
+              i.get("user_id").and_then(|v| v.as_str()) == Some(user_id_str)
+            } else {
+              false
+            }
+          } else {
+            false
+          };
+          if !can_archive {
+            return Err(err_response(&format!(
+              "You don't have permission to archive this {}",
+              table
+            )));
+          }
+        }
+        _ => {}
+      }
+    }
+  }
+
   state
     .manage_db_service
     .toggle_delete_status(table, id, visibility)

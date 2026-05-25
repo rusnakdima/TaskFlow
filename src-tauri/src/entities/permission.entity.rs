@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 pub enum TodoPermission {
   VIEWER,
   EDITOR,
-  ADMIN,
   MODERATOR,
   OWNER,
 }
@@ -14,8 +13,7 @@ impl TodoPermission {
     match role.to_lowercase().as_str() {
       "viewer" => TodoPermission::VIEWER,
       "editor" => TodoPermission::EDITOR,
-      "admin" => TodoPermission::ADMIN,
-      "moderator" => TodoPermission::MODERATOR,
+      "admin" | "moderator" => TodoPermission::MODERATOR,
       "owner" => TodoPermission::OWNER,
       _ => TodoPermission::VIEWER,
     }
@@ -28,88 +26,77 @@ impl TodoPermission {
   pub fn can_create_task(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_edit_task(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_delete_task(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_edit_subtask(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_delete_subtask(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_create_comment(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_edit_comment(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_delete_comment(&self) -> bool {
     matches!(
       self,
-      TodoPermission::EDITOR
-        | TodoPermission::ADMIN
-        | TodoPermission::MODERATOR
-        | TodoPermission::OWNER
+      TodoPermission::EDITOR | TodoPermission::MODERATOR | TodoPermission::OWNER
     )
   }
 
   pub fn can_edit_todo_fields(&self) -> bool {
-    matches!(
-      self,
-      TodoPermission::ADMIN | TodoPermission::MODERATOR | TodoPermission::OWNER
-    )
+    matches!(self, TodoPermission::MODERATOR | TodoPermission::OWNER)
+  }
+
+  pub fn can_archive_todo(&self) -> bool {
+    matches!(self, TodoPermission::OWNER)
+  }
+
+  pub fn can_archive_task(&self) -> bool {
+    matches!(self, TodoPermission::MODERATOR | TodoPermission::OWNER)
+  }
+
+  pub fn can_archive_subtask(&self) -> bool {
+    matches!(self, TodoPermission::MODERATOR | TodoPermission::OWNER)
+  }
+
+  pub fn can_archive_comment(&self) -> bool {
+    matches!(self, TodoPermission::MODERATOR | TodoPermission::OWNER)
   }
 }
 

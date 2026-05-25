@@ -15,6 +15,15 @@ impl PermissionService {
     user_id: &str,
     profile_id: Option<&str>,
   ) -> Option<TodoPermission> {
+    Self::get_todo_permission_with_profile_and_admin(todo, user_id, profile_id, false)
+  }
+
+  pub fn get_todo_permission_with_profile_and_admin(
+    todo: &Value,
+    user_id: &str,
+    profile_id: Option<&str>,
+    is_global_admin: bool,
+  ) -> Option<TodoPermission> {
     let owner_id = todo.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
 
     if owner_id == user_id {
@@ -42,8 +51,17 @@ impl PermissionService {
       .and_then(|v| v.as_str())
       .unwrap_or("private");
     match visibility {
-      "public" => Some(TodoPermission::VIEWER),
+      "public" => {
+        if is_global_admin {
+          Some(TodoPermission::MODERATOR)
+        } else {
+          Some(TodoPermission::VIEWER)
+        }
+      }
       "shared" => {
+        if is_global_admin {
+          return Some(TodoPermission::MODERATOR);
+        }
         if let Some(pid) = profile_id {
           if assignees.iter().any(|a| a.as_str() == Some(pid)) {
             return Some(TodoPermission::VIEWER);
@@ -61,7 +79,7 @@ impl PermissionService {
 
   pub fn is_owner_or_admin(todo: &Value, user_id: &str) -> bool {
     if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      return permission == TodoPermission::ADMIN || permission == TodoPermission::OWNER;
+      return permission == TodoPermission::MODERATOR || permission == TodoPermission::OWNER;
     }
     false
   }
@@ -205,6 +223,51 @@ impl PermissionService {
     false
   }
 
+  pub fn can_archive_task(task: &Value, todo: &Value, user_id: &str) -> bool {
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_archive_task() {
+        let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+        return task_creator_id == user_id;
+      }
+    }
+    false
+  }
+
+  pub fn can_archive_subtask(subtask: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_archive_subtask() {
+        let subtask_creator_id = subtask
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return subtask_creator_id == user_id;
+      }
+    }
+    false
+  }
+
+  pub fn can_archive_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
+    if Self::is_owner_or_admin(todo, user_id) {
+      return true;
+    }
+    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
+      if permission.can_archive_comment() {
+        let comment_creator_id = comment
+          .get("user_id")
+          .and_then(|v| v.as_str())
+          .unwrap_or("");
+        return comment_creator_id == user_id;
+      }
+    }
+    false
+  }
+
   pub fn get_todo_filter_for_user(
     user_id: &str,
     profile_id: Option<&str>,
@@ -219,7 +282,7 @@ impl PermissionService {
       }
       "shared" => {
         let assignee_filter = if let Some(pid) = profile_id {
-          json!({ "assignees": { "$in": [pid] } })
+          json!({ "assignees": { "$in": [pid, user_id] } })
         } else {
           json!({ "assignees": { "$in": [user_id] } })
         };
@@ -236,7 +299,7 @@ impl PermissionService {
       }
       "all" => {
         let shared_assignee_filter = if let Some(pid) = profile_id {
-          json!({ "assignees": { "$in": [pid] } })
+          json!({ "assignees": { "$in": [pid, user_id] } })
         } else {
           json!({ "assignees": { "$in": [user_id] } })
         };
