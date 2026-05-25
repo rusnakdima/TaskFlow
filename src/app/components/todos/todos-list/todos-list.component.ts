@@ -273,17 +273,13 @@ export class TodosListComponent {
     const perm = this.getUserTodoPermission(event.item);
     switch (event.action) {
       case "archive":
-        if (
-          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
-        ) {
+        if (perm !== TodoPermission.OWNER) {
           return;
         }
         this.todoArchived.emit(event.item.id);
         break;
       case "restore":
-        if (
-          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
-        ) {
+        if (perm !== TodoPermission.OWNER) {
           return;
         }
         this.todoRestored.emit(event.item.id);
@@ -333,17 +329,13 @@ export class TodosListComponent {
     const perm = this.getUserTodoPermission(todo);
     switch (event.action) {
       case "archive":
-        if (
-          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
-        ) {
+        if (perm !== TodoPermission.OWNER) {
           return;
         }
         this.todoArchived.emit(todo.id);
         break;
       case "restore":
-        if (
-          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
-        ) {
+        if (perm !== TodoPermission.OWNER) {
           return;
         }
         this.todoRestored.emit(todo.id);
@@ -440,9 +432,18 @@ export class TodosListComponent {
     if (todo.user_id === this.userId) {
       return TodoPermission.OWNER;
     }
+
+    if (
+      this.permissionService.isGlobalAdmin() &&
+      (todo.visibility === "public" || todo.visibility === "shared")
+    ) {
+      return TodoPermission.MODERATOR;
+    }
+
     if ((todo as any).assignee_roles && (todo as any).assignee_roles[this.userId]) {
       return this.permissionService.fromStr((todo as any).assignee_roles[this.userId]);
     }
+
     const roles = this.permissionMap()[todo.id];
     if (roles) {
       const role = roles[this.userId] || "viewer";
