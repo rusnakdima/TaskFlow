@@ -919,20 +919,36 @@ export class StorageService {
   }
 
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
+    console.log(
+      `[StorageService ensureTodosLoaded] visibility=${visibility}, private=${this.privateTodos().length}, shared=${this.sharedTodos().length}, public=${this.publicTodos().length}`
+    );
     if (visibility === "all") {
       if (
         this.privateTodos().length > 0 &&
         this.sharedTodos().length > 0 &&
         this.publicTodos().length > 0
-      )
+      ) {
+        console.log(`[StorageService ensureTodosLoaded] ALL loaded, skipping`);
         return;
-      this._queryService.ensureTodosLoaded("private", limit);
-      this.mongoConnectionService.checkConnection().subscribe((isConnected) => {
-        if (isConnected) {
-          this._queryService.ensureTodosLoaded("shared", limit);
-          this._queryService.ensureTodosLoaded("public", limit);
-        }
-      });
+      }
+      const loadPrivate = this.privateTodos().length === 0;
+      const loadShared = this.sharedTodos().length === 0;
+      const loadPublic = this.publicTodos().length === 0;
+      console.log(
+        `[StorageService ensureTodosLoaded] need to load: private=${loadPrivate}, shared=${loadShared}, public=${loadPublic}`
+      );
+      if (loadPrivate) this._queryService.ensureTodosLoaded("private", limit);
+      if (loadShared) this._queryService.ensureTodosLoaded("shared", limit);
+      if (loadPublic) {
+        this.mongoConnectionService.checkConnection().subscribe((isConnected) => {
+          console.log(
+            `[StorageService ensureTodosLoaded] connected=${isConnected}, publicTodos=${this.publicTodos().length}`
+          );
+          if (isConnected && this.publicTodos().length === 0) {
+            this._queryService.ensureTodosLoaded("public", limit);
+          }
+        });
+      }
       return;
     }
     const targetTodos =
@@ -941,7 +957,12 @@ export class StorageService {
         : visibility === "public"
           ? this.publicTodos()
           : this.sharedTodos();
-    if (targetTodos.length > 0) return;
+    if (targetTodos.length > 0) {
+      console.log(
+        `[StorageService ensureTodosLoaded] ${visibility} already has ${targetTodos.length}, skipping`
+      );
+      return;
+    }
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
 
