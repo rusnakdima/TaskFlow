@@ -29,7 +29,7 @@ import { TableField } from "@models/table-field.model";
 import { ActionColors } from "@constants/table-field.constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
 
 @Component({
   selector: "app-item-card",
@@ -54,6 +54,7 @@ import { TodoPermission } from "@services/core/permission.service";
 export class ItemCardComponent {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
+  private permissionService = inject(PermissionService);
 
   @Input() item: Todo | Task | Subtask | Category | null = null;
   @Input() config: ItemDisplayConfig[] = [];
@@ -212,11 +213,14 @@ export class ItemCardComponent {
     if (!action.permission) {
       return this.isActionDisabled();
     }
-    const required = action.permission;
     const currentUserId = this.authService.getValueByKey("id");
+    if (!currentUserId) return false;
+
     if (this.userPermission === TodoPermission.VIEWER) {
       return true;
     }
+
+    const required = action.permission;
     if (required === TodoPermission.EDITOR) {
       if (this.userPermission === TodoPermission.EDITOR) {
         return (this.item as any).user_id !== currentUserId;
@@ -232,7 +236,62 @@ export class ItemCardComponent {
       }
       return true;
     }
-    return this.userPermission !== required;
+    if (required === TodoPermission.OWNER) {
+      if (this.userPermission === TodoPermission.OWNER) {
+        return false;
+      }
+      if (this.userPermission === TodoPermission.MODERATOR) {
+        return this.itemType !== "todo";
+      }
+      return true;
+    }
+    return true;
+  }
+
+  canEditItem(): boolean {
+    if (this.itemType === "todo") {
+      return this.permissionService.canEditTodoFields(this.userPermission);
+    }
+    if (this.itemType === "task" || this.itemType === "subtask") {
+      return this.permissionService.canEditTask(
+        this.item,
+        this.userPermission,
+        this.authService.getValueByKey("id")
+      );
+    }
+    return false;
+  }
+
+  canArchiveItem(): boolean {
+    if (this.itemType === "todo") {
+      return this.permissionService.canArchiveTodo(this.userPermission);
+    }
+    if (this.itemType === "task") {
+      return this.permissionService.canArchiveTask(
+        this.item,
+        this.userPermission,
+        this.authService.getValueByKey("id")
+      );
+    }
+    if (this.itemType === "subtask") {
+      return this.permissionService.canArchiveSubtask(
+        this.item,
+        this.userPermission,
+        this.authService.getValueByKey("id")
+      );
+    }
+    return false;
+  }
+
+  isActionDisabledForType(action: ItemDisplayAction): boolean {
+    const key = action.key?.toLowerCase() || "";
+    if (key === "edit") {
+      return !this.canEditItem();
+    }
+    if (key === "archive" || key === "restore") {
+      return !this.canArchiveItem();
+    }
+    return this.isActionDisabledByPermission(action);
   }
 
   getChipColor(config: ItemDisplayConfig): string {
