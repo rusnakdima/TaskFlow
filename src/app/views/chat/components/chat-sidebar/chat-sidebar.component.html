@@ -1,11 +1,10 @@
-<div class="flex h-full w-full flex-col bg-white/85 backdrop-blur-xl dark:bg-zinc-900/85">
-  <header class="shrink-0 border-b border-slate-200 p-4 dark:border-zinc-800">
-    <div class="flex items-center gap-2">
+<div class="flex h-full w-full flex-col bg-white/80 backdrop-blur-xl dark:bg-zinc-900/80">
+  <header class="shrink-0 border-b border-slate-200/60 p-4 dark:border-zinc-800/60">
+    <div class="flex items-center gap-3">
       <div class="relative flex-1">
-        <mat-icon
-          fontIcon="search"
-          class="absolute top-1/2 left-3 !h-5 !w-5 -translate-y-1/2 text-slate-400"
-        />
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <mat-icon fontIcon="search" class="!h-5 !w-5 text-slate-400" />
+        </div>
         <input
           type="text"
           [value]="searchQuery"
@@ -14,13 +13,13 @@
           (focus)="onSearchFocus()"
           (blur)="onSearchBlur()"
           placeholder="Search conversations..."
-          class="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 pr-4 pl-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          class="w-full rounded-2xl border border-slate-200/80 bg-slate-50/80 py-3 pr-4 pl-11 text-sm text-slate-800 transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--accent-color)] focus:bg-white focus:shadow-[0_0_0_3px_var(--accent-100)] focus:outline-none dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-800"
         />
       </div>
 
       <button
         type="button"
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-color)] text-white transition-all hover:scale-105 hover:shadow-lg"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-white shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-100"
         title="Create group"
         (click)="onOpenCreateGroup()"
       >
@@ -30,7 +29,7 @@
 
     @if (showSearchDropdown) {
       <div
-        class="absolute right-4 left-4 z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white/98 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+        class="absolute right-4 left-4 z-50 mt-3 max-h-80 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white/98 p-2 shadow-xl backdrop-blur-xl transition-all duration-200 dark:border-zinc-700/80 dark:bg-zinc-800/98"
       >
         @if (isProfilesLoading) {
           <div class="flex items-center justify-center gap-2 p-4 text-sm text-slate-500">
@@ -41,47 +40,49 @@
           </div>
         } @else {
           @if (searchDropdownUsers.recent.length > 0) {
-            <div class="border-b border-slate-100 p-2 dark:border-zinc-700">
-              <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            <div class="border-b border-slate-100/60 p-2 dark:border-zinc-700/60">
+              <p class="px-2 py-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                 Recent
               </p>
               @for (user of searchDropdownUsers.recent; track user.user_id) {
                 <button
                   type="button"
-                  class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                  class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-150 hover:bg-slate-100/80 dark:hover:bg-zinc-700/50"
                   (click)="onStartConversation(user)"
                 >
                   <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
                   <span
                     class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
-                    >{{ user.name }} {{ user.last_name }}</span
                   >
+                    {{ user.name }} {{ user.last_name }}
+                  </span>
                 </button>
               }
             </div>
           }
           @if (searchDropdownUsers.others.length > 0) {
             <div class="p-2">
-              <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+              <p class="px-2 py-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                 All Users
               </p>
               @for (user of searchDropdownUsers.others; track user.user_id) {
                 <button
                   type="button"
-                  class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                  class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-150 hover:bg-slate-100/80 dark:hover:bg-zinc-700/50"
                   (click)="onStartConversation(user)"
                 >
                   <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
                   <span
                     class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
-                    >{{ user.name }} {{ user.last_name }}</span
                   >
+                    {{ user.name }} {{ user.last_name }}
+                  </span>
                 </button>
               }
               @if (hasMoreProfiles) {
                 <button
                   type="button"
-                  class="w-full p-2 text-center text-sm font-medium text-[var(--accent-color)] hover:underline"
+                  class="w-full rounded-xl p-3 text-center text-sm font-medium text-[var(--accent-color)] transition-colors hover:bg-slate-50/50 dark:hover:bg-zinc-700/30"
                   (click)="loadMoreProfiles.emit()"
                 >
                   Load more
@@ -101,58 +102,60 @@
 
     @if (showUserDropdown) {
       <div
-        class="absolute right-4 left-4 z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white/98 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+        class="absolute right-4 left-4 z-50 mt-3 max-h-80 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white/98 shadow-xl backdrop-blur-xl dark:border-zinc-700/80 dark:bg-zinc-800/98"
       >
-        <div class="flex items-center gap-2 border-b border-slate-100 p-3 dark:border-zinc-700">
+        <div
+          class="flex items-center gap-2 border-b border-slate-100/60 p-3 dark:border-zinc-700/60"
+        >
           <input
             type="text"
             [value]="userDropdownSearch"
             (input)="onSearchChange($any($event.target).value)"
             placeholder="Search users..."
-            class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            class="flex-1 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-2.5 text-sm transition-all duration-200 focus:border-[var(--accent-color)] focus:outline-none dark:border-zinc-700/80 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <button
             type="button"
-            class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-700"
+            class="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-zinc-700"
             (click)="onCloseUserDropdown()"
           >
             <mat-icon fontIcon="close" class="!h-4 !w-4" />
           </button>
         </div>
         @if (searchDropdownUsers.recent.length > 0) {
-          <div class="border-b border-slate-100 p-2 dark:border-zinc-700">
-            <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+          <div class="border-b border-slate-100/60 p-2 dark:border-zinc-700/60">
+            <p class="px-2 py-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
               Recent
             </p>
             @for (user of searchDropdownUsers.recent; track user.user_id) {
               <button
                 type="button"
-                class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-150 hover:bg-slate-100/80 dark:hover:bg-zinc-700/50"
                 (click)="onStartConversation(user)"
               >
                 <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
-                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
-                  >{{ user.name }} {{ user.last_name }}</span
-                >
+                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200">
+                  {{ user.name }} {{ user.last_name }}
+                </span>
               </button>
             }
           </div>
         }
         @if (searchDropdownUsers.others.length > 0) {
           <div class="p-2">
-            <p class="px-2 py-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            <p class="px-2 py-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
               All Users
             </p>
             @for (user of searchDropdownUsers.others; track user.user_id) {
               <button
                 type="button"
-                class="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-zinc-700"
+                class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all duration-150 hover:bg-slate-100/80 dark:hover:bg-zinc-700/50"
                 (click)="onStartConversation(user)"
               >
                 <app-user-avatar [src]="user.image_url" [name]="user.name" size="sm" />
-                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200"
-                  >{{ user.name }} {{ user.last_name }}</span
-                >
+                <span class="flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200">
+                  {{ user.name }} {{ user.last_name }}
+                </span>
               </button>
             }
           </div>
@@ -160,39 +163,49 @@
       </div>
     }
 
-    <div class="mt-3 flex gap-1 rounded-2xl bg-slate-100/80 p-1 dark:bg-zinc-800/80">
+    <div
+      class="mt-3 flex gap-1 rounded-2xl bg-slate-100/60 p-1.5 backdrop-blur-sm dark:bg-zinc-800/60"
+    >
       <button
         type="button"
-        class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        class="flex-1 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200"
         [class.bg-white]="filterType === 'all'"
         [class.text-[var(--accent-color)]]="filterType === 'all'"
         [class.shadow-sm]="filterType === 'all'"
         [class.text-slate-500]="filterType !== 'all'"
+        [class.dark:text-zinc-400]="filterType !== 'all'"
+        [class.dark:bg-transparent]="filterType !== 'all'"
         (click)="onFilterChange('all')"
       >
         All
       </button>
       <button
         type="button"
-        class="relative flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        class="relative flex-1 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200"
         [class.bg-white]="filterType === 'unread'"
         [class.text-[var(--accent-color)]]="filterType === 'unread'"
         [class.shadow-sm]="filterType === 'unread'"
         [class.text-slate-500]="filterType !== 'unread'"
+        [class.dark:text-zinc-400]="filterType !== 'unread'"
+        [class.dark:bg-transparent]="filterType !== 'unread'"
         (click)="onFilterChange('unread')"
       >
         Unread
         @if (hasUnread) {
-          <span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
+          <span
+            class="chat-unread-badge absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"
+          ></span>
         }
       </button>
       <button
         type="button"
-        class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
+        class="flex-1 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200"
         [class.bg-white]="filterType === 'groups'"
         [class.text-[var(--accent-color)]]="filterType === 'groups'"
         [class.shadow-sm]="filterType === 'groups'"
         [class.text-slate-500]="filterType !== 'groups'"
+        [class.dark:text-zinc-400]="filterType !== 'groups'"
+        [class.dark:bg-transparent]="filterType !== 'groups'"
         (click)="onFilterChange('groups')"
       >
         Groups
@@ -200,12 +213,13 @@
     </div>
   </header>
 
-  <div class="flex-1 overflow-y-auto p-2">
-    @for (conv of filteredConversations; track conv.roomId) {
+  <div class="chat-scrollbar flex-1 overflow-y-auto p-3">
+    @for (conv of filteredConversations; track conv.roomId; let i = $index) {
       <div
-        class="mb-1 flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-colors"
+        class="chat-sidebar-item mb-2 flex cursor-pointer items-center gap-3 rounded-2xl p-3.5 transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-zinc-800/60"
         [class.bg-[var(--accent-50)]]="conv.roomId === activeConvId"
-        [class.active]="conv.roomId === activeConvId"
+        [class.ring-2]="conv.roomId === activeConvId"
+        [class.ring-[var(--accent-color)]/30]="conv.roomId === activeConvId"
         (click)="onSelectConversation(conv)"
         (contextmenu)="onContextMenu($event, conv)"
       >
@@ -226,39 +240,56 @@
           }
           @if (conv.isOnline) {
             <div
-              class="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"
+              class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500 shadow-sm dark:border-zinc-900"
             ></div>
           }
           @if (conv.isTyping) {
             <div
-              class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[var(--accent-color)] dark:border-zinc-900"
-            ></div>
+              class="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-[var(--accent-color)] shadow-sm dark:border-zinc-900"
+            >
+              <span class="text-[6px] text-white">...</span>
+            </div>
           }
         </div>
 
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between">
-            <span class="truncate text-sm font-semibold text-slate-800 dark:text-zinc-200">{{
-              conv.name
-            }}</span>
+            <span class="truncate text-sm font-semibold text-slate-800 dark:text-zinc-200">
+              {{ conv.name }}
+            </span>
             @if (conv.lastMessageTime) {
-              <span class="shrink-0 text-xs text-slate-400">{{ conv.lastMessageTime }}</span>
+              <span class="shrink-0 text-[10px] font-medium text-slate-400 dark:text-zinc-500">
+                {{ conv.lastMessageTime }}
+              </span>
             }
           </div>
-          <div class="flex items-center gap-1">
+          <div class="mt-0.5 flex items-center gap-1.5">
             @if (conv.isTyping) {
-              <span class="text-xs font-medium text-[var(--accent-color)]">typing...</span>
+              <span class="flex items-center gap-1 text-xs font-medium text-[var(--accent-color)]">
+                <span
+                  class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
+                  style="animation-delay: 0ms"
+                ></span>
+                <span
+                  class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
+                  style="animation-delay: 150ms"
+                ></span>
+                <span
+                  class="chat-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"
+                  style="animation-delay: 300ms"
+                ></span>
+              </span>
             } @else {
-              <span class="truncate text-xs text-slate-500 dark:text-zinc-400">{{
-                conv.lastMessage
-              }}</span>
+              <span class="truncate text-xs text-slate-500 dark:text-zinc-400">
+                {{ conv.lastMessage }}
+              </span>
             }
           </div>
         </div>
 
         @if (conv.unreadCount > 0) {
           <div
-            class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--accent-color)] px-1.5 text-xs font-bold text-white shadow-md"
+            class="chat-unread-badge flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[var(--accent-color)] px-2 text-xs font-bold text-white shadow-md"
           >
             {{ conv.unreadCount > 9 ? "9+" : conv.unreadCount }}
           </div>
@@ -267,7 +298,7 @@
     } @empty {
       <div class="flex flex-col items-center justify-center p-8 text-center">
         <div
-          class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500"
+          class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 shadow-sm dark:bg-zinc-800 dark:text-zinc-500"
         >
           <mat-icon fontIcon="chat_bubble_outline" class="!h-10 !w-10" />
         </div>

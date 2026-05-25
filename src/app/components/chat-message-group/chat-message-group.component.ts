@@ -24,4 +24,6 @@ export class ChatMessageGroupComponent {
   @Output() editMessageInput = new EventEmitter<string>();
   @Output() cancelReply = new EventEmitter<ChatMessage>();
   @Output() retrySend = new EventEmitter<ChatMessage>();
+  @Output() deleteMessage = new EventEmitter<ChatMessage>();
+  @Output() startEditMessage = new EventEmitter<ChatMessage>();
 }

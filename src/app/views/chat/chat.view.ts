@@ -626,4 +626,44 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
       return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     }
   }
+
+  getContextMenuTransform(): string {
+    const pos = this.state.contextMenuPosition();
+    const menuWidth = 200;
+    const menuHeight = 200;
+    const padding = 16;
+    let x = pos.x;
+    let y = pos.y;
+
+    if (typeof window !== "undefined") {
+      if (x + menuWidth > window.innerWidth - padding) {
+        x = window.innerWidth - menuWidth - padding;
+      }
+      if (y + menuHeight > window.innerHeight - padding) {
+        y = window.innerHeight - menuHeight - padding;
+      }
+    }
+
+    return `translate(${Math.max(padding, x)}px, ${Math.max(padding, y)}px)`;
+  }
+
+  getMessageContextMenuTransform(): string {
+    const pos = this.state.messageContextMenuPosition();
+    const menuWidth = 160;
+    const menuHeight = 100;
+    const padding = 16;
+    let x = pos.x;
+    let y = pos.y;
+
+    if (typeof window !== "undefined") {
+      if (x + menuWidth > window.innerWidth - padding) {
+        x = window.innerWidth - menuWidth - padding;
+      }
+      if (y + menuHeight > window.innerHeight - padding) {
+        y = window.innerHeight - menuHeight - padding;
+      }
+    }
+
+    return `translate(${Math.max(padding, x)}px, ${Math.max(padding, y)}px)`;
+  }
 }

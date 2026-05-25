@@ -1,61 +1,74 @@
 <div
-  class="relative shrink-0 border-t border-slate-200 bg-white/85 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/85"
+  class="relative shrink-0 border-t border-slate-200/60 bg-white/90 p-4 backdrop-blur-xl transition-colors duration-200 dark:border-zinc-800/60 dark:bg-zinc-900/90"
 >
   <form class="mx-auto flex flex-row items-end justify-center" (submit)="onSend()">
-    <div class="relative flex flex-row items-center justify-center">
+    <div class="relative flex flex-row items-center justify-center gap-1">
       <button
         type="button"
-        class="shrink-0 rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         title="Attach"
         (click)="onToggleAttachmentMenu()"
       >
-        <mat-icon fontIcon="attach_file" class="!h-6 !w-5 text-2xl" />
+        <mat-icon fontIcon="attach_file" class="!h-5 !w-5" />
       </button>
 
       @if (showAttachmentMenu) {
         <div
-          class="absolute bottom-full left-0 mb-2 w-48 rounded-xl border border-slate-200 bg-white/98 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+          class="absolute bottom-full left-0 mb-3 w-56 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/98 p-2 shadow-xl backdrop-blur-xl transition-all duration-200 dark:border-zinc-700/80 dark:bg-zinc-800/98"
         >
           <button
             type="button"
-            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            class="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100/80 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
-            <mat-icon fontIcon="image" class="!h-4 !w-4 text-xl" />
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
+            >
+              <mat-icon fontIcon="image" class="!h-4 !w-4" />
+            </div>
             Photo
           </button>
           <button
             type="button"
-            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            class="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100/80 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
-            <mat-icon fontIcon="videocam" class="!h-4 !w-4" />
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400"
+            >
+              <mat-icon fontIcon="videocam" class="!h-4 !w-4" />
+            </div>
             Video
           </button>
           <button
             type="button"
-            class="flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            class="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100/80 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
-            <mat-icon fontIcon="folder" class="!h-4 !w-4" />
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
+            >
+              <mat-icon fontIcon="folder" class="!h-4 !w-4" />
+            </div>
             File
           </button>
         </div>
       }
     </div>
 
-    <div class="relative mr-2 ml-2 flex h-full flex-1 flex-col">
+    <div class="relative mx-2 flex h-full flex-1 flex-col">
       @if (replyTo) {
         <div
-          class="mb-2 flex items-start gap-2 rounded-xl border-l-4 border-[var(--accent-color)] bg-[var(--accent-50)] p-3 dark:bg-[var(--accent-900)]/50"
+          class="mb-3 flex items-start gap-3 rounded-2xl border-l-[3px] border-[var(--accent-color)] bg-[var(--accent-50)]/60 p-3 backdrop-blur-sm transition-all duration-200 dark:bg-[var(--accent-900)]/30"
         >
           <div class="flex-1 overflow-hidden">
             <span
-              class="mb-0.5 block text-xs font-semibold tracking-wide text-[var(--accent-color)] uppercase"
-              >Replying to {{ replyTo.senderName }}</span
+              class="mb-1 block text-[10px] font-bold tracking-wider text-[var(--accent-color)] uppercase"
             >
-            <p class="text-sm text-slate-600 dark:text-zinc-400">{{ replyTo.content }}</p>
+              Replying to {{ replyTo.senderName }}
+            </span>
+            <p class="truncate text-sm text-slate-600 dark:text-zinc-400">{{ replyTo.content }}</p>
           </div>
           <button
             type="button"
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition-all duration-200 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
             (click)="onCancelReply()"
           >
             <mat-icon fontIcon="close" class="!h-4 !w-4" />
@@ -64,10 +77,11 @@
       }
 
       <div
-        class="relative flex items-end rounded-2xl border border-slate-200 bg-slate-50/90 transition-all focus-within:border-[var(--accent-color)] focus-within:shadow-[0_0_0_3px_var(--accent-500)]/15 dark:border-zinc-700 dark:bg-zinc-800/90"
+        class="relative flex items-end rounded-2xl border border-slate-200/80 bg-slate-50/80 transition-all duration-200 focus-within:border-[var(--accent-color)] focus-within:bg-white focus-within:shadow-[0_0_0_3px_var(--accent-100)] dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:focus-within:bg-zinc-800"
+        [class.shadow-md]="messageInput.trim()"
       >
         <textarea
-          class="max-h-32 w-full resize-none rounded-2xl border-none bg-transparent py-3 pr-12 pl-4 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-0 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          class="max-h-32 w-full resize-none rounded-2xl border-none bg-transparent py-3 pr-16 pl-4 text-sm text-slate-800 transition-colors duration-200 placeholder:text-slate-400 focus:ring-0 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
           [value]="messageInput"
           (input)="onInputChange($any($event.target).value)"
           (keydown)="onKeydown($event)"
@@ -77,78 +91,78 @@
 
         <button
           type="button"
-          class="absolute right-14 bottom-2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+          class="absolute right-14 bottom-2.5 flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
           (click)="onToggleEmojiPicker()"
         >
-          <mat-icon fontIcon="emoji_emotions" class="!h-5 !w-5 align-middle" />
+          <mat-icon fontIcon="emoji_emotions" class="!h-5 !w-5" />
         </button>
 
         @if (messageInput.trim()) {
           <button
             type="submit"
-            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/30"
+            class="chat-send-animation absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-white shadow-md transition-all duration-200 hover:scale-110 hover:shadow-lg active:scale-95"
           >
-            <mat-icon fontIcon="send" class="!h-5 !w-5" />
+            <mat-icon fontIcon="send" class="!h-4 !w-4" />
           </button>
         } @else {
           <button
             type="button"
             disabled
-            class="absolute right-2 bottom-2 rounded-lg p-1.5 text-slate-300 dark:text-zinc-600"
+            class="absolute right-2 bottom-2 flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 dark:text-zinc-600"
           >
-            <mat-icon fontIcon="send" class="!h-5 !w-5" />
+            <mat-icon fontIcon="send" class="!h-4 !w-4" />
           </button>
         }
       </div>
 
       @if (showEmojiPicker) {
         <div
-          class="absolute right-0 bottom-full mb-3 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/98 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-800/98"
+          class="absolute right-0 bottom-full mb-3 w-80 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/98 shadow-xl backdrop-blur-xl transition-all duration-200 dark:border-zinc-700/80 dark:bg-zinc-800/98"
         >
-          <div class="flex border-b border-slate-100 dark:border-zinc-700">
+          <div class="flex border-b border-slate-100/60 dark:border-zinc-700/60">
             <button
               type="button"
-              class="flex-1 p-3 text-center transition-colors"
+              class="flex-1 p-3 text-center transition-colors duration-200"
               [class.text-[var(--accent-color)]]="activeEmojiTab === 'recent'"
-              [class.text-slate-500]="activeEmojiTab !== 'recent'"
+              [class.text-slate-400]="activeEmojiTab !== 'recent'"
               (click)="onSetEmojiTab('recent')"
             >
               <span class="text-lg">🕐</span>
             </button>
             <button
               type="button"
-              class="flex-1 p-3 text-center transition-colors"
+              class="flex-1 p-3 text-center transition-colors duration-200"
               [class.text-[var(--accent-color)]]="activeEmojiTab === 'smileys'"
-              [class.text-slate-500]="activeEmojiTab !== 'smileys'"
+              [class.text-slate-400]="activeEmojiTab !== 'smileys'"
               (click)="onSetEmojiTab('smileys')"
             >
               <span class="text-lg">😊</span>
             </button>
             <button
               type="button"
-              class="flex-1 p-3 text-center transition-colors"
+              class="flex-1 p-3 text-center transition-colors duration-200"
               [class.text-[var(--accent-color)]]="activeEmojiTab === 'gestures'"
-              [class.text-slate-500]="activeEmojiTab !== 'gestures'"
+              [class.text-slate-400]="activeEmojiTab !== 'gestures'"
               (click)="onSetEmojiTab('gestures')"
             >
               <span class="text-lg">👋</span>
             </button>
             <button
               type="button"
-              class="flex-1 p-3 text-center transition-colors"
+              class="flex-1 p-3 text-center transition-colors duration-200"
               [class.text-[var(--accent-color)]]="activeEmojiTab === 'objects'"
-              [class.text-slate-500]="activeEmojiTab !== 'objects'"
+              [class.text-slate-400]="activeEmojiTab !== 'objects'"
               (click)="onSetEmojiTab('objects')"
             >
               <span class="text-lg">💡</span>
             </button>
           </div>
-          <div class="max-h-48 overflow-y-auto p-2">
+          <div class="chat-scrollbar max-h-52 overflow-y-auto p-2">
             <div class="grid grid-cols-8 gap-1">
               @for (emoji of currentEmojis; track emoji) {
                 <button
                   type="button"
-                  class="flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-colors hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
+                  class="flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-all duration-150 hover:scale-110 hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
                   (click)="onEmojiSelect(emoji)"
                 >
                   {{ emoji }}
