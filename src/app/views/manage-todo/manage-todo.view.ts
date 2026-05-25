@@ -96,14 +96,10 @@ export class ManageTodoPage implements OnInit {
   canManageAssignees = computed(() => this.userPermission() === TodoPermission.OWNER);
   canManageGhRepo = computed(() => this.userPermission() === TodoPermission.OWNER);
   canManageCategories = computed(() =>
-    [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      this.userPermission()
-    )
+    [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(this.userPermission())
   );
   canEditPriority = computed(() =>
-    [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      this.userPermission()
-    )
+    [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(this.userPermission())
   );
 
   visibility = signal<string>("private");

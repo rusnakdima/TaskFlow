@@ -169,16 +169,21 @@ export class SubtasksViewComponent extends BaseListView {
   isPrivate = computed(() => this.todo()?.visibility === "private");
 
   canCreateSubtask = computed(() =>
-    [
-      TodoPermission.EDITOR,
-      TodoPermission.ADMIN,
-      TodoPermission.MODERATOR,
-      TodoPermission.OWNER,
-    ].includes(this.userPermission())
+    [TodoPermission.EDITOR, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      this.userPermission()
+    )
   );
 
   canEditSubtask(subtask: Subtask): boolean {
     return this.permissionService.canEditSubtask(subtask, this.userPermission(), this.userId);
+  }
+
+  canDeleteSubtask(subtask: Subtask): boolean {
+    return this.permissionService.canDeleteSubtask(subtask, this.userPermission(), this.userId);
+  }
+
+  canArchiveSubtask(subtask: Subtask): boolean {
+    return this.permissionService.canArchiveSubtask(subtask, this.userPermission(), this.userId);
   }
 
   listSubtasks = computed(() => {
@@ -784,6 +789,24 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   async bulkArchive(): Promise<void> {
+    const permission = this.userPermission();
+    if (permission === TodoPermission.VIEWER) {
+      this.notifyService.showError("You don't have permission to archive subtasks");
+      return;
+    }
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      // Allow bulk archive
+    } else {
+      // EDITOR - check ownership of each selected subtask
+      const allSubtasks = this.listSubtasks();
+      const selectedIds = Array.from(this.selectedSubtasks());
+      const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
+      const ownedCount = allSelected.filter((s) => s.user_id === this.userId).length;
+      if (ownedCount !== allSelected.length) {
+        this.notifyService.showError("You can only archive subtasks you created");
+        return;
+      }
+    }
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
 
@@ -873,9 +896,17 @@ export class SubtasksViewComponent extends BaseListView {
         });
         break;
       case "delete":
+        if (!this.canDeleteSubtask(event.item)) {
+          this.notifyService.showError("You don't have permission to delete this subtask");
+          return;
+        }
         this.deleteSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "archive":
+        if (!this.canArchiveSubtask(event.item)) {
+          this.notifyService.showError("You don't have permission to archive this subtask");
+          return;
+        }
         this.archiveSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "toggle_status":
@@ -920,6 +951,10 @@ export class SubtasksViewComponent extends BaseListView {
         this.toggleSubtaskCompletion(event.item);
         break;
       case "delete":
+        if (!this.canDeleteSubtask(event.item)) {
+          this.notifyService.showError("You don't have permission to delete this subtask");
+          return;
+        }
         this.deleteSubtask(event.item.id, this.todo()?.visibility);
         break;
       case "edit":
@@ -929,6 +964,10 @@ export class SubtasksViewComponent extends BaseListView {
         });
         break;
       case "archive":
+        if (!this.canArchiveSubtask(event.item)) {
+          this.notifyService.showError("You don't have permission to archive this subtask");
+          return;
+        }
         this.archiveSubtask(event.item.id, this.todo()?.visibility);
         break;
     }

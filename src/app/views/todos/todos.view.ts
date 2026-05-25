@@ -527,9 +527,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         });
         break;
       case "archive":
-        if (
-          ![TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(perm)
-        ) {
+        if (!this.permissionService.canArchiveTodo(perm)) {
           break;
         }
         const archiveConfirmed = await this.confirmDialogService.confirm({
@@ -665,17 +663,34 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     const selected = this.selectedTodos();
     if (selected.size === 0) return;
 
+    const allTodos = this.stateService.listTodos();
+    const selectedIdsArr = Array.from(selected);
+    const selectedTodosList = allTodos.filter((t) => selectedIdsArr.includes(t.id));
+    const allowedTodos = selectedTodosList.filter((t) => {
+      const perm = this.getUserTodoPermission(t);
+      return this.permissionService.canArchiveTodo(perm);
+    });
+    const skippedCount = selected.size - allowedTodos.length;
+
+    if (allowedTodos.length === 0) {
+      this.notifyService.showError(
+        "You don't have permission to archive any of the selected projects"
+      );
+      return;
+    }
+
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Projects",
-      message: `Are you sure you want to archive ${selected.size} project(s)?`,
+      message: `Are you sure you want to archive ${selected.size} project(s)?${skippedCount > 0 ? ` (${skippedCount} skipped due to permissions)` : ""}`,
       confirmText: "Archive All",
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
+      const allowedIds = new Set(allowedTodos.map((t) => t.id));
       if (this.isOffline()) {
         let successCount = 0;
         let errorCount = 0;
-        for (const todoId of selected) {
+        for (const todoId of allowedIds) {
           const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId);
           if (response.status === ResponseStatus.SUCCESS) {
             this.storage.updateEntitySignal("todos", todoId, {
@@ -686,9 +701,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             errorCount++;
           }
         }
-        if (errorCount > 0) {
+        if (skippedCount > 0) {
           this.notifyService.showWarning(
-            `Archived ${successCount} project(s), ${errorCount} failed.`
+            `Archived ${successCount} project(s), ${errorCount} failed, ${skippedCount} skipped`
+          );
+        } else if (errorCount > 0) {
+          this.notifyService.showWarning(
+            `Archived ${successCount} project(s), ${errorCount} failed`
           );
         } else {
           this.notifyService.showSuccess(`${successCount} project(s) archived successfully`);
@@ -697,7 +716,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const selectedArray = Array.from(selected).map((id) => ({ id }));
+      const selectedArray = Array.from(allowedIds).map((id) => ({ id }));
       const sub = this.bulkActionHelper
         .bulkDelete(selectedArray, (id) => this.apiService.todos.delete(id))
         .subscribe({

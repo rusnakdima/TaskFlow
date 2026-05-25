@@ -131,7 +131,7 @@ export class ManageSubtaskPage implements OnInit {
       const formValue = this.form.value;
       const payload = this.buildPayload(formValue);
 
-      const visibility = "private";
+      const visibility = this.route.snapshot.queryParamMap.get("visibility") || "private";
 
       if (this.isEdit()) {
         const id = formValue._id || formValue.id;

@@ -332,34 +332,52 @@ export class CategoriesView extends BaseListView implements OnInit {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
 
+    const allCategories = this.storage.categories();
+    const selectedIdsArr = Array.from(selected);
+    const selectedCategoriesList = allCategories.filter((c) => selectedIdsArr.includes(c.id));
+    const allowedCategories = selectedCategoriesList.filter(
+      (c) => c.user_id === this.currentUserId
+    );
+    const skippedCount = selected.size - allowedCategories.length;
+
+    if (allowedCategories.length === 0) {
+      this.notifyService.showError(
+        "You don't have permission to archive any of the selected categories"
+      );
+      return;
+    }
+
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Categories",
-      message: `Are you sure you want to archive ${selected.size} categorie(s)?`,
+      message: `Are you sure you want to archive ${selected.size} categorie(s)?${skippedCount > 0 ? ` (${skippedCount} skipped due to permissions)` : ""}`,
       confirmText: "Archive All",
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
       const currentVisibility = this.activeVisibility();
-      const categories = this.storage.categories();
       const archivedAt = new Date().toISOString();
 
-      Array.from(selected).forEach((categoryId) => {
-        const category = categories.find((c) => c.id === categoryId);
+      for (const categoryId of allowedCategories.map((c) => c.id)) {
+        const category = allCategories.find((c) => c.id === categoryId);
         if (category) {
           this.storage.updateEntity("categories", category.id, {
             ...category,
             deleted_at: archivedAt,
           });
         }
-      });
+      }
 
       Promise.all(
-        Array.from(selected).map((categoryId) =>
-          this.adminService.toggleDeleteStatus("categories", categoryId, currentVisibility)
+        allowedCategories.map((category) =>
+          this.adminService.toggleDeleteStatus("categories", category.id, currentVisibility)
         )
       )
         .then(() => {
-          this.notifyService.showSuccess(`${selected.size} categori(es) archived successfully`);
+          const successMsg =
+            skippedCount > 0
+              ? `${allowedCategories.length} categorie(s) archived, ${skippedCount} skipped`
+              : `${allowedCategories.length} categorie(s) archived successfully`;
+          this.notifyService.showSuccess(successMsg);
           this.clearSelection();
           this.searchQuery.set("");
         })
