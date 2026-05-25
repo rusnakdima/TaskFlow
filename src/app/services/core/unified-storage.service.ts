@@ -505,7 +505,12 @@ export class UnifiedStorageService {
       });
   }
 
-  loadMoreTasks(todoId?: string): void {
+  loadMoreTasks(
+    todoId?: string,
+    visibility = "private",
+    userId?: string,
+    assigneeId?: string
+  ): void {
     if (this._tasksLoading() || !this.hasMoreTasks()) return;
     const pagination = this._pagination().tasks;
     const nextPage = pagination.skip / pagination.limit + 1;
@@ -514,14 +519,28 @@ export class UnifiedStorageService {
     const filter: Record<string, unknown> = {};
     if (todoId) filter["todo_id"] = todoId;
 
-    this._apiService.tasks.getAll({ page: nextPage, limit: pagination.limit, filter }).subscribe({
-      next: (tasks) => {
-        this.tasks.update((existing) => [...existing, ...tasks]);
-        this.updatePagination("tasks", nextPage * pagination.limit, pagination.limit, tasks.length);
-      },
-      error: () => this._tasksLoading.set(false),
-      complete: () => this._tasksLoading.set(false),
-    });
+    if (userId || assigneeId) {
+      const orConditions: Record<string, string>[] = [];
+      if (userId) orConditions.push({ user_id: userId });
+      if (assigneeId) orConditions.push({ assignees: assigneeId });
+      filter["$or"] = orConditions;
+    }
+
+    this._apiService.tasks
+      .getAll({ page: nextPage, visibility, limit: pagination.limit, filter })
+      .subscribe({
+        next: (tasks) => {
+          this.tasks.update((existing) => [...existing, ...tasks]);
+          this.updatePagination(
+            "tasks",
+            nextPage * pagination.limit,
+            pagination.limit,
+            tasks.length
+          );
+        },
+        error: () => this._tasksLoading.set(false),
+        complete: () => this._tasksLoading.set(false),
+      });
   }
 
   loadMoreSubtasks(taskId?: string): void {

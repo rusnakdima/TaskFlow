@@ -56,19 +56,21 @@ export class AdminService {
   async toggleDeleteStatus(
     table: string,
     id: string,
+    todoId: string,
     visibility?: string
   ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
+    return await invoke<Response<boolean>>("soft_delete", { table, id, token, todoId, visibility });
   }
 
   async toggleDeleteStatusLocal(
     table: string,
     id: string,
+    todoId: string = "",
     visibility: string = "private"
   ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("soft_delete", { table, id, token, visibility });
+    return await invoke<Response<boolean>>("soft_delete", { table, id, token, todoId, visibility });
   }
 
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {

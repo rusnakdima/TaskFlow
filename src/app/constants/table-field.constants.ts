@@ -1,4 +1,5 @@
 import { TaskStatus } from "@models/generated/api.types";
+import { TodoPermission } from "@services/core/permission.service";
 
 export const TableFieldColors = {
   boolean: {
@@ -26,45 +27,88 @@ export const TableFieldIcons = {
 
 export const ActionColors = {
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
+  default_disabled: "text-gray-400! dark:text-gray-500!",
   edit: "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
+  edit_disabled: "text-gray-400! dark:text-gray-500!",
   delete: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
+  delete_disabled: "text-gray-400! dark:text-gray-500!",
   confirm: "text-green-600! hover:text-green-700! dark:text-green-400! dark:hover:text-green-300!",
+  confirm_disabled: "text-gray-400! dark:text-gray-500!",
   expand:
     "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
+  expand_disabled: "text-gray-400! dark:text-gray-500!",
   archive:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
+  archive_disabled: "text-yellow-400! dark:text-yellow-500!",
   restore:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
+  restore_disabled: "text-yellow-400! dark:text-yellow-500!",
   view: "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
+  view_disabled: "text-gray-400! dark:text-gray-500!",
   github_issue: "text-gray-600! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-300!",
+  github_issue_disabled: "text-gray-400! dark:text-gray-500!",
   blueprint: "text-teal-600! hover:text-teal-700! dark:text-teal-400! dark:hover:text-teal-300!",
+  blueprint_disabled: "text-teal-400! dark:text-teal-500!",
   toggleDelete:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
+  toggleDelete_disabled: "text-gray-400! dark:text-gray-500!",
   delete_forever: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
+  delete_forever_disabled: "text-gray-400! dark:text-gray-500!",
   toggleComplete:
     "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
+  toggleComplete_disabled: "text-gray-400! dark:text-gray-500!",
   dragHandle: "text-gray-400! hover:text-gray-600! dark:text-gray-500! dark:hover:text-gray-300!",
   moveColumn: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   addSubtask:
     "text-green-600! hover:text-green-700! dark:text-green-400! dark:hover:text-green-300!",
+  addSubtask_disabled: "text-gray-400! dark:text-gray-500!",
   viewAllSubtasks:
     "text-purple-600! hover:text-purple-700! dark:text-purple-400! dark:hover:text-purple-300!",
+  viewAllSubtasks_disabled: "text-gray-400! dark:text-gray-500!",
   comments: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
+  comments_disabled: "text-gray-400! dark:text-gray-500!",
   subtaskToggle:
     "text-blue-600! hover:text-blue-700! dark:text-blue-400! dark:hover:text-blue-300!",
+  subtaskToggle_disabled: "text-gray-400! dark:text-gray-500!",
   toggleDetails:
     "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
+  toggleDetails_disabled: "text-gray-400! dark:text-gray-500!",
 } as const;
 
 export const TABLE_ACTIONS = {
-  EDIT: { key: "edit", icon: "edit", label: "Edit" },
-  DELETE: { key: "delete", icon: "delete", label: "Delete" },
-  ARCHIVE: { key: "archive", icon: "archive", label: "Archive" },
-  RESTORE: { key: "restore", icon: "restore", label: "Restore" },
-  BLUEPRINT: { key: "blueprint", icon: "account_tree", label: "Save as Blueprint" },
-  GITHUB_ISSUE: { key: "github_issue", icon: "bug_report", label: "GitHub Issue" },
-  TOGGLE_DELETE: { key: "toggleDelete", icon: "archive", label: "Archive" },
-  DELETE_FOREVER: { key: "delete_forever", icon: "delete_forever", label: "Permanent Delete" },
+  EDIT: { key: "edit", icon: "edit", label: "Edit", permission: TodoPermission.EDITOR },
+  DELETE: { key: "delete", icon: "delete", label: "Delete", permission: TodoPermission.OWNER },
+  ARCHIVE: {
+    key: "archive",
+    icon: "archive",
+    label: "Archive",
+    permission: TodoPermission.MODERATOR,
+  },
+  RESTORE: { key: "restore", icon: "restore", label: "Restore", permission: TodoPermission.OWNER },
+  BLUEPRINT: {
+    key: "blueprint",
+    icon: "account_tree",
+    label: "Save as Blueprint",
+    permission: TodoPermission.OWNER,
+  },
+  GITHUB_ISSUE: {
+    key: "github_issue",
+    icon: "bug_report",
+    label: "GitHub Issue",
+    permission: TodoPermission.EDITOR,
+  },
+  TOGGLE_DELETE: {
+    key: "toggleDelete",
+    icon: "archive",
+    label: "Archive",
+    permission: TodoPermission.OWNER,
+  },
+  DELETE_FOREVER: {
+    key: "delete_forever",
+    icon: "delete_forever",
+    label: "Permanent Delete",
+    permission: TodoPermission.OWNER,
+  },
 } as const;
 
 export const PRIORITY_COLORS = {

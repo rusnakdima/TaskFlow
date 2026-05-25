@@ -68,7 +68,7 @@ export class TasksActionsHelper {
     if (!confirmed) return;
 
     if (isOfflineFn()) {
-      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
+      const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId, todoId);
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Task archived successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));

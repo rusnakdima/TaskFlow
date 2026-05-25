@@ -6,7 +6,6 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 export enum TodoPermission {
   VIEWER = "viewer",
   EDITOR = "editor",
-  ADMIN = "admin",
   MODERATOR = "moderator",
   OWNER = "owner",
 }
@@ -40,10 +39,16 @@ export class PermissionService {
     }
 
     if (todo.visibility === "public") {
+      if (this.isGlobalAdmin()) {
+        return TodoPermission.MODERATOR;
+      }
       return TodoPermission.VIEWER;
     }
 
     if (todo.visibility === "shared") {
+      if (this.isGlobalAdmin()) {
+        return TodoPermission.MODERATOR;
+      }
       if (todo.assignees?.includes(userId)) {
         return TodoPermission.VIEWER;
       }
@@ -59,7 +64,6 @@ export class PermissionService {
       case "editor":
         return TodoPermission.EDITOR;
       case "admin":
-        return TodoPermission.ADMIN;
       case "moderator":
         return TodoPermission.MODERATOR;
       case "owner":
@@ -70,77 +74,108 @@ export class PermissionService {
   }
 
   canEditTodoFields(permission: TodoPermission): boolean {
-    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      permission
-    );
+    return [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission);
   }
 
   canDeleteTodo(permission: TodoPermission): boolean {
     return permission === TodoPermission.OWNER;
   }
 
+  canArchiveTodo(permission: TodoPermission): boolean {
+    return permission === TodoPermission.OWNER;
+  }
+
+  canArchiveTask(task: any, permission: TodoPermission, userId: string): boolean {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return task.user_id === userId;
+    }
+    return false;
+  }
+
+  canArchiveSubtask(subtask: any, permission: TodoPermission, userId: string): boolean {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return subtask.user_id === userId;
+    }
+    return false;
+  }
+
+  canArchiveComment(comment: any, permission: TodoPermission, userId: string): boolean {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return comment.user_id === userId;
+    }
+    return false;
+  }
+
   canManageAssignees(permission: TodoPermission): boolean {
-    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      permission
-    );
+    return [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission);
   }
 
   canManageGhRepo(permission: TodoPermission): boolean {
-    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      permission
-    );
+    return [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission);
   }
 
   canTransferOwnership(permission: TodoPermission): boolean {
-    return [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
-      permission
-    );
+    return [TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission);
   }
 
   canCreateTask(permission: TodoPermission): boolean {
     if (this.isGlobalAdmin()) return true;
-    return [
-      TodoPermission.EDITOR,
-      TodoPermission.ADMIN,
-      TodoPermission.MODERATOR,
-      TodoPermission.OWNER,
-    ].includes(permission);
+    return [TodoPermission.EDITOR, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
+      permission
+    );
   }
 
-  canEditTask(_task: any, permission: TodoPermission, _userId: string): boolean {
-    if (
-      [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)
-    ) {
+  canEditTask(task: any, permission: TodoPermission, userId: string): boolean {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
       return true;
     }
     if (permission === TodoPermission.EDITOR) {
-      return true;
+      return task.user_id === userId;
     }
     return false;
   }
 
   canDeleteTask(task: any, permission: TodoPermission, userId: string): boolean {
-    return this.canEditTask(task, permission, userId);
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return task.user_id === userId;
+    }
+    return false;
   }
 
   canCreateSubtask(permission: TodoPermission): boolean {
     return this.canCreateTask(permission);
   }
 
-  canEditSubtask(_subtask: any, permission: TodoPermission, _userId: string): boolean {
-    if (
-      [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)
-    ) {
+  canEditSubtask(subtask: any, permission: TodoPermission, userId: string): boolean {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
       return true;
     }
     if (permission === TodoPermission.EDITOR) {
-      return true;
+      return subtask.user_id === userId;
     }
     return false;
   }
 
   canDeleteSubtask(subtask: any, permission: TodoPermission, userId: string): boolean {
-    return this.canEditSubtask(subtask, permission, userId);
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return subtask.user_id === userId;
+    }
+    return false;
   }
 
   canCreateComment(permission: TodoPermission): boolean {
@@ -148,9 +183,7 @@ export class PermissionService {
   }
 
   canEditComment(comment: any, permission: TodoPermission, userId: string): boolean {
-    if (
-      [TodoPermission.ADMIN, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)
-    ) {
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
       return true;
     }
     if (permission === TodoPermission.EDITOR) {
@@ -160,7 +193,13 @@ export class PermissionService {
   }
 
   canDeleteComment(comment: any, permission: TodoPermission, userId: string): boolean {
-    return this.canEditComment(comment, permission, userId);
+    if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+      return true;
+    }
+    if (permission === TodoPermission.EDITOR) {
+      return comment.user_id === userId;
+    }
+    return false;
   }
 
   canViewTodo(_permission: TodoPermission): boolean {

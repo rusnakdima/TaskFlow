@@ -634,15 +634,37 @@ export class StorageQueryService {
           ? this._entityService.publicTodos
           : this._entityService.sharedTodos;
 
-    if (targetSignal().length > 0) return;
+    console.log(
+      `[ensureTodosLoaded] visibility=${visibility}, currentLength=${targetSignal().length}, targetSignal=${visibility === "private" ? "privateTodos" : visibility === "public" ? "publicTodos" : "sharedTodos"}`
+    );
+
+    if (targetSignal().length > 0 && visibility !== "all") {
+      console.log(
+        `[ensureTodosLoaded] SKIP - ${visibility} already has ${targetSignal().length} items`
+      );
+      return;
+    }
 
     this._todosLoading.set(true);
+    console.log(`[ensureTodosLoaded] FETCHING ${visibility} with limit=${limit}`);
     this.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
+        console.log(
+          `[ensureTodosLoaded] RECEIVED ${todos.length} ${visibility} todos`,
+          todos.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            visibility: t.visibility,
+            user_id: t.user_id,
+            assignees: t.assignees,
+          }))
+        );
         targetSignal.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
       },
-      error: () => {},
+      error: (err) => {
+        console.error(`[ensureTodosLoaded] ERROR fetching ${visibility}:`, err);
+      },
       complete: () => {
         this._todosLoading.set(false);
       },
@@ -770,14 +792,19 @@ export class StorageQueryService {
 
   loadMoreTodos(todoId?: string): void {
     if (this._todosLoading()) return;
-    const currentPage = this._pagination().todos.skip / 10;
+    const currentPage = Math.floor(this._pagination().todos.skip / 10);
+    console.log(`[loadMoreTodos] page=${currentPage + 1}, todoId=${todoId}`);
     this._todosLoading.set(true);
     this.apiService.todos.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (todos) => {
+        console.log(
+          `[loadMoreTodos] RECEIVED ${todos.length} todos`,
+          todos.map((t: any) => ({ id: t.id, title: t.title, visibility: t.visibility }))
+        );
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
-      error: () => {},
+      error: (err) => console.error(`[loadMoreTodos] ERROR:`, err),
       complete: () => {
         this._todosLoading.set(false);
       },
@@ -786,7 +813,7 @@ export class StorageQueryService {
 
   loadMoreTasks(todoId?: string): void {
     if (this._tasksLoading()) return;
-    const currentPage = this._pagination().tasks.skip / 10;
+    const currentPage = Math.floor(this._pagination().tasks.skip / 10);
     this._tasksLoading.set(true);
     this.apiService.tasks.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (tasks) => {
@@ -802,7 +829,7 @@ export class StorageQueryService {
 
   loadMoreSubtasks(taskId?: string): void {
     if (this._subtasksLoading()) return;
-    const currentPage = this._pagination().subtasks.skip / 10;
+    const currentPage = Math.floor(this._pagination().subtasks.skip / 10);
     this._subtasksLoading.set(true);
     this.apiService.subtasks.getAll({ page: currentPage + 1, limit: 10, taskId }).subscribe({
       next: (subtasks) => {
@@ -818,7 +845,7 @@ export class StorageQueryService {
 
   loadMoreCategories(): void {
     if (this._categoriesLoading()) return;
-    const currentPage = this._pagination().categories.skip / 10;
+    const currentPage = Math.floor(this._pagination().categories.skip / 10);
     this._categoriesLoading.set(true);
     this.apiService.categories.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
       next: (categories) => {
@@ -834,7 +861,7 @@ export class StorageQueryService {
 
   loadMoreChats(): void {
     if (this._chatsLoading()) return;
-    const currentPage = this._pagination().chats.skip / 10;
+    const currentPage = Math.floor(this._pagination().chats.skip / 10);
     this._chatsLoading.set(true);
     this.apiService.chats.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
       next: (chats) => {
@@ -850,7 +877,7 @@ export class StorageQueryService {
 
   loadMoreComments(): void {
     if (this._commentsLoading()) return;
-    const currentPage = this._pagination().comments.skip / 10;
+    const currentPage = Math.floor(this._pagination().comments.skip / 10);
     this._commentsLoading.set(true);
     this.apiService.comments.getAll({ page: currentPage + 1, limit: 10 }).subscribe({
       next: (comments) => {
@@ -956,8 +983,6 @@ export class StorageQueryService {
 
   getUsername(userId: string): string {
     const user = this._entityService.users().find((u) => u.id === userId);
-    const profile = this._entityService.profiles() as unknown as Profile;
-    if (profile?.name) return `${profile.name} ${profile.last_name || ""}`.trim();
     return user?.username || "Unknown";
   }
 
