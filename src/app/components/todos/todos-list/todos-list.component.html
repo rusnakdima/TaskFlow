@@ -74,7 +74,7 @@
       [selectedCount]="selectedTodos().size"
       [isAllSelected]="isAllSelected"
       mode="todos"
-      (selectAllEvent)="selectAll.emit({ selectAll: true })"
+      (selectAllEvent)="selectAll.emit({ selectAll: !isAllSelected })"
       (softDeleteEvent)="bulkArchive.emit()"
       (cancelEvent)="clearSelection.emit()"
     />
@@ -164,6 +164,7 @@
       [highlightedId]="highlightTodoId"
       [highlightIdPrefix]="'todo-'"
       [userPermission]="getUserTodoPermission(data[0])"
+      [itemPermissionResolver]="getUserTodoPermission.bind(this)"
       (selectionChange)="toggleTodoSelection({ id: $event.id, selected: $event.selected })"
       (selectAll)="selectAll.emit({ selectAll: $event, section: $any(section) })"
       (rowClick)="onRowClick($event)"
