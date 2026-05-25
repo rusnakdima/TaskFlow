@@ -40,7 +40,7 @@ import { CommentsToggleComponent } from "@components/comments-toggle/comments-to
 
 /* models */
 import { TableFieldActionButton, TableField } from "@models/table-field.model";
-import { ItemDisplayConfig } from "@models/item-display.model";
+import { ItemDisplayAction, ItemDisplayConfig } from "@models/item-display.model";
 import { Comment, TaskStatus } from "@models/generated/api.types";
 
 /* constants */
@@ -89,6 +89,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   @Input() highlightedId: string | null = null;
   @Input() highlightIdPrefix: string = "";
   @Input() userPermission: TodoPermission = TodoPermission.VIEWER;
+  @Input() itemPermissionResolver: ((item: any) => TodoPermission) | null = null;
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
@@ -446,23 +447,30 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   lastSelectedId = signal<string | null>(null);
   readonly isViewerPermission = TodoPermission.VIEWER;
-  readonly isAdminPermission = [
-    TodoPermission.ADMIN,
-    TodoPermission.MODERATOR,
-    TodoPermission.OWNER,
-  ];
+  readonly isAdminPermission = [TodoPermission.MODERATOR, TodoPermission.OWNER];
 
   isActionDisabledForItem(item: any): boolean {
     const currentUserId = this.authServiceLocal.getValueByKey("id");
+    console.log(
+      `[TableView isActionDisabledForItem] itemType=${this.itemType}, userId=${currentUserId}, userPermission=${this.userPermission}, itemPermissionResolver=${!!this.itemPermissionResolver}`
+    );
     if (!currentUserId) return false;
     if (this.itemType === "category") {
       return item.user_id !== currentUserId;
     }
 
-    if (this.userPermission === TodoPermission.VIEWER) {
+    const permission = this.itemPermissionResolver
+      ? this.itemPermissionResolver(item)
+      : this.userPermission;
+
+    console.log(
+      `[TableView isActionDisabledForItem] computed permission=${permission}, isViewer=${permission === TodoPermission.VIEWER}`
+    );
+
+    if (permission === TodoPermission.VIEWER) {
       return true;
     }
-    if (this.isAdminPermission.includes(this.userPermission)) {
+    if (this.isAdminPermission.includes(permission)) {
       return false;
     }
     return true;
@@ -476,6 +484,48 @@ export class TableViewComponent extends ItemRowBaseComponent {
       return false;
     }
     return true;
+  }
+
+  getActionColorForItem(action: ItemDisplayAction, item: any): string {
+    const colorKey = action.key as keyof typeof ActionColors;
+    const disabledKey = (action.key + "_disabled") as keyof typeof ActionColors;
+    if (action.permission && this.isActionDisabledByPermissionForItem(action, item)) {
+      return ActionColors[disabledKey] || ActionColors.default_disabled;
+    }
+    return ActionColors[colorKey] || ActionColors.default;
+  }
+
+  isActionDisabledByPermissionForItem(action: ItemDisplayAction, item: any): boolean {
+    if (!action.permission) {
+      return this.isActionDisabledForItem(item);
+    }
+    const currentUserId = this.authServiceLocal.getValueByKey("id");
+    if (!currentUserId) return false;
+
+    const permission = this.itemPermissionResolver
+      ? this.itemPermissionResolver(item)
+      : this.userPermission;
+
+    const required = action.permission;
+    if (permission === TodoPermission.VIEWER) {
+      return true;
+    }
+    if (required === TodoPermission.EDITOR) {
+      if (permission === TodoPermission.EDITOR) {
+        return item.user_id !== currentUserId;
+      }
+      return false;
+    }
+    if (required === TodoPermission.MODERATOR) {
+      if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
+        return false;
+      }
+      if (permission === TodoPermission.EDITOR) {
+        return item.user_id !== currentUserId;
+      }
+      return true;
+    }
+    return permission !== required;
   }
 
   private isTableField(field: TableField | ItemDisplayConfig): field is TableField {

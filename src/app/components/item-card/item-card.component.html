@@ -109,6 +109,7 @@
                 <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
               </button>
               @if (showMenu()) {
+                <div class="fixed inset-0 z-40" (click)="showMenu.set(false)"></div>
                 <div
                   class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
                   (click)="$event.stopPropagation()"
@@ -116,11 +117,12 @@
                   @for (action of actions; track action.key) {
                     <button
                       class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150"
-                      [class.opacity-50]="isActionDisabled()"
-                      [class.cursor-not-allowed]="isActionDisabled()"
-                      [class.pointer-events-none]="isActionDisabled()"
-                      [class.hover:bg-gray-100]="!isActionDisabled()"
-                      [class.dark:hover:bg-gray-700]="!isActionDisabled()"
+                      [class]="getActionColor(action)"
+                      [class.opacity-50]="isActionDisabledByPermission(action)"
+                      [class.cursor-not-allowed]="isActionDisabledByPermission(action)"
+                      [class.pointer-events-none]="isActionDisabledByPermission(action)"
+                      [class.hover:bg-gray-100]="!isActionDisabledByPermission(action)"
+                      [class.dark:hover:bg-gray-700]="!isActionDisabledByPermission(action)"
                       (click)="onAction(action.key || action.label, $event)"
                     >
                       <mat-icon
@@ -256,6 +258,7 @@
                     <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="more_vert" />
                   </button>
                   @if (showMenu()) {
+                    <div class="fixed inset-0 z-40" (click)="showMenu.set(false)"></div>
                     <div
                       class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
                       (click)="$event.stopPropagation()"
@@ -263,11 +266,12 @@
                       @for (action of actions; track action.key) {
                         <button
                           class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150"
-                          [class.opacity-50]="isActionDisabled()"
-                          [class.cursor-not-allowed]="isActionDisabled()"
-                          [class.pointer-events-none]="isActionDisabled()"
-                          [class.hover:bg-gray-100]="!isActionDisabled()"
-                          [class.dark:hover:bg-gray-700]="!isActionDisabled()"
+                          [class]="getActionColor(action)"
+                          [class.opacity-50]="isActionDisabledByPermission(action)"
+                          [class.cursor-not-allowed]="isActionDisabledByPermission(action)"
+                          [class.pointer-events-none]="isActionDisabledByPermission(action)"
+                          [class.hover:bg-gray-100]="!isActionDisabledByPermission(action)"
+                          [class.dark:hover:bg-gray-700]="!isActionDisabledByPermission(action)"
                           (click)="onAction(action.key || action.label, $event)"
                         >
                           <mat-icon

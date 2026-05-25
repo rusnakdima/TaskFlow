@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy, signal, OnInit } from "@angular/core";
+import { Component, Input, ChangeDetectionStrategy, signal, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatChipsModule } from "@angular/material/chips";
@@ -7,6 +7,7 @@ import { TableField } from "@models/table-field.model";
 import { Observable } from "rxjs";
 
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
+import { StorageService } from "@services/storage.service";
 
 @Component({
   selector: "app-item-expand-details",
@@ -24,11 +25,18 @@ export class ItemExpandDetailsComponent implements OnInit {
   @Input() getPriorityBadgeClassFn: (priority: string) => string = () => "";
   @Input() onExpandRequest?: (item: any) => Observable<any>;
 
+  private readonly storageService = inject(StorageService);
+
   enrichedItem = signal<any>(null);
   isLoadingUser = signal(false);
 
   ngOnInit(): void {
     if (this.hasUserId) {
+      if (!this.onExpandRequest) {
+        const username = this.storageService.getUsername(this.item.user_id);
+        this.enrichedItem.set({ user: { id: this.item.user_id, username } });
+        return;
+      }
       this.handleExpand();
     }
   }

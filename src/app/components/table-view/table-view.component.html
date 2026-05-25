@@ -287,16 +287,20 @@
                     <button
                       mat-icon-button
                       class="flex items-center justify-center rounded-lg text-2xl! transition-all duration-200 hover:scale-110"
-                      [class.opacity-50]="isActionDisabledForItem(item)"
-                      [class.cursor-not-allowed]="isActionDisabledForItem(item)"
-                      [class.pointer-events-none]="isActionDisabledForItem(item)"
-                      [disabled]="isActionDisabledForItem(item)"
-                      [class]="getActionColor(action)"
+                      [class.opacity-50]="isActionDisabledByPermissionForItem(action, item)"
+                      [class.cursor-not-allowed]="isActionDisabledByPermissionForItem(action, item)"
+                      [class.pointer-events-none]="
+                        isActionDisabledByPermissionForItem(action, item)
+                      "
+                      [disabled]="isActionDisabledByPermissionForItem(action, item)"
+                      [class]="getActionColorForItem(action, item)"
                       (click)="
                         onActionClickHandler(action.key || '', item); $event.stopPropagation()
                       "
                       [title]="
-                        isActionDisabledForItem(item) ? 'You do not have permission' : action.label
+                        isActionDisabledByPermissionForItem(action, item)
+                          ? 'You do not have permission'
+                          : action.label
                       "
                     >
                       <mat-icon class="text-2xl!" [fontIcon]="action.icon || ''" />
