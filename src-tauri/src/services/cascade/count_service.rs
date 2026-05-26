@@ -73,48 +73,24 @@ impl CountService {
   }
 
   async fn increment_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
-    if let Err(e) = self
+    let _ = self
       .increment_count(&self.json_provider, collection, id, field, delta, true)
-      .await
-    {
-      eprintln!(
-        "Failed to increment count in JSON (collection={}, id={}, field={}): {}",
-        collection, id, field, e
-      );
-    }
+      .await;
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(e) = self
+      let _ = self
         .increment_count(mongo.as_ref(), collection, id, field, delta, false)
-        .await
-      {
-        eprintln!(
-          "Failed to increment count in MongoDB (collection={}, id={}, field={}): {}",
-          collection, id, field, e
-        );
-      }
+        .await;
     }
   }
 
   async fn decrement_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
-    if let Err(e) = self
+    let _ = self
       .decrement_count(&self.json_provider, collection, id, field, delta, true)
-      .await
-    {
-      eprintln!(
-        "Failed to decrement count in JSON (collection={}, id={}, field={}): {}",
-        collection, id, field, e
-      );
-    }
+      .await;
     if let Some(mongo) = self.mongodb_provider.as_ref() {
-      if let Err(e) = self
+      let _ = self
         .decrement_count(mongo.as_ref(), collection, id, field, delta, false)
-        .await
-      {
-        eprintln!(
-          "Failed to decrement count in MongoDB (collection={}, id={}, field={}): {}",
-          collection, id, field, e
-        );
-      }
+        .await;
     }
   }
 
