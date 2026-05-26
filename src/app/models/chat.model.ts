@@ -23,6 +23,7 @@ export interface Reaction {
   emoji: string;
   count: number;
   isOwn: boolean;
+  user_ids?: string[];
 }
 
 export interface ChatMessage {

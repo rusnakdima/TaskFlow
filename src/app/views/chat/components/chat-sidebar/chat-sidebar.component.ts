@@ -40,6 +40,8 @@ export class ChatSidebarComponent {
   @Input() showCreateGroupModal = false;
   @Input() newGroupName = "";
   @Input() isMobile = false;
+  @Input() isTablet = false;
+  @Input() isCollapsed = false;
   @Input() activeConvId: string | null = null;
 
   @Output() selectConversation = new EventEmitter<ConversationItem>();
@@ -61,6 +63,7 @@ export class ChatSidebarComponent {
   @Output() openCreateGroup = new EventEmitter<void>();
   @Output() createGroup = new EventEmitter<string>();
   @Output() closeCreateGroup = new EventEmitter<void>();
+  @Output() collapseSidebar = new EventEmitter<void>();
 
   get hasUnread(): boolean {
     return this.conversations.some((c) => c.unreadCount > 0);
@@ -126,5 +129,9 @@ export class ChatSidebarComponent {
 
   onCloseCreateGroup(): void {
     this.closeCreateGroup.emit();
+  }
+
+  onCollapseSidebar(): void {
+    this.collapseSidebar.emit();
   }
 }

@@ -22,6 +22,7 @@ export class ChatDetailsComponent {
   @Input() selectedAddMembers: string[] = [];
   @Input() isCurrentUserOwner = false;
   @Input() isGroup = false;
+  @Input() isMobile = false;
 
   @Output() toggleDetailsPanel = new EventEmitter<void>();
   @Output() closeDetailsMenu = new EventEmitter<void>();

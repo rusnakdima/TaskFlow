@@ -35,6 +35,8 @@ export class ChatState {
   contextMenuPosition = signal({ x: 0, y: 0 });
 
   contextMenuMessage = signal<ChatMessage | null>(null);
+  contextMenuMessageId = signal<string | null>(null);
+  contextMenuIsOwnMessage = signal<boolean>(false);
   showMessageContextMenu = signal(false);
   messageContextMenuPosition = signal({ x: 0, y: 0 });
 
@@ -43,6 +45,10 @@ export class ChatState {
 
   private windowWidth = signal(typeof window !== "undefined" ? window.innerWidth : 1024);
   isMobile = computed(() => this.windowWidth() < 768);
+  isTablet = computed(() => this.windowWidth() >= 768 && this.windowWidth() < 1024);
+  isDesktop = computed(() => this.windowWidth() >= 1024);
+  showMobileSidebar = signal(false);
+  sidebarCollapsed = signal(false);
 
   showEmojiPicker = signal(false);
   showAttachmentMenu = signal(false);
