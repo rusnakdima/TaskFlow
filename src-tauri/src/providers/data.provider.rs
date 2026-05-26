@@ -88,9 +88,7 @@ impl DataProvider {
         let json_result = DatabaseProvider::insert(json.as_ref(), table, data.clone()).await;
         match json_result {
           Ok(result) => {
-            if let Err(e) = DatabaseProvider::insert(mongo.as_ref(), table, data).await {
-              eprintln!("Warning: MongoDB insert failed: {}", e);
-            }
+            let _ = DatabaseProvider::insert(mongo.as_ref(), table, data).await;
             Ok(result)
           }
           Err(e) => Err(err_response_formatted(
@@ -112,9 +110,7 @@ impl DataProvider {
         .map_err(|e| err_response_formatted("Update failed in MongoDB", &e.to_string())),
       DataProvider::Both(json, mongo) => {
         let json_result = DatabaseProvider::update(json.as_ref(), table, id, data.clone()).await;
-        if let Err(e) = DatabaseProvider::update(mongo.as_ref(), table, id, data).await {
-          eprintln!("Warning: MongoDB update failed: {}", e);
-        }
+        let _ = DatabaseProvider::update(mongo.as_ref(), table, id, data).await;
         json_result.map_err(|e| err_response_formatted("Update failed in JSON", &e.to_string()))
       }
     }

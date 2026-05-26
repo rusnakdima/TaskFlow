@@ -32,7 +32,7 @@ pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, 
     &Validation::default(),
   )
   .map_err(|e| {
-    eprintln!("JWT decode failed: {:?}", e);
+    let _ = e;
     err_response("Invalid token")
   })?;
   Ok(token_data.claims.id)
@@ -45,7 +45,7 @@ pub fn extract_profile_from_token(token: &str, jwt_secret: &str) -> Result<Strin
     &Validation::default(),
   )
   .map_err(|e| {
-    eprintln!("JWT decode failed: {:?}", e);
+    let _ = e;
     err_response("Invalid token")
   })?;
   token_data

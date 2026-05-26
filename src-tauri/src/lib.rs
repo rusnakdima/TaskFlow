@@ -44,10 +44,10 @@ use routes::{
     github_start_device_flow, github_update_issue,
   },
   group_route::{
-    add_group_members, create_group, delete_group, delete_group_cascade, delete_message,
-    delete_room_messages, edit_message, ensure_rooms_for_groups, get_group_by_room, get_groups,
-    get_messages_by_room, hard_delete_message, hard_delete_room_messages, mark_message_read,
-    remove_group_members, send_message, update_group,
+    add_group_members, add_message_reaction, create_group, delete_group, delete_group_cascade,
+    delete_message, delete_room_messages, edit_message, ensure_rooms_for_groups, get_group_by_room,
+    get_groups, get_messages_by_room, hard_delete_message, hard_delete_room_messages,
+    mark_message_read, remove_group_members, remove_message_reaction, send_message, update_group,
   },
   manage_db_route::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
@@ -587,6 +587,8 @@ pub fn run() {
       delete_message,
       hard_delete_message,
       edit_message,
+      add_message_reaction,
+      remove_message_reaction,
       delete_room,
       delete_room_messages,
       hard_delete_room_messages,
