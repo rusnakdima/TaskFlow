@@ -37,7 +37,11 @@ export class ChatMessageComponent implements OnInit {
 
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
-  @Output() contextMenu = new EventEmitter<{ event: MouseEvent; message: ChatMessage }>();
+  @Output() contextMenu = new EventEmitter<{
+    event: MouseEvent;
+    message: ChatMessage;
+    isOwn: boolean;
+  }>();
   @Output() editMessageInput = new EventEmitter<string>();
   @Output() reply = new EventEmitter<ChatMessage>();
   @Output() react = new EventEmitter<{ message: ChatMessage; emoji: string }>();
@@ -48,6 +52,9 @@ export class ChatMessageComponent implements OnInit {
   @Output() startEditMessage = new EventEmitter<ChatMessage>();
 
   showReactionPicker = signal(false);
+  showEmojiGrid = signal(false);
+  isHovered = signal(false);
+  quickEmojis = ["😀", "😂", "❤️", "🥰", "😍", "🎉", "🔥", "👍", "👎"];
 
   ngOnInit(): void {}
 
@@ -65,9 +72,14 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onContextMenu(event: MouseEvent): void {
+    console.log("[ChatMessage] onContextMenu called", {
+      event,
+      message: this.message,
+      isOwn: this.isOwn,
+    });
     event.preventDefault();
     event.stopPropagation();
-    this.contextMenu.emit({ event, message: this.message });
+    this.contextMenu.emit({ event, message: this.message, isOwn: this.isOwn });
   }
 
   onSaveEdit(): void {
@@ -79,43 +91,70 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onReply(message: ChatMessage): void {
+    console.log("[ChatMessage] onReply called", message);
     this.reply.emit(message);
   }
 
   onReact(payload: { message: ChatMessage; emoji: string }): void {
+    console.log("[ChatMessage] onReact called", payload);
     this.react.emit(payload);
     this.showReactionPicker.set(false);
+    this.showEmojiGrid.set(false);
   }
 
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
+    console.log("[ChatMessage] onRemoveReaction called", payload);
     this.removeReaction.emit(payload);
+    this.showEmojiGrid.set(false);
   }
 
   onCancelReply(message: ChatMessage): void {
+    console.log("[ChatMessage] onCancelReply called", message);
     this.cancelReply.emit(message);
   }
 
   onToggleReactionPicker(): void {
+    console.log("[ChatMessage] onToggleReactionPicker called");
     this.showReactionPicker.update((v) => !v);
   }
 
+  onToggleEmojiGrid(): void {
+    console.log("[ChatMessage] onToggleEmojiGrid called");
+    this.showEmojiGrid.update((v) => !v);
+  }
+
+  onMouseLeave(): void {
+    this.isHovered.set(false);
+    this.showEmojiGrid.set(false);
+  }
+
+  onMouseEnter(): void {
+    this.isHovered.set(true);
+  }
+
   onQuickReaction(emoji: string): void {
+    console.log("[ChatMessage] onQuickReaction called", emoji);
     this.react.emit({ message: this.message, emoji });
+    this.showEmojiGrid.set(false);
   }
 
   onPickerClosed(): void {
+    console.log("[ChatMessage] onPickerClosed called");
     this.showReactionPicker.set(false);
   }
 
   onRetrySend(): void {
+    console.log("[ChatMessage] onRetrySend called");
     this.retrySend.emit(this.message);
   }
 
   onDeleteMessage(): void {
+    console.log("[ChatMessage] onDeleteMessage called", this.message);
     this.deleteMessage.emit(this.message);
   }
 
   startEditMessageInline(): void {
+    console.log("[ChatMessage] startEditMessageInline called", this.message);
     this.startEditMessage.emit(this.message);
   }
 
@@ -140,12 +179,12 @@ export class ChatMessageComponent implements OnInit {
 
   getBubbleClasses(): string {
     const base =
-      "relative flex flex-col min-h-[44px] px-4 py-2.5 rounded-2xl max-w-full word-break transition-all duration-200 ease-out";
+      "relative flex flex-col min-h-[44px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-full word-break transition-all duration-200 ease-out";
 
     if (this.isOwn) {
-      return `${base} bg-gradient-to-br from-[var(--accent-400)] to-[var(--accent-500)] text-white border border-white/20 shadow-md`;
+      return `${base} bg-[var(--accent-color)] text-white shadow-lg shadow-[var(--accent-color)]/10`;
     }
 
-    return `${base} bg-white/95 backdrop-blur-sm border border-slate-200/50 text-zinc-800 dark:bg-zinc-800/95 dark:border-zinc-700/50 dark:text-zinc-100`;
+    return `${base} bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 shadow-sm`;
   }
 }

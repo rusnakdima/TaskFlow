@@ -118,11 +118,11 @@
                     <button
                       class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150"
                       [class]="getActionColor(action)"
-                      [class.opacity-50]="isActionDisabledByPermission(action)"
-                      [class.cursor-not-allowed]="isActionDisabledByPermission(action)"
-                      [class.pointer-events-none]="isActionDisabledByPermission(action)"
-                      [class.hover:bg-gray-100]="!isActionDisabledByPermission(action)"
-                      [class.dark:hover:bg-gray-700]="!isActionDisabledByPermission(action)"
+                      [class.opacity-50]="isActionDisabledForType(action)"
+                      [class.cursor-not-allowed]="isActionDisabledForType(action)"
+                      [class.pointer-events-none]="isActionDisabledForType(action)"
+                      [class.hover:bg-gray-100]="!isActionDisabledForType(action)"
+                      [class.dark:hover:bg-gray-700]="!isActionDisabledForType(action)"
                       (click)="onAction(action.key || action.label, $event)"
                     >
                       <mat-icon
@@ -267,11 +267,11 @@
                         <button
                           class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150"
                           [class]="getActionColor(action)"
-                          [class.opacity-50]="isActionDisabledByPermission(action)"
-                          [class.cursor-not-allowed]="isActionDisabledByPermission(action)"
-                          [class.pointer-events-none]="isActionDisabledByPermission(action)"
-                          [class.hover:bg-gray-100]="!isActionDisabledByPermission(action)"
-                          [class.dark:hover:bg-gray-700]="!isActionDisabledByPermission(action)"
+                          [class.opacity-50]="isActionDisabledForType(action)"
+                          [class.cursor-not-allowed]="isActionDisabledForType(action)"
+                          [class.pointer-events-none]="isActionDisabledForType(action)"
+                          [class.hover:bg-gray-100]="!isActionDisabledForType(action)"
+                          [class.dark:hover:bg-gray-700]="!isActionDisabledForType(action)"
                           (click)="onAction(action.key || action.label, $event)"
                         >
                           <mat-icon

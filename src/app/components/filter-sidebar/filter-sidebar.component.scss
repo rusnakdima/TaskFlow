@@ -1,7 +1,7 @@
 .filter-sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--bg-overlay);
   z-index: 999;
   animation: fadeIn 0.2s ease-out;
 }
@@ -11,7 +11,7 @@
   inset: 0;
   width: 100%;
   height: 100vh;
-  background: white;
+  background: var(--bg-card);
   z-index: 1000;
   box-shadow: none;
   overflow-y: auto;
@@ -37,7 +37,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgb(229 231 235);
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 1.5rem;
 }
 
@@ -57,7 +57,7 @@
 .filter-sidebar-actions {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid rgb(229 231 235);
+  border-top: 1px solid var(--border-color);
 }
 
 :host-context(.dark) .filter-sidebar-actions {

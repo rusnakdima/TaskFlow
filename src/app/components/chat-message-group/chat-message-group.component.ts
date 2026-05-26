@@ -14,11 +14,17 @@ export class ChatMessageGroupComponent {
   @Input() messages: ChatMessage[] = [];
   @Input() isGroupChat = false;
   @Input() isOwn = false;
+  @Input() editingMessageId: string | null = null;
+  @Input() editingMessageContent = "";
 
   @Output() reply = new EventEmitter<ChatMessage>();
   @Output() react = new EventEmitter<{ message: ChatMessage; emoji: string }>();
   @Output() removeReaction = new EventEmitter<{ message: ChatMessage; emoji: string }>();
-  @Output() contextMenu = new EventEmitter<{ event: MouseEvent; message: ChatMessage }>();
+  @Output() contextMenu = new EventEmitter<{
+    event: MouseEvent;
+    message: ChatMessage;
+    isOwn: boolean;
+  }>();
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
   @Output() editMessageInput = new EventEmitter<string>();
