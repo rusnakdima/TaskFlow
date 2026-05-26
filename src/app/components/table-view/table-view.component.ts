@@ -30,7 +30,7 @@ import { DateHelper } from "@helpers/date.helper";
 /* services */
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@services/core/permission.service";
 
 /* components */
 
@@ -67,6 +67,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   private tableCdr = inject(ChangeDetectorRef);
   private storageService = inject(StorageService);
   private authServiceLocal = inject(AuthService);
+  private permissionService = inject(PermissionService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -506,6 +507,14 @@ export class TableViewComponent extends ItemRowBaseComponent {
       ? this.itemPermissionResolver(item)
       : this.userPermission;
 
+    const key = action.key?.toLowerCase() || "";
+    if (key === "edit") {
+      return !this.canEditItem(item, permission, currentUserId);
+    }
+    if (key === "archive" || key === "restore") {
+      return !this.canArchiveItem(item, permission, currentUserId);
+    }
+
     const required = action.permission;
     if (permission === TodoPermission.VIEWER) {
       return true;
@@ -526,6 +535,32 @@ export class TableViewComponent extends ItemRowBaseComponent {
       return true;
     }
     return permission !== required;
+  }
+
+  canEditItem(item: any, permission: TodoPermission, userId: string): boolean {
+    if (this.itemType === "todo") {
+      return this.permissionService.canEditTodoFields(permission);
+    }
+    if (this.itemType === "task") {
+      return this.permissionService.canEditTask(item, permission, userId);
+    }
+    if (this.itemType === "subtask") {
+      return this.permissionService.canEditSubtask(item, permission, userId);
+    }
+    return false;
+  }
+
+  canArchiveItem(item: any, permission: TodoPermission, userId: string): boolean {
+    if (this.itemType === "todo") {
+      return this.permissionService.canArchiveTodo(permission);
+    }
+    if (this.itemType === "task") {
+      return this.permissionService.canArchiveTask(item, permission, userId);
+    }
+    if (this.itemType === "subtask") {
+      return this.permissionService.canArchiveSubtask(item, permission, userId);
+    }
+    return false;
   }
 
   private isTableField(field: TableField | ItemDisplayConfig): field is TableField {
