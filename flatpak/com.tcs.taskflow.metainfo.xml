@@ -73,6 +73,48 @@
   </provides>
 
   <releases>
+    <release version="0.18.0" date="2026-05-27">
+      <description>
+        <p>Release version 0.18.0 with new components, backend improvements, and comprehensive code formatting.</p>
+
+        <p>
+          <strong>New Features &amp; Components:</strong>
+        </p>
+        <ul>
+          <li>New view-mode-tabs component for switching between view modes</li>
+          <li>New chat-message-group component for grouping chat messages</li>
+          <li>New avatar SVG files added</li>
+        </ul>
+
+        <p>
+          <strong>Backend Improvements:</strong>
+        </p>
+        <ul>
+          <li>Improved permission service with better access control</li>
+          <li>Enhanced archive route with improved functionality</li>
+          <li>Updated group routes and permission macros</li>
+          <li>Improved entity structures and task services</li>
+        </ul>
+
+        <p>
+          <strong>Frontend Refactoring:</strong>
+        </p>
+        <ul>
+          <li>Updated core services (archive, conflict, permission, storage, sync)</li>
+          <li>Updated filter constants, scrolling mixin, and data models</li>
+          <li>Refactored item card, kanban, table view, and todo components</li>
+          <li>Updated chat message and comments components</li>
+          <li>Updated views (calendar, categories, dashboard, tasks, todos)</li>
+        </ul>
+
+        <p>
+          <strong>Code Quality:</strong>
+        </p>
+        <ul>
+          <li>Comprehensive Prettier and Rustfmt formatting across frontend and backend</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.4" date="2026-05-22">
       <description>
         <p>Release version 0.17.4</p>
