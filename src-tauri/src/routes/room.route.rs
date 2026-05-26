@@ -90,7 +90,6 @@ pub async fn delete_room(
   room_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  println!("[DEBUG delete_room route] room_id={}", room_id);
   let _user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config_helper.jwt_secret,

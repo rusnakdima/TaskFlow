@@ -151,7 +151,6 @@ pub async fn delete_group(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  println!("[DEBUG delete_group route] id={}", id);
   let _user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config_helper.jwt_secret,
@@ -365,6 +364,44 @@ pub async fn edit_message(
   .map_err(|e| e)?;
 
   state.chat_service.edit_message(&id, &content).await
+}
+
+#[tauri::command]
+pub async fn add_message_reaction(
+  state: State<'_, AppState>,
+  message_id: String,
+  emoji: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  state
+    .chat_service
+    .add_reaction(&message_id, &emoji, &user_id)
+    .await
+}
+
+#[tauri::command]
+pub async fn remove_message_reaction(
+  state: State<'_, AppState>,
+  message_id: String,
+  emoji: String,
+  token: Option<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  let user_id = extract_user_from_token(
+    token.as_deref().unwrap_or(""),
+    &state.config_helper.jwt_secret,
+  )
+  .map_err(|e| e)?;
+
+  state
+    .chat_service
+    .remove_reaction(&message_id, &emoji, &user_id)
+    .await
 }
 
 #[tauri::command]
