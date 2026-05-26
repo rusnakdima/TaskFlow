@@ -165,7 +165,7 @@ impl RoomService {
             all_docs = loaded;
           }
           Err(e) => {
-            eprintln!("[WARN] Relation loading failed for rooms: {}", e);
+            let _ = e;
           }
         }
       }
@@ -310,7 +310,6 @@ impl RoomService {
       .cloned()
       .ok_or_else(|| err_response("Room not found"))?;
     let doc_id = existing.get("id").and_then(|v| v.as_str()).unwrap_or(id);
-    println!("[DEBUG delete_room] id={} doc_id={}", id, doc_id);
 
     // Cascade: delete all chats in this room from MongoDB
     let chat_filter = json!({ "room_id": id });
@@ -354,7 +353,6 @@ impl RoomService {
     // Delete the room from MongoDB
     let _ = mongo.delete("rooms", doc_id).await;
 
-    println!("[DEBUG delete_room] cascade delete completed");
     Ok(success_response(DataValue::Object(json!({}))))
   }
 }

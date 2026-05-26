@@ -273,6 +273,124 @@ impl ChatService {
     Ok(success_response(DataValue::Object(doc)))
   }
 
+  pub async fn add_reaction(
+    &self,
+    message_id: &str,
+    emoji: &str,
+    user_id: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .base
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+
+    let chat = mongo
+      .find_by_id("chats", message_id)
+      .await?
+      .ok_or_else(|| err_response("Message not found"))?;
+
+    let mut reactions = chat
+      .get("reactions")
+      .and_then(|v| v.as_array())
+      .cloned()
+      .unwrap_or_default();
+
+    let emoji_str = emoji.to_string();
+    if let Some(existing) = reactions
+      .iter_mut()
+      .find(|r| r.get("emoji").and_then(|v| v.as_str()) == Some(&emoji_str))
+    {
+      let count = existing.get("count").and_then(|v| v.as_i64()).unwrap_or(0);
+      existing["count"] = serde_json::json!(count + 1);
+      let mut user_ids = existing
+        .get("user_ids")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+      if !user_ids.iter().any(|id| id.as_str() == Some(user_id)) {
+        user_ids.push(serde_json::json!(user_id));
+      }
+      existing["user_ids"] = serde_json::json!(user_ids);
+    } else {
+      reactions.push(serde_json::json!({
+        "emoji": emoji_str,
+        "count": 1,
+        "user_ids": [user_id]
+      }));
+    }
+
+    let update_data = json!({ "reactions": reactions });
+    let doc = mongo
+      .patch("chats", message_id, update_data.clone())
+      .await?;
+
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.patch("chats", message_id, update_data).await;
+    }
+
+    Ok(success_response(DataValue::Object(doc)))
+  }
+
+  pub async fn remove_reaction(
+    &self,
+    message_id: &str,
+    emoji: &str,
+    user_id: &str,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .base
+      .get_mongo_provider()
+      .ok_or_else(|| err_response("MongoDB not available"))?;
+
+    let chat = mongo
+      .find_by_id("chats", message_id)
+      .await?
+      .ok_or_else(|| err_response("Message not found"))?;
+
+    let reactions = chat
+      .get("reactions")
+      .and_then(|v| v.as_array())
+      .cloned()
+      .unwrap_or_default();
+
+    let emoji_str = emoji.to_string();
+    let mut new_reactions: Vec<Value> = Vec::new();
+
+    for r in reactions.into_iter() {
+      if r.get("emoji").and_then(|v| v.as_str()) == Some(&emoji_str) {
+        let count = r.get("count").and_then(|v| v.as_i64()).unwrap_or(0);
+        if count > 1 {
+          let mut new_r = r.clone();
+          new_r["count"] = serde_json::json!(count - 1);
+          let mut user_ids = r
+            .get("user_ids")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+          user_ids.retain(|id| id.as_str() != Some(user_id));
+          new_r["user_ids"] = serde_json::json!(user_ids);
+          new_reactions.push(new_r);
+        }
+        // If count == 1, don't push (remove entirely)
+      } else {
+        new_reactions.push(r);
+      }
+    }
+
+    let update_data = json!({ "reactions": new_reactions });
+    let doc = mongo
+      .patch("chats", message_id, update_data.clone())
+      .await?;
+
+    let json_provider = self.base.get_json_provider();
+    if let DataProvider::Json(p) = json_provider {
+      let _ = p.patch("chats", message_id, update_data).await;
+    }
+
+    Ok(success_response(DataValue::Object(doc)))
+  }
+
   pub async fn delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(

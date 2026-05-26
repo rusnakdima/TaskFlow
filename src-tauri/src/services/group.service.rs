@@ -362,11 +362,6 @@ impl GroupService {
       }
     };
 
-    println!(
-      "[DEBUG delete_group] id={} doc_id={} room_id={} is_1on1={}",
-      id, doc_id, room_id, is_1on1
-    );
-
     self.cascade_delete_room(&room_id).await?;
 
     if !is_1on1 {
@@ -377,7 +372,6 @@ impl GroupService {
       }
     }
 
-    println!("[DEBUG delete_group] cascade delete completed");
     Ok(success_response(DataValue::Object(json!({}))))
   }
 
