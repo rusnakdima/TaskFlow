@@ -165,10 +165,6 @@ impl ChartGenerator {
         let title = category_title.or(category_name);
 
         if title.is_none() {
-          eprintln!(
-            "[ChartGenerator] category missing title/name: {:?}",
-            category
-          );
           return None;
         }
 
