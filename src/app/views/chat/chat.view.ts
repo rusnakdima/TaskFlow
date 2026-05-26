@@ -221,21 +221,28 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   closeMessageContextMenu(): void {
     this.state.showMessageContextMenu.set(false);
     this.state.contextMenuMessage.set(null);
+    this.state.contextMenuMessageId.set(null);
   }
 
-  onMessageContextMenu(event: MouseEvent, message: ChatMessage): void {
-    if (!message.isMine) return;
-    this.state.contextMenuMessage.set(message);
-    this.state.messageContextMenuPosition.set({ x: event.clientX, y: event.clientY });
+  onMessageContextMenu(payload: { event: MouseEvent; message: ChatMessage; isOwn: boolean }): void {
+    console.log("[ChatView] onMessageContextMenu called", payload);
+    if (!payload.isOwn) return;
+    this.state.contextMenuMessage.set(payload.message);
+    this.state.contextMenuMessageId.set(payload.message.id);
+    this.state.contextMenuIsOwnMessage.set(payload.isOwn);
+    this.state.messageContextMenuPosition.set({
+      x: payload.event.clientX,
+      y: payload.event.clientY,
+    });
     this.state.showMessageContextMenu.set(true);
   }
 
-  startEditMessage(): void {
-    const msg = this.state.contextMenuMessage();
+  startEditMessage(message?: ChatMessage): void {
+    console.log("[ChatView] startEditMessage called", message);
+    const msg = message || this.state.contextMenuMessage();
     if (!msg) return;
     this.state.editingMessageId.set(msg.id);
     this.state.editingMessageContent.set(msg.content);
-    this.closeMessageContextMenu();
   }
 
   cancelEditMessage(): void {
@@ -246,8 +253,14 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
     this.chatService.saveEditMessage();
   }
 
-  deleteMessage(): void {
-    this.chatService.deleteMessage();
+  deleteMessage(message?: ChatMessage): void {
+    console.log("[ChatView] deleteMessage called", message);
+    const msg = message || this.state.contextMenuMessage();
+    if (!msg) return;
+    this.chatService.deleteMessageById(msg.id);
+    if (this.state.contextMenuMessage()?.id === msg.id) {
+      this.state.closeMessageContextMenu();
+    }
   }
 
   removeConversation(): void {
@@ -343,7 +356,9 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   closeConversation(): void {
     this.state.activeConversationId.set(null);
     this.state.messages.set([]);
-    this.state.showSidebar.set(true);
+    if (!this.state.isMobile()) {
+      this.state.showSidebar.set(true);
+    }
     this.state.showEmojiPicker.set(false);
     this.state.showAttachmentMenu.set(false);
     this.state.showDetailsMenu.set(false);
@@ -493,48 +508,19 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   }
 
   onReplyMessage(message: ChatMessage): void {
+    console.log("[ChatView] onReplyMessage called", message);
     this.state.setReplyTo(message);
   }
 
   onReactToMessage(payload: { message: ChatMessage; emoji: string }): void {
+    console.log("[ChatView] onReactToMessage called", payload);
     if (payload.emoji) {
-      this.state.messages.update((msgs) =>
-        msgs.map((m) => {
-          if (m.id === payload.message.id) {
-            const reactions = m.reactions || [];
-            const existing = reactions.find((r) => r.emoji === payload.emoji);
-            if (existing) {
-              return {
-                ...m,
-                reactions: reactions.map((r) =>
-                  r.emoji === payload.emoji ? { ...r, count: r.count + 1, isOwn: true } : r
-                ),
-              };
-            } else {
-              return {
-                ...m,
-                reactions: [...reactions, { emoji: payload.emoji, count: 1, isOwn: true }],
-              };
-            }
-          }
-          return m;
-        })
-      );
+      this.chatService.addReaction(payload.message.id, payload.emoji);
     }
   }
 
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
-    this.state.messages.update((msgs) =>
-      msgs.map((m) => {
-        if (m.id === payload.message.id) {
-          return {
-            ...m,
-            reactions: (m.reactions || []).filter((r) => r.emoji !== payload.emoji),
-          };
-        }
-        return m;
-      })
-    );
+    this.chatService.removeReaction(payload.message.id, payload.emoji);
   }
 
   onCancelReply(message: ChatMessage): void {
@@ -614,17 +600,10 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   formatMessageDate(time: string): string {
     if (!time) return "";
     const date = new Date(time);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (isNaN(date.getTime())) {
+      return "";
     }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
   getContextMenuTransform(): string {
@@ -649,21 +628,60 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
 
   getMessageContextMenuTransform(): string {
     const pos = this.state.messageContextMenuPosition();
-    const menuWidth = 160;
+    const menuWidth = 180;
     const menuHeight = 100;
     const padding = 16;
-    let x = pos.x;
-    let y = pos.y;
+    const gap = 12;
 
-    if (typeof window !== "undefined") {
-      if (x + menuWidth > window.innerWidth - padding) {
-        x = window.innerWidth - menuWidth - padding;
-      }
-      if (y + menuHeight > window.innerHeight - padding) {
-        y = window.innerHeight - menuHeight - padding;
-      }
+    let x = pos.x;
+    let y = pos.y + gap;
+
+    const isOwn = this.state.contextMenuIsOwnMessage();
+
+    if (isOwn) {
+      x = pos.x - menuWidth + 40;
+    } else {
+      x = pos.x - 40;
     }
 
-    return `translate(${Math.max(padding, x)}px, ${Math.max(padding, y)}px)`;
+    if (y + menuHeight > window.innerHeight - padding) {
+      y = pos.y - menuHeight - gap;
+    }
+
+    if (y < padding) y = padding;
+    if (x < padding) x = padding;
+    if (x + menuWidth > window.innerWidth - padding) {
+      x = window.innerWidth - menuWidth - padding;
+    }
+
+    return `translate(${x}px, ${y}px)`;
+  }
+
+  openSidebar(): void {
+    this.state.showSidebar.set(true);
+  }
+
+  openSidebarForMobile(): void {
+    this.state.showSidebar.set(true);
+  }
+
+  openDetailsPanel(): void {
+    this.state.showDetailsPanel.set(true);
+  }
+
+  closeDetailsPanel(): void {
+    this.state.showDetailsPanel.set(false);
+  }
+
+  closeSidebarForMobile(): void {
+    this.state.showSidebar.set(false);
+  }
+
+  collapseSidebar(): void {
+    this.state.sidebarCollapsed.set(true);
+  }
+
+  expandSidebar(): void {
+    this.state.sidebarCollapsed.set(false);
   }
 }

@@ -4,13 +4,13 @@
       [src]="avatarUrl"
       [name]="userName"
       size="sm"
-      class="shrink-0 ring-2 ring-white dark:ring-zinc-900"
+      class="shrink-0 ring-2 ring-slate-900"
     />
   } @else {
     <div class="w-8 shrink-0"></div>
   }
   <div
-    class="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-zinc-700/80 dark:bg-zinc-800/90"
+    class="flex items-center gap-2 rounded-2xl border border-slate-800/80 bg-slate-900 px-4 py-3 shadow-sm"
   >
     <span
       class="chat-typing-dot h-2 w-2 rounded-full bg-[var(--accent-color)]"
@@ -25,13 +25,9 @@
       style="animation-delay: 300ms"
     ></span>
     @if (userName) {
-      <span class="ml-1 text-xs font-medium text-slate-500 dark:text-zinc-400">
-        {{ userName }} is typing
-      </span>
+      <span class="ml-1 text-xs font-medium text-slate-400"> {{ userName }} is typing </span>
     } @else {
-      <span class="ml-1 text-xs font-medium text-slate-500 dark:text-zinc-400">
-        Someone is typing
-      </span>
+      <span class="ml-1 text-xs font-medium text-slate-400"> Someone is typing </span>
     }
   </div>
 </div>

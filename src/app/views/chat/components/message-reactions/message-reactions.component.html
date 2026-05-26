@@ -1,45 +1,26 @@
-<div class="relative mt-1.5 flex items-center gap-1.5" [class.flex-row-reverse]="alignLeft">
+<div class="relative mt-1 flex items-center gap-1" [class.flex-row-reverse]="alignLeft">
   @if (reactions.length > 0) {
     <div class="flex flex-wrap gap-1">
       @for (reaction of reactions; track reaction.emoji) {
         <button
-          class="chat-reaction-pop flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur-xl transition-all duration-200 hover:scale-105 active:scale-95"
-          [class.border-[var(--accent-color)]/50]="reaction.isOwn"
-          [class.bg-[var(--accent-50)]/80]="reaction.isOwn"
-          [class.border-slate-200/60]="!reaction.isOwn"
-          [class.bg-white/80]="!reaction.isOwn"
-          [class.dark:border-zinc-700/60]="!reaction.isOwn"
-          [class.dark:bg-zinc-800/80]="!reaction.isOwn"
+          class="chat-reaction-pop flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:scale-105 active:scale-95"
+          [ngClass]="{
+            'border-[var(--accent-color)]': reaction.isOwn,
+            'bg-[var(--accent-50)]': reaction.isOwn,
+            'text-[var(--accent-color)]': reaction.isOwn,
+            'dark:border-zinc-600': !reaction.isOwn,
+            'dark:bg-zinc-700': !reaction.isOwn,
+            'text-gray-600': !reaction.isOwn,
+            'dark:text-gray-300': !reaction.isOwn,
+          }"
           (click)="
             reaction.isOwn ? removeReaction.emit(reaction.emoji) : addReaction.emit(reaction.emoji)
           "
         >
           <span class="text-sm">{{ reaction.emoji }}</span>
-          <span class="text-slate-600 dark:text-zinc-400">{{ reaction.count }}</span>
-        </button>
-      }
-    </div>
-  }
-
-  <button
-    class="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-slate-300/60 text-slate-400 opacity-0 transition-all duration-200 hover:scale-110 hover:border-solid hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] hover:opacity-100 sm:opacity-100 dark:border-zinc-600/60 dark:text-zinc-500"
-    (click)="togglePicker.emit()"
-  >
-    <mat-icon fontIcon="add_reaction" class="!h-3.5 !w-3.5" />
-  </button>
-
-  @if (showPicker) {
-    <div
-      class="emoji-picker chat-message-enter absolute top-full left-0 z-50 mt-2 flex gap-1 rounded-2xl border border-slate-200/80 bg-white/98 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-700/80 dark:bg-zinc-800/98"
-      [class.right-0]="alignLeft"
-      [class.left-0]="!alignLeft"
-    >
-      @for (emoji of quickReactions; track emoji) {
-        <button
-          class="emoji-btn flex h-9 w-9 items-center justify-center rounded-xl text-lg transition-all duration-150 hover:scale-110 hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/50"
-          (click)="onQuickReaction(emoji)"
-        >
-          {{ emoji }}
+          <span [ngClass]="reaction.isOwn ? 'text-[var(--accent-color)]' : 'text-gray-400'">{{
+            reaction.count
+          }}</span>
         </button>
       }
     </div>

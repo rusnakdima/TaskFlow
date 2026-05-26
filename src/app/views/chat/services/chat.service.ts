@@ -507,6 +507,12 @@ export class ChatService {
               isEdited: chat.is_edited === true,
               readStatus: readStatus,
               replyId: chat.reply_id || null,
+              reactions: (chat.reactions || []).map((r: any) => ({
+                emoji: r.emoji,
+                count: r.count,
+                isOwn: (r.user_ids || []).includes(currentUserId),
+                user_ids: r.user_ids || [],
+              })),
             });
           }
 
@@ -571,6 +577,12 @@ export class ChatService {
                 isEdited: chat.is_edited === true,
                 readStatus: readStatus,
                 replyId: chat.reply_id || null,
+                reactions: (chat.reactions || []).map((r: any) => ({
+                  emoji: r.emoji,
+                  count: r.count,
+                  isOwn: (r.user_ids || []).includes(currentUserId),
+                  user_ids: r.user_ids || [],
+                })),
               });
             }
 
@@ -1134,6 +1146,101 @@ export class ChatService {
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to delete message");
           this.state.closeMessageContextMenu();
+        },
+      });
+  }
+
+  deleteMessageById(messageId: string): void {
+    console.log("[ChatService] deleteMessageById called", messageId);
+    this.requestService
+      .invokeCommand("hard_delete_message", {
+        id: messageId,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.state.messages.update((msgs) => msgs.filter((m) => m.id !== messageId));
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete message");
+        },
+      });
+  }
+
+  addReaction(messageId: string, emoji: string): void {
+    console.log("[ChatService] addReaction called", { messageId, emoji });
+    this.requestService
+      .invokeCommand("add_message_reaction", {
+        messageId,
+        emoji,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.state.messages.update((msgs) =>
+            msgs.map((m) => {
+              if (m.id === messageId) {
+                const reactions = m.reactions || [];
+                const existing = reactions.find((r) => r.emoji === emoji);
+                if (existing) {
+                  return {
+                    ...m,
+                    reactions: reactions.map((r) =>
+                      r.emoji === emoji ? { ...r, count: r.count + 1, isOwn: true } : r
+                    ),
+                  };
+                } else {
+                  return {
+                    ...m,
+                    reactions: [...reactions, { emoji, count: 1, isOwn: true }],
+                  };
+                }
+              }
+              return m;
+            })
+          );
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to add reaction");
+        },
+      });
+  }
+
+  removeReaction(messageId: string, emoji: string): void {
+    console.log("[ChatService] removeReaction called", { messageId, emoji });
+    this.requestService
+      .invokeCommand("remove_message_reaction", {
+        messageId,
+        emoji,
+        token: this.authService.getToken(),
+      })
+      .subscribe({
+        next: () => {
+          this.state.messages.update((msgs) =>
+            msgs.map((m) => {
+              if (m.id === messageId) {
+                const reactions = m.reactions || [];
+                const existing = reactions.find((r) => r.emoji === emoji);
+                if (existing && existing.count > 1) {
+                  return {
+                    ...m,
+                    reactions: reactions.map((r) =>
+                      r.emoji === emoji ? { ...r, count: r.count - 1 } : r
+                    ),
+                  };
+                } else {
+                  return {
+                    ...m,
+                    reactions: reactions.filter((r) => r.emoji !== emoji),
+                  };
+                }
+              }
+              return m;
+            })
+          );
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to remove reaction");
         },
       });
   }
