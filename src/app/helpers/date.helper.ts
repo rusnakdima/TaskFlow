@@ -392,13 +392,6 @@ export class DateHelper {
     return true;
   }
 
-  static getLatestTimestamp(entity: { created_at?: string; updated_at?: string }): number {
-    return Math.max(
-      new Date(entity.created_at || 0).getTime(),
-      new Date(entity.updated_at || 0).getTime()
-    );
-  }
-
   static parseDateSafely(date: string | null | undefined): Date | null {
     if (!date) return null;
     const parsed = new Date(date);
