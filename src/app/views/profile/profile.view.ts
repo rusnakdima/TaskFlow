@@ -11,6 +11,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* components */
 import { QrScannerComponent } from "@components/qr-scanner/qr-scanner.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
@@ -27,7 +28,7 @@ import { ThemeService } from "@services/ui/theme.service";
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, QrScannerComponent],
+  imports: [CommonModule, RouterModule, MatIconModule, QrScannerComponent, AppButtonComponent],
   templateUrl: "./profile.view.html",
 })
 export class ProfileView implements OnInit, OnDestroy {

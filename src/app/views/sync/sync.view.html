@@ -15,17 +15,10 @@
       Automatically sync all data: first upload local changes to cloud, then download cloud changes
       to local.
     </p>
-    <button class="btn-accent" (click)="syncAll()" [disabled]="isSyncingAll()">
-      @if (isSyncingAll()) {
-        <mat-spinner diameter="20"></mat-spinner>
-        <span>Synchronizing...</span>
-      } @else {
-        <div class="flex flex-row items-center gap-x-3">
-          <mat-icon class="h-5! w-5! min-w-5 text-xl! text-white" fontIcon="sync" />
-          <span>Sync All Data</span>
-        </div>
-      }
-    </button>
+    <app-button variant="accent" [loading]="isSyncingAll()" (clicked)="syncAll()">
+      <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sync" />
+      Sync All Data
+    </app-button>
   </div>
 
   <div
@@ -47,17 +40,10 @@
           </div>
           <p class="textMuted mb-4 text-sm">Download data from cloud database to local storage.</p>
         </div>
-        <button (click)="importToLocal()" [disabled]="isSyncingImport()" class="btn-accent">
-          @if (isSyncingImport()) {
-            <mat-spinner diameter="16"></mat-spinner>
-            <span>Importing...</span>
-          } @else {
-            <div class="flex flex-row gap-x-3">
-              <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="download" />
-              <span>Import from Cloud</span>
-            </div>
-          }
-        </button>
+        <app-button variant="accent" [loading]="isSyncingImport()" (clicked)="importToLocal()">
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="download" />
+          Import from Cloud
+        </app-button>
       </div>
 
       <div
@@ -70,17 +56,10 @@
           </div>
           <p class="textMuted mb-4 text-sm">Upload local data to cloud database.</p>
         </div>
-        <button (click)="exportToCloud()" [disabled]="isSyncingExport()" class="btn-accent">
-          @if (isSyncingExport()) {
-            <mat-spinner diameter="16"></mat-spinner>
-            <span>Exporting...</span>
-          } @else {
-            <div class="flex flex-row gap-x-3">
-              <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="upload" />
-              <span>Export to Cloud</span>
-            </div>
-          }
-        </button>
+        <app-button variant="accent" [loading]="isSyncingExport()" (clicked)="exportToCloud()">
+          <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="upload" />
+          Export to Cloud
+        </app-button>
       </div>
     </div>
   </div>

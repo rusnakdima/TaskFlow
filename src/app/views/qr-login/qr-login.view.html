@@ -1,11 +1,5 @@
 <div
   class="top-0 left-0 m-0 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden"
-  [class.bg-black]="isMobileDevice() && isQrLoginActive()"
-  [class.bg-gradient-to-br]="!isMobileDevice() || !isQrLoginActive()"
-  [class.from-indigo-500/10]="!isMobileDevice() || !isQrLoginActive()"
-  [class.to-purple-500/10]="!isMobileDevice() || !isQrLoginActive()"
-  [class.dark:from-zinc-900]="!isMobileDevice() || !isQrLoginActive()"
-  [class.dark:to-zinc-800]="!isMobileDevice() || !isQrLoginActive()"
 >
   <!-- Mobile Scanner Mode -->
   @if (isMobileDevice() && isQrLoginActive()) {
@@ -127,10 +121,10 @@
       >
         <!-- Back button -->
         <div class="mb-4 flex justify-start">
-          <button class="btn-accent" (click)="cancelQrLogin()">
+          <app-button variant="accent" (clicked)="cancelQrLogin()">
             <mat-icon class="mr-1" fontIcon="arrow_back" />
             Back to Login
-          </button>
+          </app-button>
         </div>
 
         <!-- Loading state while generating QR -->
@@ -191,10 +185,10 @@
         }
 
         <!-- Cancel button -->
-        <button class="btn-cancel mt-4" (click)="cancelQrLogin()">
+        <app-button variant="cancel" class="mt-4" (clicked)="cancelQrLogin()">
           <mat-icon class="mr-1" fontIcon="close" />
           Cancel
-        </button>
+        </app-button>
       </div>
     }
   }

@@ -21,6 +21,7 @@ import {
   PullToRefreshDirective,
   PullToRefreshIndicatorComponent,
 } from "@components/pull-to-refresh";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 interface DisplayTask {
   id: string;
@@ -44,6 +45,7 @@ interface DisplayTask {
     MatIconModule,
     PullToRefreshDirective,
     PullToRefreshIndicatorComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./dashboard.view.html",
 })
