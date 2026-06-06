@@ -1,0 +1,32 @@
+<form [formGroup]="form" class="unified-form">
+  @for (section of getSections(); track trackBySectionTitle($index, section)) {
+    @if (section.title) {
+      <div class="unified-form-section">
+        <h3 class="unified-form-section-title">{{ section.title }}</h3>
+        <div class="unified-form-section-fields">
+          @for (field of section.fields; track trackByFieldName($index, field)) {
+            <app-unified-field
+              [field]="field"
+              [form]="form"
+              [appearance]="appearance"
+              [showError]="showErrors"
+              (valueChange)="onFieldValueChange($event)"
+            />
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="unified-form-fields">
+        @for (field of section.fields; track trackByFieldName($index, field)) {
+          <app-unified-field
+            [field]="field"
+            [form]="form"
+            [appearance]="appearance"
+            [showError]="showErrors"
+            (valueChange)="onFieldValueChange($event)"
+          />
+        }
+      </div>
+    }
+  }
+</form>

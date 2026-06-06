@@ -1,0 +1,200 @@
+<div class="unified-field-wrapper" [class]="class">
+  @if (isShow()) {
+    @switch (field.type) {
+      <!-- Text Input -->
+      @case (TypeField.text) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <input
+            matInput
+            type="text"
+            [formControlName]="field.name"
+            [readonly]="field.readonly ? true : false"
+          />
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Number Input -->
+      @case (TypeField.number) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <input
+            matInput
+            type="number"
+            [formControlName]="field.name"
+            [readonly]="field.readonly ? true : false"
+            [min]="getMin()"
+          />
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Textarea -->
+      @case (TypeField.textarea) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <textarea
+            matInput
+            [formControlName]="field.name"
+            [readonly]="field.readonly ? true : false"
+            rows="3"
+          ></textarea>
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Select -->
+      @case (TypeField.select) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <mat-select [formControlName]="field.name">
+            @for (option of getOptions(); track trackByValue($index, option)) {
+              @if (isOptionVisible(option)) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            }
+          </mat-select>
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Checkbox -->
+      @case (TypeField.checkbox) {
+        <div class="unified-checkbox-wrapper">
+          <mat-checkbox [formControlName]="field.name" class="unified-checkbox">
+            {{ getLabel() }}
+          </mat-checkbox>
+          @if (showError && isInvalid(field.name)) {
+            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+          }
+        </div>
+      }
+
+      <!-- Radio Group -->
+      @case (TypeField.radio) {
+        <div class="unified-radio-wrapper">
+          <mat-label class="unified-radio-label">{{ getLabel() }}</mat-label>
+          <mat-radio-group [formControlName]="field.name" class="unified-radio-group">
+            @for (option of getOptions(); track trackByValue($index, option)) {
+              @if (isOptionVisible(option)) {
+                <mat-radio-button [value]="option.value" class="unified-radio-option">
+                  {{ option.label }}
+                </mat-radio-button>
+              }
+            }
+          </mat-radio-group>
+          @if (showError && isInvalid(field.name)) {
+            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+          }
+        </div>
+      }
+
+      <!-- Date Picker -->
+      @case (TypeField.datepicker) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            [formControlName]="field.name"
+            [readonly]="field.readonly ? true : false"
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Slide Toggle -->
+      @case (TypeField.slidetoggle) {
+        <div class="unified-toggle-wrapper">
+          <mat-slide-toggle [formControlName]="field.name" class="unified-toggle">
+            {{ getLabel() }}
+          </mat-slide-toggle>
+          @if (showError && isInvalid(field.name)) {
+            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+          }
+        </div>
+      }
+
+      <!-- Slider -->
+      @case (TypeField.slider) {
+        <div class="unified-slider-wrapper">
+          <mat-label class="unified-slider-label">{{ getLabel() }}</mat-label>
+          <mat-slider [min]="getMin()" [max]="getMax()" class="unified-slider">
+            <input matSliderThumb [formControlName]="field.name" />
+          </mat-slider>
+          <span class="unified-slider-value">{{ form.get(field.name)?.value }}</span>
+          @if (showError && isInvalid(field.name)) {
+            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+          }
+        </div>
+      }
+
+      <!-- Slider Range -->
+      @case (TypeField.sliderrange) {
+        <div class="unified-slider-range-wrapper">
+          <mat-label class="unified-slider-label">{{ getLabel() }}</mat-label>
+          <mat-slider [min]="getMin()" [max]="getMax()" class="unified-slider-range">
+            <input matSliderStartThumb [formControlName]="field.name + '_start'" />
+            <input matSliderEndThumb [formControlName]="field.name + '_end'" />
+          </mat-slider>
+          @if (showError && (isInvalid(field.name + "_start") || isInvalid(field.name + "_end"))) {
+            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+          }
+        </div>
+      }
+
+      <!-- Image (placeholder - to be enhanced) -->
+      @case (TypeField.image) {
+        <mat-form-field [appearance]="appearance" class="unified-field">
+          <mat-label>{{ getLabel() }}</mat-label>
+          <input
+            matInput
+            type="url"
+            [formControlName]="field.name"
+            placeholder="https://example.com/image.jpg"
+          />
+          @if (showError && isInvalid(field.name)) {
+            <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <!-- Menu (placeholder - to be enhanced) -->
+      @case (TypeField.menu) {
+        <div class="unified-menu-wrapper">
+          <mat-label class="unified-menu-label">{{ getLabel() }}</mat-label>
+          <!-- Menu implementation would go here -->
+        </div>
+      }
+
+      <!-- SubGroup (placeholder - to be enhanced) -->
+      @case (TypeField.subgroup) {
+        <div class="unified-subgroup-wrapper">
+          <mat-label class="unified-subgroup-label">{{ getLabel() }}</mat-label>
+          <!-- SubGroup implementation would go here -->
+        </div>
+      }
+
+      <!-- SubList (placeholder - to be enhanced) -->
+      @case (TypeField.sublist) {
+        <div class="unified-sublist-wrapper">
+          <mat-label class="unified-sublist-label">{{ getLabel() }}</mat-label>
+          <!-- SubList implementation would go here -->
+        </div>
+      }
+    }
+  }
+</div>
