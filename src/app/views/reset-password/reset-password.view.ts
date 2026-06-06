@@ -17,12 +17,13 @@ import { emailValidator } from "@validators/auth.validators";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-reset-password",
   standalone: true,
   providers: [AuthService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AppButtonComponent],
   templateUrl: "./reset-password.view.html",
 })
 export class ResetPasswordView {

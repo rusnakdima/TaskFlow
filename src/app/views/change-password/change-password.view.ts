@@ -21,13 +21,14 @@ import { NotifyService } from "@services/notifications/notify.service";
 
 /* models */
 import { PasswordReset } from "@models/password-reset.model";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-change-password",
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   providers: [AuthService],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule, AppButtonComponent],
   templateUrl: "./change-password.view.html",
 })
 export class ChangePasswordView {
