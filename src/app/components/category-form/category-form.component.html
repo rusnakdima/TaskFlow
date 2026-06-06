@@ -6,7 +6,7 @@
     tabindex="-1"
   >
     <div
-      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border border-gray-200 bg-white opacity-100 shadow-xl transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-800"
+      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border border-gray-200 bg-transparent opacity-100 shadow-xl transition-all duration-300 dark:border-zinc-700 dark:bg-transparent"
       (click)="$event.stopPropagation()"
     >
       <div
@@ -31,7 +31,7 @@
               type="text"
               [(ngModel)]="categoryTitle"
               placeholder="Enter category title"
-              class="textNormal w-full rounded-lg border border-gray-300 bg-white px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+              class="textNormal w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-zinc-600 dark:bg-transparent"
               [disabled]="isLoading"
               autofocus
             />
@@ -49,18 +49,14 @@
         >
           Cancel
         </button>
-        <button
-          class="btn-accent px-4 py-2"
-          (click)="saveCategory()"
+        <app-button
+          variant="accent"
+          (clicked)="saveCategory()"
           [disabled]="!categoryTitle.trim() || isLoading"
+          [loading]="isLoading"
         >
-          @if (isLoading) {
-            <mat-icon class="mr-2 h-4! w-4! min-w-4 animate-spin text-sm!" fontIcon="refresh" />
-            Saving...
-          } @else {
-            {{ editingCategory ? "Update" : "Create" }}
-          }
-        </button>
+          {{ editingCategory ? "Update" : "Create" }}
+        </app-button>
       </div>
     </div>
   </div>

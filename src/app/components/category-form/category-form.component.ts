@@ -22,11 +22,12 @@ import { Category } from "@models/generated/api.types";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-category-form",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, AppButtonComponent],
   templateUrl: "./category-form.component.html",
 })
 export class CategoryFormComponent implements OnInit, OnChanges {
