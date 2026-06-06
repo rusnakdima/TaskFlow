@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use SegmentSelectorComponent instead.
+ * This component will be removed in a future version.
+ */
 import { Component, Input, Output, EventEmitter, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
