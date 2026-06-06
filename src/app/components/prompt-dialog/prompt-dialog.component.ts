@@ -2,11 +2,12 @@ import { Component, inject, signal, ViewChild, ElementRef, effect } from "@angul
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { PromptDialogService } from "@services/core/prompt-dialog.service";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-prompt-dialog",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppButtonComponent],
   templateUrl: "./prompt-dialog.component.html",
 })
 export class PromptDialogComponent {
