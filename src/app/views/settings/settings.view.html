@@ -189,20 +189,14 @@
       </div>
 
       <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
-        <button
-          (click)="saveSettings()"
-          class="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 font-medium text-white transition-colors hover:opacity-90"
-        >
+        <app-button variant="accent" (clicked)="saveSettings()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Settings
-        </button>
-        <button
-          (click)="resetToDefaults()"
-          class="btn-cancel textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-        >
+        </app-button>
+        <app-button variant="cancel" (clicked)="resetToDefaults()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
           Reset to Defaults
-        </button>
+        </app-button>
       </div>
     </div>
   }
@@ -233,13 +227,10 @@
 
         <div class="p-6">
           @if (!totpEnabled() && !totpSetupInProgress()) {
-            <button
-              (click)="setupTotp()"
-              class="btn-accent flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
-            >
+            <app-button variant="accent" (clicked)="setupTotp()">
               <mat-icon class="h-5! w-5! text-xl!" fontIcon="add" />
               Enable Google Authenticator
-            </button>
+            </app-button>
           }
 
           @if (totpQrCode()) {
@@ -264,18 +255,12 @@
                   class="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 />
                 <div class="flex gap-2">
-                  <button
-                    (click)="verifyAndEnableTotp()"
-                    class="btn-accent flex-1 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
-                  >
+                  <app-button variant="accent" [fullWidth]="true" (clicked)="verifyAndEnableTotp()">
                     Verify & Enable
-                  </button>
-                  <button
-                    (click)="closeQrModal()"
-                    class="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-                  >
+                  </app-button>
+                  <app-button variant="cancel" [fullWidth]="true" (clicked)="closeQrModal()">
                     Cancel
-                  </button>
+                  </app-button>
                 </div>
               </div>
             </div>
@@ -628,20 +613,14 @@
       </div>
 
       <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
-        <button
-          (click)="saveAppearance()"
-          class="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 font-medium text-white transition-colors hover:opacity-90"
-        >
+        <app-button variant="accent" (clicked)="saveAppearance()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Appearance
-        </button>
-        <button
-          (click)="resetAppearance()"
-          class="btn-cancel textNormal flex items-center gap-2 rounded-lg bg-gray-200 px-6 py-2.5 font-medium transition-colors hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-        >
+        </app-button>
+        <app-button variant="cancel" (clicked)="resetAppearance()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="refresh" />
           Reset to Defaults
-        </button>
+        </app-button>
       </div>
     </div>
   }

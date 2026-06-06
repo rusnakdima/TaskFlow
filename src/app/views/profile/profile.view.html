@@ -27,12 +27,13 @@
             />
           </div>
           @if (isMyProfile()) {
-            <button
-              class="btn-accent absolute -right-2 -bottom-2 h-9! rounded-full p-2 shadow-lg"
+            <app-button
+              variant="accent"
+              class="absolute -right-2 -bottom-2"
               routerLink="/profile/manage"
             >
               <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="edit" />
-            </button>
+            </app-button>
           }
         </div>
 
@@ -169,7 +170,9 @@
                   This code expires in 90 seconds
                 </div>
 
-                <button class="btn-cancel w-full" (click)="closeMyQrCode()">Close</button>
+                <app-button variant="cancel" [fullWidth]="true" (clicked)="closeMyQrCode()"
+                  >Close</app-button
+                >
               </div>
             </div>
           }
@@ -283,10 +286,10 @@
       </div>
       <h2 class="textNormal mb-2 text-xl font-semibold">Welcome to TaskFlow</h2>
       <p class="textMuted mb-6">Please log in to view your profile</p>
-      <button routerLink="/login" class="btn-accent gap-2 px-8 py-3 text-lg">
+      <app-button variant="accent" routerLink="/login">
         <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="login" />
         Login
-      </button>
+      </app-button>
     </div>
   }
 </div>

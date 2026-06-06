@@ -13,11 +13,18 @@ import { ResponseStatus } from "@models/response.model";
 /* services */
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-sync",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    AppButtonComponent,
+  ],
   templateUrl: "./sync.view.html",
 })
 export class SyncView {

@@ -29,13 +29,14 @@ import { LoginCompletionHelper } from "@helpers/login-completion.helper";
 import { LoginErrorHelper } from "@helpers/login-error.helper";
 
 import jsQR from "jsqr";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-qr-login",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [QrLoginService],
-  imports: [MatIconModule, MatProgressSpinnerModule, MatButtonModule],
+  imports: [MatIconModule, MatProgressSpinnerModule, MatButtonModule, AppButtonComponent],
   templateUrl: "./qr-login.view.html",
 })
 export class QrLoginView implements OnInit, OnDestroy, AfterViewInit {

@@ -14,6 +14,7 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatIconModule } from "@angular/material/icon";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 import {
   SegmentSelectorComponent,
   SegmentOption,
@@ -32,7 +33,14 @@ import { openUrl } from "@tauri-apps/plugin-opener";
   selector: "app-settings",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatIconModule, CheckboxComponent, SegmentSelectorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    CheckboxComponent,
+    SegmentSelectorComponent,
+    AppButtonComponent,
+  ],
   templateUrl: "./settings.view.html",
 })
 export class SettingsView implements OnInit, OnDestroy {
