@@ -214,31 +214,31 @@
   }
 
   .styleElem {
-    @apply rounded-lg border border-gray-400 bg-slate-300 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+    @apply rounded-lg border border-gray-400 bg-transparent text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-transparent dark:text-white dark:placeholder:text-gray-400;
   }
   .styleElem:focus {
-    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/30 outline-none;
   }
 
   .styleField {
-    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+    @apply rounded-lg border border-gray-400 bg-transparent p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-transparent dark:text-white dark:placeholder:text-gray-400;
   }
   .styleField:focus {
-    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/30 outline-none;
   }
 
   .styleTextarea {
-    @apply block w-full rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+    @apply block w-full rounded-lg border border-gray-400 bg-transparent p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-transparent dark:text-white dark:placeholder:text-gray-400;
   }
   .styleTextarea:focus {
-    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/30 outline-none;
   }
 
   .styleFileInput {
-    @apply rounded-lg border border-gray-400 bg-slate-300 p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-neutral-800 dark:text-white dark:placeholder:text-gray-400;
+    @apply rounded-lg border border-gray-400 bg-transparent p-2.5 text-gray-900 placeholder:text-lg dark:border-gray-600 dark:bg-transparent dark:text-white dark:placeholder:text-gray-400;
   }
   .styleFileInput:focus {
-    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)] outline-none;
+    @apply border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/30 outline-none;
   }
 
   .styleCheckbox {
@@ -264,7 +264,7 @@
   }
 
   .styleCheckbox:focus + .checkmark::before {
-    @apply ring-2! ring-[var(--accent-300)]!;
+    @apply ring-2! ring-[var(--accent-color)]!;
   }
 
   .styleToggle {
@@ -289,7 +289,7 @@
   }
 
   .styleSelect {
-    @apply block! w-full! rounded-lg! border! border-[var(--border-color)]! bg-[var(--bg-input)]! px-3! py-2! text-[var(--text-primary)]! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-[var(--border-color)]! dark:bg-[var(--bg-input)]! dark:text-[var(--text-primary)]! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
+    @apply block! w-full! rounded-lg! border! border-[var(--border-color)]! bg-transparent! px-3! py-2! text-[var(--text-primary)]! placeholder:text-lg! focus:border-[var(--accent-color)]! focus:ring-[var(--accent-color)]! dark:border-[var(--border-color)]! dark:bg-transparent! dark:text-[var(--text-primary)]! dark:focus:border-[var(--accent-color)]! dark:focus:ring-[var(--accent-color)]!;
   }
 
   .styleDetails {
@@ -668,11 +668,11 @@ div.mdc-checkbox {
 
 /* Custom checkbox styling for no-check-icon (Stateful coloring using Tailwind utilities) */
 .mdc-checkbox__native-control.mdc-checkbox--selected:checked ~ .mdc-checkbox--selected {
-  @apply border-blue-600 bg-blue-600 dark:border-blue-700 dark:bg-blue-700;
+  @apply border-[var(--accent-color)] bg-[var(--accent-color)] dark:border-[var(--accent-color)] dark:bg-[var(--accent-color)];
 }
 
 .mat-mdc-text-field-wrapper {
-  @apply rounded-lg! border! border-[var(--border-color)]! bg-[var(--bg-input)]! text-[var(--text-primary)]! placeholder:text-lg! focus:border-blue-500! focus:ring-blue-500! dark:border-[var(--border-color)]! dark:bg-[var(--bg-input)]! dark:text-[var(--text-primary)]! dark:focus:border-blue-500! dark:focus:ring-blue-500!;
+  @apply rounded-lg! border! border-[var(--border-color)]! bg-transparent! text-[var(--text-primary)]! placeholder:text-lg! focus:border-[var(--accent-color)]! focus:ring-[var(--accent-color)]! dark:border-[var(--border-color)]! dark:bg-transparent! dark:text-[var(--text-primary)]! dark:focus:border-[var(--accent-color)]! dark:focus:ring-[var(--accent-color)]!;
 }
 
 .mdc-line-ripple {
@@ -689,6 +689,77 @@ div.mdc-checkbox {
 
 .mat-internal-form-field > .mdc-label {
   @apply w-full!;
+}
+
+/* ===== Transparent Material Components ===== */
+
+/* Global transparent field class */
+.transparent-field .mat-mdc-form-field-flex,
+.transparent-field .mat-mdc-text-field-wrapper,
+.transparent-field .mdc-text-field__input,
+.transparent-field textarea.mat-mdc-input-element {
+  background: transparent !important;
+}
+
+.transparent-field .mat-mdc-form-field-focus-overlay {
+  background: transparent !important;
+}
+
+.transparent-field.mat-mdc-form-field-focused .mat-mdc-text-field-wrapper {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px var(--accent-100) !important;
+}
+
+.transparent-field
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled):hover
+  .mdc-notched-outline__leading,
+.transparent-field
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled):hover
+  .mdc-notched-outline__notch,
+.transparent-field
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled):hover
+  .mdc-notched-outline__trailing {
+  border-color: var(--accent-color) !important;
+}
+
+.mat-mdc-form-field-focus-overlay {
+  background: transparent !important;
+}
+
+.mat-mdc-select-panel {
+  background: transparent !important;
+  backdrop-filter: blur(8px);
+}
+
+.mat-mdc-menu-panel {
+  background: transparent !important;
+  backdrop-filter: blur(8px);
+}
+
+.mat-mdc-menu-item {
+  background: transparent !important;
+}
+
+.mat-mdc-menu-item:hover {
+  background: var(--bg-elevated) !important;
+}
+
+.mat-mdc-autocomplete-panel {
+  background: transparent !important;
+  backdrop-filter: blur(8px);
+}
+
+.mat-datepicker-content {
+  background: transparent !important;
+  backdrop-filter: blur(8px);
+}
+
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: transparent;
+}
+
+.mat-mdc-tooltip {
+  background: var(--bg-elevated) !important;
 }
 
 /* ===== CDK Drag & Drop ===== */
@@ -976,7 +1047,7 @@ td[role="presentation"] {
   --bg-secondary: #f9fafb;
   --bg-card: #ffffff;
   --bg-elevated: #f9fafb;
-  --bg-input: #f3f4f6;
+  --bg-input: transparent;
   --bg-overlay: rgba(0, 0, 0, 0.5);
   --border-color: #e5e7eb;
   --border-light: #f3f4f6;
@@ -1052,7 +1123,7 @@ html.dark,
   --bg-secondary: #1e293b;
   --bg-card: #1f2937;
   --bg-elevated: #374151;
-  --bg-input: #374151;
+  --bg-input: transparent;
   --bg-overlay: rgba(0, 0, 0, 0.7);
   --border-color: #4b5563;
   --border-light: #6b7280;
