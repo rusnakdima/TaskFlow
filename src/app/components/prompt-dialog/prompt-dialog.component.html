@@ -28,17 +28,12 @@
         <p class="mb-3 text-sm text-red-500">{{ inputError() }}</p>
       }
       <div class="flex justify-end gap-3">
-        <button type="button" class="btn-cancel" (click)="onCancel()">
+        <app-button variant="cancel" (clicked)="onCancel()">
           {{ promptService.config()?.cancelText || "Cancel" }}
-        </button>
-        <button
-          type="button"
-          class="btn-accent"
-          [class]="promptService.config()?.confirmClass || 'btn-accent'"
-          (click)="onConfirm()"
-        >
+        </app-button>
+        <app-button variant="accent" (clicked)="onConfirm()">
           {{ promptService.config()?.confirmText || "OK" }}
-        </button>
+        </app-button>
       </div>
     </div>
   </div>

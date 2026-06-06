@@ -14,17 +14,12 @@
         {{ confirmService.config()?.message }}
       </p>
       <div class="flex justify-end gap-3">
-        <button type="button" class="btn-cancel" (click)="confirmService.resolve(false)">
+        <app-button variant="cancel" (clicked)="confirmService.resolve(false)">
           {{ confirmService.config()?.cancelText || "Cancel" }}
-        </button>
-        <button
-          type="button"
-          class="btn-danger"
-          [class]="confirmService.config()?.confirmClass || 'btn-danger'"
-          (click)="confirmService.resolve(true)"
-        >
+        </app-button>
+        <app-button variant="danger" (clicked)="confirmService.resolve(true)">
           {{ confirmService.config()?.confirmText || "Confirm" }}
-        </button>
+        </app-button>
       </div>
     </div>
   </div>
