@@ -3701,7 +3701,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.45.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4120,6 +4120,15 @@ name = "pxfm"
 version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0c5ccf5294c6ccd63a74f1565028353830a9c2f5eb0c682c355c471726a6e3f"
+
+[[package]]
+name = "qrcode"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d68782463e408eb1e668cf6152704bd856c78c5b6417adaee3203d8f4c1fc9ec"
+dependencies = [
+ "image",
+]
 
 [[package]]
 name = "quick-xml"
@@ -5405,6 +5414,7 @@ version = "0.18.0"
 dependencies = [
  "async-trait",
  "base32 0.5.1",
+ "base64 0.22.1",
  "bcrypt",
  "chrono",
  "data-encoding",
@@ -5413,10 +5423,12 @@ dependencies = [
  "dotenvy",
  "futures",
  "futures-util",
+ "image",
  "jsonwebtoken",
  "mongodb 3.7.0",
  "nosql_orm",
  "open",
+ "qrcode",
  "rand 0.8.6",
  "regex",
  "reqwest 0.12.28",
