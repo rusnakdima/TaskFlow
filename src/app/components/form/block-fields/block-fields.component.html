@@ -1,48 +1,41 @@
 <div class="flex flex-col">
   @if (field) {
     @switch (field.type) {
-      @case ("text") {
-        <app-text [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.text) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("number") {
-        <app-number [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.number) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("textarea") {
-        <app-text-area [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.textarea) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("image") {
-        <app-image
-          [label]="getLabel()"
-          [form]="formG!"
-          [field]="field"
-          [avatarsOnly]="field.avatarsOnly ?? false"
-        />
+      @case (TypeField.image) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("select") {
-        <app-select
-          [label]="getLabel()"
-          [parentForm]="parentForm"
-          [form]="formG!"
-          [field]="field"
-        />
+      @case (TypeField.select) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("checkbox") {
-        <app-checkbox [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.checkbox) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("radio") {
-        <app-radio [label]="getLabel()" [parentForm]="parentForm" [form]="formG!" [field]="field" />
+      @case (TypeField.radio) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("datepicker") {
-        <app-date-picker [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.datepicker) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("slidetoggle") {
-        <app-slide-toggle [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.slidetoggle) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("slider") {
-        <app-slider [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.slider) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
       }
-      @case ("sliderrange") {
-        <app-slider-range [label]="getLabel()" [form]="formG!" [field]="field" />
+      @case (TypeField.sliderrange) {
+        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+      }
+      @default {
+        <div class="text-sm text-gray-500">Unsupported field type: {{ field.type }}</div>
       }
     }
   }

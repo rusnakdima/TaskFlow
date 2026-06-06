@@ -4,11 +4,12 @@ import { MatIconModule } from "@angular/material/icon";
 import { FormsModule } from "@angular/forms";
 import { Profile } from "@models/generated/api.types";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 
 @Component({
   selector: "app-assignees-section",
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, CheckboxComponent],
+  imports: [CommonModule, MatIconModule, FormsModule, CheckboxComponent, UserAvatarComponent],
   templateUrl: "./assignees-section.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
