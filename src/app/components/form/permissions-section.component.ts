@@ -4,11 +4,20 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 import { Profile } from "@models/generated/api.types";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-permissions-section",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatMenuModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatButtonModule,
+    UserAvatarComponent,
+    AppButtonComponent,
+  ],
   templateUrl: "./permissions-section.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

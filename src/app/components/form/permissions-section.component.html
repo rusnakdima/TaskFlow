@@ -1,5 +1,5 @@
 <div
-  class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+  class="rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
 >
   <div class="mb-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -17,9 +17,9 @@
       </div>
     </div>
     @if (isOwner) {
-      <button type="button" (click)="transferOwnership.emit()" class="btn-accent">
+      <app-button variant="accent" (clicked)="transferOwnership.emit()">
         Transfer Ownership
-      </button>
+      </app-button>
     }
   </div>
 
@@ -28,19 +28,11 @@
       <div class="flex items-center justify-between p-4">
         <div class="flex items-center gap-3">
           @if (getProfile(profileId); as profile) {
-            @if (profile.image_url) {
-              <img
-                [src]="profile.image_url"
-                class="h-8 w-8 rounded-full object-cover"
-                [alt]="profile.name"
-              />
-            } @else {
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
-              >
-                {{ (profile.name || profile.last_name || "U").charAt(0).toUpperCase() }}
-              </div>
-            }
+            <app-user-avatar
+              [src]="profile.image_url"
+              [name]="profile.name + ' ' + profile.last_name"
+              size="sm"
+            />
             <div class="flex flex-col">
               <span class="text-sm font-medium">{{ profile.name }} {{ profile.last_name }}</span>
               @if (profile.user?.email) {
@@ -52,7 +44,7 @@
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
+            class="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-600 dark:bg-transparent"
             [matMenuTriggerFor]="roleMenu"
           >
             <mat-icon

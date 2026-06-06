@@ -1,5 +1,5 @@
 <div
-  class="relative rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+  class="relative rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
 >
   @if (disabled) {
     <div
@@ -50,7 +50,7 @@
     </div>
 
     <div
-      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800"
+      class="overflow-hidden rounded-xl border border-gray-200 bg-transparent dark:border-zinc-600 dark:bg-transparent"
     >
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -83,24 +83,17 @@
           <div
             class="flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700"
             [ngClass]="{
-              'bg-blue-50 dark:bg-blue-900/30': isSelected(profile.user_id),
+              'bg-blue-50/50 dark:bg-blue-900/15': isSelected(profile.user_id),
+              'bg-transparent': !isSelected(profile.user_id),
             }"
             (click)="toggleSelection.emit(profile.user_id)"
           >
             <app-checkbox class="pointer-events-none" [checked]="isSelected(profile.user_id)" />
-            @if (profile.image_url) {
-              <img
-                [src]="profile.image_url"
-                class="h-8 w-8 rounded-full object-cover"
-                [alt]="profile.name"
-              />
-            } @else {
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm text-gray-600"
-              >
-                {{ (profile.name || profile.last_name || "U").charAt(0).toUpperCase() }}
-              </div>
-            }
+            <app-user-avatar
+              [src]="profile.image_url"
+              [name]="profile.name + ' ' + profile.last_name"
+              size="sm"
+            />
             <div class="flex flex-col">
               <span class="text-sm font-medium">
                 {{ profile.name }} {{ profile.last_name }}

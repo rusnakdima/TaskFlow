@@ -28,7 +28,10 @@
           </mat-menu>
         </div>
       } @else if (field.type == "subgroup") {
-        <div class="styleBorderSolidLite flex flex-col gap-y-2 border p-3" [formGroup]="form">
+        <div
+          class="styleBorderSolidLite flex flex-col gap-y-2 border bg-transparent p-3"
+          [formGroup]="form"
+        >
           <span>{{ field.label }}</span>
           <app-template-form
             [parentForm]="parentForm"
@@ -39,7 +42,7 @@
           />
         </div>
       } @else if (field.type == "sublist") {
-        <div class="styleBorderSolidLite flex flex-col gap-y-2 border p-3">
+        <div class="styleBorderSolidLite flex flex-col gap-y-2 border bg-transparent p-3">
           <div class="flex flex-row items-center justify-between">
             <span>{{ field.label }}</span>
             <button class="flcol flex items-center justify-center" (click)="onAddRecord()">
