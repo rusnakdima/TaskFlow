@@ -15,6 +15,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* components */
 import { TemplateFormComponent } from "@components/form/template-form/template-form.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 /* models */
 import { FormField, TypeField } from "@models/form-field.model";
@@ -36,6 +37,7 @@ import { ProfileRequiredService } from "@services/core/profile-required.service"
     RouterModule,
     MatIconModule,
     TemplateFormComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./manage-profile.view.html",
 })

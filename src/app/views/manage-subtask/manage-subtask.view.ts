@@ -16,6 +16,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { PrioritySectionComponent } from "@components/form/priority-section.component";
 import { TimelineSectionComponent } from "@components/form/timeline-section.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-manage-subtask",
@@ -27,6 +28,7 @@ import { TimelineSectionComponent } from "@components/form/timeline-section.comp
     BasicInfoSectionComponent,
     PrioritySectionComponent,
     TimelineSectionComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./manage-subtask.view.html",
 })

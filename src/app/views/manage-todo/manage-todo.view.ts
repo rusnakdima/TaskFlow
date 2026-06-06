@@ -19,6 +19,7 @@ import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
 
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
@@ -45,6 +46,7 @@ import { GithubRepo as GithubRepoModel } from "@models/github.model";
     PermissionsSectionComponent,
     GithubRepoSectionComponent,
     TransferOwnershipDialogComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./manage-todo.view.html",
 })

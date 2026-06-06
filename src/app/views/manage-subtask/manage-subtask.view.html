@@ -34,15 +34,14 @@
     />
 
     <div class="flex justify-end gap-3 pt-6">
-      <button type="button" class="btn-cancel" (click)="back()">Cancel</button>
-      <button type="submit" class="btn-accent" [disabled]="form.invalid || isSubmitting()">
-        @if (isSubmitting()) {
-          <div
-            class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-          ></div>
-        } @else {
-          <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
-        }
+      <app-button variant="cancel" (clicked)="back()">Cancel</app-button>
+      <app-button
+        variant="accent"
+        type="submit"
+        [loading]="isSubmitting()"
+        [disabled]="form.invalid || isSubmitting()"
+      >
+        <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="isEdit() ? 'save' : 'add'" />
         <span class="flex items-center gap-2">
           {{ isEdit() ? "Update" : "Create" }}
           <kbd
@@ -51,7 +50,7 @@
             Ctrl+S
           </kbd>
         </span>
-      </button>
+      </app-button>
     </div>
   </form>
 </div>
