@@ -15,19 +15,11 @@
               [matMenuTriggerFor]="ownerMenu"
             >
               @if (getSelectedProfile(); as profile) {
-                @if (profile.image_url) {
-                  <img
-                    [src]="profile.image_url"
-                    [alt]="profile.name"
-                    class="h-6 w-6 rounded-full object-cover"
-                  />
-                } @else {
-                  <div
-                    class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-[10px] font-bold text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
-                  >
-                    {{ (profile.name[0] || "") + (profile.last_name[0] || "") | uppercase }}
-                  </div>
-                }
+                <app-user-avatar
+                  [src]="profile.image_url"
+                  [name]="profile.name + ' ' + profile.last_name"
+                  size="sm"
+                />
                 <span>{{ profile.name }} {{ profile.last_name }}</span>
               } @else {
                 <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="person" />
@@ -46,19 +38,11 @@
                   class="flex w-full items-center gap-3"
                   [class.badge-accent]="selectedUserId === profile.user_id"
                 >
-                  @if (profile.image_url) {
-                    <img
-                      [src]="profile.image_url"
-                      [alt]="profile.name"
-                      class="h-8 w-8 rounded-full object-cover"
-                    />
-                  } @else {
-                    <div
-                      class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-gray-600 dark:bg-zinc-600 dark:text-gray-300"
-                    >
-                      {{ (profile.name[0] || "") + (profile.last_name[0] || "") | uppercase }}
-                    </div>
-                  }
+                  <app-user-avatar
+                    [src]="profile.image_url"
+                    [name]="profile.name + ' ' + profile.last_name"
+                    size="sm"
+                  />
                   <div class="flex flex-col">
                     <span [class.font-bold]="selectedUserId === profile.user_id"
                       >{{ profile.name }} {{ profile.last_name }}</span
@@ -74,10 +58,10 @@
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-2">
-        <button class="btn-cancel px-4 py-2" (click)="onCancel()">Cancel</button>
-        <button class="btn-accent px-4 py-2" [disabled]="!selectedUserId" (click)="onConfirm()">
+        <app-button variant="cancel" (clicked)="onCancel()">Cancel</app-button>
+        <app-button variant="accent" [disabled]="!selectedUserId" (clicked)="onConfirm()">
           Transfer Ownership
-        </button>
+        </app-button>
       </div>
     </div>
   </div>

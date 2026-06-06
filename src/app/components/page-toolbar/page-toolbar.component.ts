@@ -6,10 +6,11 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { SectionSelectAllComponent } from "@components/section-select-all/section-select-all.component";
 import {
-  ViewModeTabsComponent,
-  ViewModeTab,
-} from "@components/view-mode-tabs/view-mode-tabs.component";
+  SegmentSelectorComponent,
+  SegmentOption,
+} from "@components/segment-selector/segment-selector.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
 import { PageToolbarConfig } from "@models/ui.model";
 import { ViewMode } from "@models/view-mode.model";
@@ -26,8 +27,9 @@ export { PageToolbarConfig } from "@models/ui.model";
     MatButtonModule,
     MatMenuModule,
     SectionSelectAllComponent,
-    ViewModeTabsComponent,
+    SegmentSelectorComponent,
     FilterSidebarComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./page-toolbar.component.html",
 })
@@ -63,8 +65,8 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     return typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
   }
 
-  onModeSelect(mode: ViewMode): void {
-    this.config?.viewMode?.onModeChange(mode);
+  onModeSelect(mode: string): void {
+    this.config?.viewMode?.onModeChange(mode as ViewMode);
   }
 
   getActiveViewMode(): ViewMode {
@@ -75,7 +77,7 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     return this.config?.viewMode?.modes || ["grid", "table", "list"];
   }
 
-  getViewModeTabs(): ViewModeTab[] {
+  getViewModeTabs(): SegmentOption[] {
     const modes = this.getViewModes();
     return modes.map((mode) => ({
       id: mode,

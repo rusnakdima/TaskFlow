@@ -39,27 +39,21 @@
   }
 
   @if (config?.newButton) {
-    <button
-      class="btn-accent flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
-      (click)="config!.newButton!.onClick()"
-    >
+    <app-button variant="accent" (clicked)="config!.newButton!.onClick()">
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" [fontIcon]="config!.newButton!.icon || 'add'" />
       <span class="hidden lg:inline">{{ config!.newButton!.label || "New" }}</span>
-    </button>
+    </app-button>
   }
 
   @if (config?.newButtonWithMenu) {
-    <button
-      class="btn-accent flex h-min items-center gap-2 rounded-lg px-4 py-2 text-sm"
-      [matMenuTriggerFor]="newMenu"
-    >
+    <app-button variant="accent" [matMenuTriggerFor]="newMenu">
       <mat-icon
         class="h-5! w-5! min-w-5 text-xl!"
         [fontIcon]="config!.newButtonWithMenu!.icon || 'add'"
       />
       <span class="hidden lg:inline">{{ config!.newButtonWithMenu!.label }}</span>
       <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
-    </button>
+    </app-button>
     <mat-menu #newMenu="matMenu">
       @for (item of config!.newButtonWithMenu!.menuItems; track item.label) {
         <button mat-menu-item (click)="item.action()">
@@ -170,7 +164,7 @@
   }
 
   @if (config?.viewMode) {
-    <app-view-mode-tabs
+    <app-segment-selector
       [options]="getViewModeTabs()"
       [active]="getActiveViewMode()"
       (select)="onModeSelect($event)"

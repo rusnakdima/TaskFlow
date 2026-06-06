@@ -5,6 +5,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { StorageService } from "@services/storage.service";
 import { Profile } from "@models/generated/api.types";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 
 export interface ProfileOption {
   id: string;
@@ -18,7 +19,7 @@ export interface ProfileOption {
 @Component({
   selector: "app-profile-selector",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatMenuModule, UserAvatarComponent],
   templateUrl: "./profile-selector.component.html",
 })
 export class ProfileSelectorComponent {

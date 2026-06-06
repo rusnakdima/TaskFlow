@@ -16,20 +16,11 @@
           [class.dark:hover:bg-zinc-700]="active !== profile.id"
           (click)="onSelect(profile)"
         >
-          @if (profile.image_url) {
-            <img
-              [src]="profile.image_url"
-              [alt]="profile.name"
-              class="h-6 w-6 rounded-full object-cover"
-            />
-          } @else {
-            <div
-              class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-              [class]="getProfileColor(profile)"
-            >
-              {{ getProfileInitials(profile) }}
-            </div>
-          }
+          <app-user-avatar
+            [src]="profile.image_url"
+            [name]="profile.name + ' ' + profile.last_name"
+            size="sm"
+          />
           <span class="whitespace-nowrap">{{ profile.name }} {{ profile.last_name }}</span>
         </button>
       }
@@ -40,19 +31,12 @@
         class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
         [matMenuTriggerFor]="selectorMenu"
       >
-        @if (getActiveProfile()?.image_url) {
-          <img
+        @if (getActiveProfile()) {
+          <app-user-avatar
             [src]="getActiveProfile()!.image_url"
-            [alt]="getActiveProfile()!.name"
-            class="h-5 w-5 rounded-full object-cover"
+            [name]="getActiveProfile()!.name + ' ' + getActiveProfile()!.last_name"
+            size="sm"
           />
-        } @else if (getActiveProfile()) {
-          <div
-            class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-            [class]="getProfileColor(getActiveProfile()!)"
-          >
-            {{ getProfileInitials(getActiveProfile()!) }}
-          </div>
         } @else {
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="person" />
         }
@@ -72,20 +56,11 @@
             class="flex w-full items-center gap-3"
             [class.badge-accent]="active === profile.id"
           >
-            @if (profile.image_url) {
-              <img
-                [src]="profile.image_url"
-                [alt]="profile.name"
-                class="h-8 w-8 rounded-full object-cover"
-              />
-            } @else {
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-                [class]="getProfileColor(profile)"
-              >
-                {{ getProfileInitials(profile) }}
-              </div>
-            }
+            <app-user-avatar
+              [src]="profile.image_url"
+              [name]="profile.name + ' ' + profile.last_name"
+              size="sm"
+            />
             <div class="flex flex-col">
               <span [class.font-bold]="active === profile.id"
                 >{{ profile.name }} {{ profile.last_name }}</span

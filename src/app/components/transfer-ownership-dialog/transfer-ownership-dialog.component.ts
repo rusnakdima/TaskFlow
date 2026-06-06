@@ -4,11 +4,20 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { Profile } from "@models/generated/api.types";
+import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-transfer-ownership-dialog",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatMenuModule,
+    UserAvatarComponent,
+    AppButtonComponent,
+  ],
   templateUrl: "./transfer-ownership-dialog.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
