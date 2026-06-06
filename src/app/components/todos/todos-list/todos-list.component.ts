@@ -477,6 +477,20 @@ export class TodosListComponent {
     this.selectAll.emit({ selectAll: checked, section });
   }
 
+  isAllSelectedInVisibility(): boolean {
+    const todos = this.stateService.listTodos();
+    return todos.length > 0 && todos.every((todo: Todo) => this.selectedTodos().has(todo.id));
+  }
+
+  getSelectedCountInVisibility(): number {
+    const todos = this.stateService.listTodos();
+    return todos.filter((todo: Todo) => this.selectedTodos().has(todo.id)).length;
+  }
+
+  onVisibilitySelectAll(checked: boolean): void {
+    this.selectAll.emit({ selectAll: checked, section: undefined });
+  }
+
   getSectionTodos(section: string): Todo[] {
     const grouped = this.stateService.groupedTodos();
     switch (section) {
