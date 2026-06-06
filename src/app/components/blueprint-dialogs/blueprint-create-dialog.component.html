@@ -23,8 +23,8 @@
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-2">
-        <button class="btn-cancel px-4 py-2" (click)="cancel.emit()">Cancel</button>
-        <button class="btn-accent px-4 py-2" (click)="confirm.emit()">Save Blueprint</button>
+        <app-button variant="cancel" (clicked)="cancel.emit()">Cancel</app-button>
+        <app-button variant="accent" (clicked)="confirm.emit()">Save Blueprint</app-button>
       </div>
     </div>
   </div>
