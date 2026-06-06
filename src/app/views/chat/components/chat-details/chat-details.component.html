@@ -1,6 +1,6 @@
 @if (showDetailsPanel) {
   <aside
-    class="flex h-full w-72 shrink-0 flex-col border-l border-gray-200 bg-white transition-transform duration-300 dark:border-zinc-700 dark:bg-zinc-800"
+    class="flex h-full w-72 shrink-0 flex-col border-l border-gray-200 bg-transparent transition-transform duration-300 dark:border-zinc-700 dark:bg-transparent"
     [class.fixed]="isMobile"
     [class.right-0]="isMobile && showDetailsPanel"
     [class.translate-x-full]="isMobile && !showDetailsPanel"
@@ -64,7 +64,7 @@
           @if (isCurrentUserOwner) {
             <button
               type="button"
-              class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-2.5 text-sm font-medium text-gray-500 transition-colors hover:border-[var(--accent-color)] hover:bg-[var(--accent-100)] hover:text-[var(--accent-color)] dark:border-zinc-600 dark:bg-zinc-700/50 dark:text-gray-400 dark:hover:bg-[var(--accent-900)]"
+              class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-transparent p-2.5 text-sm font-medium text-gray-500 transition-colors hover:border-[var(--accent-color)] hover:bg-[var(--accent-100)]/50 hover:text-[var(--accent-color)] dark:border-zinc-600 dark:bg-transparent dark:text-gray-400 dark:hover:bg-[var(--accent-900)]/30"
               (click)="onOpenAddMembersDropdown()"
             >
               <mat-icon fontIcon="person_add" class="!h-4 !w-4" />
@@ -74,7 +74,7 @@
 
           @if (showAddMembersDropdown) {
             <div
-              class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-zinc-700 dark:bg-zinc-700/50"
+              class="mt-3 rounded-xl border border-gray-200 bg-transparent p-3 dark:border-zinc-700 dark:bg-transparent"
             >
               <div class="mb-2 flex items-center gap-2">
                 <input
@@ -124,10 +124,10 @@
         </div>
       }
 
-      <div class="mt-auto rounded-2xl bg-red-50 p-2 dark:bg-red-900/20">
+      <div class="mt-auto rounded-2xl bg-red-50/30 p-2 dark:bg-red-900/10">
         <button
           type="button"
-          class="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-500 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+          class="flex w-full items-center justify-center gap-2 rounded-xl bg-transparent py-3 text-sm font-semibold text-red-500 transition-colors hover:bg-red-100/50 dark:bg-transparent dark:hover:bg-red-900/20"
           (click)="onLeaveGroup()"
         >
           <mat-icon fontIcon="exit_to_app" class="!h-4 !w-4" />

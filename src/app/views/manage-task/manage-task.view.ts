@@ -20,6 +20,7 @@ import { BasicInfoSectionComponent } from "@components/form/basic-info-section.c
 import { PrioritySectionComponent } from "@components/form/priority-section.component";
 import { TimelineSectionComponent } from "@components/form/timeline-section.component";
 import { GithubIssueSectionComponent } from "@components/form/github-issue-section.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-manage-task",
@@ -32,6 +33,7 @@ import { GithubIssueSectionComponent } from "@components/form/github-issue-secti
     PrioritySectionComponent,
     TimelineSectionComponent,
     GithubIssueSectionComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./manage-task.view.html",
 })

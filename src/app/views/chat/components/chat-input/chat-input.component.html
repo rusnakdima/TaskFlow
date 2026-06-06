@@ -1,5 +1,5 @@
 <div
-  class="border-t border-gray-200 bg-white p-4 transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-800"
+  class="border-t border-gray-200 bg-transparent p-4 transition-all duration-300 dark:border-zinc-700 dark:bg-transparent"
 >
   <div class="mx-auto flex max-w-4xl items-end gap-2">
     <button
@@ -13,7 +13,7 @@
 
     @if (showAttachmentMenu) {
       <div
-        class="absolute bottom-full left-0 z-50 mb-2 w-48 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+        class="absolute bottom-full left-0 z-50 mb-2 w-48 rounded-xl border border-gray-200 bg-transparent p-2 shadow-xl dark:border-zinc-700 dark:bg-transparent"
       >
         <button
           type="button"
@@ -42,7 +42,7 @@
     <div class="relative mr-2 ml-2 flex h-full flex-1 flex-col">
       @if (replyTo) {
         <div
-          class="mb-2 flex items-start gap-2 rounded-xl border-l-[3px] border-[var(--accent-color)] bg-gray-100 px-3 py-2 dark:bg-zinc-700"
+          class="mb-2 flex items-start gap-2 rounded-xl border-l-[3px] border-[var(--accent-color)] bg-transparent px-3 py-2 dark:bg-transparent"
         >
           <div class="flex-1 overflow-hidden">
             <span class="mb-0.5 block text-xs font-bold tracking-wide text-[var(--accent-color)]">
@@ -61,7 +61,7 @@
       }
 
       <div
-        class="relative flex items-end rounded-2xl border border-gray-300 bg-gray-50 transition-all focus-within:border-[var(--accent-color)] focus-within:ring-2 focus-within:ring-[var(--accent-100)] dark:border-zinc-600 dark:bg-zinc-900"
+        class="relative flex items-end rounded-2xl border border-gray-300 bg-transparent transition-all focus-within:border-[var(--accent-color)] focus-within:ring-2 focus-within:ring-[var(--accent-100)] dark:border-zinc-600 dark:bg-transparent"
       >
         <textarea
           class="max-h-32 min-h-[40px] w-full resize-none rounded-2xl border-0 bg-transparent py-3 pr-16 pl-4 text-sm leading-relaxed text-gray-800 transition-colors placeholder:text-gray-400 focus:ring-0 focus:outline-none dark:text-gray-200 dark:placeholder:text-gray-500"
@@ -101,7 +101,7 @@
 
       @if (showEmojiPicker) {
         <div
-          class="absolute right-0 bottom-full z-50 mb-3 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+          class="absolute right-0 bottom-full z-50 mb-3 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-transparent shadow-xl dark:border-zinc-700 dark:bg-transparent"
         >
           <div class="flex border-b border-gray-200 dark:border-zinc-700">
             <button

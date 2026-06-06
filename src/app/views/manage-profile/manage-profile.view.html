@@ -1,5 +1,5 @@
 <div
-  class="top-0 left-0 m-0 flex w-full flex-col items-center justify-center overflow-y-auto bg-linear-to-br from-purple-50 to-pink-100 dark:from-zinc-900 dark:to-zinc-800"
+  class="top-0 left-0 m-0 flex w-full flex-col items-center justify-center overflow-y-auto"
   style="min-height: calc(100vh - 150px)"
 >
   <div
@@ -25,19 +25,15 @@
     </div>
 
     <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-      <button
-        *ngIf="!isProfileRequired"
-        (click)="onCancel()"
-        class="btn-cancel flex items-center justify-center gap-2"
-      >
+      <app-button *ngIf="!isProfileRequired" variant="cancel" (clicked)="onCancel()">
         <mat-icon class="h-5! w-5!" fontIcon="close" />
         Cancel
-      </button>
+      </app-button>
 
-      <button (click)="onSubmit()" class="btn-accent flex items-center justify-center gap-2">
+      <app-button variant="accent" (clicked)="onSubmit()">
         <mat-icon class="h-5! w-5!" fontIcon="check" />
         {{ isEditMode ? "Update" : "Create" }}
-      </button>
+      </app-button>
     </div>
 
     <div class="mt-6 border-t border-gray-200 pt-4 text-center dark:border-zinc-600">
