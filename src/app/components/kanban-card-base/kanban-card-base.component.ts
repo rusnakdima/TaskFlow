@@ -1,5 +1,5 @@
 /* sys lib */
-import { EventEmitter, Output } from "@angular/core";
+import { Component, EventEmitter, Output } from "@angular/core";
 
 /* models */
 import { TaskStatus } from "@models/generated/api.types";
@@ -7,10 +7,15 @@ import { TaskStatus } from "@models/generated/api.types";
 /* helpers */
 import { PRIORITY_COLORS, STATUS_ICONS } from "@constants/table-field.constants";
 
+@Component({
+  selector: "app-base-kanban-card",
+  standalone: true,
+  template: ``,
+})
 export abstract class BaseKanbanCardComponent {
-  @Output() statusCycle = new EventEmitter<void>();
+  @Output() statusCycle = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<boolean>();
-  @Output() cardClick = new EventEmitter<void>();
+  @Output() cardClick = new EventEmitter<any>();
 
   TaskStatus = TaskStatus;
 
