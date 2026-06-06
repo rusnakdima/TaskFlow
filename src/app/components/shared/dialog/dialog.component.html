@@ -1,0 +1,24 @@
+@if (show) {
+  <div class="app-dialog-backdrop" [style.z-index]="zIndex" (click)="onBackdropClick()">
+    <div class="app-dialog-container" [ngStyle]="dialogStyle" (click)="$event.stopPropagation()">
+      @if (showHeader) {
+        <div class="app-dialog-header">
+          <h3 class="app-dialog-title">{{ title }}</h3>
+          @if (showClose) {
+            <button
+              type="button"
+              class="app-dialog-close"
+              (click)="onCloseClick()"
+              aria-label="Close dialog"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      }
+      <div class="app-dialog-content">
+        <ng-content></ng-content>
+      </div>
+    </div>
+  </div>
+}
