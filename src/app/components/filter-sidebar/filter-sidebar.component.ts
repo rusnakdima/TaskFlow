@@ -6,6 +6,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatSelectModule } from "@angular/material/select";
 import { FilterConfig, FilterOption } from "@models/filter-config.model";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-filter-sidebar",
@@ -17,6 +18,7 @@ import { FilterConfig, FilterOption } from "@models/filter-config.model";
     MatFormFieldModule,
     MatSelectModule,
     FormsModule,
+    AppButtonComponent,
   ],
   templateUrl: "./filter-sidebar.component.html",
   styleUrls: ["./filter-sidebar.component.scss"],
