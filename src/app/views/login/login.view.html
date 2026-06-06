@@ -1,5 +1,5 @@
 <div
-  class="top-0 left-0 m-0 flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-zinc-900 dark:to-zinc-800"
+  class="top-0 left-0 m-0 flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto"
 >
   <div
     class="styleBorderSolidLite m-auto flex w-full flex-col rounded-xl! border-4! bg-transparent p-5 text-center backdrop-blur min-[400px]:w-10/12 sm:w-[400px]"
@@ -33,7 +33,7 @@
     <!-- TOTP Input Modal -->
     @if (showTotpInput()) {
       <div
-        class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+        class="mb-4 rounded-lg border border-blue-200 bg-transparent p-4 dark:border-blue-800 dark:bg-transparent"
       >
         <div class="mb-3 text-center">
           <mat-icon class="mb-2 h-8! w-8! text-2xl! text-blue-600 dark:text-blue-400"
@@ -52,14 +52,16 @@
           />
 
           <div class="flex gap-2">
-            <button
-              class="btn-accent flex-1"
-              (click)="verifyTotpAndLogin()"
+            <app-button
+              variant="accent"
+              [fullWidth]="true"
+              (clicked)="verifyTotpAndLogin()"
               [disabled]="totpCode().length !== 6"
+              >Verify</app-button
             >
-              Verify
-            </button>
-            <button class="btn-cancel flex-1" (click)="showTotpInput.set(false)">Cancel</button>
+            <app-button variant="cancel" [fullWidth]="true" (clicked)="showTotpInput.set(false)"
+              >Cancel</app-button
+            >
           </div>
         </div>
       </div>
@@ -121,20 +123,20 @@
           <a class="styleLinkRedir" [routerLink]="['/reset-password']">Forgot Password?</a>
         </div>
 
-        <button class="btn-accent" (click)="submitted() == false && send()">
-          @if (submitted()) {
-            <span>...Loading</span>
-          } @else {
-            <span>Login</span>
-          }
-        </button>
+        <app-button
+          variant="accent"
+          [loading]="submitted()"
+          (clicked)="submitted() == false && send()"
+        >
+          Login
+        </app-button>
 
         <div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
           <p class="textMuted mb-3 text-center text-sm">Or sign in with</p>
           <div class="flex justify-center gap-3">
             @if (showQrLoginButton()) {
               <button
-                class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-green-50 px-6 transition-colors hover:border-green-400 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:hover:border-green-600"
+                class="flex h-12 items-center justify-center rounded-lg border-2 border-green-200 bg-transparent px-6 transition-colors hover:border-green-400 hover:bg-green-100/50 dark:border-green-800 dark:bg-transparent dark:hover:border-green-600"
                 (click)="goToQrLogin()"
                 [disabled]="submitted()"
               >

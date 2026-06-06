@@ -39,6 +39,7 @@ import { LoginErrorHelper } from "@helpers/login-error.helper";
 
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-login",
@@ -55,6 +56,7 @@ import { ConnectionStatusComponent } from "@components/connection-status/connect
     MatButtonModule,
     CheckboxComponent,
     ConnectionStatusComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./login.view.html",
 })

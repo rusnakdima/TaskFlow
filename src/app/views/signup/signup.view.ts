@@ -27,12 +27,20 @@ import { SignupForm, AuthResponse } from "@models/auth-forms.model";
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-signup",
   standalone: true,
   providers: [AuthService],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, MatIconModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    AppButtonComponent,
+  ],
   templateUrl: "./signup.view.html",
 })
 export class SignupView implements OnDestroy {
