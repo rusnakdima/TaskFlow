@@ -4,11 +4,11 @@
     (click)="close()"
   >
     <div
-      class="animate-slideInUp w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
+      class="animate-slideInUp w-full max-w-lg overflow-hidden rounded-2xl border-2 border-[var(--accent-color)]/50 shadow-2xl dark:border-[var(--accent-color)]/50"
       (click)="$event.stopPropagation()"
     >
       <div
-        class="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-6 dark:border-zinc-700 dark:bg-zinc-800/50"
+        class="flex items-center justify-between border-b border-[var(--accent-color)]/50 bg-gray-50 p-6 dark:bg-zinc-800/50"
       >
         <div class="flex items-center gap-3">
           <div
@@ -142,7 +142,7 @@
       </div>
 
       <div
-        class="textMuted border-t border-gray-100 bg-gray-50 p-4 text-center text-xs dark:border-zinc-700 dark:bg-zinc-800/50"
+        class="textMuted border-t border-[var(--accent-color)]/50 bg-gray-50 p-4 text-center text-xs dark:bg-zinc-800/50"
       >
         Press any key or click outside to close
       </div>
@@ -156,7 +156,7 @@
     <div class="flex items-center gap-1">
       @for (key of keys; track key) {
         <kbd
-          class="min-w-[2.5rem] rounded-lg border border-gray-300 bg-gray-100 px-2 py-1 text-center text-xs text-gray-800 shadow-sm dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100"
+          class="min-w-[2.5rem] rounded-lg border border-[var(--accent-color)] bg-gray-100 px-2 py-1 text-center text-xs text-gray-800 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
         >
           {{ key }}
         </kbd>

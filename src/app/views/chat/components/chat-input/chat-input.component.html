@@ -1,10 +1,10 @@
 <div
-  class="border-t border-gray-200 bg-transparent p-4 transition-all duration-300 dark:border-zinc-700 dark:bg-transparent"
+  class="border-t border-[var(--accent-color)] bg-transparent p-4 transition-all duration-300 dark:bg-transparent"
 >
   <div class="mx-auto flex max-w-4xl items-end gap-2">
     <button
       type="button"
-      class="shrink-0 rounded-xl border border-gray-200 bg-gray-100 p-3 text-gray-500 transition-colors hover:bg-gray-200 hover:text-[var(--accent-color)] dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-600"
+      class="shrink-0 rounded-xl border border-[var(--accent-color)] bg-[var(--bg-secondary)] p-3 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--accent-color)] dark:hover:bg-zinc-600"
       title="Attach"
       (click)="onToggleAttachmentMenu()"
     >
@@ -13,27 +13,27 @@
 
     @if (showAttachmentMenu) {
       <div
-        class="absolute bottom-full left-0 z-50 mb-2 w-48 rounded-xl border border-gray-200 bg-transparent p-2 shadow-xl dark:border-zinc-700 dark:bg-transparent"
+        class="absolute bottom-full left-0 z-50 mb-2 w-48 rounded-xl border border-[var(--accent-color)] bg-transparent p-2 shadow-xl dark:bg-transparent"
       >
         <button
           type="button"
           class="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-zinc-700"
         >
-          <mat-icon fontIcon="image" class="!h-4 !w-4 text-blue-500" />
+          <mat-icon fontIcon="image" class="!h-4 !w-4 text-[var(--accent-color)]" />
           Photo
         </button>
         <button
           type="button"
           class="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-zinc-700"
         >
-          <mat-icon fontIcon="videocam" class="!h-4 !w-4 text-purple-500" />
+          <mat-icon fontIcon="videocam" class="!h-4 !w-4 text-[var(--accent-color)]" />
           Video
         </button>
         <button
           type="button"
           class="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-zinc-700"
         >
-          <mat-icon fontIcon="folder" class="!h-4 !w-4 text-emerald-500" />
+          <mat-icon fontIcon="folder" class="!h-4 !w-4 text-[var(--accent-color)]" />
           File
         </button>
       </div>
@@ -61,7 +61,7 @@
       }
 
       <div
-        class="relative flex items-end rounded-2xl border border-gray-300 bg-transparent transition-all focus-within:border-[var(--accent-color)] focus-within:ring-2 focus-within:ring-[var(--accent-100)] dark:border-zinc-600 dark:bg-transparent"
+        class="relative flex items-end rounded-2xl border border-[var(--accent-color)] bg-transparent transition-all focus-within:border-[var(--accent-color)] focus-within:ring-2 focus-within:ring-[var(--accent-100)] dark:bg-transparent"
       >
         <textarea
           class="max-h-32 min-h-[40px] w-full resize-none rounded-2xl border-0 bg-transparent py-3 pr-16 pl-4 text-sm leading-relaxed text-gray-800 transition-colors placeholder:text-gray-400 focus:ring-0 focus:outline-none dark:text-gray-200 dark:placeholder:text-gray-500"
@@ -83,7 +83,7 @@
         @if (messageInput.trim()) {
           <button
             type="submit"
-            class="absolute right-2 bottom-2 rounded-xl bg-[var(--accent-color)] p-2.5 text-white shadow-[var(--accent-color)]/10 shadow-md transition-colors hover:opacity-90"
+            class="absolute right-2 bottom-2 rounded-xl border-2 border-[var(--accent-color)]/50 bg-transparent p-2.5 text-[var(--accent-color)] shadow-md transition-colors hover:bg-[var(--accent-color)]/10 dark:text-white dark:hover:bg-[var(--accent-color)]/20"
             (click)="onSend()"
           >
             <mat-icon fontIcon="send" class="!h-5 !w-5" />
@@ -101,14 +101,15 @@
 
       @if (showEmojiPicker) {
         <div
-          class="absolute right-0 bottom-full z-50 mb-3 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-transparent shadow-xl dark:border-zinc-700 dark:bg-transparent"
+          class="absolute right-0 bottom-full z-50 mb-3 w-80 overflow-hidden rounded-2xl border border-[var(--accent-color)] bg-transparent shadow-xl dark:bg-transparent"
         >
-          <div class="flex border-b border-gray-200 dark:border-zinc-700">
+          <div class="flex border-b border-[var(--accent-color)]">
             <button
               type="button"
               class="flex-1 p-3 text-center transition-colors"
-              [class.text-[var(--accent-color)]]="activeEmojiTab === 'recent'"
-              [class.text-gray-400]="activeEmojiTab !== 'recent'"
+              [ngClass]="
+                activeEmojiTab === 'recent' ? 'text-[var(--accent-color)]' : 'text-gray-400'
+              "
               (click)="onSetEmojiTab('recent')"
             >
               <span class="text-lg">🕐</span>
@@ -116,8 +117,9 @@
             <button
               type="button"
               class="flex-1 p-3 text-center transition-colors"
-              [class.text-[var(--accent-color)]]="activeEmojiTab === 'smileys'"
-              [class.text-gray-400]="activeEmojiTab !== 'smileys'"
+              [ngClass]="
+                activeEmojiTab === 'smileys' ? 'text-[var(--accent-color)]' : 'text-gray-400'
+              "
               (click)="onSetEmojiTab('smileys')"
             >
               <span class="text-lg">😊</span>
@@ -125,8 +127,9 @@
             <button
               type="button"
               class="flex-1 p-3 text-center transition-colors"
-              [class.text-[var(--accent-color)]]="activeEmojiTab === 'gestures'"
-              [class.text-gray-400]="activeEmojiTab !== 'gestures'"
+              [ngClass]="
+                activeEmojiTab === 'gestures' ? 'text-[var(--accent-color)]' : 'text-gray-400'
+              "
               (click)="onSetEmojiTab('gestures')"
             >
               <span class="text-lg">👋</span>
@@ -134,8 +137,9 @@
             <button
               type="button"
               class="flex-1 p-3 text-center transition-colors"
-              [class.text-[var(--accent-color)]]="activeEmojiTab === 'objects'"
-              [class.text-gray-400]="activeEmojiTab !== 'objects'"
+              [ngClass]="
+                activeEmojiTab === 'objects' ? 'text-[var(--accent-color)]' : 'text-gray-400'
+              "
               (click)="onSetEmojiTab('objects')"
             >
               <span class="text-lg">💡</span>

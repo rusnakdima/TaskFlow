@@ -1,50 +1,22 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Subtask, TaskStatus, Todo } from "@models/generated/api.types";
-import { BaseKanbanHelper, KanbanColumn } from "@helpers/base-kanban.helper";
-import { ApiService, Visibility } from "@services/api.service";
+import { BaseKanbanHelper, KanbanColumn, KANBAN_COLUMNS } from "@helpers/base-kanban.helper";
 
 export interface SubtaskKanbanColumn extends KanbanColumn {}
 
 @Injectable({ providedIn: "root" })
 export class SubtasksKanbanHelper extends BaseKanbanHelper<Subtask> {
-  private requestService = inject(ApiService);
-
   getEntityName(): string {
     return "subtask";
   }
 
+  getEntityNameForUpdate(): string {
+    return "subtask";
+  }
+
   getKanbanColumns(): SubtaskKanbanColumn[] {
-    return [
-      {
-        id: TaskStatus.PENDING,
-        label: "To Do",
-        color: "bg-yellow-500",
-        icon: "radio_button_unchecked",
-        iconBgClass: "bg-yellow-500/20 text-yellow-400",
-      },
-      {
-        id: TaskStatus.COMPLETED,
-        label: "Done",
-        color: "bg-green-500",
-        icon: "check_circle",
-        iconBgClass: "bg-green-500/20 text-green-400",
-      },
-      {
-        id: TaskStatus.SKIPPED,
-        label: "Skipped",
-        color: "bg-orange-500",
-        icon: "cancel",
-        iconBgClass: "bg-orange-500/20 text-orange-400",
-      },
-      {
-        id: TaskStatus.FAILED,
-        label: "Failed",
-        color: "bg-red-500",
-        icon: "dangerous",
-        iconBgClass: "bg-red-500/20 text-red-400",
-      },
-    ];
+    return KANBAN_COLUMNS;
   }
 
   getColumns(): SubtaskKanbanColumn[] {
@@ -91,34 +63,6 @@ export class SubtasksKanbanHelper extends BaseKanbanHelper<Subtask> {
     todo: Todo | null,
     updateSubtasksFn: (updateFn: (subtasks: Subtask[]) => Subtask[]) => void
   ): void {
-    if (this._isUpdatingKanban()) {
-      this.notifyService.showWarning("Please wait for previous operation to complete");
-      return;
-    }
-
-    this._isUpdatingKanban.set(true);
-
-    const visibility = todo?.visibility || "private";
-
-    this.requestService
-      .update<Subtask>(
-        "subtasks",
-        subtaskId,
-        { status: newStatus },
-        { visibility: visibility as Visibility }
-      )
-      .subscribe({
-        next: () => {
-          updateSubtasksFn((subtasks) =>
-            subtasks.map((s) => (s.id === subtaskId ? { ...s, status: newStatus } : s))
-          );
-          this._isUpdatingKanban.set(false);
-          this.notifyService.showSuccess(`Subtask moved to ${newStatus}`);
-        },
-        error: (err) => {
-          this._isUpdatingKanban.set(false);
-          this.notifyService.showError(err.message || "Failed to update subtask");
-        },
-      });
+    this.updateStatusInternal(subtaskId, newStatus, todo, updateSubtasksFn, "subtasks");
   }
 }

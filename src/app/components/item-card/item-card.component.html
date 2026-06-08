@@ -30,9 +30,9 @@
 </ng-template>
 
 <div
-  class="flex h-full cursor-pointer flex-col rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+  class="flex h-full cursor-pointer flex-col rounded-xl border-2 border-[var(--accent-color)]/50 p-4 shadow-lg transition-shadow hover:shadow-md dark:border-[var(--accent-color)]/50"
   [ngClass]="{
-    'animate-pulse bg-green-100': highlight,
+    'animate-pulse bg-[var(--accent-100)] dark:bg-[var(--accent-900)]': highlight,
     'opacity-60 grayscale': item?.deleted_at,
     'card-selected': isSelected,
     'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20': item?.deleted_at,
@@ -80,7 +80,7 @@
           @case ("category-pills") {
             <div class="flex flex-row flex-wrap gap-1">
               <span
-                class="flex items-center gap-1 rounded-full bg-gray-300 px-2 py-0.5 text-xs font-medium text-black dark:bg-zinc-600 dark:text-white"
+                class="flex items-center gap-1 rounded-full bg-[var(--accent-color)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent-color)] dark:bg-[var(--accent-color)]/10 dark:text-[var(--accent-color)]"
               >
                 {{ getDisplayValue(config) }}
               </span>
@@ -111,7 +111,7 @@
               @if (showMenu()) {
                 <div class="fixed inset-0 z-40" (click)="showMenu.set(false)"></div>
                 <div
-                  class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+                  class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-[var(--accent-color)] bg-white py-1 shadow-lg dark:bg-zinc-800"
                   (click)="$event.stopPropagation()"
                 >
                   @for (action of actions; track action.key) {
@@ -260,7 +260,7 @@
                   @if (showMenu()) {
                     <div class="fixed inset-0 z-40" (click)="showMenu.set(false)"></div>
                     <div
-                      class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+                      class="absolute right-0 bottom-full z-50 mb-1 min-w-40 rounded-lg border border-[var(--accent-color)] bg-white py-1 shadow-lg dark:bg-zinc-800"
                       (click)="$event.stopPropagation()"
                     >
                       @for (action of actions; track action.key) {
@@ -293,7 +293,7 @@
   </div>
 
   @if (expandable && isExpanded) {
-    <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
+    <div class="mt-3 border-t border-[var(--accent-color)] pt-3">
       <app-item-expand-details
         [item]="$any(item)"
         [type]="itemType"
@@ -304,7 +304,7 @@
   }
 
   @if (commentsExpanded() && (itemType === "task" || itemType === "subtask")) {
-    <div class="mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700">
+    <div class="mt-3 border-t border-[var(--accent-color)] pt-3">
       <app-comments
         [comments]="getComments()"
         [task_id]="itemType === 'task' ? item?.id : undefined"

@@ -35,15 +35,3 @@ export function groupByField<T, K extends keyof T>(items: T[], field: K): Map<T[
   }
   return map;
 }
-
-export function sortByField<T>(items: T[], field: keyof T, direction: "asc" | "desc" = "asc"): T[] {
-  return [...items].sort((a, b) => {
-    const aVal = a[field];
-    const bVal = b[field];
-    if (aVal === bVal) return 0;
-    if (aVal == null) return 1;
-    if (bVal == null) return -1;
-    const comparison = aVal < bVal ? -1 : 1;
-    return direction === "asc" ? comparison : -comparison;
-  });
-}

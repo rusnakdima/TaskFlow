@@ -299,7 +299,8 @@ export const ADMIN_CARD_CONFIG: ItemDisplayConfig[] = [
     key: "status-badge",
     type: "status-badge",
     getValue: (item: any) => item.status,
-    getChipColor: () => "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    getChipColor: () =>
+      "bg-transparent text-blue-600 border border-blue-500 dark:text-blue-400 dark:border-blue-400/50",
     line: 2,
   },
   {

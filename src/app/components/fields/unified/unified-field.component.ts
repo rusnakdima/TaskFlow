@@ -33,12 +33,10 @@ import { FormField, OptionData, TypeField } from "@models/form-field.model";
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./unified-field.component.html",
-  styleUrl: "./unified-field.styles.css",
 })
 export class UnifiedFieldComponent {
   @Input() field!: FormField;
   @Input() form!: FormGroup;
-  @Input() appearance: "outline" | "fill" = "outline";
   @Input() showError: boolean = true;
   @Input() class: string = "";
 

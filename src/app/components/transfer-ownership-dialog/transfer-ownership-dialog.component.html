@@ -11,7 +11,7 @@
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700"
+              class="flex items-center gap-2 rounded-lg border border-[var(--accent-color)] bg-white px-3 py-2 text-sm dark:bg-zinc-700"
               [matMenuTriggerFor]="ownerMenu"
             >
               @if (getSelectedProfile(); as profile) {
@@ -29,7 +29,7 @@
             </button>
             <mat-menu
               #ownerMenu="matMenu"
-              class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+              class="overflow-hidden rounded-xl border-2 border-[var(--accent-color)] shadow-2xl dark:border-[var(--accent-400)]"
             >
               @for (profile of availableProfiles; track profile.id) {
                 <button

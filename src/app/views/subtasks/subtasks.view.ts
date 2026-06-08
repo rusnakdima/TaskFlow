@@ -503,7 +503,7 @@ export class SubtasksViewComponent extends BaseListView {
         mode: this.viewMode(),
         pageKey: "subtasks",
         onModeChange: (mode) => this.setViewMode(mode),
-        modes: ["card", "grid", "table", "list", "kanban"],
+        modes: ["grid", "table", "list", "kanban"],
       },
       refresh: {
         onClick: () => {

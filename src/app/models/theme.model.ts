@@ -1,12 +1,3 @@
-export type GradientIntensity = "none" | "subtle" | "bold";
-
-export interface GradientSettings {
-  sidebar: GradientIntensity;
-  header: GradientIntensity;
-  card: GradientIntensity;
-  button: GradientIntensity;
-}
-
 export interface ThemePreset {
   id: string;
   name: string;
@@ -16,7 +7,6 @@ export interface ThemePreset {
 export interface AppearanceSettings {
   mode: "light" | "dark" | "system";
   preset: ThemePreset;
-  gradients: GradientSettings;
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -31,12 +21,6 @@ export const THEME_PRESETS: ThemePreset[] = [
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   mode: "dark",
   preset: THEME_PRESETS[0],
-  gradients: {
-    sidebar: "none",
-    header: "none",
-    card: "none",
-    button: "subtle",
-  },
 };
 
 export function getAccentShades(hexColor: string): Record<string, string> {

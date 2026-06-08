@@ -50,6 +50,9 @@ export class ManageTaskPage implements OnInit {
   private apiService = inject(ApiService);
 
   form!: FormGroup;
+  basicInfoGroup!: FormGroup;
+  timelineGroup!: FormGroup;
+
   isEdit = signal(false);
   isSubmitting = signal(false);
 
@@ -78,20 +81,27 @@ export class ManageTaskPage implements OnInit {
   }
 
   private initForm(): void {
+    this.basicInfoGroup = this.fb.group({
+      title: ["", Validators.required],
+      description: [""],
+    });
+
+    this.timelineGroup = this.fb.group({
+      startDate: [null as Date | null],
+      endDate: [null as Date | null],
+      repeat: ["none"],
+    });
+
     this.form = this.fb.group({
       _id: [""],
       id: [""],
-      title: ["", Validators.required],
-      description: [""],
+      basicInfo: this.basicInfoGroup,
       status: ["pending"],
       priority: ["medium"],
-      start_date: [""],
-      end_date: [""],
+      timeline: this.timelineGroup,
       order: [0],
       deleted_at: [false],
       todo_id: ["", Validators.required],
-      repeat: ["none"],
-      github_repo_id: [""],
       publish_to_github: [false],
     });
   }
@@ -103,7 +113,7 @@ export class ManageTaskPage implements OnInit {
       })
     );
 
-    this.form.get("start_date")?.valueChanges.subscribe((startDate) => {
+    this.timelineGroup.get("startDate")?.valueChanges.subscribe((startDate) => {
       this.startDateForEndDate.set(startDate || null);
     });
   }
@@ -142,10 +152,25 @@ export class ManageTaskPage implements OnInit {
   }
 
   private applyItemToForm(item: any): void {
+    this.basicInfoGroup.patchValue({
+      title: item.title || "",
+      description: item.description || "",
+    });
+
     this.form.patchValue({
-      ...item,
-      start_date: item.start_date || "",
-      end_date: item.end_date || "",
+      _id: item._id || "",
+      id: item.id || "",
+      status: item.status || "pending",
+      priority: item.priority || "medium",
+      todo_id: item.todo_id || "",
+      order: item.order ?? 0,
+      publish_to_github: item.publish_to_github || false,
+    });
+
+    this.timelineGroup.patchValue({
+      startDate: item.start_date || null,
+      endDate: item.end_date || null,
+      repeat: item.repeat || "none",
     });
   }
 
@@ -163,7 +188,9 @@ export class ManageTaskPage implements OnInit {
 
     try {
       const formValue = this.form.value;
-      const payload = this.buildPayload(formValue);
+      const basicInfo = this.basicInfoGroup.value;
+      const timeline = this.timelineGroup.value;
+      const payload = this.buildPayload(formValue, basicInfo, timeline);
 
       const parentTodo = this.todos().find((t) => t.id === formValue.todo_id);
       const visibility = parentTodo?.visibility || "private";
@@ -205,23 +232,23 @@ export class ManageTaskPage implements OnInit {
     }
   }
 
-  private buildPayload(formValue: any): any {
+  private buildPayload(formValue: any, basicInfo: any, timeline: any): any {
     const token = this.jwtTokenService.getToken();
     const userId = this.jwtTokenService.getUserId(token);
 
     return {
       id: formValue.id || undefined,
-      title: formValue.title,
-      description: formValue.description || "",
+      title: basicInfo.title,
+      description: basicInfo.description || "",
       status: formValue.status || "pending",
       priority: formValue.priority,
-      start_date: formValue.start_date || "",
-      end_date: formValue.end_date || "",
+      start_date: timeline.startDate || "",
+      end_date: timeline.endDate || "",
       order: formValue.order || 0,
       deleted_at: null,
       user_id: userId,
       todo_id: formValue.todo_id,
-      repeat: formValue.repeat || "none",
+      repeat: timeline.repeat || "none",
       publish_to_github: formValue.publish_to_github || false,
     };
   }

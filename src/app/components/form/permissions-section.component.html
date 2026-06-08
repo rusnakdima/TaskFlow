@@ -1,5 +1,5 @@
 <div
-  class="rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+  class="rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
 >
   <div class="mb-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -17,7 +17,7 @@
       </div>
     </div>
     @if (isOwner) {
-      <app-button variant="accent" (clicked)="transferOwnership.emit()">
+      <app-button variant="accent" (clicked)="onTransferOwnership()">
         Transfer Ownership
       </app-button>
     }
@@ -44,79 +44,79 @@
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-zinc-600 dark:bg-transparent"
+            class="flex items-center gap-2 rounded-lg border border-[var(--accent-color)] px-3 py-2 text-sm"
             [matMenuTriggerFor]="roleMenu"
           >
             <mat-icon
               class="h-4! w-4! min-w-4 text-base!"
-              [fontIcon]="getRoleIcon(roles[profileId] || 'viewer')"
+              [fontIcon]="getRoleIcon(getRoles()[profileId] || 'viewer')"
             />
-            <span>{{ getRoleLabel(roles[profileId] || "viewer") }}</span>
+            <span>{{ getRoleLabel(getRoles()[profileId] || "viewer") }}</span>
             <mat-icon class="h-4! w-4! min-w-4 text-base!" fontIcon="expand_more" />
           </button>
           <mat-menu
             #roleMenu="matMenu"
-            class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+            class="overflow-hidden rounded-xl border border-[var(--accent-color)] shadow-2xl"
           >
             <button
               mat-menu-item
               (click)="onRoleChange(profileId, 'viewer')"
               class="flex w-full items-center gap-3"
-              [class.badge-accent]="roles[profileId] === 'viewer'"
+              [class.badge-accent]="getRoles()[profileId] === 'viewer'"
             >
               <mat-icon
                 class="size-5! min-w-5 text-xl!"
-                [class.text-black]="roles[profileId] === 'viewer'"
-                [class.dark:text-white]="roles[profileId] === 'viewer'"
-                [class.text-gray-400]="roles[profileId] !== 'viewer'"
+                [class.text-black]="getRoles()[profileId] === 'viewer'"
+                [class.dark:text-white]="getRoles()[profileId] === 'viewer'"
+                [class.text-gray-400]="getRoles()[profileId] !== 'viewer'"
                 fontIcon="visibility"
               />
-              <span [class.font-bold]="roles[profileId] === 'viewer'">Viewer</span>
+              <span [class.font-bold]="getRoles()[profileId] === 'viewer'">Viewer</span>
             </button>
             <button
               mat-menu-item
               (click)="onRoleChange(profileId, 'editor')"
               class="flex w-full items-center gap-3"
-              [class.badge-accent]="roles[profileId] === 'editor'"
+              [class.badge-accent]="getRoles()[profileId] === 'editor'"
             >
               <mat-icon
                 class="size-5! min-w-5 text-xl!"
-                [class.text-black]="roles[profileId] === 'editor'"
-                [class.dark:text-white]="roles[profileId] === 'editor'"
-                [class.text-gray-400]="roles[profileId] !== 'editor'"
+                [class.text-black]="getRoles()[profileId] === 'editor'"
+                [class.dark:text-white]="getRoles()[profileId] === 'editor'"
+                [class.text-gray-400]="getRoles()[profileId] !== 'editor'"
                 fontIcon="edit"
               />
-              <span [class.font-bold]="roles[profileId] === 'editor'">Editor</span>
+              <span [class.font-bold]="getRoles()[profileId] === 'editor'">Editor</span>
             </button>
             <button
               mat-menu-item
               (click)="onRoleChange(profileId, 'admin')"
               class="flex w-full items-center gap-3"
-              [class.badge-accent]="roles[profileId] === 'admin'"
+              [class.badge-accent]="getRoles()[profileId] === 'admin'"
             >
               <mat-icon
                 class="size-5! min-w-5 text-xl!"
-                [class.text-black]="roles[profileId] === 'admin'"
-                [class.dark:text-white]="roles[profileId] === 'admin'"
-                [class.text-gray-400]="roles[profileId] !== 'admin'"
+                [class.text-black]="getRoles()[profileId] === 'admin'"
+                [class.dark:text-white]="getRoles()[profileId] === 'admin'"
+                [class.text-gray-400]="getRoles()[profileId] !== 'admin'"
                 fontIcon="admin_panel_settings"
               />
-              <span [class.font-bold]="roles[profileId] === 'admin'">Admin</span>
+              <span [class.font-bold]="getRoles()[profileId] === 'admin'">Admin</span>
             </button>
             <button
               mat-menu-item
               (click)="onRoleChange(profileId, 'moderator')"
               class="flex w-full items-center gap-3"
-              [class.badge-accent]="roles[profileId] === 'moderator'"
+              [class.badge-accent]="getRoles()[profileId] === 'moderator'"
             >
               <mat-icon
                 class="size-5! min-w-5 text-xl!"
-                [class.text-black]="roles[profileId] === 'moderator'"
-                [class.dark:text-white]="roles[profileId] === 'moderator'"
-                [class.text-gray-400]="roles[profileId] !== 'moderator'"
+                [class.text-black]="getRoles()[profileId] === 'moderator'"
+                [class.dark:text-white]="getRoles()[profileId] === 'moderator'"
+                [class.text-gray-400]="getRoles()[profileId] !== 'moderator'"
                 fontIcon="security"
               />
-              <span [class.font-bold]="roles[profileId] === 'moderator'">Moderator</span>
+              <span [class.font-bold]="getRoles()[profileId] === 'moderator'">Moderator</span>
             </button>
           </mat-menu>
         </div>

@@ -35,6 +35,7 @@ import {
   OBJECTS_EMOJIS,
   RECENT_EMOJIS_DEFAULT,
 } from "@constants/emoji.constants";
+import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
   selector: "app-chat",
@@ -52,6 +53,7 @@ import {
     TypingIndicatorComponent,
     DateAnchorComponent,
     UserAvatarComponent,
+    AppButtonComponent,
   ],
   templateUrl: "./chat.view.html",
   changeDetection: ChangeDetectionStrategy.OnPush,

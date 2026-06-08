@@ -1,6 +1,10 @@
-<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-700">
-  <table class="w-full min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-    <thead class="bg-gray-50 dark:bg-zinc-800">
+<div
+  class="overflow-x-auto rounded-xl border-2 border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50"
+>
+  <table
+    class="w-full min-w-full divide-y divide-[var(--accent-color)]/20 dark:divide-[var(--accent-color)]/20"
+  >
+    <thead class="bg-transparent dark:bg-transparent">
       <tr>
         @if (dragEnabled) {
           <th class="w-12 px-2 py-3"></th>
@@ -49,7 +53,7 @@
       </tr>
     </thead>
     <tbody
-      class="divide-y divide-gray-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900"
+      class="divide-y divide-[var(--accent-color)]/20 bg-transparent dark:divide-[var(--accent-color)]/20 dark:bg-transparent"
       [class.opacity-50]="data.length === 0"
       cdkDropList
       [cdkDropListData]="getSortedData()"
@@ -62,7 +66,7 @@
           [cdkDragDisabled]="!dragEnabled"
           cdkDragLockAxis="y"
           [style.cursor]="dragEnabled ? 'default' : 'default'"
-          class="hover:bg-gray-50 dark:hover:bg-zinc-800"
+          class="hover:bg-[var(--accent-color)]/10 dark:hover:bg-[var(--accent-color)]/10"
           [class.bg-yellow-200]="isHighlighted(item.id)"
           [class.dark:bg-yellow-900/40]="isHighlighted(item.id)"
           [class.animate-pulse]="isHighlighted(item.id)"
@@ -74,7 +78,7 @@
               <button
                 cdkDragHandle
                 title="Drag to reorder"
-                class="cursor-move rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-gray-100 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-gray-700"
+                class="cursor-move rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-[var(--accent-color)]/10 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-[var(--accent-color)]/10"
                 style="
                   touch-action: none;
                   -webkit-user-drag: none;
@@ -132,7 +136,7 @@
                       [class]="
                         field.getChipColor
                           ? field.getChipColor(item)
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                          : 'bg-[var(--accent-color)]/10 text-[var(--accent-color)] dark:bg-[var(--accent-color)]/10 dark:text-[var(--accent-color)]'
                       "
                     >
                       {{
@@ -245,7 +249,7 @@
                     [class]="
                       isExpanded(item.id)
                         ? 'text-blue-600! hover:bg-blue-50! dark:text-blue-400! dark:hover:bg-blue-900/30!'
-                        : 'text-gray-500! hover:bg-gray-100! dark:text-gray-400! dark:hover:bg-gray-700!'
+                        : 'text-gray-500! hover:bg-[var(--accent-color)]/10! dark:text-gray-400! dark:hover:bg-[var(--accent-color)]/10!'
                     "
                     (click)="toggleExpanded(item.id); $event.stopPropagation()"
                     title="Expand details"
@@ -325,7 +329,9 @@
               @if (expandTemplate) {
                 <ng-container *ngTemplateOutlet="expandTemplate; context: { $implicit: item }" />
               } @else {
-                <div class="rounded-lg bg-gray-50 p-4 dark:bg-zinc-800/60">
+                <div
+                  class="rounded-lg bg-[var(--accent-color)]/10 p-4 dark:bg-[var(--accent-color)]/10"
+                >
                   <div class="flex flex-row flex-wrap gap-x-6 gap-y-3">
                     @for (field of fields; track field.key) {
                       <div class="flex min-w-[120px] flex-col">

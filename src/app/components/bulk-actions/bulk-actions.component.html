@@ -1,11 +1,11 @@
 @if (showBulkActions) {
   <div class="fixed bottom-20 left-1/2 z-50 -translate-x-1/2">
     <div
-      class="rounded-2xl border border-gray-600 bg-white/30 px-5 py-3 text-white shadow-2xl backdrop-blur-sm dark:bg-gray-800/50"
+      class="rounded-2xl border-2 border-[var(--accent-color)]/50 px-5 py-3 shadow-2xl backdrop-blur-sm dark:border-[var(--accent-color)]/50"
     >
       <div class="flex items-center gap-3">
         <!-- Selection Info -->
-        <div class="flex items-center gap-2 border-r border-gray-700 pr-3">
+        <div class="flex items-center gap-2 border-r border-[var(--accent-color)] pr-3">
           <div
             class="flex items-center gap-1.5 rounded-full bg-[var(--accent-color)] px-2.5 py-1 whitespace-nowrap"
           >
@@ -85,7 +85,7 @@
           <div class="flex items-center gap-1.5">
             <!-- Status Buttons -->
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-gray-600 bg-gray-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-gray-700 active:mt-0.5 active:border-b-0"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-[var(--accent-color)] bg-gray-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-gray-700 active:mt-0.5 active:border-b-0"
               (click)="onSetStatus('pending')"
               matTooltip="Mark as Pending"
             >

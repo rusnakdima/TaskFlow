@@ -1,5 +1,5 @@
 @if (isOpen) {
-  <div class="filter-sidebar-overlay gradient-overlay" (click)="close()"></div>
+  <div class="filter-sidebar-overlay" (click)="close()"></div>
 }
 <div class="filter-sidebar" [class.open]="isOpen">
   <div class="filter-sidebar-content">
@@ -36,11 +36,11 @@
                     [ngModel]="getFilterValue(filter.key)"
                     (ngModelChange)="onFilterChange(filter.key, $event)"
                     [placeholder]="filter.placeholder || ''"
-                    class="textNormal w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:border-zinc-600 dark:bg-transparent"
+                    class="textNormal w-full rounded-lg border border-[var(--accent-color)] bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:bg-transparent"
                   />
                 }
                 @case ("select") {
-                  <mat-form-field class="transparent-field w-full">
+                  <mat-form-field class="w-full">
                     <mat-select
                       [value]="getFilterValue(filter.key)"
                       (selectionChange)="onFilterChange(filter.key, $event.value)"
@@ -51,7 +51,7 @@
                         <input
                           type="text"
                           [placeholder]="'Search ' + filter.label + '...'"
-                          class="textNormal w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:border-zinc-600 dark:bg-transparent"
+                          class="textNormal w-full rounded-lg border border-[var(--accent-color)] bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:bg-transparent"
                           [ngModel]="getSearchQuery(filter.key)"
                           (ngModelChange)="onSearchQueryChange(filter.key, $event)"
                           (click)="$event.stopPropagation()"
@@ -68,7 +68,7 @@
                     type="date"
                     [ngModel]="getFilterValue(filter.key)"
                     (ngModelChange)="onFilterChange(filter.key, $event)"
-                    class="textNormal w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:border-zinc-600 dark:bg-transparent"
+                    class="textNormal w-full rounded-lg border border-[var(--accent-color)] bg-transparent px-3 py-2 text-sm focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)]/30 focus:outline-none dark:bg-transparent"
                   />
                 }
               }
@@ -80,7 +80,7 @@
       }
     </div>
 
-    <div class="filter-sidebar-actions">
+    <div class="filter-sidebar-actions flex flex-col gap-y-3">
       <app-button variant="accent" [fullWidth]="true" (clicked)="close()">Done</app-button>
       @if (hasActiveFilters) {
         <app-button variant="cancel" [fullWidth]="true" (clicked)="clearAll()">

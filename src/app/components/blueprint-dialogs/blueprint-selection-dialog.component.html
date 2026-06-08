@@ -19,7 +19,7 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         @for (template of templates; track template.id) {
           <div
-            class="group relative rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-zinc-700"
+            class="group relative rounded-lg border border-[var(--accent-color)] p-4 transition-colors hover:border-blue-500"
           >
             <div class="cursor-pointer" (click)="openApplyBlueprint(template)">
               <h4 class="font-semibold">{{ template.name }}</h4>

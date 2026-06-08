@@ -1,14 +1,16 @@
-<div class="flex h-full w-full flex-col bg-slate-950">
-  <header class="shrink-0 border-b border-slate-800/50 p-4">
+<div class="flex h-full w-full flex-col bg-[var(--bg-primary)]">
+  <header
+    class="shrink-0 border-b border-[var(--accent-color)] p-4 dark:border-[var(--border-light)]"
+  >
     <div class="flex items-center gap-4">
       <button
         type="button"
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-slate-800 hover:text-white"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-all hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] dark:hover:bg-[var(--bg-elevated)]"
         (click)="onCancel()"
       >
         <mat-icon fontIcon="arrow_back" class="!h-5 !w-5" />
       </button>
-      <h1 class="text-lg font-bold text-white">Create Group</h1>
+      <h1 class="text-lg font-bold text-[var(--text-primary)]">Create Group</h1>
     </div>
   </header>
 
@@ -23,27 +25,29 @@
       </div>
 
       <div class="mb-6">
-        <label class="mb-2 block text-sm font-medium text-slate-300">Group Name</label>
+        <label class="mb-2 block text-sm font-medium text-[var(--text-secondary)]"
+          >Group Name</label
+        >
         <input
           type="text"
           [value]="state.newGroupName()"
           (input)="state.newGroupName.set($any($event.target).value)"
           placeholder="Enter group name..."
-          class="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 transition-all placeholder:text-slate-500 focus:border-[var(--accent-color)]/50 focus:ring-1 focus:ring-[var(--accent-color)]/50 focus:outline-none"
+          class="w-full rounded-xl border-2 border-[var(--accent-color)] bg-[var(--accent-200)] px-4 py-3 text-sm text-[var(--text-primary)] transition-all placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)]/50 focus:ring-1 focus:ring-[var(--accent-color)]/50 focus:outline-none dark:border-[var(--accent-400)] dark:bg-[var(--accent-900)/30]"
         />
       </div>
 
       <div class="flex gap-3">
         <button
           type="button"
-          class="flex-1 rounded-xl border border-slate-700 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
+          class="flex-1 rounded-xl border-2 border-[var(--accent-color)] px-4 py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-200)] dark:border-[var(--accent-400)] dark:hover:bg-[var(--accent-900)/30]"
           (click)="onCancel()"
         >
           Cancel
         </button>
         <button
           type="button"
-          class="flex-1 rounded-xl bg-[var(--accent-color)] px-4 py-3 text-sm font-semibold text-white transition-all hover:shadow-[var(--accent-color)]/10 hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
+          class="flex-1 rounded-xl bg-[var(--accent-color)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] transition-all hover:shadow-[var(--accent-color)]/10 hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none dark:text-white"
           [disabled]="!state.newGroupName().trim()"
           (click)="onCreateGroup()"
         >

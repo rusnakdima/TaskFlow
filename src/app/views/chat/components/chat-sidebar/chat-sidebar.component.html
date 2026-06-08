@@ -1,5 +1,5 @@
 <div
-  class="flex h-full w-full flex-col border-r border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+  class="flex h-full w-full flex-col border-r border-[var(--accent-color)] bg-white dark:bg-zinc-800"
 >
   <header class="relative shrink-0 p-4 pb-2">
     <div class="relative">
@@ -23,7 +23,7 @@
       (searchDropdownUsers?.recent?.length || searchDropdownUsers?.others?.length)
     ) {
       <div
-        class="no-scrollbar absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+        class="no-scrollbar absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-xl border-2 border-[var(--accent-color)]/50 shadow-xl dark:border-[var(--accent-color)]/50"
       >
         @if (searchDropdownUsers?.recent?.length) {
           <div class="px-3 py-2 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
@@ -48,7 +48,7 @@
         }
         @if (searchDropdownUsers?.others?.length) {
           <div
-            class="border-t border-gray-100 px-3 py-2 text-[10px] font-semibold tracking-wider text-gray-400 uppercase dark:border-zinc-700"
+            class="border-t border-[var(--accent-color)]/50 px-3 py-2 text-[10px] font-semibold tracking-wider text-gray-400 uppercase"
           >
             Contacts
           </div>
@@ -88,7 +88,7 @@
       <div
         class="chat-sidebar-item flex cursor-pointer items-center gap-3.5 rounded-xl p-3.5 transition-all"
         [ngClass]="{
-          'border border-[var(--accent-color)] bg-[var(--accent-100)] shadow-sm dark:bg-[var(--accent-900)]':
+          'border border-[var(--accent-color)]/50 bg-transparent shadow-sm':
             conv.roomId === activeConvId,
           'border border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700':
             conv.roomId !== activeConvId,
@@ -176,10 +176,10 @@
   </div>
 
   @if (!isTablet && !isCollapsed) {
-    <div class="shrink-0 border-t border-gray-200 p-3 dark:border-zinc-700">
+    <div class="shrink-0 border-t border-[var(--accent-color)] p-3">
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-100)] p-3 text-sm font-medium text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-200)] dark:bg-[var(--accent-900)] dark:hover:bg-[var(--accent-800)]"
+        class="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent-color)]/50 p-3 text-sm font-medium text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-color)]/10 dark:border-[var(--accent-color)]/50 dark:hover:bg-[var(--accent-color)]/10"
         (click)="onOpenCreateGroup()"
       >
         <mat-icon fontIcon="edit" class="!h-4 !w-4" />
@@ -188,10 +188,10 @@
     </div>
   }
   @if (isTablet && !isCollapsed) {
-    <div class="shrink-0 border-t border-gray-200 p-3 dark:border-zinc-700">
+    <div class="shrink-0 border-t border-[var(--accent-color)] p-3">
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-100)] p-3 text-sm font-medium text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-200)] dark:bg-[var(--accent-900)] dark:hover:bg-[var(--accent-800)]"
+        class="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent-color)]/50 p-3 text-sm font-medium text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-color)]/10 dark:border-[var(--accent-color)]/50 dark:hover:bg-[var(--accent-color)]/10"
         (click)="onCollapseSidebar()"
       >
         <mat-icon fontIcon="chevron_left" class="!h-4 !w-4" />

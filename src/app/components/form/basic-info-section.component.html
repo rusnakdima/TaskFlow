@@ -1,41 +1,22 @@
-<div
-  class="rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+<app-form-section
+  icon="info"
+  title="Basic Information"
+  [description]="'Essential details about your ' + itemType"
+  iconColor="blue"
 >
-  <div class="mb-6 flex items-center gap-3">
-    <div
-      class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
-    >
-      <mat-icon
-        class="h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400"
-        fontIcon="info"
-      />
-    </div>
-    <div>
-      <h3 class="textNormal text-lg font-semibold">Basic Information</h3>
-      <p class="textMuted text-sm">Essential details about your {{ itemType }}</p>
-    </div>
-  </div>
-
   <div class="grid grid-cols-1 gap-6">
-    <mat-form-field class="transparent-field w-full">
-      <mat-label>Title</mat-label>
-      <input
-        matInput
-        [ngModel]="title"
-        (ngModelChange)="titleChange.emit($event)"
-        placeholder="Enter a descriptive title"
-      />
-    </mat-form-field>
+    <app-unified-field
+      [field]="titleFieldDef"
+      [form]="basicInfoFormGroup"
+      class="w-full"
+      (valueChange)="onTitleChange($event)"
+    />
 
-    <mat-form-field class="transparent-field w-full">
-      <mat-label>Description</mat-label>
-      <textarea
-        matInput
-        [ngModel]="description"
-        (ngModelChange)="descriptionChange.emit($event)"
-        placeholder="Describe what this {{ itemType }} is about"
-        rows="4"
-      ></textarea>
-    </mat-form-field>
+    <app-unified-field
+      [field]="descriptionFieldDef"
+      [form]="basicInfoFormGroup"
+      class="w-full"
+      (valueChange)="onDescriptionChange($event)"
+    />
   </div>
-</div>
+</app-form-section>

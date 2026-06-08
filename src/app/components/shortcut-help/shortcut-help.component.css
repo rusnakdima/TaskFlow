@@ -8,6 +8,7 @@
     opacity: 1;
   }
 }
+
 .animate-slideInUp {
   animation: slideInUp 0.3s ease-out forwards;
 }

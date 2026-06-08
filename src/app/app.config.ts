@@ -3,6 +3,7 @@ import { ApplicationConfig, APP_INITIALIZER } from "@angular/core";
 import { provideRouter } from "@angular/router";
 import { provideHttpClient } from "@angular/common/http";
 import { provideNativeDateAdapter } from "@angular/material/core";
+import { provideAnimations } from "@angular/platform-browser/animations";
 
 /* app */
 import { routes } from "@app/app.routes";
@@ -24,6 +25,7 @@ function initializeDataSync(dataSyncService: UnifiedSyncService) {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
+    provideAnimations(),
     provideNativeDateAdapter(),
     provideHttpClient(),
     {

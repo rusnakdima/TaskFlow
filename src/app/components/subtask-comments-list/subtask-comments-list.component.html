@@ -1,4 +1,4 @@
-<div class="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+<div class="mt-4 border-t border-[var(--accent-color)] pt-4">
   <div class="mb-2 flex items-center justify-between">
     <h4 class="textNormal flex items-center gap-2 text-sm font-semibold">
       <mat-icon class="h-4! w-4! min-w-4 text-xl!" fontIcon="subdirectory_arrow_right" />
@@ -10,7 +10,7 @@
   <div class="flex flex-col gap-2">
     @for (group of subtaskCommentGroups; track group.subtask_id) {
       <div
-        class="rounded-xl border border-gray-200 bg-white/60 dark:border-zinc-700 dark:bg-zinc-800/30"
+        class="rounded-xl border-2 border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50"
         [ngClass]="{
           'animate-pulse ring-2 ring-purple-500': shouldHighlightSubtask(group.subtask_id),
         }"

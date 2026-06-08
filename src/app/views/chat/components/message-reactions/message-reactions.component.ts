@@ -1,12 +1,7 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-
-export interface Reaction {
-  emoji: string;
-  count: number;
-  isOwn: boolean;
-}
+import { Reaction } from "@models/chat.model";
 
 @Component({
   selector: "app-message-reactions",

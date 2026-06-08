@@ -1,6 +1,5 @@
 <div
-  class="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700"
-  style="border-left: 3px solid var(--accent-color) !important"
+  class="overflow-hidden rounded-xl border-2 border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50"
 >
   <div [class]="headerClass()" class="relative p-6 text-white">
     <div class="flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -72,7 +71,7 @@
   </div>
 
   @if (getCategories().length > 0) {
-    <div class="border-t border-gray-200 p-4 dark:border-zinc-700">
+    <div class="border-t border-[var(--accent-color)] p-4">
       <div class="flex flex-wrap gap-2">
         @for (categoryId of getCategories(); track categoryId) {
           <span

@@ -1,5 +1,5 @@
 <div
-  class="rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+  class="rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
 >
   <div class="mb-6 flex items-center gap-3">
     <div
@@ -17,26 +17,26 @@
   </div>
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-    <mat-form-field class="transparent-field w-full">
+    <mat-form-field class="w-full">
       <mat-label>Start Date</mat-label>
       <input
         matInput
         [matDatepicker]="startPicker"
-        [ngModel]="startDate"
-        (ngModelChange)="startDateChange.emit($event)"
+        [value]="startDate"
+        (dateChange)="onStartDateChange($event.value)"
       />
       <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
       <mat-datepicker #startPicker></mat-datepicker>
     </mat-form-field>
 
     @if (startDate) {
-      <mat-form-field class="transparent-field w-full">
+      <mat-form-field class="w-full">
         <mat-label>End Date</mat-label>
         <input
           matInput
           [matDatepicker]="endPicker"
-          [ngModel]="endDate"
-          (ngModelChange)="endDateChange.emit($event)"
+          [value]="endDate"
+          (dateChange)="onEndDateChange($event.value)"
           [min]="minEndDate"
         />
         <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
@@ -45,9 +45,9 @@
     }
 
     @if (showRepeat) {
-      <mat-form-field class="transparent-field w-full">
+      <mat-form-field class="w-full">
         <mat-label>Repeat</mat-label>
-        <mat-select [ngModel]="repeat" (ngModelChange)="repeatChange.emit($event)">
+        <mat-select [value]="repeat" (selectionChange)="onRepeatChange($event.value)">
           <mat-option value="none">None</mat-option>
           <mat-option value="daily">Daily</mat-option>
           <mat-option value="weekly">Weekly</mat-option>

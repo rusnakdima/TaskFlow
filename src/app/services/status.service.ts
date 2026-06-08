@@ -2,9 +2,7 @@ import { Injectable } from "@angular/core";
 import { TaskStatus } from "@models/generated/api.types";
 import {
   PRIORITY_COLORS,
-  STATUS_COLORS,
   STATUS_ICONS,
-  STATUS_COLUMN_COLORS,
   STATUS_BG_COLORS,
   STATUS_BUTTON_COLORS,
   STATUS_BUTTON_ICONS,
@@ -68,10 +66,6 @@ export class StatusService {
     return PRIORITY_COLORS[p as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.medium;
   }
 
-  getStatusColor(status: string): string {
-    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS[TaskStatus.PENDING];
-  }
-
   getStatusIcon(status: string): string {
     return STATUS_ICONS[status as keyof typeof STATUS_ICONS] || STATUS_ICONS[TaskStatus.PENDING];
   }
@@ -102,13 +96,6 @@ export class StatusService {
       default:
         return "text-gray-400 dark:text-gray-500";
     }
-  }
-
-  getColumnColorClass(status: string): string {
-    return (
-      STATUS_COLUMN_COLORS[status as keyof typeof STATUS_COLUMN_COLORS] ||
-      STATUS_COLUMN_COLORS[TaskStatus.PENDING]
-    );
   }
 
   getStatusBgColor(status: string): string {
@@ -148,20 +135,5 @@ export class StatusService {
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
     }
-  }
-
-  getNextStatus(currentStatus: TaskStatus): TaskStatus {
-    const statusCycle: TaskStatus[] = [
-      TaskStatus.PENDING,
-      TaskStatus.COMPLETED,
-      TaskStatus.SKIPPED,
-      TaskStatus.FAILED,
-    ];
-
-    const currentIndex = statusCycle.indexOf(currentStatus);
-    if (currentIndex === -1 || currentIndex === statusCycle.length - 1) {
-      return statusCycle[0];
-    }
-    return statusCycle[currentIndex + 1];
   }
 }

@@ -1,0 +1,91 @@
+<div class="flex flex-col items-center gap-4">
+  <div class="relative">
+    <app-user-avatar [src]="imageUrl" [name]="'User'" size="xl" class="!h-24 !w-24" />
+    <button
+      type="button"
+      (click)="toggleExpanded()"
+      class="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--accent-color)]/50 text-[var(--accent-color)] shadow-lg transition-colors hover:bg-[var(--accent-color)]/10 dark:text-white dark:hover:bg-[var(--accent-color)]/20"
+    >
+      <mat-icon class="h-4! w-4!" fontIcon="edit" />
+    </button>
+  </div>
+
+  @if (expanded()) {
+    <div
+      class="w-full max-w-sm rounded-lg border-2 border-[var(--accent-color)]/50 p-4 shadow-xl dark:border-[var(--accent-color)]/50"
+    >
+      <div class="mb-4 text-center">
+        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Choose Avatar</h4>
+      </div>
+
+      <div class="mb-4">
+        <h5 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Presets</h5>
+        <div class="grid grid-cols-6 gap-2">
+          @for (preset of presets; track preset) {
+            <button
+              type="button"
+              (click)="selectPreset(preset)"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border-2 transition-all hover:border-[var(--accent-color)]/50"
+              [ngClass]="
+                imageUrl === preset ? 'border-[var(--accent-color)]/50' : 'border-transparent'
+              "
+            >
+              <img [src]="preset" alt="Avatar preset" class="h-8 w-8 rounded-full object-cover" />
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h5 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Image URL</h5>
+        <div class="flex gap-2">
+          <app-unified-field
+            [field]="urlFieldDef"
+            [form]="urlFormGroup"
+            class="w-full"
+            (valueChange)="onUrlInputChange($event)"
+          />
+          <app-button variant="accent" (clicked)="applyUrl()"> Apply </app-button>
+        </div>
+      </div>
+
+      <div>
+        <h5 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Upload</h5>
+        <div class="flex flex-col gap-2">
+          <label
+            class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--accent-color)] px-4 py-3 hover:border-[var(--accent-color)]/50 hover:bg-gray-50 dark:hover:bg-zinc-700"
+          >
+            <mat-icon class="h-5 w-5 text-gray-400" fontIcon="upload" />
+            <span class="text-sm text-gray-600 dark:text-gray-400">Choose file...</span>
+            <input type="file" accept="image/*" class="hidden" (change)="onFileSelect($event)" />
+          </label>
+        </div>
+      </div>
+
+      @if (showCropper()) {
+        <div class="mt-4 border-t border-[var(--accent-color)] pt-4">
+          <h5 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Crop Image</h5>
+          <div class="flex flex-col items-center gap-2">
+            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+              <image-cropper
+                [imageBase64]="imageBase64()"
+                [maintainAspectRatio]="true"
+                [aspectRatio]="1"
+                [resizeToWidth]="256"
+                [cropperMinWidth]="256"
+                [roundCropper]="true"
+                format="png"
+                (imageCropped)="imageCropped($event)"
+                class="max-h-64"
+              />
+            </div>
+            <div class="flex gap-2">
+              <app-button variant="cancel" (clicked)="cancelCrop()"> Cancel </app-button>
+              <app-button variant="accent" (clicked)="saveCrop()"> Save </app-button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

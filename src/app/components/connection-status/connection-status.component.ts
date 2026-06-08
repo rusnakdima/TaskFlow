@@ -17,11 +17,11 @@ import { MongoConnectionService } from "@services/core/mongo-connection.service"
       .connection-status {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 16px;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 0.75rem;
         font-weight: 500;
         transition: all 0.2s ease;
       }
@@ -31,9 +31,9 @@ import { MongoConnectionService } from "@services/core/mongo-connection.service"
       }
 
       .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
       }
 
       .status-offline {
@@ -43,7 +43,7 @@ import { MongoConnectionService } from "@services/core/mongo-connection.service"
 
       .status-offline .status-dot {
         background-color: #ef4444;
-        box-shadow: 0 0 4px #ef4444;
+        box-shadow: 0 0 4px var(--error, #ef4444);
       }
 
       .status-connecting {

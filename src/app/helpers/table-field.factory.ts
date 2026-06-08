@@ -30,8 +30,8 @@ export class TableFieldFactory {
         sortable: true,
         getChipColor: (item: any) =>
           item?.deleted_at
-            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+            ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+            : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
         getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
       },
       { key: "created_at", label: "Created", type: "datetime", sortable: true },

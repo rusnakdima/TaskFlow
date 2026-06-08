@@ -1,14 +1,14 @@
 <div
-  class="space-y-4 rounded-xl border border-blue-500/30 bg-transparent p-4 dark:bg-transparent"
+  class="space-y-4 rounded-xl border-2 border-[var(--accent-color)]/50 p-4 shadow-lg dark:border-[var(--accent-color)]/50"
   [attr.data-locked]="!disabled"
 >
-  <mat-form-field class="transparent-field w-full">
+  <mat-form-field class="w-full">
     <mat-label>Search or Add Category</mat-label>
     <input
       matInput
-      [ngModel]="searchQuery"
-      (ngModelChange)="searchQueryChange.emit($event)"
-      (keydown.enter)="addCategory.emit()"
+      [value]="searchQuery"
+      (input)="onSearchQueryChange($any($event.target).value)"
+      (keydown.enter)="onAddCategory()"
       placeholder="Type to search or press Enter to add"
       [readonly]="disabled"
     />
@@ -16,7 +16,7 @@
       matSuffix
       class="mr-2"
       type="button"
-      (click)="addCategory.emit()"
+      (click)="onAddCategory()"
       [disabled]="!searchQuery.trim() || disabled"
     >
       <mat-icon class="h-6! w-6! min-w-6 text-2xl!" fontIcon="add" />
@@ -32,7 +32,7 @@
     />
     <button
       type="button"
-      (click)="toggleSelectAll.emit()"
+      (click)="onToggleSelectAll()"
       class="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
       [disabled]="disabled"
     >
@@ -52,16 +52,13 @@
   >
     @for (category of filteredCategories; track category.id) {
       <div
-        class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+        class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all hover:border-[var(--accent-color)]/50"
         [ngClass]="{
-          'border-blue-500 bg-blue-100/50 dark:bg-blue-900/20': isSelected(category.id),
-          'border-gray-200 bg-transparent dark:border-zinc-600 dark:bg-transparent': !isSelected(
-            category.id
-          ),
-          'cursor-pointer': !disabled,
+          'border-[var(--accent-color)]/50': isSelected(category.id),
+          'border-[var(--accent-color)]': !isSelected(category.id),
           'cursor-not-allowed opacity-60': disabled,
         }"
-        (click)="!disabled && toggleSelection.emit(category.id)"
+        (click)="!disabled && onToggleSelection(category.id)"
       >
         <app-checkbox class="pointer-events-none" [checked]="isSelected(category.id)" />
         {{ category.title }}

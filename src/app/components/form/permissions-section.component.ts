@@ -1,4 +1,12 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
+import {
+  Component,
+  Input,
+  ChangeDetectionStrategy,
+  forwardRef,
+  signal,
+  Output,
+  EventEmitter,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
@@ -6,6 +14,11 @@ import { MatButtonModule } from "@angular/material/button";
 import { Profile } from "@models/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
+
+export interface PermissionsSectionValue {
+  roles: Record<string, string>;
+}
 
 @Component({
   selector: "app-permissions-section",
@@ -20,21 +33,73 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
   ],
   templateUrl: "./permissions-section.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => PermissionsSectionComponent),
+      multi: true,
+    },
+  ],
 })
-export class PermissionsSectionComponent {
+export class PermissionsSectionComponent implements ControlValueAccessor {
   @Input() assignees: Profile[] = [];
-  @Input() selectedIds: Set<string> = new Set();
-  @Input() roles: Record<string, string> = {};
   @Input() isOwner = false;
+
+  @Input()
+  get selectedIds(): Set<string> {
+    return this._selectedIds();
+  }
+  set selectedIds(value: Set<string>) {
+    this._selectedIds.set(value);
+  }
+
+  @Input()
+  get roles(): Record<string, string> {
+    return this._roles();
+  }
+  set roles(value: Record<string, string>) {
+    this._roles.set(value);
+  }
+
   @Output() rolesChange = new EventEmitter<{ profileId: string; role: string }>();
   @Output() transferOwnership = new EventEmitter<void>();
+
+  private _selectedIds = signal<Set<string>>(new Set());
+  private _roles = signal<Record<string, string>>({});
+
+  private onChange: (value: PermissionsSectionValue) => void = () => {};
+  private onTouched: () => void = () => {};
+
+  writeValue(obj: PermissionsSectionValue): void {
+    if (obj && obj.roles) {
+      this._roles.set(obj.roles);
+    }
+  }
+
+  registerOnChange(fn: (value: PermissionsSectionValue) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
 
   getProfile(profileId: string): Profile | undefined {
     return this.assignees.find((p) => p.user_id === profileId);
   }
 
   onRoleChange(profileId: string, role: string): void {
+    this._roles.update((currentRoles) => ({
+      ...currentRoles,
+      [profileId]: role,
+    }));
     this.rolesChange.emit({ profileId, role });
+    this.onChange({ roles: this._roles() });
+    this.onTouched();
+  }
+
+  onTransferOwnership(): void {
+    this.transferOwnership.emit();
   }
 
   getRoleIcon(role: string): string {
@@ -55,5 +120,9 @@ export class PermissionsSectionComponent {
       moderator: "Moderator",
     };
     return labels[role] || "Viewer";
+  }
+
+  getRoles(): Record<string, string> {
+    return this._roles();
   }
 }
