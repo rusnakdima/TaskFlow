@@ -1,6 +1,6 @@
 <button
   (click)="toggle.emit()"
-  class="fixed right-6 bottom-30 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700"
+  class="fixed right-6 bottom-30 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--accent-color)]/50 bg-transparent text-[var(--accent-color)] shadow-lg transition-all duration-300 hover:scale-110 hover:bg-[var(--accent-color)]/10 dark:text-white dark:hover:bg-[var(--accent-color)]/20"
 >
   <mat-icon class="h-8 w-8 min-w-8 text-2xl!" [fontIcon]="isOpen ? 'close' : 'chat'" />
   @if (unreadCount > 0) {

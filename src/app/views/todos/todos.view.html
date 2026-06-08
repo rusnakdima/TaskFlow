@@ -120,7 +120,7 @@
   @if (todoPagination().hasMore) {
     <div class="flex justify-center py-4">
       <button
-        class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+        class="flex items-center gap-2 rounded-lg border border-[var(--accent-color)] px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-zinc-800"
         [disabled]="todoPagination().loading"
         (click)="loadMore()"
       >

@@ -6,12 +6,10 @@
     tabindex="-1"
   >
     <div
-      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border border-gray-200 bg-transparent opacity-100 shadow-xl transition-all duration-300 dark:border-zinc-700 dark:bg-transparent"
+      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border-2 border-[var(--accent-color)]/50 opacity-100 shadow-xl transition-all duration-300 dark:border-[var(--accent-color)]/50"
       (click)="$event.stopPropagation()"
     >
-      <div
-        class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-zinc-700"
-      >
+      <div class="flex items-center justify-between border-b border-[var(--accent-color)] p-6">
         <h3 class="textNormal text-lg font-semibold">
           {{ editingCategory ? "Edit Category" : "Create New Category" }}
         </h3>
@@ -25,34 +23,23 @@
 
       <div class="p-6">
         <div class="space-y-4">
-          <div>
-            <label class="textNormal mb-2 block text-sm font-medium"> Category Title </label>
-            <input
-              type="text"
-              [(ngModel)]="categoryTitle"
-              placeholder="Enter category title"
-              class="textNormal w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-zinc-600 dark:bg-transparent"
-              [disabled]="isLoading"
-              autofocus
-            />
-          </div>
+          <app-unified-field
+            [field]="titleFieldDef"
+            [form]="categoryFormGroup"
+            class="w-full"
+            (valueChange)="onTitleChange($event)"
+          />
         </div>
       </div>
 
-      <div
-        class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-zinc-700"
-      >
-        <button
-          class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-700"
-          (click)="closeModal()"
-          [disabled]="isLoading"
-        >
+      <div class="flex items-center justify-end gap-3 border-t border-[var(--accent-color)] p-6">
+        <app-button variant="cancel" (clicked)="closeModal()" [disabled]="isLoading">
           Cancel
-        </button>
+        </app-button>
         <app-button
           variant="accent"
           (clicked)="saveCategory()"
-          [disabled]="!categoryTitle.trim() || isLoading"
+          [disabled]="!titleFormControl.value?.trim() || isLoading"
           [loading]="isLoading"
         >
           {{ editingCategory ? "Update" : "Create" }}

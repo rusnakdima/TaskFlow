@@ -386,7 +386,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
         mode: this.viewMode(),
         pageKey: "tasks",
         onModeChange: (mode) => this.setViewMode(mode),
-        modes: ["card", "grid", "table", "kanban"],
+        modes: ["grid", "table", "kanban"],
       },
       refresh: {
         onClick: () => {

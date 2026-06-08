@@ -1,5 +1,5 @@
 <div
-  class="rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+  class="rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
 >
   <div class="mb-6 flex items-center gap-3">
     <div
@@ -20,12 +20,12 @@
     <mat-radio-group
       [value]="priority"
       [disabled]="disabled"
-      (change)="priorityChange.emit($event.value)"
+      (change)="onPriorityChange($event.value)"
       class="space-y-3"
     >
       <mat-radio-button
         value="urgent"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-red-500 bg-red-50 p-3 transition-colors hover:bg-red-100 dark:border-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 transition-colors hover:border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <div class="h-3 w-3 animate-pulse rounded-full bg-red-500"></div>
@@ -42,7 +42,7 @@
       </mat-radio-button>
       <mat-radio-button
         value="high"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 shadow-sm transition-all hover:border-red-400 hover:bg-red-50/50 hover:shadow-md dark:border-zinc-600 dark:hover:border-red-500/50 dark:hover:bg-red-900/10"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 shadow-sm transition-all hover:border-[var(--accent-color)]/50 hover:shadow-md dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <div class="h-3 w-3 rounded-full bg-red-500 ring-2 ring-red-200 dark:ring-red-800"></div>
@@ -54,7 +54,7 @@
       </mat-radio-button>
       <mat-radio-button
         value="medium"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 shadow-sm transition-all hover:border-yellow-400 hover:bg-yellow-50/50 hover:shadow-md dark:border-zinc-600 dark:hover:border-yellow-500/50 dark:hover:bg-yellow-900/10"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 shadow-sm transition-all hover:border-[var(--accent-color)]/50 hover:shadow-md dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <div
@@ -68,7 +68,7 @@
       </mat-radio-button>
       <mat-radio-button
         value="low"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 shadow-sm transition-all hover:border-green-400 hover:bg-green-50/50 hover:shadow-md dark:border-zinc-600 dark:hover:border-green-500/50 dark:hover:bg-green-900/10"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 shadow-sm transition-all hover:border-[var(--accent-color)]/50 hover:shadow-md dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <div

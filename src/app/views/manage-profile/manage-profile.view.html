@@ -3,7 +3,7 @@
   style="min-height: calc(100vh - 150px)"
 >
   <div
-    class="m-auto flex w-full max-w-md flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
+    class="m-auto flex w-full max-w-md flex-col rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
   >
     <div class="mb-6 text-center">
       <div class="mb-4">
@@ -20,23 +20,34 @@
       </p>
     </div>
 
-    <div class="space-y-4">
-      <app-template-form [parentForm]="form" [form]="form" [formFields]="formFields" />
-    </div>
+    <form [formGroup]="uiForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-y-4">
+      <app-profile-form
+        [name]="basicInfoGroup.get('name')?.value"
+        [last_name]="basicInfoGroup.get('last_name')?.value"
+        [bio]="basicInfoGroup.get('bio')?.value"
+        [image_url]="basicInfoGroup.get('image_url')?.value"
+        (nameChange)="basicInfoGroup.patchValue({ name: $event })"
+        (lastNameChange)="basicInfoGroup.patchValue({ last_name: $event })"
+        (bioChange)="basicInfoGroup.patchValue({ bio: $event })"
+        (imageUrlChange)="basicInfoGroup.patchValue({ image_url: $event })"
+      />
 
-    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-      <app-button *ngIf="!isProfileRequired" variant="cancel" (clicked)="onCancel()">
-        <mat-icon class="h-5! w-5!" fontIcon="close" />
-        Cancel
-      </app-button>
+      <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        @if (!isProfileRequired) {
+          <app-button variant="cancel" (clicked)="onCancel()">
+            <mat-icon class="h-5! w-5!" fontIcon="close" />
+            Cancel
+          </app-button>
+        }
 
-      <app-button variant="accent" (clicked)="onSubmit()">
-        <mat-icon class="h-5! w-5!" fontIcon="check" />
-        {{ isEditMode ? "Update" : "Create" }}
-      </app-button>
-    </div>
+        <app-button variant="accent" type="submit">
+          <mat-icon class="h-5! w-5!" fontIcon="check" />
+          {{ isEditMode ? "Update" : "Create" }}
+        </app-button>
+      </div>
+    </form>
 
-    <div class="mt-6 border-t border-gray-200 pt-4 text-center dark:border-zinc-600">
+    <div class="mt-6 border-t border-[var(--accent-color)] pt-4 text-center">
       <button [routerLink]="['/profile']" class="styleLinkRedir">
         <mat-icon class="mr-1 h-5! w-5! min-w-5 text-xl!" fontIcon="arrow_back" />
         Back to Profile

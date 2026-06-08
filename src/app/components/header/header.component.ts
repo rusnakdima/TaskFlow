@@ -7,6 +7,7 @@ import {
   OnInit,
   Output,
   signal,
+  computed,
   ChangeDetectorRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
@@ -31,6 +32,7 @@ import { NotificationAction } from "@models/notification.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { AppStateService } from "@services/core/app-state.service";
+import { ThemeService } from "@services/ui/theme.service";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
@@ -63,7 +65,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private syncService: UnifiedSyncService,
     private cdr: ChangeDetectorRef,
     private location: Location,
-    private appStateService: AppStateService
+    private appStateService: AppStateService,
+    private themeService: ThemeService
   ) {}
 
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
@@ -87,33 +90,47 @@ export class HeaderComponent implements OnInit, OnDestroy {
   breadcrumbs = signal<Breadcrumb[]>([]);
   private syncSubscription: Subscription | null = null;
 
+  isDark = computed(() => this.themeService.getEffectiveMode() === "dark");
+
   ngOnInit(): void {
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
     );
 
+    this.updateBreadcrumbs();
+
     this.router.events
       .pipe(
         filter((event) => event instanceof NavigationEnd),
         distinctUntilChanged(),
-        map(async () => await this.createBreadcrumbs(this.route.root))
+        map(() => this.createBreadcrumbs(this.route.root))
       )
       .subscribe(async (breadcrumbs) => {
         this.breadcrumbs.set(await breadcrumbs);
-        const currentUrl = this.router.url.split("?")[0];
-        this.isBack.set(currentUrl !== "/dashboard" && currentUrl !== "/");
-        this.title.set(
-          this.breadcrumbs().length > 0
-            ? this.breadcrumbs()[this.breadcrumbs().length - 1].label
-            : "TaskFlow"
-        );
-        this.description.set(
-          this.breadcrumbs().length > 0
-            ? this.breadcrumbs()[this.breadcrumbs().length - 1].description
-            : ""
-        );
-        this.cdr.detectChanges();
+        this.updateTitleAndBack();
       });
+  }
+
+  private updateTitleAndBack(): void {
+    const currentUrl = this.router.url.split("?")[0];
+    this.isBack.set(currentUrl !== "/dashboard" && currentUrl !== "/");
+    this.title.set(
+      this.breadcrumbs().length > 0
+        ? this.breadcrumbs()[this.breadcrumbs().length - 1].label
+        : "TaskFlow"
+    );
+    this.description.set(
+      this.breadcrumbs().length > 0
+        ? this.breadcrumbs()[this.breadcrumbs().length - 1].description
+        : ""
+    );
+    this.cdr.detectChanges();
+  }
+
+  private async updateBreadcrumbs(): Promise<void> {
+    const breadcrumbs = await this.createBreadcrumbs(this.route.root);
+    this.breadcrumbs.set(breadcrumbs);
+    this.updateTitleAndBack();
   }
 
   ngOnDestroy(): void {
@@ -133,16 +150,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     for (const child of children) {
       const routeURL: string = child.snapshot.url.map((segment) => segment.path).join("/");
-
-      if (routeURL == "") {
-        return this.createBreadcrumbs(child, url, breadcrumbs);
-      }
-
       const breadcrumbData = child.snapshot.data["breadcrumb"];
       const newUrl = url + "/" + routeURL;
 
       let label: string = "";
       let description: string = "";
+
+      if (routeURL == "") {
+        if (breadcrumbData) {
+          if (typeof breadcrumbData === "function") {
+            label = await breadcrumbData(child.snapshot);
+          } else {
+            label = breadcrumbData;
+          }
+          breadcrumbs.push({ label, description, url });
+        }
+        return this.createBreadcrumbs(child, url, breadcrumbs);
+      }
 
       if (breadcrumbData) {
         if (typeof breadcrumbData === "function") {
@@ -263,6 +287,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.router.navigate(["/todos", notif.todo_id, "tasks", notif.task_id, "subtasks"]);
       }
     }
+  }
+
+  toggleTheme() {
+    this.themeService.toggleMode();
   }
 
   async syncAll(silent: boolean = false) {

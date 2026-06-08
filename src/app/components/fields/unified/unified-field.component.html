@@ -1,9 +1,9 @@
-<div class="unified-field-wrapper" [class]="class">
+<div class="w-full" [class]="class" [formGroup]="form">
   @if (isShow()) {
     @switch (field.type) {
       <!-- Text Input -->
       @case (TypeField.text) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <input
             matInput
@@ -19,7 +19,7 @@
 
       <!-- Number Input -->
       @case (TypeField.number) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <input
             matInput
@@ -36,7 +36,7 @@
 
       <!-- Textarea -->
       @case (TypeField.textarea) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <textarea
             matInput
@@ -52,7 +52,7 @@
 
       <!-- Select -->
       @case (TypeField.select) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <mat-select [formControlName]="field.name">
             @for (option of getOptions(); track trackByValue($index, option)) {
@@ -69,38 +69,38 @@
 
       <!-- Checkbox -->
       @case (TypeField.checkbox) {
-        <div class="unified-checkbox-wrapper">
-          <mat-checkbox [formControlName]="field.name" class="unified-checkbox">
+        <div class="flex flex-col gap-1">
+          <mat-checkbox [formControlName]="field.name">
             {{ getLabel() }}
           </mat-checkbox>
           @if (showError && isInvalid(field.name)) {
-            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+            <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
           }
         </div>
       }
 
       <!-- Radio Group -->
       @case (TypeField.radio) {
-        <div class="unified-radio-wrapper">
-          <mat-label class="unified-radio-label">{{ getLabel() }}</mat-label>
-          <mat-radio-group [formControlName]="field.name" class="unified-radio-group">
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <mat-radio-group [formControlName]="field.name" class="flex flex-col gap-2">
             @for (option of getOptions(); track trackByValue($index, option)) {
               @if (isOptionVisible(option)) {
-                <mat-radio-button [value]="option.value" class="unified-radio-option">
+                <mat-radio-button [value]="option.value">
                   {{ option.label }}
                 </mat-radio-button>
               }
             }
           </mat-radio-group>
           @if (showError && isInvalid(field.name)) {
-            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+            <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
           }
         </div>
       }
 
       <!-- Date Picker -->
       @case (TypeField.datepicker) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <input
             matInput
@@ -118,47 +118,47 @@
 
       <!-- Slide Toggle -->
       @case (TypeField.slidetoggle) {
-        <div class="unified-toggle-wrapper">
-          <mat-slide-toggle [formControlName]="field.name" class="unified-toggle">
+        <div class="flex items-center gap-2">
+          <mat-slide-toggle [formControlName]="field.name">
             {{ getLabel() }}
           </mat-slide-toggle>
           @if (showError && isInvalid(field.name)) {
-            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+            <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
           }
         </div>
       }
 
       <!-- Slider -->
       @case (TypeField.slider) {
-        <div class="unified-slider-wrapper">
-          <mat-label class="unified-slider-label">{{ getLabel() }}</mat-label>
-          <mat-slider [min]="getMin()" [max]="getMax()" class="unified-slider">
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <mat-slider [min]="getMin()" [max]="getMax()" class="w-full">
             <input matSliderThumb [formControlName]="field.name" />
           </mat-slider>
-          <span class="unified-slider-value">{{ form.get(field.name)?.value }}</span>
+          <span class="text-sm text-gray-500">{{ form.get(field.name)?.value }}</span>
           @if (showError && isInvalid(field.name)) {
-            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+            <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
           }
         </div>
       }
 
       <!-- Slider Range -->
       @case (TypeField.sliderrange) {
-        <div class="unified-slider-range-wrapper">
-          <mat-label class="unified-slider-label">{{ getLabel() }}</mat-label>
-          <mat-slider [min]="getMin()" [max]="getMax()" class="unified-slider-range">
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <mat-slider [min]="getMin()" [max]="getMax()" class="w-full">
             <input matSliderStartThumb [formControlName]="field.name + '_start'" />
             <input matSliderEndThumb [formControlName]="field.name + '_end'" />
           </mat-slider>
           @if (showError && (isInvalid(field.name + "_start") || isInvalid(field.name + "_end"))) {
-            <span class="unified-field-error">{{ getErrorMessage(field.name) }}</span>
+            <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
           }
         </div>
       }
 
       <!-- Image (placeholder - to be enhanced) -->
       @case (TypeField.image) {
-        <mat-form-field [appearance]="appearance" class="unified-field">
+        <mat-form-field class="w-full">
           <mat-label>{{ getLabel() }}</mat-label>
           <input
             matInput
@@ -174,25 +174,24 @@
 
       <!-- Menu (placeholder - to be enhanced) -->
       @case (TypeField.menu) {
-        <div class="unified-menu-wrapper">
-          <mat-label class="unified-menu-label">{{ getLabel() }}</mat-label>
-          <!-- Menu implementation would go here -->
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
         </div>
       }
 
       <!-- SubGroup (placeholder - to be enhanced) -->
       @case (TypeField.subgroup) {
-        <div class="unified-subgroup-wrapper">
-          <mat-label class="unified-subgroup-label">{{ getLabel() }}</mat-label>
-          <!-- SubGroup implementation would go here -->
+        <div class="flex flex-col gap-1 rounded-lg border border-[var(--accent-color)] p-4">
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{
+            getLabel()
+          }}</span>
         </div>
       }
 
       <!-- SubList (placeholder - to be enhanced) -->
       @case (TypeField.sublist) {
-        <div class="unified-sublist-wrapper">
-          <mat-label class="unified-sublist-label">{{ getLabel() }}</mat-label>
-          <!-- SubList implementation would go here -->
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
         </div>
       }
     }

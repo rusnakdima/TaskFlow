@@ -67,6 +67,8 @@ export class ManageTodoPage implements OnInit {
   private permissionService = inject(PermissionService);
 
   form!: FormGroup;
+  basicInfoGroup!: FormGroup;
+
   isEdit = signal(false);
   isSubmitting = signal(false);
   isOwner = signal(false);
@@ -184,6 +186,11 @@ export class ManageTodoPage implements OnInit {
   }
 
   private initForm(): void {
+    this.basicInfoGroup = this.fb.group({
+      title: ["", Validators.required],
+      description: [""],
+    });
+
     this.form = this.fb.group({
       _id: [""],
       id: [""],
@@ -271,9 +278,21 @@ export class ManageTodoPage implements OnInit {
 
   private applyItemToForm(item: any): void {
     this.form.patchValue({
-      ...item,
+      _id: item._id || "",
+      id: item.id || "",
+      title: item.title || "",
+      description: item.description || "",
+      priority: item.priority || "medium",
       start_date: item.start_date || "",
       end_date: item.end_date || "",
+      visibility: item.visibility || "private",
+      github_repo_id: item.github_repo_id || "",
+      order: item.order ?? 0,
+    });
+
+    this.basicInfoGroup.patchValue({
+      title: item.title || "",
+      description: item.description || "",
     });
 
     if (item.categories) {
@@ -354,7 +373,8 @@ export class ManageTodoPage implements OnInit {
 
     try {
       const formValue = this.form.value;
-      const payload = this.buildPayload(formValue);
+      const basicInfo = this.basicInfoGroup.value;
+      const payload = this.buildPayload(formValue, basicInfo);
       const visibility = this.isEdit() ? this.visibility() : formValue.visibility || "private";
 
       if (this.isEdit()) {
@@ -383,14 +403,14 @@ export class ManageTodoPage implements OnInit {
     }
   }
 
-  private buildPayload(formValue: any): any {
+  private buildPayload(formValue: any, basicInfo: any): any {
     const token = this.jwtTokenService.getToken();
     const userId = this.jwtTokenService.getUserId(token);
 
     return {
       id: formValue.id || undefined,
-      title: formValue.title,
-      description: formValue.description || "",
+      title: basicInfo.title || formValue.title,
+      description: basicInfo.description || formValue.description || "",
       priority: formValue.priority,
       start_date: formValue.start_date || "",
       end_date: formValue.end_date || "",
@@ -399,16 +419,14 @@ export class ManageTodoPage implements OnInit {
       assignees: formValue.assignees || [],
       assignee_roles: this.assigneeRoles(),
       github_repo_id: formValue.github_repo_id || "",
-      github_repo_name: this.getRepoName(formValue.github_repo_id),
+      github_repo_name: this.getRepoName(parseInt(formValue.github_repo_id, 10)),
       order: formValue.order ?? 0,
     };
   }
 
-  private getRepoName(repoId: string): string {
-    if (!repoId) return "";
-    const numericId = parseInt(repoId, 10);
-    if (isNaN(numericId)) return "";
-    const repo = this.githubRepos().find((r) => r.id === numericId);
+  private getRepoName(repoId: number): string {
+    if (!repoId || isNaN(repoId)) return "";
+    const repo = this.githubRepos().find((r) => r.id === repoId);
     return repo?.full_name || "";
   }
 
@@ -448,10 +466,10 @@ export class ManageTodoPage implements OnInit {
     }
   }
 
-  onGithubRepoChange(repoId: number | null): void {
-    this.selectedGithubRepoId.set(repoId);
-    this.form.patchValue({ github_repo_id: repoId ? String(repoId) : "" });
-    this.githubRepoSearchQuery.set("");
+  onGithubRepoChange(repoData: { repoId: number | null; searchQuery: string }): void {
+    this.selectedGithubRepoId.set(repoData.repoId);
+    this.form.patchValue({ github_repo_id: repoData.repoId ? String(repoData.repoId) : "" });
+    this.githubRepoSearchQuery.set(repoData.searchQuery);
   }
 
   back(): void {
@@ -468,7 +486,10 @@ export class ManageTodoPage implements OnInit {
     this.apiService.categories.create({ title, user_id: userId }).subscribe({
       next: (category: Category) => {
         this.categories.update((cats) => [...cats, category]);
-        this.toggleCategorySelection(category.id);
+        const currentIds = this.form.get("categories")?.value || [];
+        const newIds = [...currentIds, category.id];
+        this.form.patchValue({ categories: newIds });
+        this.selectedCategoryIds.set(new Set(newIds));
       },
       error: (err: Error) =>
         this.notifyService.showError(err.message || "Failed to create category"),
@@ -476,53 +497,49 @@ export class ManageTodoPage implements OnInit {
   }
 
   toggleCategorySelection(categoryId: string): void {
-    const selected = new Set(this.selectedCategoryIds());
-    if (selected.has(categoryId)) {
-      selected.delete(categoryId);
+    const currentIds = this.form.get("categories")?.value || [];
+    let newIds: string[];
+    if (currentIds.includes(categoryId)) {
+      newIds = currentIds.filter((id: string) => id !== categoryId);
     } else {
-      selected.add(categoryId);
+      newIds = [...currentIds, categoryId];
     }
-    this.selectedCategoryIds.set(selected);
-    this.form.patchValue({ categories: Array.from(selected) });
+    this.form.patchValue({ categories: newIds });
+    this.selectedCategoryIds.set(new Set(newIds));
   }
 
   toggleSelectAllCategories(): void {
     const allIds = this.categories().map((c: Category) => c.id);
-    const currentSelected = this.selectedCategoryIds();
-    if (currentSelected.size === allIds.length) {
-      this.selectedCategoryIds.set(new Set());
-    } else {
-      this.selectedCategoryIds.set(new Set(allIds));
-    }
-    this.form.patchValue({ categories: Array.from(this.selectedCategoryIds()) });
+    const currentIds = this.form.get("categories")?.value || [];
+    const newIds = currentIds.length === allIds.length ? [] : allIds;
+    this.form.patchValue({ categories: newIds });
+    this.selectedCategoryIds.set(new Set(newIds));
   }
 
   toggleAssigneeSelection(assigneeId: string): void {
-    const selected = new Set(this.selectedAssigneeIds());
-    if (selected.has(assigneeId)) {
-      selected.delete(assigneeId);
+    const currentIds = this.form.get("assignees")?.value || [];
+    let newIds: string[];
+    if (currentIds.includes(assigneeId)) {
+      newIds = currentIds.filter((id: string) => id !== assigneeId);
       this.assigneeRoles.update((roles) => {
         const newRoles = { ...roles };
         delete newRoles[assigneeId];
         return newRoles;
       });
     } else {
-      selected.add(assigneeId);
+      newIds = [...currentIds, assigneeId];
       this.assigneeRoles.update((roles) => ({ ...roles, [assigneeId]: "viewer" }));
     }
-    this.selectedAssigneeIds.set(selected);
-    this.form.patchValue({ assignees: Array.from(selected) });
+    this.form.patchValue({ assignees: newIds });
+    this.selectedAssigneeIds.set(new Set(newIds));
   }
 
   toggleSelectAllAssignees(): void {
     const allIds = this.assignees().map((a: Profile) => a.user_id);
-    const currentSelected = this.selectedAssigneeIds();
-    if (currentSelected.size === allIds.length) {
-      this.selectedAssigneeIds.set(new Set());
-    } else {
-      this.selectedAssigneeIds.set(new Set(allIds));
-    }
-    this.form.patchValue({ assignees: Array.from(this.selectedAssigneeIds()) });
+    const currentIds = this.form.get("assignees")?.value || [];
+    const newIds = currentIds.length === allIds.length ? [] : allIds;
+    this.form.patchValue({ assignees: newIds });
+    this.selectedAssigneeIds.set(new Set(newIds));
   }
 
   onRoleChange(event: { profileId: string; role: string }): void {

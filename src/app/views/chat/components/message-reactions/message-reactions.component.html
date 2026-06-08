@@ -6,9 +6,9 @@
           class="chat-reaction-pop flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:scale-105 active:scale-95"
           [ngClass]="{
             'border-[var(--accent-color)]': reaction.isOwn,
-            'bg-[var(--accent-50)]': reaction.isOwn,
+            'border-[var(--accent-color)]/50': reaction.isOwn,
             'text-[var(--accent-color)]': reaction.isOwn,
-            'dark:border-zinc-600': !reaction.isOwn,
+            'dark:border-[var(--accent-color)]': !reaction.isOwn,
             'dark:bg-zinc-700': !reaction.isOwn,
             'text-gray-600': !reaction.isOwn,
             'dark:text-gray-300': !reaction.isOwn,

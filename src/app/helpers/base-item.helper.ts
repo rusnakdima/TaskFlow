@@ -142,7 +142,8 @@ export class BaseItemHelper {
    * Get priority badge class
    */
   static getPriorityBadgeClass(priority: string): string {
-    if (!priority) return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+    if (!priority)
+      return "bg-transparent text-gray-600 border border-gray-400 dark:text-gray-400 dark:border-gray-400/50";
     const p = priority.toLowerCase();
     return PRIORITY_COLORS[p as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.low;
   }
@@ -154,17 +155,17 @@ export class BaseItemHelper {
     switch (status?.toLowerCase()) {
       case "active":
       case "in_progress":
-        return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+        return "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50";
       case "completed":
       case "done":
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
+        return "bg-transparent text-blue-600 border border-blue-500 dark:text-blue-400 dark:border-blue-400/50";
       case "pending":
-        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
+        return "bg-transparent text-yellow-600 border border-yellow-500 dark:text-yellow-400 dark:border-yellow-400/50";
       case "cancelled":
       case "deleted":
-        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
+        return "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+        return "bg-transparent text-gray-600 border border-gray-400 dark:text-gray-400 dark:border-gray-400/50";
     }
   }
 

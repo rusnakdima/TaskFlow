@@ -3,7 +3,7 @@
     <span class="text-sm text-gray-400">Loading...</span>
   }
   <div
-    class="hidden rounded-lg border border-gray-300 p-1 lg:inline-flex dark:border-zinc-600"
+    class="hidden rounded-lg border border-[var(--accent-color)] p-1 lg:inline-flex dark:bg-transparent"
     (mouseenter)="onMouseEnter()"
     (mouseleave)="onMouseLeave()"
     (wheel)="onWheel($event)"
@@ -11,14 +11,11 @@
     @for (option of options; track option.id) {
       <button
         class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-        [class.bg-[var(--accent-100)]]="active === option.id"
-        [class.dark:bg-[var(--accent-900)]]="active === option.id"
-        [class.text-black]="active === option.id"
-        [class.dark:text-white]="active === option.id"
-        [class.text-gray-700]="active !== option.id"
-        [class.dark:text-gray-300]="active !== option.id"
-        [class.hover:bg-gray-100]="active !== option.id"
-        [class.dark:hover:bg-zinc-700]="active !== option.id"
+        [ngClass]="
+          active === option.id
+            ? 'bg-[var(--accent-200)] text-black dark:bg-[var(--accent-900)] dark:text-white'
+            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
+        "
         (click)="onSelect(option.id)"
       >
         @if (option.icon) {
@@ -37,7 +34,7 @@
 
   <div class="flex items-center gap-2 lg:hidden">
     <button
-      class="flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="selectorMenu"
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
@@ -51,7 +48,7 @@
     </button>
     <mat-menu
       #selectorMenu="matMenu"
-      class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      class="overflow-hidden rounded-xl border-2 border-[var(--accent-color)] shadow-2xl dark:border-[var(--accent-400)]"
     >
       <ng-container
         *ngTemplateOutlet="

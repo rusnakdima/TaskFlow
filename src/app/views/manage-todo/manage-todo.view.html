@@ -16,11 +16,11 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-y-3">
     <app-basic-info-section
-      [title]="form.get('title')?.value"
-      [description]="form.get('description')?.value"
+      [title]="basicInfoGroup.get('title')?.value"
+      [description]="basicInfoGroup.get('description')?.value"
       itemType="todo"
-      (titleChange)="form.patchValue({ title: $event })"
-      (descriptionChange)="form.patchValue({ description: $event })"
+      (titleChange)="basicInfoGroup.patchValue({ title: $event })"
+      (descriptionChange)="basicInfoGroup.patchValue({ description: $event })"
     />
 
     <app-category-section
@@ -36,13 +36,11 @@
 
     <app-priority-section
       [priority]="form.get('priority')?.value"
-      [disabled]="!canEditPriority()"
       (priorityChange)="form.patchValue({ priority: $event })"
     />
 
     <app-visibility-section
       [visibility]="visibility()"
-      [disabled]="!canEditVisibility()"
       (visibilityChange)="onVisibilityChange($event)"
     />
 
@@ -92,7 +90,7 @@
         <span class="flex items-center gap-2">
           {{ isEdit() ? "Update" : "Create" }}
           <kbd
-            class="hidden rounded-md border border-blue-800 bg-blue-700 px-1.5 py-0.5 text-[10px] font-semibold text-blue-100 opacity-80 sm:inline-block"
+            class="hidden rounded-md border border-[var(--accent-color)] bg-[var(--accent-600)] px-1.5 py-0.5 text-[10px] font-semibold text-white opacity-80 sm:inline-block"
           >
             Ctrl+S
           </kbd>

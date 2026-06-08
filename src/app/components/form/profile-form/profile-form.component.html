@@ -1,0 +1,30 @@
+<div class="flex flex-col gap-6">
+  <app-form-section icon="account_circle" title="Avatar" iconColor="purple">
+    <app-avatar-selector [imageUrl]="image_url" (imageUrlChange)="onImageUrlChange($event)" />
+  </app-form-section>
+
+  <app-form-section icon="info" title="Personal Information" iconColor="blue">
+    <div class="grid grid-cols-1 gap-6">
+      <app-unified-field
+        [field]="nameFieldDef"
+        [form]="profileFormGroup"
+        class="w-full"
+        (valueChange)="onNameChange($event)"
+      />
+
+      <app-unified-field
+        [field]="lastNameFieldDef"
+        [form]="profileFormGroup"
+        class="w-full"
+        (valueChange)="onLastNameChange($event)"
+      />
+
+      <app-unified-field
+        [field]="bioFieldDef"
+        [form]="profileFormGroup"
+        class="w-full"
+        (valueChange)="onBioChange($event)"
+      />
+    </div>
+  </app-form-section>
+</div>

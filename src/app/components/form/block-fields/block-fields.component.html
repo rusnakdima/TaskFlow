@@ -1,38 +1,38 @@
-<div class="flex flex-col">
+<div class="flex flex-col" [formGroup]="formG">
   @if (field) {
     @switch (field.type) {
       @case (TypeField.text) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.number) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.textarea) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.image) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.select) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.checkbox) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.radio) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.datepicker) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.slidetoggle) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.slider) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @case (TypeField.sliderrange) {
-        <app-unified-field [field]="field" [form]="formG!" [showError]="true" />
+        <app-unified-field [field]="field" [form]="formG" [showError]="true" />
       }
       @default {
         <div class="text-sm text-gray-500">Unsupported field type: {{ field.type }}</div>

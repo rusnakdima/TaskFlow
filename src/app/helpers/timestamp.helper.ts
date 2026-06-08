@@ -9,14 +9,6 @@ export class TimestampHelper {
   static createTimestamp(): string {
     return new Date().toISOString();
   }
-
-  static now(): number {
-    return Date.now();
-  }
-
-  static currentTimestamp(): string {
-    return TimestampHelper.createTimestamp();
-  }
 }
 
 export class VisibilityHelper {

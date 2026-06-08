@@ -39,15 +39,15 @@ export class StatusToggleComponent {
     switch (this.status) {
       case TaskStatus.COMPLETED:
       case "completed":
-        return `${sizeClass} text-green-600! hover:bg-green-50! dark:text-green-400! dark:hover:bg-green-900/30!`;
+        return `${sizeClass} text-green-600! hover:bg-green-500/10! dark:text-green-400! dark:hover:bg-green-400/10!`;
       case TaskStatus.SKIPPED:
       case "skipped":
-        return `${sizeClass} text-orange-600! hover:bg-orange-50! dark:text-orange-400! dark:hover:bg-orange-900/30!`;
+        return `${sizeClass} text-orange-600! hover:bg-orange-500/10! dark:text-orange-400! dark:hover:bg-orange-400/10!`;
       case TaskStatus.FAILED:
       case "failed":
-        return `${sizeClass} text-red-600! hover:bg-red-50! dark:text-red-400! dark:hover:bg-red-900/30!`;
+        return `${sizeClass} text-red-600! hover:bg-red-500/10! dark:text-red-400! dark:hover:bg-red-400/10!`;
       default:
-        return `${sizeClass} text-gray-400! hover:bg-gray-100! dark:text-gray-500! dark:hover:bg-gray-700!`;
+        return `${sizeClass} text-gray-400! hover:bg-gray-500/10! dark:text-gray-500! dark:hover:bg-gray-400/10!`;
     }
   }
 

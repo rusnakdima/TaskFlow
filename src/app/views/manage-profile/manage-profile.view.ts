@@ -1,24 +1,15 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, inject, DestroyRef } from "@angular/core";
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from "@angular/forms";
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
 /* components */
-import { TemplateFormComponent } from "@components/form/template-form/template-form.component";
+import { ProfileFormComponent } from "@components/form/profile-form/profile-form.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
-/* models */
-import { FormField, TypeField } from "@models/form-field.model";
 
 /* services */
 import { AuthService } from "@services/auth/auth.service";
@@ -27,23 +18,31 @@ import { ApiService } from "@services/api.service";
 import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { ProfileRequiredService } from "@services/core/profile-required.service";
 
+interface ProfileMetadata {
+  _id: string;
+  id: string;
+  original_image_url: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 @Component({
   selector: "app-manage-profile",
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     ReactiveFormsModule,
     RouterModule,
     MatIconModule,
-    TemplateFormComponent,
+    ProfileFormComponent,
     AppButtonComponent,
   ],
   templateUrl: "./manage-profile.view.html",
 })
 export class ManageProfileView implements OnInit {
-  isEditMode: boolean = false;
-  isProfileRequired: boolean = false;
+  isEditMode = false;
+  isProfileRequired = false;
   private userId: string = "";
   private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
@@ -54,48 +53,20 @@ export class ManageProfileView implements OnInit {
   private storage = inject(UnifiedStorageService);
   private profileRequiredService = inject(ProfileRequiredService);
 
-  form: FormGroup = this.fb.group({
-    _id: [""],
-    id: [""],
-    name: ["", Validators.required],
-    last_name: ["", Validators.required],
-    bio: [""],
-    image_url: ["/assets/images/avatars/avatar-1.svg"],
-    original_image_url: [""],
-    user_id: ["", Validators.required],
-    created_at: [""],
-    updated_at: [""],
-  });
+  uiForm!: FormGroup;
+  basicInfoGroup!: FormGroup;
 
-  formFields: Array<FormField> = [
-    {
-      label: "Name",
-      name: "name",
-      type: TypeField.text,
-      isShow: () => true,
-    },
-    {
-      label: "Last Name",
-      name: "last_name",
-      type: TypeField.text,
-      isShow: () => true,
-    },
-    {
-      label: "Biography",
-      name: "bio",
-      type: TypeField.text,
-      isShow: () => true,
-    },
-    {
-      label: "Image Profile",
-      name: "image_url",
-      type: TypeField.image,
-      isShow: () => true,
-      avatarsOnly: true,
-    },
-  ];
+  metadata: ProfileMetadata = {
+    _id: "",
+    id: "",
+    original_image_url: "",
+    user_id: "",
+    created_at: "",
+    updated_at: "",
+  };
 
   ngOnInit() {
+    this.initForm();
     this.userId = this.authService.getValueByKey("id") || "";
     if (!this.userId) {
       this.notifyService.showError("You are not logged in");
@@ -103,7 +74,7 @@ export class ManageProfileView implements OnInit {
       return;
     }
 
-    this.form.controls["user_id"].setValue(this.userId);
+    this.metadata.user_id = this.userId;
     this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
 
     let profile = this.storage.profiles().find((p) => p.user_id === this.userId);
@@ -117,15 +88,44 @@ export class ManageProfileView implements OnInit {
         if (profile || attempts >= maxAttempts) {
           clearInterval(checkProfile);
           if (profile && profile.user_id === this.userId) {
-            this.isEditMode = true;
-            this.form.patchValue(profile);
+            this.loadProfile(profile);
           }
         }
       }, 100);
     } else if (profile.user_id === this.userId) {
-      this.isEditMode = true;
-      this.form.patchValue(profile);
+      this.loadProfile(profile);
     }
+  }
+
+  private initForm(): void {
+    this.basicInfoGroup = this.fb.group({
+      name: ["", Validators.required],
+      last_name: ["", Validators.required],
+      bio: [""],
+      image_url: ["/assets/images/avatars/avatar-1.svg"],
+    });
+
+    this.uiForm = this.fb.group({
+      basicInfo: this.basicInfoGroup,
+    });
+  }
+
+  private loadProfile(profile: any) {
+    this.isEditMode = true;
+    this.basicInfoGroup.patchValue({
+      name: profile.name,
+      last_name: profile.last_name,
+      bio: profile.bio,
+      image_url: profile.image_url,
+    });
+    this.metadata = {
+      _id: profile._id,
+      id: profile.id,
+      original_image_url: profile.original_image_url,
+      user_id: profile.user_id,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
   }
 
   onCancel() {
@@ -138,51 +138,48 @@ export class ManageProfileView implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) {
-      Object.values(this.form.controls).forEach((control) => {
+    if (this.uiForm.invalid || this.basicInfoGroup.invalid) {
+      Object.values(this.basicInfoGroup.controls).forEach((control) => {
         control.markAsTouched();
       });
       return;
     }
 
-    if (this.form.valid) {
-      const body = this.form.value;
+    const basicInfo = this.basicInfoGroup.value;
+    const body = { ...this.metadata, ...basicInfo };
 
-      if (this.isEditMode) {
-        const currentProfile = this.storage.profiles().find((p) => p.user_id === this.userId);
-        if (currentProfile) {
-          const { _id, ...updateData } = body;
-          const sub = this.apiService.profiles.update(currentProfile.id, updateData).subscribe({
-            next: (updatedProfile) => {
-              this.storage.updateEntitySignal("profiles", updatedProfile.id, updatedProfile);
-              this.notifyService.showSuccess("Profile updated successfully");
-              this.profileRequiredService.setProfileRequiredMode(false);
-              this.router.navigate(["/profile"]);
-            },
-            error: (err: unknown) => {
-              const message = err instanceof Error ? err.message : "Failed to update profile";
-              this.notifyService.showError(message);
-            },
-          });
-          this.destroyRef.onDestroy(() => sub.unsubscribe());
-        }
-      } else {
-        const sub = this.apiService.profiles.create(body).subscribe({
-          next: (newProfile) => {
-            this.storage.addEntity("profiles", newProfile);
-            this.notifyService.showSuccess("Profile created successfully");
+    if (this.isEditMode) {
+      const currentProfile = this.storage.profiles().find((p) => p.user_id === this.userId);
+      if (currentProfile) {
+        const { _id, ...updateData } = body;
+        const sub = this.apiService.profiles.update(currentProfile.id, updateData).subscribe({
+          next: (updatedProfile) => {
+            this.storage.updateEntitySignal("profiles", updatedProfile.id, updatedProfile);
+            this.notifyService.showSuccess("Profile updated successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
-            this.router.navigate(["/"]);
+            this.router.navigate(["/profile"]);
           },
           error: (err: unknown) => {
-            const message = err instanceof Error ? err.message : "Failed to create profile";
+            const message = err instanceof Error ? err.message : "Failed to update profile";
             this.notifyService.showError(message);
           },
         });
         this.destroyRef.onDestroy(() => sub.unsubscribe());
       }
     } else {
-      this.notifyService.showError("Error sending data! Enter the data in the field.");
+      const sub = this.apiService.profiles.create(body).subscribe({
+        next: (newProfile) => {
+          this.storage.addEntity("profiles", newProfile);
+          this.notifyService.showSuccess("Profile created successfully");
+          this.profileRequiredService.setProfileRequiredMode(false);
+          this.router.navigate(["/"]);
+        },
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to create profile";
+          this.notifyService.showError(message);
+        },
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 }

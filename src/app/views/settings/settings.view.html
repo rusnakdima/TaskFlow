@@ -1,5 +1,5 @@
 <div class="mx-auto flex max-w-4xl flex-col gap-6">
-  <div class="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-700">
+  <div class="mb-6 flex gap-2">
     <app-segment-selector
       [options]="settingsTabs"
       [active]="activeTab()"
@@ -9,9 +9,9 @@
 
   @if (activeTab() === "notifications") {
     <div
-      class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      class="mb-6 rounded-xl border-2 border-[var(--accent-color)]/50 shadow-sm dark:border-[var(--accent-color)]/50"
     >
-      <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+      <div class="border-b border-[var(--accent-color)] p-6">
         <div class="mb-2 flex items-center gap-3">
           <mat-icon
             class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
@@ -188,7 +188,7 @@
         </div>
       </div>
 
-      <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
+      <div class="flex gap-4 border-t border-[var(--accent-color)] p-6">
         <app-button variant="accent" (clicked)="saveSettings()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Settings
@@ -205,9 +205,9 @@
     <div class="space-y-6">
       <!-- Google Authenticator Card -->
       <div
-        class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+        class="rounded-xl border-2 border-[var(--accent-color)]/50 bg-transparent shadow-sm dark:border-[var(--accent-color)]/50"
       >
-        <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+        <div class="border-b border-[var(--accent-color)] p-6">
           <div class="mb-2 flex items-center gap-3">
             <mat-icon class="h-6! w-6! min-w-6 text-2xl! text-green-600 dark:text-green-400"
               >lock</mat-icon
@@ -239,7 +239,7 @@
               <img
                 [src]="totpQrCode()"
                 alt="TOTP QR Code"
-                class="mx-auto max-w-[200px] rounded-lg border border-gray-200 dark:border-zinc-700"
+                class="mx-auto max-w-[200px] rounded-lg border border-[var(--accent-color)]"
               />
               <div class="rounded-lg bg-gray-100 p-4 dark:bg-zinc-700">
                 <p class="textMuted mb-1 text-xs">Manual entry key:</p>
@@ -252,7 +252,7 @@
                   maxlength="6"
                   [ngModel]="totpVerifyCode()"
                   (ngModelChange)="totpVerifyCode.set($event)"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                  class="w-full rounded-lg border border-[var(--accent-color)] px-4 py-2 dark:bg-zinc-800"
                 />
                 <div class="flex gap-2">
                   <app-button variant="accent" [fullWidth]="true" (clicked)="verifyAndEnableTotp()">
@@ -300,7 +300,7 @@
                   maxlength="6"
                   [ngModel]="totpVerifyCode()"
                   (ngModelChange)="totpVerifyCode.set($event)"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                  class="w-full rounded-lg border border-[var(--accent-color)] px-4 py-2 dark:bg-zinc-800"
                 />
               </div>
               <div class="flex gap-2">
@@ -328,9 +328,9 @@
 
   @if (activeTab() === "integrations") {
     <div
-      class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      class="mb-6 rounded-xl border-2 border-[var(--accent-color)]/50 shadow-sm dark:border-[var(--accent-color)]/50"
     >
-      <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+      <div class="border-b border-[var(--accent-color)] p-6">
         <div class="mb-2 flex items-center gap-3">
           <mat-icon
             class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
@@ -342,7 +342,7 @@
       </div>
 
       <div class="space-y-6 p-6">
-        <div class="rounded-lg border border-gray-200 p-4 dark:border-zinc-700">
+        <div class="rounded-lg border border-[var(--accent-color)] p-4">
           <div class="flex items-start gap-4">
             <div
               class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-700"
@@ -447,9 +447,9 @@
 
   @if (activeTab() === "appearance") {
     <div
-      class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+      class="mb-6 rounded-xl border-2 border-[var(--accent-color)]/50 shadow-sm dark:border-[var(--accent-color)]/50"
     >
-      <div class="border-b border-gray-200 p-6 dark:border-zinc-700">
+      <div class="border-b border-[var(--accent-color)] p-6">
         <div class="mb-2 flex items-center gap-3">
           <mat-icon
             class="h-6! w-6! min-w-6 text-2xl! text-blue-600 dark:text-blue-400"
@@ -475,7 +475,7 @@
                     : ''
                 "
                 [style.--tw-ring-color]="preset.accentColor"
-                class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 p-3 transition-all hover:border-gray-300 dark:border-zinc-700 dark:hover:border-zinc-600"
+                class="flex flex-col items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 transition-all hover:border-[var(--accent-color)]/80 dark:hover:border-[var(--accent-color)]"
                 [style.ring-color]="preset.accentColor"
               >
                 <div
@@ -493,7 +493,7 @@
           <div class="flex gap-4">
             @for (m of themeModes; track m.value) {
               <label
-                class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700/50"
+                class="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--accent-color)] px-4 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-700/50"
                 [class]="
                   activeMode() === m.value
                     ? 'border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
@@ -514,105 +514,9 @@
             }
           </div>
         </div>
-
-        <div>
-          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">Gradients</h3>
-          <div class="flex gap-3">
-            @for (intensity of gradientIntensities; track intensity.value) {
-              <button
-                (click)="selectGradientIntensity(intensity.value)"
-                [class]="
-                  activeGradientIntensity() === intensity.value
-                    ? 'bg-blue-600 text-white dark:bg-blue-500'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-700 dark:text-gray-300 dark:hover:bg-zinc-600'
-                "
-                class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-              >
-                {{ intensity.label }}
-              </button>
-            }
-          </div>
-        </div>
-
-        <div>
-          <h3 class="textNormal mb-3 text-sm font-semibold tracking-wide uppercase">Preview</h3>
-          <div
-            class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <div class="flex flex-col gap-3">
-              <div
-                class="flex items-center gap-3 rounded-lg p-3"
-                [ngClass]="
-                  activeGradientIntensity() === 'none'
-                    ? 'bg-[var(--accent-100)] dark:bg-[var(--accent-900)]'
-                    : 'gradient-header-bg'
-                "
-                [class]="activePreset().id + '-header'"
-              >
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                  <mat-icon class="h-5! w-5! text-lg! text-white" fontIcon="menu" />
-                </div>
-                <span class="font-medium text-white">Header Preview</span>
-              </div>
-
-              <div class="flex gap-3">
-                <div
-                  class="flex h-20 w-20 items-center justify-center rounded-lg border-l-2"
-                  [ngClass]="
-                    activeGradientIntensity() === 'none'
-                      ? 'border-[var(--accent-color)] bg-white dark:bg-zinc-800'
-                      : 'gradient-card'
-                  "
-                  [class]="activePreset().id + '-card'"
-                >
-                  <mat-icon
-                    class="h-8! w-8! text-3xl!"
-                    [class]="
-                      activeGradientIntensity() === 'none'
-                        ? 'text-[var(--accent-color)]'
-                        : 'text-gray-400'
-                    "
-                    fontIcon="description"
-                  />
-                </div>
-                <div
-                  class="flex flex-1 items-center justify-center rounded-lg border-l-2"
-                  [ngClass]="
-                    activeGradientIntensity() === 'none'
-                      ? 'border-[var(--accent-color)] bg-white dark:bg-zinc-800'
-                      : 'gradient-card'
-                  "
-                  [class]="activePreset().id + '-card'"
-                >
-                  <span class="textMuted text-sm">Card Preview</span>
-                </div>
-              </div>
-
-              <div class="flex gap-3">
-                <button
-                  class="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-white transition-all hover:opacity-90"
-                  [ngClass]="
-                    activeGradientIntensity() === 'none'
-                      ? 'bg-[var(--accent-color)]'
-                      : 'gradient-button'
-                  "
-                  [class]="activePreset().id + '-button'"
-                >
-                  <mat-icon class="h-4! w-4! text-base!" fontIcon="add" />
-                  Button Preview
-                </button>
-                <button
-                  class="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
-                >
-                  Secondary
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div class="flex gap-4 border-t border-gray-200 p-6 dark:border-zinc-700">
+      <div class="flex gap-4 border-t border-[var(--accent-color)] p-6">
         <app-button variant="accent" (clicked)="saveAppearance()">
           <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="save" />
           Save Appearance

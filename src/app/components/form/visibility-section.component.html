@@ -1,5 +1,5 @@
 <div
-  class="relative rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+  class="relative rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
 >
   @if (disabled) {
     <div
@@ -29,12 +29,12 @@
   <div class="space-y-2">
     <mat-radio-group
       [value]="visibility"
-      (change)="visibilityChange.emit($event.value)"
+      (change)="onVisibilityChange($event.value)"
       class="space-y-3"
     >
       <mat-radio-button
         value="private"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 transition-colors hover:border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <mat-icon class="text-gray-500 dark:text-gray-400" fontIcon="lock" />
@@ -46,7 +46,7 @@
       </mat-radio-button>
       <mat-radio-button
         value="shared"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 transition-colors hover:border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <mat-icon class="text-blue-500 dark:text-blue-400" fontIcon="group" />
@@ -58,7 +58,7 @@
       </mat-radio-button>
       <mat-radio-button
         value="public"
-        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-[var(--accent-color)]/50 p-3 transition-colors hover:border-[var(--accent-color)]/50 dark:border-[var(--accent-color)]/50 dark:hover:border-[var(--accent-color)]/50"
       >
         <div class="flex flex-1 items-center gap-2">
           <mat-icon class="text-green-500 dark:text-green-400" fontIcon="public" />

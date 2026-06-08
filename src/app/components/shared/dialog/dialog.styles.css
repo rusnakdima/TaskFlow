@@ -20,9 +20,12 @@
 
 .app-dialog-container {
   width: 100%;
-  margin: 1rem;
+  max-width: 100%;
+  margin-left: 1rem;
+  margin-right: 1rem;
   border-radius: 0.75rem;
-  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  background-color: transparent;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   overflow: hidden;
   animation: slideUp 0.2s ease-out;
@@ -40,14 +43,15 @@
 }
 
 .dark .app-dialog-container {
-  background-color: var(--bg-card);
+  background-color: transparent;
+  border-color: var(--accent-color);
 }
 
 .app-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -70,10 +74,10 @@
   height: 2rem;
   border: none;
   border-radius: 0.5rem;
-  background: transparent;
-  color: var(--text-secondary);
+  background-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--text-secondary);
 }
 
 .app-dialog-close:hover {
@@ -99,12 +103,13 @@
 /* Mobile responsiveness */
 @media (max-width: 640px) {
   .app-dialog-container {
-    margin: 0.5rem;
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
     max-width: calc(100% - 1rem);
   }
 
   .app-dialog-header {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
   }
 
   .app-dialog-content {

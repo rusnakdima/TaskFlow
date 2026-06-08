@@ -1,5 +1,5 @@
 <div
-  class="relative rounded-xl border border-gray-200 bg-transparent p-6 shadow-lg dark:border-zinc-700 dark:bg-transparent"
+  class="relative rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
 >
   @if (disabled) {
     <div
@@ -34,7 +34,7 @@
     </div>
   } @else {
     <div
-      class="overflow-hidden rounded-xl border border-gray-200 bg-transparent dark:border-zinc-600 dark:bg-transparent"
+      class="overflow-hidden rounded-xl border border-[var(--accent-color)] bg-transparent dark:bg-transparent"
     >
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -42,15 +42,15 @@
         </div>
         <input
           type="text"
-          [ngModel]="searchQuery"
-          (ngModelChange)="searchQueryChange.emit($event)"
+          [value]="searchQuery"
+          (input)="onSearchQueryChange($any($event.target).value)"
           placeholder="Search repositories..."
           class="w-full bg-transparent py-3.5 pr-4 pl-11 text-sm text-gray-700 outline-none placeholder:text-gray-400 dark:text-gray-200"
         />
         @if (searchQuery) {
           <button
             type="button"
-            (click)="searchQueryChange.emit('')"
+            (click)="clearSearch()"
             class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <mat-icon class="h-4! w-4!" fontIcon="close" />
@@ -58,15 +58,14 @@
         }
       </div>
 
-      <div class="border-t border-gray-200 dark:border-zinc-700"></div>
+      <div class="border-t border-[var(--accent-color)]"></div>
 
       <div class="custom-scrollbar max-h-52 overflow-y-auto">
         <div
-          class="flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700"
-          [ngClass]="{
-            'bg-blue-50 dark:bg-blue-900/30': !selectedRepoId,
-          }"
-          (click)="repoChange.emit(null)"
+          class="flex cursor-pointer items-center gap-3 border-b border-[var(--accent-color)]/50 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700"
+          [class.bg-blue-50]="!selectedRepoId"
+          [class.dark:bg-blue-900/30]="!selectedRepoId"
+          (click)="onRepoChange(null)"
         >
           <mat-radio-group>
             <mat-radio-button [value]="''"></mat-radio-button>
@@ -75,11 +74,10 @@
         </div>
         @for (repo of filteredRepos; track repo.id) {
           <div
-            class="flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-700"
-            [ngClass]="{
-              'bg-blue-50 dark:bg-blue-900/30': selectedRepoId === repo.id,
-            }"
-            (click)="repoChange.emit(repo.id)"
+            class="flex cursor-pointer items-center gap-3 border-b border-[var(--accent-color)]/50 px-4 py-3 transition-colors last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-700"
+            [class.bg-blue-50]="selectedRepoId === repo.id"
+            [class.dark:bg-blue-900/30]="selectedRepoId === repo.id"
+            (click)="onRepoChange(repo.id)"
           >
             <mat-radio-group>
               <mat-radio-button [value]="repo.id"></mat-radio-button>

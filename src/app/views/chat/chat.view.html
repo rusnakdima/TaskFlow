@@ -1,6 +1,6 @@
 <div class="theme flex h-[calc(100vh-155px)] w-full overflow-hidden">
   <aside
-    class="flex shrink-0 flex-col border-r border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+    class="flex shrink-0 flex-col border-r border-[var(--accent-color)] bg-white dark:bg-zinc-800"
     [class.w-72]="!state.isTablet() || !state.sidebarCollapsed()"
     [class.w-16]="state.isTablet() && state.sidebarCollapsed()"
     [class.hidden]="state.isMobile()"
@@ -45,7 +45,7 @@
     }
     @if (state.isTablet() && state.sidebarCollapsed()) {
       <div
-        class="flex w-16 flex-col items-center gap-4 border-r border-gray-200 bg-white py-4 dark:border-zinc-700 dark:bg-zinc-800"
+        class="flex w-16 flex-col items-center gap-4 border-r border-[var(--accent-color)] bg-white py-4 dark:bg-zinc-800"
       >
         <span class="h-3 w-3 shrink-0 rounded-full bg-[var(--accent-color)]"></span>
         <button
@@ -121,7 +121,7 @@
                 class="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow dark:bg-zinc-800"
               >
                 <div
-                  class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-[var(--accent-color)] dark:border-zinc-700"
+                  class="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-color)] border-t-[var(--accent-color)]"
                 ></div>
                 <span class="textMuted text-sm">Loading messages...</span>
               </div>
@@ -223,7 +223,7 @@
                 class="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow dark:bg-zinc-800"
               >
                 <div
-                  class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-[var(--accent-color)] dark:border-zinc-700"
+                  class="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-color)] border-t-[var(--accent-color)]"
                 ></div>
                 <span class="textMuted text-sm">Loading messages...</span>
               </div>
@@ -346,7 +346,7 @@
       (click)="closeContextMenu()"
     >
       <div
-        class="absolute max-w-[280px] min-w-[180px] overflow-hidden rounded-2xl border border-gray-200 bg-white py-2 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+        class="absolute max-w-[280px] min-w-[180px] overflow-hidden rounded-2xl border border-[var(--accent-color)] bg-white py-2 shadow-xl dark:bg-zinc-800"
         [style.left.px]="state.contextMenuPosition().x"
         [style.top.px]="state.contextMenuPosition().y"
         [style.transform]="getContextMenuTransform()"
@@ -373,7 +373,7 @@
           <mat-icon fontIcon="done_all" class="!h-4 !w-4" />
           <span>Mark as read</span>
         </button>
-        <div class="my-1 border-t border-gray-200 dark:border-zinc-700"></div>
+        <div class="my-1 border-t border-[var(--accent-color)]"></div>
         <button
           class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
           (click)="removeConversation()"
@@ -391,7 +391,7 @@
       (click)="closeMessageContextMenu()"
     >
       <div
-        class="absolute max-w-[240px] min-w-[160px] overflow-hidden rounded-2xl border border-[var(--accent-200)] bg-white py-2 shadow-xl ring-2 ring-[var(--accent-color)]/20 dark:border-[var(--accent-700)] dark:bg-zinc-800"
+        class="absolute max-w-[240px] min-w-[160px] overflow-hidden rounded-2xl border border-[var(--accent-color)]/50 bg-white py-2 shadow-xl ring-2 ring-[var(--accent-color)]/20 dark:border-[var(--accent-color)]/50 dark:bg-zinc-800"
         [style.transform]="getMessageContextMenuTransform()"
         (click)="$event.stopPropagation()"
       >
@@ -409,6 +409,53 @@
           <mat-icon fontIcon="delete" class="!h-4 !w-4" />
           Delete Message
         </button>
+      </div>
+    </div>
+  }
+
+  @if (state.showCreateGroupModal()) {
+    <div
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 dark:bg-black/70"
+      (click)="closeCreateGroup()"
+    >
+      <div
+        class="w-full max-w-md rounded-2xl border-2 border-[var(--accent-color)]/50 p-6 shadow-2xl dark:border-[var(--accent-color)]/50"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="mb-6 flex justify-center">
+          <div
+            class="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[var(--accent-color)]/50 text-[var(--accent-color)] dark:border-[var(--accent-color)]/50"
+          >
+            <mat-icon fontIcon="group_add" class="!h-8 !w-8" />
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="mb-2 block text-sm font-medium text-[var(--text-secondary)]"
+            >Group Name</label
+          >
+          <input
+            type="text"
+            [value]="state.newGroupName()"
+            (input)="state.newGroupName.set($any($event.target).value)"
+            placeholder="Enter group name..."
+            class="w-full rounded-xl border-2 border-[var(--accent-color)]/50 px-4 py-3 text-sm text-[var(--text-primary)] transition-all placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)]/50 focus:ring-2 focus:ring-[var(--accent-color)]/20 focus:outline-none dark:border-[var(--accent-color)]/50"
+          />
+        </div>
+
+        <div class="flex gap-3">
+          <app-button variant="cancel" [fullWidth]="true" (clicked)="closeCreateGroup()">
+            Cancel
+          </app-button>
+          <app-button
+            variant="accent"
+            [fullWidth]="true"
+            [disabled]="!state.newGroupName().trim()"
+            (clicked)="createGroup(state.newGroupName())"
+          >
+            Create Group
+          </app-button>
+        </div>
       </div>
     </div>
   }

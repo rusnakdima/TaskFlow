@@ -1,13 +1,4 @@
-import {
-  Directive,
-  EventEmitter,
-  HostListener,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output,
-  signal,
-} from "@angular/core";
+import { Directive, EventEmitter, HostListener, Input, Output, signal } from "@angular/core";
 
 export type PullToRefreshState = "idle" | "pulling" | "triggered" | "refreshing" | "complete";
 
@@ -15,7 +6,7 @@ export type PullToRefreshState = "idle" | "pulling" | "triggered" | "refreshing"
   selector: "[appPullToRefresh]",
   standalone: true,
 })
-export class PullToRefreshDirective implements OnInit, OnDestroy {
+export class PullToRefreshDirective {
   @Input() pullToRefreshHandler: (() => void | Promise<void>) | null = null;
   @Input() pullToRefreshDisabled = false;
 
@@ -38,10 +29,6 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   private readonly COOLDOWN_MS = 500;
 
   private lastRefreshTime = 0;
-
-  ngOnInit(): void {}
-
-  ngOnDestroy(): void {}
 
   @HostListener("touchstart", ["$event"])
   onTouchStart(event: TouchEvent): void {

@@ -26,7 +26,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { GithubService } from "@services/github/github.service";
 import { ThemeService } from "@services/ui/theme.service";
 import { Response, ResponseStatus } from "@models/response.model";
-import { ThemePreset, THEME_PRESETS, GradientIntensity } from "@models/theme.model";
+import { ThemePreset, THEME_PRESETS } from "@models/theme.model";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 @Component({
@@ -72,15 +72,9 @@ export class SettingsView implements OnInit, OnDestroy {
     { value: "dark" as const, label: "Dark", icon: "dark_mode" },
     { value: "system" as const, label: "System", icon: "settings_suggest" },
   ];
-  gradientIntensities = [
-    { value: "none" as const, label: "None" },
-    { value: "subtle" as const, label: "Subtle" },
-    { value: "bold" as const, label: "Bold" },
-  ];
 
   activePreset = signal<ThemePreset>(this.themeService.preset());
   activeMode = signal<"light" | "dark" | "system">(this.themeService.mode());
-  activeGradientIntensity = signal<GradientIntensity>(this.themeService.gradients().sidebar);
 
   totpEnabled = signal(false);
   totpSetupInProgress = signal(false);
@@ -383,11 +377,6 @@ export class SettingsView implements OnInit, OnDestroy {
     this.themeService.setMode(mode);
   }
 
-  selectGradientIntensity(intensity: GradientIntensity): void {
-    this.activeGradientIntensity.set(intensity);
-    this.themeService.setGradientIntensity(intensity);
-  }
-
   saveAppearance(): void {
     this.notifyService.showSuccess("Appearance settings saved!");
   }
@@ -396,7 +385,6 @@ export class SettingsView implements OnInit, OnDestroy {
     this.themeService.resetToDefaults();
     this.activePreset.set(this.themeService.preset());
     this.activeMode.set(this.themeService.mode());
-    this.activeGradientIntensity.set(this.themeService.gradients().sidebar);
     this.notifyService.showSuccess("Appearance reset to defaults!");
   }
 

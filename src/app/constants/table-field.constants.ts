@@ -7,9 +7,12 @@ export const TableFieldColors = {
     false: "text-gray-400!",
   },
   change: {
-    positive: "bg-green-100! text-green-700! dark:bg-green-900/30! dark:text-green-300!",
-    negative: "bg-red-100! text-red-700! dark:bg-red-900/30! dark:text-red-300!",
-    neutral: "bg-gray-100! text-gray-700! dark:bg-gray-700! dark:text-gray-300!",
+    positive:
+      "bg-transparent! text-green-600! border border-green-500! dark:text-green-400! dark:border-green-400/50!",
+    negative:
+      "bg-transparent! text-red-600! border border-red-500! dark:text-red-400! dark:border-red-400/50!",
+    neutral:
+      "bg-transparent! text-gray-600! border border-gray-400! dark:text-gray-400! dark:border-gray-400/50!",
   },
 } as const;
 
@@ -112,9 +115,10 @@ export const TABLE_ACTIONS = {
 } as const;
 
 export const PRIORITY_COLORS = {
-  low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  low: "bg-transparent text-blue-600 border border-blue-500 dark:text-blue-400 dark:border-blue-400/50",
+  medium:
+    "bg-transparent text-yellow-600 border border-yellow-500 dark:text-yellow-400 dark:border-yellow-400/50",
+  high: "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
 } as const;
 
 export const PRIORITY_ICONS = {
@@ -156,13 +160,13 @@ export const STATUS_BG_COLORS = {
 
 export const STATUS_BUTTON_COLORS = {
   [TaskStatus.PENDING]:
-    "bg-blue-100 text-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60",
+    "bg-transparent text-blue-500 border border-blue-500 hover:bg-blue-500/10 dark:text-blue-400 dark:border-blue-400/50 dark:hover:bg-blue-400/10",
   [TaskStatus.COMPLETED]:
-    "bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900/60",
+    "bg-transparent text-green-600 border border-green-500 hover:bg-green-500/10 dark:text-green-400 dark:border-green-400/50 dark:hover:bg-green-400/10",
   [TaskStatus.SKIPPED]:
-    "bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60",
+    "bg-transparent text-orange-600 border border-orange-500 hover:bg-orange-500/10 dark:text-orange-400 dark:border-orange-400/50 dark:hover:bg-orange-400/10",
   [TaskStatus.FAILED]:
-    "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60",
+    "bg-transparent text-red-600 border border-red-500 hover:bg-red-500/10 dark:text-red-400 dark:border-red-400/50 dark:hover:bg-red-400/10",
 } as const;
 
 export const STATUS_BUTTON_ICONS = {
@@ -173,14 +177,19 @@ export const STATUS_BUTTON_ICONS = {
 } as const;
 
 export const DELETED_CHIP_COLORS = {
-  deleted: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  deleted:
+    "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
+  active:
+    "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
 } as const;
 
 export const VISIBILITY_COLORS = {
-  private: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  shared: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  public: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  private:
+    "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
+  shared:
+    "bg-transparent text-yellow-600 border border-yellow-500 dark:text-yellow-400 dark:border-yellow-400/50",
+  public:
+    "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
 } as const;
 
 export const TABLE_CARD_COLORS = {
@@ -205,8 +214,8 @@ export const TABLE_COLUMNS = {
       sortable: true,
       getChipColor: (item: any) =>
         item?.deleted_at
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+          : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
       getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
@@ -223,8 +232,8 @@ export const TABLE_COLUMNS = {
       sortable: true,
       getChipColor: (item: any) =>
         item?.deleted_at
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+          : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
       getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
@@ -258,8 +267,8 @@ export const TABLE_COLUMNS = {
       sortable: true,
       getChipColor: (item: any) =>
         item?.deleted_at
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+          : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
       getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
@@ -275,8 +284,8 @@ export const TABLE_COLUMNS = {
       sortable: true,
       getChipColor: (item: any) =>
         item?.deleted_at
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+          : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
       getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },
@@ -291,8 +300,8 @@ export const TABLE_COLUMNS = {
       sortable: true,
       getChipColor: (item: any) =>
         item?.deleted_at
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+          : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
       getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
     },
     { key: "created_at", label: "Created", type: "datetime", sortable: true },

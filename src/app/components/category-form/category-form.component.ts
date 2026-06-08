@@ -9,14 +9,19 @@ import {
   OnChanges,
   SimpleChanges,
   inject,
+  ChangeDetectionStrategy,
 } from "@angular/core";
-import { FormsModule } from "@angular/forms";
+import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 
+/* components */
+import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
+
 /* models */
 import { Category } from "@models/generated/api.types";
+import { TextField, TypeField } from "@models/form-field.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
@@ -27,8 +32,15 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 @Component({
   selector: "app-category-form",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, AppButtonComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    AppButtonComponent,
+    UnifiedFieldComponent,
+  ],
   templateUrl: "./category-form.component.html",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryFormComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
@@ -42,7 +54,18 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   @Output() close: EventEmitter<void> = new EventEmitter<void>();
   @Output() saved: EventEmitter<void> = new EventEmitter<void>();
 
-  categoryTitle: string = "";
+  titleFormControl = new FormControl("");
+  categoryFormGroup = new FormGroup({
+    title: this.titleFormControl,
+  });
+
+  titleFieldDef: TextField = {
+    name: "title",
+    label: "Category Title",
+    type: TypeField.text,
+    isShow: () => true,
+  };
+
   userId: string = "";
   isLoading: boolean = false;
 
@@ -54,20 +77,21 @@ export class CategoryFormComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes["editingCategory"]) {
-      this.categoryTitle = this.editingCategory ? this.editingCategory.title : "";
+      const title = this.editingCategory ? this.editingCategory.title : "";
+      this.titleFormControl.setValue(title, { emitEvent: false });
     }
   }
 
   openModal(category?: Category) {
     this.editingCategory = category || null;
-    this.categoryTitle = category ? category.title : "";
+    this.titleFormControl.setValue(category ? category.title : "", { emitEvent: false });
     this.isVisible = true;
   }
 
   closeModal() {
     this.isVisible = false;
     this.editingCategory = null;
-    this.categoryTitle = "";
+    this.titleFormControl.setValue("");
     this.close.emit();
   }
 
@@ -85,8 +109,13 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     }
   }
 
+  onTitleChange(value: string): void {
+    this.titleFormControl.setValue(value);
+  }
+
   saveCategory() {
-    if (!this.categoryTitle.trim() || this.isLoading) return;
+    const title = this.titleFormControl.value?.trim();
+    if (!title || this.isLoading) return;
 
     this.isLoading = true;
 
@@ -99,7 +128,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
 
   private createCategory() {
     const categoryData = {
-      title: this.categoryTitle.trim(),
+      title: this.titleFormControl.value?.trim() || "",
       user_id: this.userId,
     };
 
@@ -125,7 +154,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
 
     const updatedCategory = {
       ...this.editingCategory,
-      title: this.categoryTitle.trim(),
+      title: this.titleFormControl.value?.trim() || "",
     };
 
     this.requestService

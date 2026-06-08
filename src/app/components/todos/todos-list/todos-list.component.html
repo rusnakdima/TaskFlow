@@ -194,7 +194,7 @@
         @for (section of ["private", "shared", "public"]; track section) {
           @if (getSectionTodos(section).length > 0) {
             @if ($index > 0) {
-              <div class="col-span-full border-t border-gray-200 dark:border-zinc-700"></div>
+              <div class="col-span-full border-t border-[var(--accent-color)]"></div>
             }
             <div class="col-span-full">
               <ng-container
@@ -232,7 +232,7 @@
         @for (section of ["private", "shared", "public"]; track section) {
           @if (getSectionTodos(section).length > 0) {
             @if ($index > 0) {
-              <div class="border-t border-gray-200 py-2 dark:border-zinc-700"></div>
+              <div class="border-t border-[var(--accent-color)] py-2"></div>
             }
             <div>
               <ng-container

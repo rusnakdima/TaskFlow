@@ -17,7 +17,7 @@
 
   @if (config?.stats) {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.stats!.onToggle()"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="bar_chart" />
@@ -27,7 +27,7 @@
 
   @if (config?.filter) {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="onToggleFilter()"
     >
       <mat-icon
@@ -68,7 +68,7 @@
 
   @if (config?.infoToggle) {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.infoToggle!.onToggle()"
       [title]="config!.infoToggle!.isActive ? 'Hide Info' : 'Show Info'"
     >
@@ -83,7 +83,7 @@
 
   @if (config?.refresh) {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.refresh!.onClick()"
       [disabled]="config!.refresh!.loading"
     >
@@ -98,7 +98,7 @@
 
   @if (config?.sortMenu && config?.viewMode?.mode !== "table") {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="sortMenuDropdown"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="sort" />
@@ -106,7 +106,7 @@
     </button>
     <mat-menu #sortMenuDropdown="matMenu">
       <div
-        class="textMuted mb-1 border-b border-gray-100 px-3 py-2 text-[10px] font-bold tracking-widest uppercase dark:border-zinc-700/50"
+        class="textMuted mb-1 border-b border-[var(--accent-color)]/50 px-3 py-2 text-[10px] font-bold tracking-widest uppercase"
       >
         Sort By
       </div>
@@ -129,7 +129,7 @@
 
   @if (config?.sortOrder && config?.viewMode?.mode !== "table") {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       (click)="config!.sortOrder!.onToggle()"
     >
       <mat-icon
@@ -141,14 +141,14 @@
 
   @if (config?.search) {
     <button
-      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-gray-300 p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:border-zinc-600 dark:text-gray-300 dark:hover:bg-zinc-800"
+      class="focus:ring-accent/50 flex h-min items-center gap-2 rounded-lg border border-[var(--accent-color)] p-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:outline-none dark:text-gray-300 dark:hover:bg-zinc-800"
       [matMenuTriggerFor]="searchMenu"
     >
       <mat-icon class="h-5! w-5! min-w-5 text-xl!" fontIcon="search" />
     </button>
     <mat-menu
       #searchMenu="matMenu"
-      class="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-zinc-700"
+      class="overflow-hidden rounded-xl border-2 border-[var(--accent-color)] shadow-2xl dark:border-[var(--accent-400)]"
     >
       <div class="p-3" (click)="$event.stopPropagation()">
         <input
@@ -157,7 +157,7 @@
           (ngModelChange)="config!.search!.onSearch($event)"
           (click)="$event.stopPropagation()"
           [placeholder]="config!.search!.placeholder || 'Search...'"
-          class="textNormal placeholder:textMuted w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-700"
+          class="textNormal placeholder:textMuted w-full rounded-lg border border-[var(--accent-color)] bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-zinc-700"
         />
       </div>
     </mat-menu>
