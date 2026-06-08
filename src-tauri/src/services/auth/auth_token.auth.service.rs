@@ -222,6 +222,7 @@ impl AuthTokenService {
     }
   }
 
+  #[allow(dead_code)]
   /// Sync user data to MongoDB (non-blocking, best effort)
   /// Compares JSON and Mongo versions, syncs newer data to cloud
   async fn sync_user_to_cloud(&self, user_val: serde_json::Value) -> Result<(), ()> {

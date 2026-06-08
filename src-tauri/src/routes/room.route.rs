@@ -4,6 +4,7 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn create_room(
   state: State<'_, AppState>,
   name: Option<String>,
@@ -29,6 +30,7 @@ pub async fn create_room(
 }
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn get_room(
   state: State<'_, AppState>,
   room_id: String,
@@ -66,6 +68,7 @@ pub async fn get_rooms(
 }
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn add_room_participants(
   state: State<'_, AppState>,
   room_id: String,

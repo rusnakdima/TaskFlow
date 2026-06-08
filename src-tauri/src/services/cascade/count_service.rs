@@ -36,7 +36,7 @@ impl CountService {
     id: &str,
     field: &str,
     delta: i32,
-    is_json: bool,
+    _is_json: bool,
   ) -> OrmResult<()>
   where
     P: Clone + nosql_orm::provider::DatabaseProvider,
@@ -178,7 +178,7 @@ impl CountService {
     &self,
     task_id: Option<&str>,
     subtask_id: Option<&str>,
-    visibility: &str,
+    _visibility: &str,
   ) {
     if let Some(subtask_id) = subtask_id {
       self
@@ -200,7 +200,7 @@ impl CountService {
     &self,
     task_id: Option<&str>,
     subtask_id: Option<&str>,
-    visibility: &str,
+    _visibility: &str,
   ) {
     if let Some(subtask_id) = subtask_id {
       self

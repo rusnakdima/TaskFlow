@@ -384,6 +384,7 @@ impl QrAuthService {
     Ok(())
   }
 
+  #[allow(dead_code)]
   async fn delete_expired_qr_tokens(&self) -> Result<(), ResponseModel> {
     let now = chrono::Utc::now().timestamp();
 

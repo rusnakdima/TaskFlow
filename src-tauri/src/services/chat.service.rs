@@ -219,11 +219,11 @@ impl ChatService {
       .find_by_id("chats", id)
       .await?
       .ok_or_else(|| err_response("Chat not found"))?;
-    let visibility = get_visibility(&existing);
+    let _visibility = get_visibility(&existing);
 
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "deleted_at": now, "updated_at": now });
-    let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
+    let _doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
 
     let json_provider = self.base.get_json_provider();
     if let DataProvider::Json(p) = json_provider {

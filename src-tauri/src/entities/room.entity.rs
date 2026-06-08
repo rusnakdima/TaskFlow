@@ -54,6 +54,7 @@ impl From<RoomCreateModel> for RoomEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RoomUpdateModel {
   pub name: Option<String>,
   pub participant_ids: Option<Vec<String>>,

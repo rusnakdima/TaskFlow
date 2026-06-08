@@ -53,7 +53,7 @@ use routes::{
     check_mongodb_connection, export_to_cloud, get_tasks_by_month, import_to_local,
     sync_visibility_to_provider,
   },
-  room_route::{add_room_participants, create_room, delete_room, get_room, get_rooms},
+  room_route::{delete_room, get_rooms},
   statistics_route::statistics_get,
   todo_permissions_route::{
     change_todo_visibility, get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
@@ -124,7 +124,7 @@ async fn search_data(
   limit: Option<u64>,
   token: Option<String>,
   load: Option<String>,
-  offline: Option<bool>,
+  _offline: Option<bool>,
 ) -> Result<ResponseModel, String> {
   use crate::helpers::auth_helper::extract_user_from_token;
 
