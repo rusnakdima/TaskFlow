@@ -9,6 +9,7 @@ pub enum TodoPermission {
 }
 
 impl TodoPermission {
+  #[allow(dead_code)]
   pub fn from_str(role: &str) -> Self {
     match role.to_lowercase().as_str() {
       "viewer" => TodoPermission::VIEWER,
@@ -65,6 +66,7 @@ impl TodoPermission {
     )
   }
 
+  #[allow(dead_code)]
   pub fn can_edit_comment(&self) -> bool {
     matches!(
       self,
@@ -72,6 +74,7 @@ impl TodoPermission {
     )
   }
 
+  #[allow(dead_code)]
   pub fn can_delete_comment(&self) -> bool {
     matches!(
       self,

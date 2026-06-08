@@ -112,6 +112,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_manage_assignees(todo: &Value, user_id: &str) -> bool {
     if let Some(permission) = Self::get_todo_permission(todo, user_id) {
       return permission == TodoPermission::OWNER;
@@ -191,6 +192,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_edit_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
@@ -207,6 +209,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_delete_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
@@ -223,6 +226,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_archive_task(task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
@@ -236,6 +240,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_archive_subtask(subtask: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;
@@ -252,6 +257,7 @@ impl PermissionService {
     false
   }
 
+  #[allow(dead_code)]
   pub fn can_archive_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
     if Self::is_owner_or_admin(todo, user_id) {
       return true;

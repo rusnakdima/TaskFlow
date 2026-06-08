@@ -24,6 +24,7 @@ impl GroupService {
     self.base.get_mongo_provider()
   }
 
+  #[allow(dead_code)]
   async fn insert_to_mongo(&self, table: &str, data: Value) -> Result<Value, ResponseModel> {
     if let Some(mongo) = self.get_mongo_provider() {
       let doc = mongo.insert(table, data).await?;
@@ -33,6 +34,7 @@ impl GroupService {
     }
   }
 
+  #[allow(dead_code)]
   async fn update_in_mongo(
     &self,
     table: &str,
@@ -91,7 +93,7 @@ impl GroupService {
 
   pub async fn get_all(
     &self,
-    visibility: &str,
+    _visibility: &str,
     filter: Option<Value>,
     skip: Option<u64>,
     limit: Option<u64>,

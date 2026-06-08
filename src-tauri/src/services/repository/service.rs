@@ -177,10 +177,12 @@ impl RepositoryService {
     self
   }
 
+  #[allow(dead_code)]
   fn use_json_provider_for_visibility(visibility: &str) -> bool {
     visibility == "private"
   }
 
+  #[allow(dead_code)]
   fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
     if offline || table == "daily_activities" {
       return true;
@@ -218,7 +220,7 @@ impl RepositoryService {
 
   async fn load_relations_unified<P: DatabaseProvider + Clone>(
     &self,
-    mut docs: Vec<Value>,
+    docs: Vec<Value>,
     table: &str,
     load_paths: &[String],
     provider: P,
@@ -452,7 +454,7 @@ impl RepositoryService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let source = Self::determine_source(visibility.as_deref(), self.mongodb_provider.is_some());
+    let _source = Self::determine_source(visibility.as_deref(), self.mongodb_provider.is_some());
 
     match operation.as_str() {
       "getAll" => {
@@ -1227,7 +1229,7 @@ impl RepositoryService {
                 .find_many(&table, Some(&filter_obj), None, None, None, true)
                 .await
                 .unwrap_or_default();
-              let mut combined = Self::merge_documents(json_docs, mongo_docs);
+              let combined = Self::merge_documents(json_docs, mongo_docs);
               if combined.len() == 1 {
                 combined
               } else if combined.is_empty() {
@@ -1254,7 +1256,7 @@ impl RepositoryService {
                   .await?
               } else if use_both_providers {
                 // visibility was None - we might be using wrong provider, try the other one
-                let json_provider = self.json_provider.clone();
+                let _json_provider = self.json_provider.clone();
                 let mongo_provider = self.mongodb_provider.clone();
                 if visibility_str == "private" {
                   // We used "all" but fell through here - try mongo directly
@@ -1934,7 +1936,7 @@ impl RepositoryService {
     data: Option<Value>,
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let start = Instant::now();
+    let _start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
 
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
@@ -2280,7 +2282,7 @@ impl RepositoryService {
             .permanent_delete_cascade_mongo(&table, &id_str)
             .await?;
         }
-        DataProvider::Both(_, mongo) => {
+        DataProvider::Both(_, _mongo) => {
           let _ = self.json_provider.delete(&table, &id_str).await;
           if let Some(ref mongo) = self.mongodb_provider {
             let _ = mongo.delete(&table, &id_str).await;
@@ -2309,7 +2311,7 @@ impl RepositoryService {
             .soft_delete_cascade_mongo(&table, &id_str)
             .await?;
         }
-        DataProvider::Both(_, mongo) => {
+        DataProvider::Both(_, _mongo) => {
           self
             .cascade_service
             .soft_delete_cascade_json(&table, &id_str)

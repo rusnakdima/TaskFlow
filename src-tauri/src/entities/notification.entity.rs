@@ -9,6 +9,7 @@ use nosql_orm::Model;
 #[table_name("notifications")]
 #[index("user_id", 1)]
 #[index("created_at", -1)]
+#[allow(dead_code)]
 pub struct NotificationEntity {
   pub id: Option<String>,
   pub user_id: String,

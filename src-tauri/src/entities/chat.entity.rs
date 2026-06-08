@@ -62,6 +62,7 @@ impl From<ChatCreateModel> for ChatEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ChatUpdateModel {
   pub content: Option<String>,
   pub read_by: Option<Vec<String>>,

@@ -7,6 +7,7 @@ use crate::entities::{
 
 use crate::helpers::config::ConfigHelper;
 
+#[allow(dead_code)]
 pub struct EmailProvider {
   pub config: EmailConfig,
 }

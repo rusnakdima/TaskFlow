@@ -27,6 +27,7 @@ impl RoomService {
     self.base.get_mongo_provider()
   }
 
+  #[allow(dead_code)]
   async fn insert_to_mongo(&self, data: Value) -> Result<Value, ResponseModel> {
     if let Some(mongo) = self.get_mongo_provider() {
       let doc = mongo.insert("rooms", data).await?;
@@ -36,6 +37,7 @@ impl RoomService {
     }
   }
 
+  #[allow(dead_code)]
   async fn update_in_mongo(&self, room_id: &str, data: Value) -> Result<Value, ResponseModel> {
     if let Some(mongo) = self.get_mongo_provider() {
       let doc = mongo.update("rooms", room_id, data).await?;
@@ -100,7 +102,7 @@ impl RoomService {
 
   pub async fn get_all(
     &self,
-    visibility: &str,
+    _visibility: &str,
     filter: Option<Value>,
     skip: Option<u64>,
     limit: Option<u64>,
