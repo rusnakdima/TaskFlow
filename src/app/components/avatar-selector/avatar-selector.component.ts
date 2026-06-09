@@ -92,10 +92,8 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   }
 
   selectPreset(url: string): void {
-    console.log("[AvatarSelector] selectPreset() called with URL:", url);
     this._imageUrl.set(url);
     this.imageUrlChange.emit(url);
-    console.log("[AvatarSelector] Preset selected and emitted");
   }
 
   onUrlInputChange(value: string): void {
@@ -104,32 +102,22 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
 
   openCropperFromUrl(): void {
     const url = this.urlFormControl.value?.trim() || "";
-    console.log("[AvatarSelector] openCropperFromUrl() called with URL:", url);
 
     if (!url) {
-      console.log("[AvatarSelector] URL is empty, returning");
       return;
     }
 
     this.originalImageUrl.set(this._imageUrl());
     this.pendingImageUrl.set("");
 
-    console.log("[AvatarSelector] Loading image from URL...");
     const img = new Image();
     img.crossOrigin = "anonymous";
 
     img.onload = () => {
-      console.log(
-        "[AvatarSelector] Image loaded from URL, dimensions:",
-        img.naturalWidth + "x" + img.naturalHeight
-      );
-
       const resizedBase64 = this.resizeImageToBase64(img, this.MAX_IMAGE_SIZE);
-      console.log("[AvatarSelector] Image resized to base64, length:", resizedBase64.length);
       this.imageBase64.set(resizedBase64);
       this.showCropper.set(true);
       this.expanded.set(true);
-      console.log("[AvatarSelector] Cropper modal opened for URL image");
       setTimeout(() => this.initCropper(), 100);
     };
 
@@ -141,18 +129,9 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   }
 
   onFileSelect(event: Event): void {
-    console.log("[AvatarSelector] onFileSelect() called");
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
-      console.log(
-        "[AvatarSelector] File selected:",
-        file.name,
-        "size:",
-        file.size,
-        "type:",
-        file.type
-      );
 
       this.originalImageUrl.set(this._imageUrl());
       this.pendingImageUrl.set("");
@@ -160,7 +139,6 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        console.log("[AvatarSelector] FileReader loaded, result length:", result?.length);
         this.openCropperFromFile(result);
       };
       reader.readAsDataURL(file);
@@ -169,29 +147,19 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   }
 
   openCropperFromFile(base64: string): void {
-    console.log("[AvatarSelector] openCropperFromFile() called, base64 length:", base64?.length);
-
     const img = new Image();
     img.onload = () => {
-      console.log(
-        "[AvatarSelector] Image loaded for resizing, dimensions:",
-        img.naturalWidth + "x" + img.naturalHeight
-      );
       const resizedBase64 = this.resizeImageToBase64(img, this.MAX_IMAGE_SIZE);
-      console.log("[AvatarSelector] Image resized, new base64 length:", resizedBase64.length);
 
       this.imageBase64.set(resizedBase64);
       this.showCropper.set(true);
       this.expanded.set(true);
-      console.log("[AvatarSelector] Cropper modal opened for uploaded file");
       setTimeout(() => this.initCropper(), 100);
     };
     img.src = base64;
   }
 
   imageCropped(): void {
-    console.log("[AvatarSelector] imageCropped() called from cropper (debounced)");
-
     if (this.cropDebounceTimer) {
       clearTimeout(this.cropDebounceTimer);
     }
@@ -202,10 +170,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   }
 
   private executeImageCrop(): void {
-    console.log("[AvatarSelector] executeImageCrop() called");
-
     if (!this.cropper) {
-      console.log("[AvatarSelector] No cropper instance");
       return;
     }
 
@@ -218,27 +183,15 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
 
     if (canvas) {
       const base64 = canvas.toDataURL("image/png");
-      console.log("[AvatarSelector] Cropped image, base64 length:", base64.length);
       this.pendingImageUrl.set(base64);
-      console.log("[AvatarSelector] Pending image stored");
-    } else {
-      console.log("[AvatarSelector] WARNING: Could not get cropped canvas!");
     }
   }
 
   private resizeImageToBase64(img: HTMLImageElement, maxSize: number): string {
-    console.log(
-      "[AvatarSelector] resizeImageToBase64() - original:",
-      img.naturalWidth + "x" + img.naturalHeight,
-      "maxSize:",
-      maxSize
-    );
-
     let width = img.naturalWidth;
     let height = img.naturalHeight;
 
     if (width <= maxSize && height <= maxSize) {
-      console.log("[AvatarSelector] Image is smaller than maxSize, no resize needed");
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -254,7 +207,6 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
     width = Math.round(width * ratio);
     height = Math.round(height * ratio);
 
-    console.log("[AvatarSelector] Resizing image to:", width + "x" + height);
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -266,12 +218,9 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
     return "";
   }
 
-  ngAfterViewInit(): void {
-    console.log("[AvatarSelector] ngAfterViewInit called");
-  }
+  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
-    console.log("[AvatarSelector] ngOnDestroy called");
     if (this.cropDebounceTimer) {
       clearTimeout(this.cropDebounceTimer);
       this.cropDebounceTimer = null;
@@ -281,7 +230,6 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
 
   private destroyCropper(): void {
     if (this.cropper) {
-      console.log("[AvatarSelector] Destroying cropper instance");
       this.cropper.destroy();
       this.cropper = null;
     }
@@ -289,14 +237,12 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
 
   private initCropper(): void {
     if (!this.cropperImageRef?.nativeElement) {
-      console.log("[AvatarSelector] Cropper image element not found");
       return;
     }
 
     this.destroyCropper();
 
     const imageElement = this.cropperImageRef.nativeElement;
-    console.log("[AvatarSelector] Initializing cropper for image");
 
     this.cropper = new Cropper(imageElement, {
       aspectRatio: 1,
@@ -306,9 +252,6 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
       cropBoxMovable: true,
       cropBoxResizable: true,
       toggleDragModeOnDblclick: false,
-      ready: () => {
-        console.log("[AvatarSelector] Cropper ready");
-      },
       crop: () => {
         this.imageCropped();
       },
@@ -316,49 +259,32 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   }
 
   cancelCrop(): void {
-    console.log("[AvatarSelector] cancelCrop() called");
-    console.log("[AvatarSelector] Original image:", this.originalImageUrl());
-
     this.destroyCropper();
 
     const original = this.originalImageUrl();
     if (original && original.length > 0) {
-      console.log("[AvatarSelector] Reverting to original image");
       this._imageUrl.set(original);
     }
 
     this.showCropper.set(false);
     this.imageBase64.set("");
     this.pendingImageUrl.set("");
-    console.log("[AvatarSelector] Modal closed, reverted to original");
   }
 
   saveCrop(): void {
-    console.log("[AvatarSelector] saveCrop() called");
-    console.log(
-      "[AvatarSelector] Pending image:",
-      this.pendingImageUrl() ? "exists (" + this.pendingImageUrl().length + ")" : "empty"
-    );
-
     if (!this.cropper) {
-      console.log("[AvatarSelector] No cropper, calling imageCropped() directly");
       this.imageCropped();
     }
 
     const pending = this.pendingImageUrl();
     if (pending && pending.length > 0) {
-      console.log("[AvatarSelector] Saving pending image...");
       this._imageUrl.set(pending);
       this.imageUrlChange.emit(pending);
-      console.log("[AvatarSelector] Crop saved and emitted to parent");
-    } else {
-      console.log("[AvatarSelector] WARNING: No pending image to save!");
     }
 
     this.destroyCropper();
     this.showCropper.set(false);
     this.imageBase64.set("");
     this.pendingImageUrl.set("");
-    console.log("[AvatarSelector] Modal closed, signals cleared");
   }
 }

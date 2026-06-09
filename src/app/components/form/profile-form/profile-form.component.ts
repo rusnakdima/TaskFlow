@@ -55,6 +55,9 @@ export class ProfileFormComponent implements ControlValueAccessor {
   }
   set name(value: string) {
     this._name = value;
+    if (this.nameFormControl) {
+      this.nameFormControl.setValue(value, { emitEvent: false });
+    }
   }
 
   @Input()
@@ -63,6 +66,9 @@ export class ProfileFormComponent implements ControlValueAccessor {
   }
   set last_name(value: string) {
     this._last_name = value;
+    if (this.lastNameFormControl) {
+      this.lastNameFormControl.setValue(value, { emitEvent: false });
+    }
   }
 
   @Input()
@@ -71,6 +77,9 @@ export class ProfileFormComponent implements ControlValueAccessor {
   }
   set bio(value: string) {
     this._bio = value;
+    if (this.bioFormControl) {
+      this.bioFormControl.setValue(value, { emitEvent: false });
+    }
   }
 
   @Input()
