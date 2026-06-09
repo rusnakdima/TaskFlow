@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 pub struct Claims {
   pub id: String,
   pub profile_id: Option<String>,
+  pub role: Option<String>,
   pub exp: usize,
 }
 
@@ -64,7 +65,7 @@ pub fn validate_user_owns_data(
     return Err(ResponseModel {
       status: ResponseStatus::Error,
       message: "Unauthorized: Cannot access another user's data".to_string(),
-      data: crate::entities::response_entity::DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     });
   }
   Ok(())
@@ -122,7 +123,7 @@ pub async fn validate_admin_role(
     return Err(ResponseModel {
       status: ResponseStatus::Error,
       message: "Forbidden: Admin access required".to_string(),
-      data: crate::entities::response_entity::DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     });
   }
   Ok(())

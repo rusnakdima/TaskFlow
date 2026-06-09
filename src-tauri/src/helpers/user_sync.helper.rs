@@ -7,7 +7,7 @@ use serde_json::Value;
 use nosql_orm::timestamps::timestamp_now_rfc3339;
 
 /* entities */
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
 /* providers */
 use nosql_orm::providers::JsonProvider;
@@ -26,12 +26,12 @@ pub async fn update_user_profile_id_both(
     .map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
       message: format!("Failed to get user from JSON: {}", e),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })?
     .ok_or_else(|| ResponseModel {
       status: ResponseStatus::Error,
       message: format!("User {} not found in JSON", user_id),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })?;
 
   let mut updated_user = user_value.clone();
@@ -48,7 +48,7 @@ pub async fn update_user_profile_id_both(
     .map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
       message: format!("Failed to update user in JSON: {}", e),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })?;
 
   let Some(mongo) = mongo_provider else {
@@ -87,7 +87,7 @@ pub async fn update_user_profile_id_both(
           .map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
             message: format!("Failed to update user in MongoDB: {}", e),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })?;
       }
     }
@@ -99,12 +99,12 @@ pub async fn update_user_profile_id_both(
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Failed to re-fetch user from JSON: {}", e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?
         .ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
           message: "User disappeared from JSON".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?;
 
       if let Some(obj) = new_user.as_object_mut() {
@@ -120,14 +120,14 @@ pub async fn update_user_profile_id_both(
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Failed to insert user to MongoDB: {}", e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?;
     }
     Err(_e) => {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Failed to check user in MongoDB: {}", _e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       });
     }
   }
