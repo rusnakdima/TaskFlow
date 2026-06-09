@@ -14,7 +14,7 @@ use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 /* models */
 use crate::entities::{
   login_form_entity::LoginForm,
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
 };
 
 /* helpers */
@@ -78,10 +78,13 @@ impl AuthLoginService {
       .and_then(|p| p.id.as_ref())
       .map(|s| s.as_str());
 
-    let token =
-      self
-        .token_service
-        .generate_token(&user_id, profile_id, "", "", login_data.remember)?;
+    let token = self.token_service.generate_token(
+      &user_id,
+      profile_id,
+      "",
+      &user.role,
+      login_data.remember,
+    )?;
 
     let _ = self.auth_data_sync_service.on_user_login(&user_id).await;
 
@@ -95,10 +98,10 @@ impl AuthLoginService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Login successful".to_string(),
-      data: DataValue::Object(serde_json::json!({
+      data: serde_json::json!({
         "token": token,
         "profile": profile
-      })),
+      }),
     })
   }
 }

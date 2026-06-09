@@ -13,7 +13,7 @@ use nosql_orm::repository::Repository;
 /* models */
 use crate::entities::{
   password_reset::PasswordReset,
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
 };
@@ -91,7 +91,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Verification code sent to your email".to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })
   }
 
@@ -125,7 +125,7 @@ impl AuthPasswordService {
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Code verified successfully".to_string(),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           });
         }
       }
@@ -183,7 +183,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password reset successfully. Please login again.".to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })
   }
 
@@ -247,7 +247,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password changed successfully. Please login again.".to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })
   }
 }

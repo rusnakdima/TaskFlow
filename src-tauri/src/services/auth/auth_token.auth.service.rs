@@ -10,7 +10,7 @@ use nosql_orm::repository::Repository;
 
 /* models */
 use crate::entities::{
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
 };
@@ -54,7 +54,7 @@ impl AuthTokenService {
     user_id: &str,
     profile_id: Option<&str>,
     _username: &str,
-    _role: &str,
+    role: &str,
     remember: bool,
   ) -> Result<String, ResponseModel> {
     let expiration = if remember {
@@ -72,6 +72,11 @@ impl AuthTokenService {
     let claims = Claims {
       id: user_id.to_owned(),
       profile_id: profile_id.map(|s| s.to_string()),
+      role: if role.is_empty() {
+        None
+      } else {
+        Some(role.to_string())
+      },
       exp: expiration,
     };
 
@@ -141,7 +146,7 @@ impl AuthTokenService {
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Token is valid".to_string(),
-            data: DataValue::Object(response_data),
+            data: response_data,
           })
         }
         Ok(None) => {
@@ -179,7 +184,7 @@ impl AuthTokenService {
             return Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "Token is valid (local fallback)".to_string(),
-              data: DataValue::Object(response_data),
+              data: response_data,
             });
           }
           Err(err_response(&format!(
@@ -213,7 +218,7 @@ impl AuthTokenService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Token is valid (local)".to_string(),
-          data: DataValue::Object(response_data),
+          data: response_data,
         });
       }
       Err(err_response(

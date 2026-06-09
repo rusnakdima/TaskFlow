@@ -14,7 +14,7 @@ use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 /* models */
 use crate::entities::{
   profile_entity::ProfileEntity,
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   signup_form_entity::SignupForm,
   table_entity::TableModelType,
   user_entity::UserEntity,
@@ -160,19 +160,20 @@ impl AuthRegisterService {
       }
     }
 
-    let token = self
-      .token_service
-      .generate_token(&user_id, Some(&profile_id), "", "", false)?;
+    let token =
+      self
+        .token_service
+        .generate_token(&user_id, Some(&profile_id), "", "user", false)?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "User registered successfully".to_string(),
-      data: DataValue::Object(serde_json::json!({
+      data: serde_json::json!({
         "token": token,
         "needsProfile": true,
         "profile": new_profile,
         "user_id": user_id
-      })),
+      }),
     })
   }
 }
