@@ -6,20 +6,14 @@ use nosql_orm::error::OrmError;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ResponseStatus {
+  #[serde(rename = "Success")]
   Success,
+  #[serde(rename = "info")]
   Info,
+  #[serde(rename = "Warning")]
   Warning,
+  #[serde(rename = "Error")]
   Error,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DataValue {
-  String(String),
-  Number(f64),
-  Bool(bool),
-  Array(Vec<serde_json::Value>),
-  Object(serde_json::Value),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,7 +21,7 @@ pub enum DataValue {
 pub struct ResponseModel {
   pub status: ResponseStatus,
   pub message: String,
-  pub data: DataValue,
+  pub data: serde_json::Value,
 }
 
 impl ResponseModel {
@@ -35,7 +29,7 @@ impl ResponseModel {
     ResponseModel {
       status: ResponseStatus::Error,
       message: message.to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     }
   }
 
@@ -43,7 +37,7 @@ impl ResponseModel {
     ResponseModel {
       status: ResponseStatus::Success,
       message: message.to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     }
   }
 }
@@ -53,7 +47,7 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
     ResponseModel {
       status: ResponseStatus::Error,
       message: error.to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     }
   }
 }
@@ -63,7 +57,7 @@ impl From<serde_json::Error> for ResponseModel {
     ResponseModel {
       status: ResponseStatus::Error,
       message: error.to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     }
   }
 }
@@ -73,26 +67,8 @@ impl From<String> for ResponseModel {
     ResponseModel {
       status: ResponseStatus::Error,
       message: error,
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     }
-  }
-}
-
-impl From<&str> for DataValue {
-  fn from(s: &str) -> DataValue {
-    DataValue::String(s.to_string())
-  }
-}
-
-impl From<String> for DataValue {
-  fn from(s: String) -> DataValue {
-    DataValue::String(s)
-  }
-}
-
-impl From<serde_json::Value> for DataValue {
-  fn from(v: serde_json::Value) -> DataValue {
-    DataValue::Object(v)
   }
 }
 

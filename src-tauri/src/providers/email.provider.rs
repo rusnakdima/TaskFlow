@@ -2,7 +2,7 @@
 
 use crate::entities::{
   email_config::EmailConfig,
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
 };
 
 use crate::helpers::config::ConfigHelper;
@@ -35,7 +35,7 @@ impl EmailProvider {
     Err(ResponseModel {
       status: ResponseStatus::Error,
       message: "Email functionality disabled".to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })
   }
 }
