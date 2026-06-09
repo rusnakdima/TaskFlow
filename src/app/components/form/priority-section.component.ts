@@ -27,6 +27,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
 })
 export class PrioritySectionComponent implements ControlValueAccessor {
   @Input() disabled = false;
+  @Input() required = false;
 
   @Input()
   get priority(): string {
@@ -44,6 +45,7 @@ export class PrioritySectionComponent implements ControlValueAccessor {
   private onTouched: () => void = () => {};
 
   writeValue(obj: string): void {
+    console.log(`[PrioritySection] writeValue called: "${obj}"`);
     if (obj) {
       this._priority = obj;
     }
@@ -62,6 +64,7 @@ export class PrioritySectionComponent implements ControlValueAccessor {
   }
 
   onPriorityChange(value: string): void {
+    console.log(`[PrioritySection] priority changed: "${value}"`);
     this._priority = value;
     this.priorityChange.emit(value);
     this.onChange(value);

@@ -4,17 +4,17 @@
   [description]="'Essential details about your ' + itemType"
   iconColor="blue"
 >
-  <div class="grid grid-cols-1 gap-6">
+  <div class="grid grid-cols-1 gap-6" [formGroup]="$any(formGroup)">
     <app-unified-field
       [field]="titleFieldDef"
-      [form]="basicInfoFormGroup"
+      [form]="$any(formGroup)"
       class="w-full"
       (valueChange)="onTitleChange($event)"
     />
 
     <app-unified-field
       [field]="descriptionFieldDef"
-      [form]="basicInfoFormGroup"
+      [form]="$any(formGroup)"
       class="w-full"
       (valueChange)="onDescriptionChange($event)"
     />
