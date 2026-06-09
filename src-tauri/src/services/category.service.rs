@@ -1,10 +1,10 @@
 use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
 use crate::services::permission_service::PermissionService;
-use nosql_orm::cascade::CascadeManager;
 use serde_json::{json, Value};
 
 pub struct CategoryService {
@@ -125,22 +125,7 @@ impl CategoryService {
     let stored_visibility = get_visibility(&existing);
     let provider = self.base.get_provider(stored_visibility)?;
 
-    match provider {
-      DataProvider::Json(p) => {
-        let cascade = CascadeManager::new(p.as_ref().clone());
-        let _ = cascade.soft_delete("categories", id).await;
-      }
-      DataProvider::Mongo(p) => {
-        let cascade = CascadeManager::new(p.as_ref().clone());
-        let _ = cascade.soft_delete("categories", id).await;
-      }
-      DataProvider::Both(json, mongo) => {
-        let cascade_json = CascadeManager::new(json.as_ref().clone());
-        let cascade_mongo = CascadeManager::new(mongo.as_ref().clone());
-        let _ = cascade_json.soft_delete("categories", id).await;
-        let _ = cascade_mongo.soft_delete("categories", id).await;
-      }
-    }
+    let _ = soft_delete_cascade_all(&provider, "categories", id).await;
     Ok(success_response(DataValue::Object(json!({}))))
   }
 }
