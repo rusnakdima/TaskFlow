@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
@@ -56,7 +56,7 @@ impl GroupService {
       .find_by_id("groups", id)
       .await?
       .ok_or_else(|| err_response("Group not found"))?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_by_room_id(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -72,9 +72,7 @@ impl GroupService {
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
       .await?;
     if !docs.is_empty() {
-      return Ok(success_response(DataValue::Object(
-        docs.into_iter().next().unwrap(),
-      )));
+      return Ok(success_response(docs.into_iter().next().unwrap()));
     }
 
     if let Some(mongo) = self.get_mongo_provider() {
@@ -82,9 +80,7 @@ impl GroupService {
         .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
         .await?;
       if !mongo_docs.is_empty() {
-        return Ok(success_response(DataValue::Object(
-          mongo_docs.into_iter().next().unwrap(),
-        )));
+        return Ok(success_response(mongo_docs.into_iter().next().unwrap()));
       }
     }
 
@@ -130,7 +126,7 @@ impl GroupService {
       }
     }
 
-    Ok(success_response(DataValue::Array(all_docs)))
+    Ok(success_response(all_docs))
   }
 
   pub async fn create(
@@ -186,7 +182,7 @@ impl GroupService {
       }
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -201,7 +197,7 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn add_members(
@@ -254,7 +250,7 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", group_id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn remove_members(
@@ -290,7 +286,7 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -374,7 +370,7 @@ impl GroupService {
       }
     }
 
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 
   async fn cascade_delete_room(&self, room_id: &str) -> Result<(), ResponseModel> {
@@ -586,9 +582,9 @@ impl GroupService {
       }
     }
 
-    Ok(success_response(DataValue::Object(json!({
+    Ok(success_response(json!({
       "room_id": actual_room_id,
       "deleted": true
-    }))))
+    })))
   }
 }

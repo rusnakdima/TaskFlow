@@ -5,7 +5,7 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::Value;
 
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 use crate::helpers::response_helper::err_response;
 
 use crate::services::db_backup::DbBackupService;
@@ -58,7 +58,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -67,7 +67,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -86,7 +86,7 @@ impl ManageDbService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     let docs = mongo
@@ -95,7 +95,7 @@ impl ManageDbService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error getting paginated {} data: {}", data_type, e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     Ok(ResponseModel {
@@ -112,7 +112,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -121,7 +121,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -138,7 +138,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -151,7 +151,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -168,7 +168,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -181,7 +181,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -197,7 +197,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -206,7 +206,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -223,7 +223,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -232,7 +232,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -248,7 +248,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
     };
@@ -257,7 +257,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }

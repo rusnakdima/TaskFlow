@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
@@ -25,7 +25,7 @@ impl ChatService {
       .find_by_id("chats", id)
       .await?
       .ok_or_else(|| err_response("Chat not found"))?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_by_room(
@@ -115,7 +115,7 @@ impl ChatService {
       enriched_docs.push(enriched);
     }
 
-    Ok(success_response(DataValue::Array(enriched_docs)))
+    Ok(success_response(enriched_docs))
   }
 
   pub async fn get_all(
@@ -139,7 +139,7 @@ impl ChatService {
     let docs = provider
       .find_many("chats", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(DataValue::Array(docs)))
+    Ok(success_response(docs))
   }
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -156,7 +156,7 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("chats", doc.clone()).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -172,7 +172,7 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn mark_read(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -207,7 +207,7 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -232,7 +232,7 @@ impl ChatService {
       let _ = p.patch("chats", id, update_data).await;
     }
 
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 
   pub async fn hard_delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -247,9 +247,7 @@ impl ChatService {
       let _ = p.delete("chats", id).await;
     }
 
-    Ok(success_response(DataValue::Object(
-      json!({ "id": id, "deleted": true }),
-    )))
+    Ok(success_response(json!({ "id": id, "deleted": true })))
   }
 
   pub async fn edit_message(
@@ -270,7 +268,7 @@ impl ChatService {
       let _ = p.patch("chats", id, update_data).await;
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn add_reaction(
@@ -329,7 +327,7 @@ impl ChatService {
       let _ = p.patch("chats", message_id, update_data).await;
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn remove_reaction(
@@ -388,7 +386,7 @@ impl ChatService {
       let _ = p.patch("chats", message_id, update_data).await;
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -437,9 +435,9 @@ impl ChatService {
       }
     }
 
-    Ok(success_response(DataValue::Object(
+    Ok(success_response(
       json!({ "room_id": room_id, "deleted": true }),
-    )))
+    ))
   }
 
   pub async fn hard_delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -484,8 +482,8 @@ impl ChatService {
       }
     }
 
-    Ok(success_response(DataValue::Object(
+    Ok(success_response(
       json!({ "room_id": room_id, "deleted": true }),
-    )))
+    ))
   }
 }

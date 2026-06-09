@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
@@ -24,7 +24,7 @@ impl CommentService {
       .find_by_id("comments", id)
       .await?
       .ok_or_else(|| err_response("Comment not found"))?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_all(
@@ -48,7 +48,7 @@ impl CommentService {
     let docs = provider
       .find_many("comments", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(DataValue::Array(docs)))
+    Ok(success_response(docs))
   }
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -57,7 +57,7 @@ impl CommentService {
       .get_json_provider()
       .insert("comments", data)
       .await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -66,7 +66,7 @@ impl CommentService {
       .get_json_provider()
       .patch("comments", id, data)
       .await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -81,6 +81,6 @@ impl CommentService {
     let provider = self.base.get_provider(visibility)?;
 
     let _ = soft_delete_cascade_all(&provider, "comments", id).await;
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 }

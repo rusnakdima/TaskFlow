@@ -7,7 +7,7 @@ use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongoProvi
 use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
 /* helpers */
 use crate::helpers::common::convert_data_to_object;
@@ -56,7 +56,7 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Error getting data for {}: {}", table, e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?;
       all_data.insert(table.to_string(), docs);
     }
@@ -81,7 +81,7 @@ impl AdminManager {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error getting paginated {} data: {}", data_type, e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     Ok(ResponseModel {
@@ -111,7 +111,7 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Error getting data for {}: {}", table, e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?;
       all_data.insert(table.to_string(), docs);
     }
@@ -156,7 +156,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted".to_string(),
-      data: DataValue::String(id),
+      data: serde_json::Value::String(id),
     })
   }
 
@@ -177,7 +177,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted from local database".to_string(),
-      data: DataValue::String(id),
+      data: serde_json::Value::String(id),
     })
   }
 
@@ -197,12 +197,12 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Record not found in local database: {}", e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?
         .ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
           message: "Record not found".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?
     } else {
       self
@@ -212,12 +212,12 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Record not found in MongoDB: {}", e),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?
         .ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
           message: "Record not found".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })?
     };
 
@@ -256,7 +256,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Record delete status toggled to {}", !is_deleted),
-      data: DataValue::Bool(!is_deleted),
+      data: serde_json::Value::Bool(!is_deleted),
     })
   }
 
@@ -272,12 +272,12 @@ impl AdminManager {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Record not found in local database: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "Record not found".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     let is_deleted = record
@@ -304,7 +304,7 @@ impl AdminManager {
         "Record delete status toggled to {} in local database",
         !is_deleted
       ),
-      data: DataValue::Bool(!is_deleted),
+      data: serde_json::Value::Bool(!is_deleted),
     })
   }
 }

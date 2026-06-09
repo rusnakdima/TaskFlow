@@ -8,7 +8,7 @@ use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 
 /* models */
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
 /// ProfileService - Handles profile-specific sync operations
 /// Note: CRUD operations are handled by RepositoryService via manageData endpoint
@@ -39,7 +39,7 @@ impl ProfileService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     let profile_data = self
@@ -49,12 +49,12 @@ impl ProfileService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Profile not found: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "Profile not found".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     // Check if profile exists in MongoDB
@@ -68,19 +68,19 @@ impl ProfileService {
             .map_err(|e| ResponseModel {
               status: ResponseStatus::Error,
               message: format!("Error updating profile in cloud: {}", e),
-              data: DataValue::String("".to_string()),
+              data: serde_json::Value::String("".to_string()),
             })?;
 
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Profile updated in cloud".to_string(),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })
         } else {
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Cloud profile is already up to date".to_string(),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })
         }
       }
@@ -92,19 +92,19 @@ impl ProfileService {
           .map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
             message: format!("Error creating profile in cloud: {}", e),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })?;
 
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Profile created in cloud".to_string(),
-          data: DataValue::String("".to_string()),
+          data: serde_json::Value::String("".to_string()),
         })
       }
       Err(e) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error checking profile in cloud: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -120,7 +120,7 @@ impl ProfileService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     let profiles = self
@@ -130,7 +130,7 @@ impl ProfileService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error getting profiles: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     for profile_data in profiles {
@@ -146,7 +146,7 @@ impl ProfileService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "All profiles synced to cloud".to_string(),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })
   }
 
@@ -174,7 +174,7 @@ impl ProfileService {
     if let Ok(existing_profiles) = self.json_provider.find_all("profiles").await {
       for profile in existing_profiles {
         if profile.get("user_id").and_then(|v| v.as_str()) == Some(&user_id) {
-          return Ok(success_response(DataValue::Object(profile)));
+          return Ok(success_response(profile));
         }
       }
     }
@@ -206,7 +206,7 @@ impl ProfileService {
       let _ = self.sync_profile_to_cloud(profile_id).await;
     }
 
-    Ok(success_response(DataValue::Object(created_profile)))
+    Ok(success_response(created_profile))
   }
 }
 

@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::collection_metadata::add_collection_metadata;
 use crate::helpers::load_param::parse_load_param;
 use crate::helpers::response_helper::{err_response, success_response};
@@ -54,7 +54,7 @@ impl RoomService {
       .find_by_id("rooms", id)
       .await?
       .ok_or_else(|| err_response("Room not found"))?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -78,7 +78,7 @@ impl RoomService {
       .await?;
 
     if let Some(doc) = docs.first() {
-      return Ok(success_response(DataValue::Object(doc.clone())));
+      return Ok(success_response(doc.clone()));
     }
 
     if let Some(mongo) = self.get_mongo_provider() {
@@ -93,11 +93,11 @@ impl RoomService {
         )
         .await?;
       if let Some(doc) = docs.first() {
-        return Ok(success_response(DataValue::Object(doc.clone())));
+        return Ok(success_response(doc.clone()));
       }
     }
 
-    Ok(success_response(DataValue::Object(serde_json::Value::Null)))
+    Ok(success_response(serde_json::Value::Null))
   }
 
   pub async fn get_all(
@@ -173,7 +173,7 @@ impl RoomService {
       }
     }
 
-    Ok(success_response(DataValue::Array(all_docs)))
+    Ok(success_response(all_docs))
   }
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -189,7 +189,7 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("rooms", doc.clone()).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(&self, room_id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
@@ -204,7 +204,7 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("rooms", room_id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn add_participants(
@@ -244,7 +244,7 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("rooms", room_id, update_data).await;
     }
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn find_or_create_dm_room(
@@ -355,6 +355,6 @@ impl RoomService {
     // Delete the room from MongoDB
     let _ = mongo.delete("rooms", doc_id).await;
 
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 }

@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
@@ -54,7 +54,7 @@ impl SubtaskService {
       }
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_all(
@@ -89,7 +89,7 @@ impl SubtaskService {
       .collect();
 
     if todo_ids.is_empty() {
-      return Ok(success_response(DataValue::Array(vec![])));
+      return Ok(success_response(serde_json::Value::Array(vec![])));
     }
 
     let tasks_filter = json!({
@@ -116,7 +116,7 @@ impl SubtaskService {
       .collect();
 
     if task_ids.is_empty() {
-      return Ok(success_response(DataValue::Array(vec![])));
+      return Ok(success_response(serde_json::Value::Array(vec![])));
     }
 
     let mut subtask_filter = json!({
@@ -138,7 +138,7 @@ impl SubtaskService {
       .find_many("subtasks", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
 
-    Ok(success_response(DataValue::Array(docs)))
+    Ok(success_response(docs))
   }
 
   pub async fn create(
@@ -167,7 +167,7 @@ impl SubtaskService {
     }
 
     let doc = provider.insert("subtasks", data).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(
@@ -208,7 +208,7 @@ impl SubtaskService {
     }
 
     let doc = provider.patch("subtasks", id, data).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -244,6 +244,6 @@ impl SubtaskService {
     }
 
     let _ = soft_delete_cascade_all(&provider, "subtasks", id).await;
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 }
