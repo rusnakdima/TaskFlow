@@ -68,13 +68,10 @@ export class ManageProfileView implements OnInit {
   };
 
   ngOnInit() {
-    console.log("[ManageProfile] ngOnInit() called");
     this.initForm();
     this.userId = this.authService.getValueByKey("id") || "";
-    console.log("[ManageProfile] User ID:", this.userId);
 
     if (!this.userId) {
-      console.log("[ManageProfile] No user ID, navigating to login");
       this.notifyService.showError("You are not logged in");
       this.router.navigate(["/login"]);
       return;
@@ -82,41 +79,28 @@ export class ManageProfileView implements OnInit {
 
     this.metadata.user_id = this.userId;
     this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
-    console.log("[ManageProfile] isProfileRequired:", this.isProfileRequired);
 
-    console.log("[ManageProfile] Calling ensureProfileLoaded()");
     this.storage.ensureProfileLoaded();
 
     let profile = this.storage.profiles().find((p) => p.user_id === this.userId);
-    console.log("[ManageProfile] Initial profile check:", profile ? "found" : "not found");
 
     if (!profile) {
-      console.log("[ManageProfile] Profile not found, starting polling...");
       let attempts = 0;
       const maxAttempts = 30;
       const checkProfile = setInterval(() => {
         attempts++;
         profile = this.storage.profiles().find((p) => p.user_id === this.userId);
-        console.log(
-          "[ManageProfile] Poll attempt",
-          attempts,
-          "- profile:",
-          profile ? "found" : "not found"
-        );
         if (profile || attempts >= maxAttempts) {
           clearInterval(checkProfile);
           this.profileLoading.set(false);
           if (profile && profile.user_id === this.userId) {
-            console.log("[ManageProfile] Profile loaded after", attempts, "attempts");
             this.loadProfile(profile);
           } else {
-            console.log("[ManageProfile] Failed to load profile after", maxAttempts, "attempts");
             this.profileError.set("Failed to load profile. Please try again.");
           }
         }
       }, 200);
     } else if (profile.user_id === this.userId) {
-      console.log("[ManageProfile] Profile found immediately");
       this.profileLoading.set(false);
       this.loadProfile(profile);
     }
@@ -136,7 +120,6 @@ export class ManageProfileView implements OnInit {
   }
 
   private loadProfile(profile: any) {
-    console.log("[ManageProfile] loadProfile() called with:", profile);
     this.isEditMode = true;
     this.profileLoading.set(false);
     this.profileError.set(null);
@@ -154,7 +137,6 @@ export class ManageProfileView implements OnInit {
       created_at: profile.created_at,
       updated_at: profile.updated_at,
     };
-    console.log("[ManageProfile] Profile loaded successfully, isEditMode:", this.isEditMode);
   }
 
   onCancel() {
