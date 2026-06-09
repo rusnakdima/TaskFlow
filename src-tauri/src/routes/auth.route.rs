@@ -1,6 +1,5 @@
 /* sys lib */
 use crate::AppState;
-use serde_json::json;
 use tauri::State;
 
 /* models */

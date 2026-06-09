@@ -1,6 +1,6 @@
 use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 use crate::helpers::auth_helper::extract_user_from_token;
-use crate::helpers::response_helper::err_response_formatted;
+use crate::helpers::response_helper::{err_response_formatted, success_response};
 use crate::services::cascade::CascadeResult;
 use crate::AppState;
 use tauri::State;
@@ -12,22 +12,24 @@ pub async fn soft_remove_data(
   id: String,
   token: String,
   visibility: Option<String>,
-) -> Result<CascadeResult, ResponseModel> {
+) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
 
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
 
-  if use_json {
+  let result = if use_json {
     state
       .cascade_service
       .soft_delete_cascade_json(&table, &id)
-      .await
+      .await?
   } else {
     state
       .cascade_service
       .soft_delete_cascade_mongo(&table, &id)
-      .await
-  }
+      .await?
+  };
+
+  Ok(success_response(result))
 }
 
 #[tauri::command]
@@ -37,22 +39,24 @@ pub async fn hard_remove_data(
   id: String,
   token: String,
   visibility: Option<String>,
-) -> Result<CascadeResult, ResponseModel> {
+) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
 
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
 
-  if use_json {
+  let result = if use_json {
     state
       .cascade_service
       .permanent_delete_cascade_json(&table, &id)
-      .await
+      .await?
   } else {
     state
       .cascade_service
       .permanent_delete_cascade_mongo(&table, &id)
-      .await
-  }
+      .await?
+  };
+
+  Ok(success_response(result))
 }
 
 #[tauri::command]
