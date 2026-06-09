@@ -13,7 +13,7 @@ use nosql_orm::providers::JsonProvider;
 /* entities */
 use crate::entities::{
   daily_activity_entity::{DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel},
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
 };
 
 #[derive(Clone)]
@@ -50,7 +50,7 @@ impl ActivityStorage {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't get a list of daily activities! {}", error),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -91,7 +91,7 @@ impl ActivityStorage {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't create daily activity! {}", error),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
@@ -146,7 +146,7 @@ impl ActivityStorage {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't update daily activity! {}", error),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }

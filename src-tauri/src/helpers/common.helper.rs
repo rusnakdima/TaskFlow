@@ -2,7 +2,6 @@
 use serde::Serialize;
 
 /* models */
-use crate::entities::response_entity::DataValue;
 
 pub fn filter_deleted(records: Vec<serde_json::Value>) -> Vec<serde_json::Value> {
   records
@@ -25,19 +24,19 @@ pub fn format_date(value: &str) -> Option<String> {
   None
 }
 
-pub fn convert_data_to_array<T: Serialize>(data: &[T]) -> DataValue {
+pub fn convert_data_to_array<T: Serialize>(data: &[T]) -> serde_json::Value {
   let serialized_array: Vec<serde_json::Value> = data
     .iter()
     .map(|item| serde_json::to_value(item).unwrap())
     .collect();
 
-  DataValue::Array(serialized_array)
+  serde_json::json!(serialized_array)
 }
 
-pub fn convert_data_to_object<T: Serialize>(data: &T) -> DataValue {
+pub fn convert_data_to_object<T: Serialize>(data: &T) -> serde_json::Value {
   let serialized_object: serde_json::Value = serde_json::to_value(data).unwrap();
 
-  DataValue::Object(serialized_object)
+  serialized_object
 }
 
 #[allow(dead_code)]
