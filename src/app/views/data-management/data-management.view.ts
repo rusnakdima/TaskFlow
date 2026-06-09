@@ -721,9 +721,11 @@ export class DataManagementView implements OnInit {
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
         this.removeRecordFromStorage(table, record.id);
+      } else {
+        this.notifyService.showError(response.message || "Permanent delete failed");
       }
     } catch (error) {
-      this.notifyService.showError("Error: " + error);
+      this.notifyService.showError(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -742,9 +744,11 @@ export class DataManagementView implements OnInit {
         this.updateRecordInStorage(table, record.id, {
           deleted_at: isDeleted ? new Date().toISOString() : null,
         });
+      } else {
+        this.notifyService.showError(response.message || "Operation failed");
       }
     } catch (error) {
-      this.notifyService.showError("Error: " + error);
+      this.notifyService.showError(error instanceof Error ? error.message : String(error));
     }
   }
 

@@ -15,15 +15,9 @@
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-y-3">
-    <app-basic-info-section
-      [title]="basicInfoGroup.get('title')?.value"
-      [description]="basicInfoGroup.get('description')?.value"
-      itemType="task"
-      (titleChange)="basicInfoGroup.patchValue({ title: $event })"
-      (descriptionChange)="basicInfoGroup.patchValue({ description: $event })"
-    />
+    <app-basic-info-section [formGroup]="$any(form.get('basicInfo'))" itemType="task" />
 
-    <app-priority-section formControlName="priority" />
+    <app-priority-section formControlName="priority" [required]="true" />
 
     <app-timeline-section formControlName="timeline" [showRepeat]="true" />
 

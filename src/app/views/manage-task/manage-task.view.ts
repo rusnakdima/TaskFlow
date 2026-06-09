@@ -50,7 +50,6 @@ export class ManageTaskPage implements OnInit {
   private apiService = inject(ApiService);
 
   form!: FormGroup;
-  basicInfoGroup!: FormGroup;
   timelineGroup!: FormGroup;
 
   isEdit = signal(false);
@@ -81,11 +80,6 @@ export class ManageTaskPage implements OnInit {
   }
 
   private initForm(): void {
-    this.basicInfoGroup = this.fb.group({
-      title: ["", Validators.required],
-      description: [""],
-    });
-
     this.timelineGroup = this.fb.group({
       startDate: [null as Date | null],
       endDate: [null as Date | null],
@@ -95,7 +89,10 @@ export class ManageTaskPage implements OnInit {
     this.form = this.fb.group({
       _id: [""],
       id: [""],
-      basicInfo: this.basicInfoGroup,
+      basicInfo: this.fb.group({
+        title: ["", Validators.required],
+        description: [""],
+      }),
       status: ["pending"],
       priority: ["medium"],
       timeline: this.timelineGroup,
@@ -152,7 +149,7 @@ export class ManageTaskPage implements OnInit {
   }
 
   private applyItemToForm(item: any): void {
-    this.basicInfoGroup.patchValue({
+    this.form.get("basicInfo")?.patchValue({
       title: item.title || "",
       description: item.description || "",
     });
@@ -188,7 +185,7 @@ export class ManageTaskPage implements OnInit {
 
     try {
       const formValue = this.form.value;
-      const basicInfo = this.basicInfoGroup.value;
+      const basicInfo = formValue.basicInfo;
       const timeline = this.timelineGroup.value;
       const payload = this.buildPayload(formValue, basicInfo, timeline);
 

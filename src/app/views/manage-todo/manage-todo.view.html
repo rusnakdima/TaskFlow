@@ -15,13 +15,7 @@
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-y-3">
-    <app-basic-info-section
-      [title]="basicInfoGroup.get('title')?.value"
-      [description]="basicInfoGroup.get('description')?.value"
-      itemType="todo"
-      (titleChange)="basicInfoGroup.patchValue({ title: $event })"
-      (descriptionChange)="basicInfoGroup.patchValue({ description: $event })"
-    />
+    <app-basic-info-section [formGroup]="$any(form.get('basicInfo'))" itemType="todo" />
 
     <app-category-section
       [categories]="categories()"
@@ -36,6 +30,7 @@
 
     <app-priority-section
       [priority]="form.get('priority')?.value"
+      [required]="true"
       (priorityChange)="form.patchValue({ priority: $event })"
     />
 
