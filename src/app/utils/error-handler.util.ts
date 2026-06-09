@@ -13,15 +13,25 @@ export interface ErrorHandlerOptions {
 export class ErrorHandlerUtil {
   private notifyService = inject(NotifyService);
 
+  private extractMessage(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    if (typeof err === "object" && err !== null) {
+      const msg = (err as any).message;
+      if (typeof msg === "string" && msg.length > 0) return msg;
+      return JSON.stringify(err);
+    }
+    return String(err);
+  }
+
   handleError(err: unknown, context?: string): void {
-    const message = String(err);
+    const message = this.extractMessage(err);
     const prefix = context ? `${context}: ` : "";
     this.notifyService.showError(prefix + message);
   }
 
   subscribeError<T>(observer: Subscriber<T>, errorMessage?: string): (err: unknown) => void {
     return (err: unknown) => {
-      this.notifyService.showError(errorMessage || String(err));
+      this.notifyService.showError(errorMessage || this.extractMessage(err));
       observer.error(err);
     };
   }
@@ -52,7 +62,7 @@ export class ErrorHandlerUtil {
 
   createErrorHandler(options: ErrorHandlerOptions = {}): ErrorHandlerFn {
     return (err: unknown) => {
-      const message = String(err);
+      const message = this.extractMessage(err);
       if (options.notifyOnError !== false) {
         const prefix = options.context ? `${options.context}: ` : "";
         this.notifyService.showError(prefix + (options.errorMessage || message));
