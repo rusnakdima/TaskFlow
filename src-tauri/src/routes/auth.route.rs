@@ -133,7 +133,7 @@ pub async fn get_user_security_status(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+  use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
   let user = crate::helpers::auth_helper::find_user_by_username(
     &state.repository_service.json_provider,
@@ -145,10 +145,10 @@ pub async fn get_user_security_status(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Security status retrieved".to_string(),
-    data: DataValue::Object(json!({
+    data: serde_json::json!({
       "totp_enabled": user.totp_enabled,
       "qr_login_enabled": user.qr_login_enabled,
-    })),
+    }),
   })
 }
 

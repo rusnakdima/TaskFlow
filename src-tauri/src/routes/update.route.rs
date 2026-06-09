@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 use crate::services::about_service::AboutService;
 use crate::AppState;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -74,7 +74,7 @@ pub async fn downloadUpdate(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "".to_string(),
-    data: DataValue::String(file_path.display().to_string()),
+    data: serde_json::Value::String(file_path.display().to_string()),
   })
 }
 
@@ -159,7 +159,7 @@ pub async fn installUpdate(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Installer started successfully".to_string(),
-    data: DataValue::Bool(true),
+    data: serde_json::Value::Bool(true),
   })
 }
 

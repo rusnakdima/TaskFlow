@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ pub async fn change_todo_visibility(
     .map_err(|e| err_response(&e.message))?;
 
   let doc = match existing.data {
-    DataValue::Object(obj) => obj,
+    serde_json::Value::Object(obj) => obj,
     _ => return Err(err_response("Invalid response format")),
   };
 
@@ -46,9 +46,9 @@ pub async fn change_todo_visibility(
   let old_visibility = get_visibility(&doc_value);
 
   if old_visibility == new_visibility.as_str() {
-    return Ok(success_response(DataValue::Object(
+    return Ok(success_response(
       serde_json::json!({ "message": "Visibility unchanged" }),
-    )));
+    ));
   }
 
   // Update the todo with new visibility
@@ -99,9 +99,9 @@ pub async fn change_todo_visibility(
       .map_err(|e| err_response(&e.message))?;
   }
 
-  Ok(success_response(DataValue::Object(
+  Ok(success_response(
     serde_json::json!({ "message": "Visibility changed successfully" }),
-  )))
+  ))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -135,9 +135,9 @@ pub async fn update_todo_permissions(
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  Ok(success_response(DataValue::Object(
+  Ok(success_response(
     serde_json::to_value(response_model).unwrap_or_default(),
-  )))
+  ))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -171,9 +171,9 @@ pub async fn transfer_todo_ownership(
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  Ok(success_response(DataValue::Object(
+  Ok(success_response(
     serde_json::to_value(response_model).unwrap_or_default(),
-  )))
+  ))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -207,7 +207,7 @@ pub async fn get_todo_permissions(
 
   let doc = match response {
     Ok(resp) => match resp.data {
-      crate::entities::response_entity::DataValue::Object(obj) => obj,
+      serde_json::Value::Object(obj) => obj,
       _ => return Err(err_response("Invalid response format")),
     },
     Err(e) => return Err(err_response(&e.message)),
@@ -226,7 +226,7 @@ pub async fn get_todo_permissions(
     })
     .unwrap_or_default();
 
-  Ok(success_response(DataValue::Object(
+  Ok(success_response(
     serde_json::json!({ "assignee_roles": assignee_roles }),
-  )))
+  ))
 }

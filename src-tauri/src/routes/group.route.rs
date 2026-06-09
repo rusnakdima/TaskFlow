@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::auth_helper::extract_user_from_token;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::AppState;
@@ -251,7 +251,7 @@ pub async fn ensure_rooms_for_groups(
     .await?;
 
   let groups = match &groups_result.data {
-    DataValue::Array(arr) => arr.clone(),
+    serde_json::Value::Array(arr) => arr.clone(),
     _ => vec![],
   };
 
@@ -278,7 +278,7 @@ pub async fn ensure_rooms_for_groups(
 
     let existing_room = state.room_service.get_by_room(room_id).await?;
     let room_exists = match &existing_room.data {
-      DataValue::Object(obj) => !obj.is_null(),
+      serde_json::Value::Object(obj) => !obj.is_empty(),
       _ => false,
     };
 
@@ -298,10 +298,10 @@ pub async fn ensure_rooms_for_groups(
     created_count += 1;
   }
 
-  Ok(success_response(DataValue::Object(serde_json::json!({
+  Ok(success_response(serde_json::json!({
     "created": created_count,
     "skipped": skipped_count
-  }))))
+  })))
 }
 
 #[tauri::command]

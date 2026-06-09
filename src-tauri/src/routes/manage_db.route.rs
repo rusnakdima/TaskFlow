@@ -3,7 +3,7 @@ use crate::AppState;
 use tauri::State;
 
 /* models */
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
 /* helpers */
 use crate::helpers::auth_helper::{extract_user_from_token, validate_user_owns_data};
@@ -49,7 +49,7 @@ pub async fn check_mongodb_connection(
     } else {
       "MongoDB is not connected".to_string()
     },
-    data: DataValue::Bool(is_connected),
+    data: serde_json::Value::Bool(is_connected),
   })
 }
 
@@ -137,7 +137,7 @@ pub async fn sync_visibility_to_provider(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Visibility synced".to_string(),
-    data: DataValue::String("".to_string()),
+    data: serde_json::Value::String("".to_string()),
   })
 }
 

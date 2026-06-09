@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::auth_helper::{extract_user_from_token, validate_admin_role};
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
@@ -77,7 +77,7 @@ pub async fn get_all_archive_data(
       "daily_activities": all_activities
     });
 
-    return Ok(success_response(DataValue::Object(result)));
+    return Ok(success_response(result));
   }
 
   let user_id_str = user_id.unwrap();
@@ -173,7 +173,7 @@ pub async fn get_all_archive_data(
     "daily_activities": user_daily_activities
   });
 
-  Ok(success_response(DataValue::Object(result)))
+  Ok(success_response(result))
 }
 
 #[tauri::command]
@@ -196,42 +196,42 @@ pub async fn get_all_archive_paginated(
           .find_many("todos", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_todos)))
+        Ok(success_response(serde_json::json!(all_todos)))
       }
       "tasks" => {
         let all_tasks = provider
           .find_many("tasks", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_tasks)))
+        Ok(success_response(serde_json::json!(all_tasks)))
       }
       "subtasks" => {
         let all_subtasks = provider
           .find_many("subtasks", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_subtasks)))
+        Ok(success_response(serde_json::json!(all_subtasks)))
       }
       "comments" => {
         let all_comments = provider
           .find_many("comments", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_comments)))
+        Ok(success_response(serde_json::json!(all_comments)))
       }
       "chats" => {
         let all_chats = provider
           .find_many("chats", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_chats)))
+        Ok(success_response(serde_json::json!(all_chats)))
       }
       "categories" => {
         let all_categories = provider
           .find_many("categories", None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_categories)))
+        Ok(success_response(serde_json::json!(all_categories)))
       }
       "daily_activities" => {
         let all_activities = provider
@@ -245,14 +245,14 @@ pub async fn get_all_archive_paginated(
           )
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_activities)))
+        Ok(success_response(serde_json::json!(all_activities)))
       }
       _ => {
         let all_data = provider
           .find_many(&data_type, None, Some(skip), Some(limit), None, true)
           .await
           .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(DataValue::Array(all_data)))
+        Ok(success_response(serde_json::json!(all_data)))
       }
     }
   } else {
@@ -275,7 +275,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(all_todos)))
+        Ok(success_response(serde_json::json!(all_todos)))
       }
       "tasks" => {
         let todos_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
@@ -292,7 +292,7 @@ pub async fn get_all_archive_paginated(
           .collect();
 
         if todo_ids.is_empty() {
-          return Ok(success_response(DataValue::Array(vec![])));
+          return Ok(success_response(serde_json::json!([])));
         }
 
         let tasks_filter =
@@ -311,7 +311,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(tasks)))
+        Ok(success_response(serde_json::json!(tasks)))
       }
       "subtasks" => {
         let tasks_filter = Filter::from_json(&serde_json::json!({}))
@@ -328,7 +328,7 @@ pub async fn get_all_archive_paginated(
           .collect();
 
         if task_ids.is_empty() {
-          return Ok(success_response(DataValue::Array(vec![])));
+          return Ok(success_response(serde_json::json!([])));
         }
 
         let subtasks_filter =
@@ -347,7 +347,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(subtasks)))
+        Ok(success_response(serde_json::json!(subtasks)))
       }
       "comments" => {
         let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
@@ -365,7 +365,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(comments)))
+        Ok(success_response(serde_json::json!(comments)))
       }
       "chats" => {
         let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
@@ -383,7 +383,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(chats)))
+        Ok(success_response(serde_json::json!(chats)))
       }
       "categories" => {
         let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
@@ -401,7 +401,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(categories)))
+        Ok(success_response(serde_json::json!(categories)))
       }
       "daily_activities" => {
         let user_filter = Filter::from_json(&serde_json::json!({ "user_id": user_id_str }))
@@ -419,7 +419,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(activities)))
+        Ok(success_response(serde_json::json!(activities)))
       }
       _ => {
         let all_data = provider
@@ -427,7 +427,7 @@ pub async fn get_all_archive_paginated(
           .await
           .map_err(|e| err_response(&e.message))?;
 
-        Ok(success_response(DataValue::Array(all_data)))
+        Ok(success_response(serde_json::json!(all_data)))
       }
     }
   }
