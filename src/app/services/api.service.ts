@@ -789,6 +789,28 @@ class EntityApi<T> {
       });
     });
   }
+
+  permanentDelete(id: string, options?: { visibility?: string }): Observable<void> {
+    const entityType = this.getEntityType("delete");
+    const token = this.api.jwtTokenService.getToken();
+    return new Observable((subscriber) => {
+      this.api
+        .invokeCommand("hard_remove_data", {
+          table: entityType,
+          id,
+          token,
+          visibility: options?.visibility,
+        })
+        .subscribe({
+          next: () => {
+            this.api.storageService.modify(entityType as any, "delete", { id });
+            subscriber.next();
+            subscriber.complete();
+          },
+          error: (err) => subscriber.error(err),
+        });
+    });
+  }
 }
 
 class AdminApi {

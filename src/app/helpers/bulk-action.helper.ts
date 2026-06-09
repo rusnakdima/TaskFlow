@@ -111,4 +111,39 @@ export class BulkActionHelper {
   ): Observable<BulkOperationResult> {
     return this.bulkUpdateField(items, "priority", priority, updateFn);
   }
+
+  /**
+   * Bulk permanent delete multiple items (hard delete)
+   */
+  bulkPermanentDelete<T>(
+    items: T[],
+    permanentDeleteFn: (id: string, options?: any) => Observable<any>,
+    options?: any
+  ): Observable<BulkOperationResult> {
+    if (items.length === 0) {
+      return of({ successCount: 0, errorCount: 0, errors: [] });
+    }
+
+    const deleteObservables = items.map((item: any) =>
+      permanentDeleteFn(item.id, options).pipe(
+        map((_result) => ({ success: true, id: item.id })),
+        catchError((error) => of({ success: false, id: item.id, error: error.message }))
+      )
+    );
+
+    return forkJoin(deleteObservables).pipe(
+      map((results) => {
+        const successCount = results.filter((r) => r.success).length;
+        const errors = results
+          .filter((r): r is { success: false; id: string; error: string } => !r.success)
+          .map((r) => ({ id: r.id, error: r.error }));
+
+        return {
+          successCount,
+          errorCount: errors.length,
+          errors,
+        };
+      })
+    );
+  }
 }

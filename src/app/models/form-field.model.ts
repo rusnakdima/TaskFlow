@@ -19,6 +19,7 @@ interface CommonFormField {
   label: string | ((param: any) => string);
   name: string;
   readonly?: boolean;
+  required?: boolean;
   isShow: (param: any, index?: number) => boolean;
 }
 

@@ -174,9 +174,10 @@ export class NotifyService implements OnDestroy {
     if (message == null) {
       message = "Unknown error";
     } else if (typeof message !== "string") {
-      if ("message" in message && typeof (message as any).message === "string") {
-        message = (message as any).message;
-      } else if ("status" in message && "message" in message) {
+      const msg = (message as any).message;
+      if (typeof msg === "string" && msg.length > 0) {
+        message = msg;
+      } else if (typeof (message as any).message === "string") {
         message = (message as any).message;
       } else {
         message = JSON.stringify(message);
