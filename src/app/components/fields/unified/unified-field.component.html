@@ -3,8 +3,10 @@
     @switch (field.type) {
       <!-- Text Input -->
       @case (TypeField.text) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <input
             matInput
             type="text"
@@ -19,8 +21,10 @@
 
       <!-- Number Input -->
       @case (TypeField.number) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <input
             matInput
             type="number"
@@ -36,8 +40,10 @@
 
       <!-- Textarea -->
       @case (TypeField.textarea) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <textarea
             matInput
             [formControlName]="field.name"
@@ -52,8 +58,10 @@
 
       <!-- Select -->
       @case (TypeField.select) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <mat-select [formControlName]="field.name">
             @for (option of getOptions(); track trackByValue($index, option)) {
               @if (isOptionVisible(option)) {
@@ -71,7 +79,7 @@
       @case (TypeField.checkbox) {
         <div class="flex flex-col gap-1">
           <mat-checkbox [formControlName]="field.name">
-            {{ getLabel() }}
+            {{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span>
           </mat-checkbox>
           @if (showError && isInvalid(field.name)) {
             <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
@@ -82,7 +90,9 @@
       <!-- Radio Group -->
       @case (TypeField.radio) {
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></span
+          >
           <mat-radio-group [formControlName]="field.name" class="flex flex-col gap-2">
             @for (option of getOptions(); track trackByValue($index, option)) {
               @if (isOptionVisible(option)) {
@@ -100,8 +110,10 @@
 
       <!-- Date Picker -->
       @case (TypeField.datepicker) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <input
             matInput
             [matDatepicker]="picker"
@@ -120,7 +132,7 @@
       @case (TypeField.slidetoggle) {
         <div class="flex items-center gap-2">
           <mat-slide-toggle [formControlName]="field.name">
-            {{ getLabel() }}
+            {{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span>
           </mat-slide-toggle>
           @if (showError && isInvalid(field.name)) {
             <span class="text-xs text-red-500">{{ getErrorMessage(field.name) }}</span>
@@ -131,7 +143,9 @@
       <!-- Slider -->
       @case (TypeField.slider) {
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></span
+          >
           <mat-slider [min]="getMin()" [max]="getMax()" class="w-full">
             <input matSliderThumb [formControlName]="field.name" />
           </mat-slider>
@@ -145,7 +159,9 @@
       <!-- Slider Range -->
       @case (TypeField.sliderrange) {
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></span
+          >
           <mat-slider [min]="getMin()" [max]="getMax()" class="w-full">
             <input matSliderStartThumb [formControlName]="field.name + '_start'" />
             <input matSliderEndThumb [formControlName]="field.name + '_end'" />
@@ -158,8 +174,10 @@
 
       <!-- Image (placeholder - to be enhanced) -->
       @case (TypeField.image) {
-        <mat-form-field class="w-full">
-          <mat-label>{{ getLabel() }}</mat-label>
+        <mat-form-field class="w-full" hideRequiredMarker="true">
+          <mat-label
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></mat-label
+          >
           <input
             matInput
             type="url"
@@ -175,7 +193,9 @@
       <!-- Menu (placeholder - to be enhanced) -->
       @case (TypeField.menu) {
         <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></span
+          >
         </div>
       }
 
@@ -191,7 +211,9 @@
       <!-- SubList (placeholder - to be enhanced) -->
       @case (TypeField.sublist) {
         <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getLabel() }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ getLabel() }}<span *ngIf="field.required" class="text-red-500">*</span></span
+          >
         </div>
       }
     }

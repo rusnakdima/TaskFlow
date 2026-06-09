@@ -4,7 +4,7 @@
     <button
       type="button"
       (click)="toggleExpanded()"
-      class="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--accent-color)]/50 bg-white text-[var(--accent-color)] shadow-lg transition-colors hover:bg-[var(--accent-color)]/10 dark:border-[var(--accent-color)]/50 dark:bg-zinc-800 dark:text-white dark:hover:bg-[var(--accent-color)]/20"
+      class="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--accent-color)]/50 bg-[var(--accent-color)] text-[var(--accent-fg)] shadow-lg transition-colors hover:bg-[var(--accent-600)] dark:border-[var(--accent-color)]/50 dark:text-white dark:hover:bg-[var(--accent-400)]"
     >
       <mat-icon class="h-4! w-4!" fontIcon="edit" />
     </button>
@@ -45,7 +45,7 @@
             class="w-full"
             (valueChange)="onUrlInputChange($event)"
           />
-          <app-button variant="accent" (clicked)="applyUrl()"> Apply </app-button>
+          <app-button variant="accent" (clicked)="openCropperFromUrl()"> Crop </app-button>
         </div>
       </div>
 
@@ -61,31 +61,35 @@
           </label>
         </div>
       </div>
+    </div>
+  }
 
-      @if (showCropper()) {
-        <div class="mt-4 border-t border-[var(--accent-color)] pt-4">
-          <h5 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Crop Image</h5>
-          <div class="flex flex-col items-center gap-2">
-            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-              <image-cropper
-                [imageBase64]="imageBase64()"
-                [maintainAspectRatio]="true"
-                [aspectRatio]="1"
-                [resizeToWidth]="256"
-                [cropperMinWidth]="256"
-                [roundCropper]="true"
-                format="png"
-                (imageCropped)="imageCropped($event)"
-                class="max-h-64"
-              />
-            </div>
-            <div class="flex gap-2">
-              <app-button variant="cancel" (clicked)="cancelCrop()"> Cancel </app-button>
-              <app-button variant="accent" (clicked)="saveCrop()"> Save </app-button>
-            </div>
-          </div>
+  @if (showCropper()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      (click)="cancelCrop()"
+    >
+      <div
+        class="flex flex-col items-center gap-4 rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-800"
+        style="width: min(80vw, 80vh); height: min(80vw, 80vh)"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="text-center">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Crop Image</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Drag to adjust crop area</p>
         </div>
-      }
+
+        <div
+          class="w-full flex-1 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <img #cropperImage [src]="imageBase64()" class="h-full w-full object-contain" />
+        </div>
+
+        <div class="flex gap-3">
+          <app-button variant="cancel" (clicked)="cancelCrop()">Cancel</app-button>
+          <app-button variant="accent" (clicked)="saveCrop()">Save</app-button>
+        </div>
+      </div>
     </div>
   }
 </div>
