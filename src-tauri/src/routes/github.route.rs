@@ -2,7 +2,7 @@
 use std::sync::Arc;
 use tauri::State;
 
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
 use crate::providers::mongodb_provider::MongoProvider;
 use crate::services::github_service::GithubService;
@@ -100,7 +100,7 @@ pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseMode
     .get_authorization_url(&client_id_github, &redirect_uri)
     .await;
 
-  Ok(success_response(DataValue::String(url)))
+  Ok(success_response(serde_json::json!(url)))
 }
 
 #[tauri::command]
@@ -144,11 +144,11 @@ pub async fn github_oauth_callback(
   )
   .await;
 
-  Ok(success_response(DataValue::Object(json!({
+  Ok(success_response(serde_json::json!({
     "username": github_user.login,
     "user_id": github_user.id.to_string(),
     "avatar_url": github_user.avatar_url
-  }))))
+  })))
 }
 
 #[tauri::command]
@@ -179,7 +179,7 @@ pub async fn github_get_repos(
     })
     .collect();
 
-  Ok(success_response(DataValue::Array(repo_list)))
+  Ok(success_response(serde_json::json!(repo_list)))
 }
 
 #[tauri::command]
@@ -188,14 +188,14 @@ pub async fn github_get_connection_status(
   user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   match get_user_github_token(&state, &user_id).await {
-    Ok((_, user)) => Ok(success_response(DataValue::Object(json!({
+    Ok((_, user)) => Ok(success_response(serde_json::json!({
       "connected": true,
       "username": user.github_username,
       "user_id": user.github_user_id
-    })))),
-    Err(_) => Ok(success_response(DataValue::Object(json!({
+    }))),
+    Err(_) => Ok(success_response(serde_json::json!({
       "connected": false
-    })))),
+    }))),
   }
 }
 
@@ -225,9 +225,7 @@ pub async fn github_disconnect(
     let _ = mongo.patch(table_name, &user_id, update_data).await;
   }
 
-  Ok(success_response(DataValue::String(
-    "Disconnected".to_string(),
-  )))
+  Ok(success_response(serde_json::json!("Disconnected")))
 }
 
 #[tauri::command]
@@ -247,12 +245,12 @@ pub async fn github_create_issue(
     .await
     .map_err(|e| err_response_formatted("Failed to create issue", &e))?;
 
-  Ok(success_response(DataValue::Object(json!({
+  Ok(success_response(serde_json::json!({
     "id": issue.id,
     "number": issue.number,
     "html_url": issue.html_url,
     "title": issue.title
-  }))))
+  })))
 }
 
 #[tauri::command]
@@ -272,10 +270,10 @@ pub async fn github_create_comment(
     .await
     .map_err(|e| err_response_formatted("Failed to create comment", &e))?;
 
-  Ok(success_response(DataValue::Object(json!({
+  Ok(success_response(serde_json::json!({
     "id": comment.id,
     "html_url": comment.html_url
-  }))))
+  })))
 }
 
 #[tauri::command]
@@ -303,12 +301,12 @@ pub async fn github_update_issue(
     .await
     .map_err(|e| err_response_formatted("Failed to update issue", &e))?;
 
-  Ok(success_response(DataValue::Object(json!({
+  Ok(success_response(serde_json::json!({
     "id": issue.id,
     "number": issue.number,
     "html_url": issue.html_url,
     "title": issue.title
-  }))))
+  })))
 }
 
 #[tauri::command]
@@ -330,11 +328,11 @@ pub async fn github_start_device_flow(
     .await
     .map_err(|e| err_response_formatted("Failed to start device flow", &e))?;
 
-  Ok(success_response(DataValue::Object(json!({
+  Ok(success_response(serde_json::json!({
     "device_code": device_code,
     "user_code": user_code,
     "verification_uri": verification_uri
-  }))))
+  })))
 }
 
 #[tauri::command]
@@ -381,7 +379,7 @@ pub async fn github_check_device_flow(
       )
       .await;
 
-      Ok(success_response(DataValue::Object(json!({
+      Ok(success_response(serde_json::json!({
         "success": true,
         "access_token": tokens.access_token,
         "refresh_token": tokens.refresh_token,
@@ -389,12 +387,12 @@ pub async fn github_check_device_flow(
         "username": github_user.login,
         "user_id": github_user.id.to_string(),
         "avatar_url": github_user.avatar_url
-      }))))
+      })))
     }
-    Ok(None) => Ok(success_response(DataValue::Object(json!({
+    Ok(None) => Ok(success_response(serde_json::json!({
       "success": false,
       "pending": true
-    })))),
+    }))),
     Err(e) => Err(err_response(&e)),
   }
 }

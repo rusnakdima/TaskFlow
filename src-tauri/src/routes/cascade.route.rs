@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 use crate::helpers::auth_helper::extract_user_from_token;
 use crate::helpers::response_helper::err_response_formatted;
 use crate::services::cascade::CascadeResult;
@@ -98,12 +98,10 @@ pub async fn batch_soft_delete_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
-    data: DataValue::Array(
-      results
-        .into_iter()
-        .map(|r| serde_json::to_value(r).unwrap_or_default())
-        .collect(),
-    ),
+    data: serde_json::json!(results
+      .into_iter()
+      .map(|r| serde_json::to_value(r).unwrap_or_default())
+      .collect::<Vec<_>>()),
   })
 }
 
@@ -150,12 +148,10 @@ pub async fn batch_hard_delete_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
-    data: DataValue::Array(
-      results
-        .into_iter()
-        .map(|r| serde_json::to_value(r).unwrap_or_default())
-        .collect(),
-    ),
+    data: serde_json::json!(results
+      .into_iter()
+      .map(|r| serde_json::to_value(r).unwrap_or_default())
+      .collect::<Vec<_>>()),
   })
 }
 
@@ -228,11 +224,9 @@ pub async fn batch_restore_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records restored", results.len()),
-    data: DataValue::Array(
-      results
-        .into_iter()
-        .map(|r| serde_json::to_value(r).unwrap_or_default())
-        .collect(),
-    ),
+    data: serde_json::json!(results
+      .into_iter()
+      .map(|r| serde_json::to_value(r).unwrap_or_default())
+      .collect::<Vec<_>>()),
   })
 }
