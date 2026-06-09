@@ -13,7 +13,7 @@ use nosql_orm::repository::Repository;
 /* models */
 use crate::entities::{
   profile_entity::ProfileEntity,
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   user_entity::UserEntity,
 };
 
@@ -132,11 +132,11 @@ impl AuthTotpService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP setup initiated".to_string(),
-      data: DataValue::Object(serde_json::json!({
+      data: serde_json::json!({
         "qr_code": qr_code,
         "secret": secret_lower,
         "recovery_codes": recovery_codes
-      })),
+      }),
     })
   }
 
@@ -196,18 +196,18 @@ impl AuthTotpService {
         .as_ref()
         .and_then(|p| p.id.as_ref())
         .map(|s| s.as_str());
-      match ts.generate_token(user.id(), profile_id, "", "", false) {
+      match ts.generate_token(user.id(), profile_id, "", user.role.as_str(), false) {
         Ok(token) => {
           let profile = self.check_profile_exists(user.id()).await.ok().flatten();
           let needs_profile = profile.is_none();
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "TOTP verified".to_string(),
-            data: DataValue::Object(serde_json::json!({
+            data: serde_json::json!({
               "token": token,
               "needsProfile": needs_profile,
               "profile": profile
-            })),
+            }),
           });
         }
         Err(e) => return Err(e),
@@ -284,10 +284,10 @@ impl AuthTotpService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP QR code generated".to_string(),
-      data: DataValue::Object(serde_json::json!({
+      data: serde_json::json!({
         "qr_code": qr_code,
         "secret": user.totp_secret
-      })),
+      }),
     })
   }
 

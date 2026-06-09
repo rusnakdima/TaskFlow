@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
 use crate::entities::{
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   table_entity::TableModelType,
   user_entity::UserEntity,
 };
@@ -108,11 +108,11 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR code generated".to_string(),
-      data: DataValue::Object(json!({
+      data: serde_json::json!({
           "token": token,
           "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
-      })),
+      }),
     })
   }
 
@@ -215,15 +215,15 @@ impl QrAuthService {
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Status retrieved".to_string(),
-          data: DataValue::Object(response_data),
+          data: response_data,
         })
       }
       Err(_) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Status retrieved".to_string(),
-        data: DataValue::Object(json!({
+        data: serde_json::json!({
             "status": "expired"
-        })),
+        }),
       }),
     }
   }
@@ -273,11 +273,11 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR code generated for desktop login".to_string(),
-      data: DataValue::Object(json!({
+      data: serde_json::json!({
           "token": token,
           "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
-      })),
+      }),
     })
   }
 
@@ -479,7 +479,7 @@ impl QrAuthService {
     };
     let jwt_token = self
       .token_service
-      .generate_token(&user_id, profile_id, "", "", false)?;
+      .generate_token(&user_id, profile_id, "", &user.role, false)?;
 
     // Mark token as completed
     let mut updated_token = qr_token.clone();
@@ -508,12 +508,12 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR login successful".to_string(),
-      data: DataValue::Object(serde_json::json!({
+      data: serde_json::json!({
         "token": jwt_token,
         "needsProfile": needs_profile,
         "profile": profile,
         "userId": user_id
-      })),
+      }),
     })
   }
 }
