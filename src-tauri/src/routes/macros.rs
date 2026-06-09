@@ -13,8 +13,12 @@ macro_rules! crud_route {
       page: Option<u64>,
       limit: Option<u64>,
       token: Option<String>,
-    ) -> Result<crate::entities::response_entity::ResponseModel, String> {
+    ) -> Result<
+      crate::entities::response_entity::ResponseModel,
+      crate::entities::response_entity::ResponseModel,
+    > {
       use crate::helpers::auth_helper::{extract_profile_from_token, extract_user_from_token};
+      use crate::helpers::response_helper::err_response;
 
       let user_id = extract_user_from_token(
         token.as_deref().unwrap_or(""),
@@ -44,7 +48,7 @@ macro_rules! crud_route {
           limit,
         )
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| err_response(&e.message))
     }
   };
 }
