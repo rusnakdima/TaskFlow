@@ -67,7 +67,6 @@ export class ManageTodoPage implements OnInit {
   private permissionService = inject(PermissionService);
 
   form!: FormGroup;
-  basicInfoGroup!: FormGroup;
 
   isEdit = signal(false);
   isSubmitting = signal(false);
@@ -186,16 +185,13 @@ export class ManageTodoPage implements OnInit {
   }
 
   private initForm(): void {
-    this.basicInfoGroup = this.fb.group({
-      title: ["", Validators.required],
-      description: [""],
-    });
-
     this.form = this.fb.group({
       _id: [""],
       id: [""],
-      title: ["", Validators.required],
-      description: [""],
+      basicInfo: this.fb.group({
+        title: ["", Validators.required],
+        description: [""],
+      }),
       priority: ["medium"],
       start_date: [""],
       end_date: [""],
@@ -280,8 +276,6 @@ export class ManageTodoPage implements OnInit {
     this.form.patchValue({
       _id: item._id || "",
       id: item.id || "",
-      title: item.title || "",
-      description: item.description || "",
       priority: item.priority || "medium",
       start_date: item.start_date || "",
       end_date: item.end_date || "",
@@ -290,7 +284,7 @@ export class ManageTodoPage implements OnInit {
       order: item.order ?? 0,
     });
 
-    this.basicInfoGroup.patchValue({
+    this.form.get("basicInfo")?.patchValue({
       title: item.title || "",
       description: item.description || "",
     });
@@ -364,6 +358,15 @@ export class ManageTodoPage implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
+    console.log(`[ManageTodoPage] onSubmit called, form.invalid: ${this.form.invalid}`);
+    console.log(`[ManageTodoPage] form value:`, this.form.value);
+    console.log(`[ManageTodoPage] basicInfo group:`, this.form.get("basicInfo")?.value);
+    console.log(`[ManageTodoPage] basicInfo invalid: ${this.form.get("basicInfo")?.invalid}`);
+    console.log(
+      `[ManageTodoPage] basicInfo title errors:`,
+      this.form.get("basicInfo.title")?.errors
+    );
+
     if (this.form.invalid) {
       this.notifyService.showError("Please fill in required fields");
       return;
@@ -373,7 +376,7 @@ export class ManageTodoPage implements OnInit {
 
     try {
       const formValue = this.form.value;
-      const basicInfo = this.basicInfoGroup.value;
+      const basicInfo = formValue.basicInfo;
       const payload = this.buildPayload(formValue, basicInfo);
       const visibility = this.isEdit() ? this.visibility() : formValue.visibility || "private";
 
@@ -409,8 +412,8 @@ export class ManageTodoPage implements OnInit {
 
     return {
       id: formValue.id || undefined,
-      title: basicInfo.title || formValue.title,
-      description: basicInfo.description || formValue.description || "",
+      title: basicInfo.title,
+      description: basicInfo.description || "",
       priority: formValue.priority,
       start_date: formValue.start_date || "",
       end_date: formValue.end_date || "",
