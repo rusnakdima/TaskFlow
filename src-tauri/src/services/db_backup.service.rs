@@ -7,7 +7,7 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::{json, Value};
 
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 use crate::helpers::common::filter_deleted;
 use crate::helpers::response_helper::err_response;
 
@@ -238,7 +238,7 @@ impl DbBackupService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Imported {} records", imported_count),
-      data: DataValue::String(imported_count.to_string()),
+      data: serde_json::json!(imported_count),
     })
   }
 
@@ -486,7 +486,7 @@ impl DbBackupService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Exported {} records", exported_count),
-      data: DataValue::String(exported_count.to_string()),
+      data: serde_json::json!(exported_count),
     })
   }
 

@@ -12,9 +12,7 @@ use nosql_orm::relations::RelationLoader;
 
 /* entities */
 use crate::entities::{
-  provider_type_entity::ProviderType,
-  response_entity::{DataValue, ResponseModel},
-  table_entity::validate_model,
+  provider_type_entity::ProviderType, response_entity::ResponseModel, table_entity::validate_model,
 };
 use tauri::Emitter;
 
@@ -582,7 +580,7 @@ impl RepositoryService {
           }
         }
         if todo_ids.is_empty() {
-          return Ok(success_response(DataValue::Array(vec![])));
+          return Ok(success_response(serde_json::Value::Array(vec![])));
         }
         let todo_in_filter = Filter::In(
           "todo_id".to_string(),
@@ -592,7 +590,7 @@ impl RepositoryService {
         Some(Filter::And(vec![todo_in_filter, user_id_check]))
       } else {
         if todo_ids.is_empty() {
-          return Ok(success_response(DataValue::Array(vec![])));
+          return Ok(success_response(serde_json::Value::Array(vec![])));
         }
         let todo_in_filter = Filter::In(
           "todo_id".to_string(),
@@ -937,9 +935,7 @@ impl RepositoryService {
 
     let _elapsed = start.elapsed();
 
-    Ok(success_response(DataValue::Array(
-      self.apply_projection_recursive(docs),
-    )))
+    Ok(success_response(self.apply_projection_recursive(docs)))
   }
 
   async fn handle_search(
@@ -1181,9 +1177,7 @@ impl RepositoryService {
 
     let _elapsed = start.elapsed();
 
-    Ok(success_response(DataValue::Array(
-      self.apply_projection_recursive(docs),
-    )))
+    Ok(success_response(self.apply_projection_recursive(docs)))
   }
 
   async fn handle_get(
@@ -1262,7 +1256,7 @@ impl RepositoryService {
                   // We used "all" but fell through here - try mongo directly
                   if let Some(mongo) = mongo_provider {
                     match mongo.find_by_id(&table, id_val).await {
-                      Ok(Some(d)) => return Ok(success_response(DataValue::Object(d))),
+                      Ok(Some(d)) => return Ok(success_response(serde_json::json!(d))),
                       _ => {}
                     }
                   }
@@ -1341,17 +1335,17 @@ impl RepositoryService {
 
     if id.is_some() {
       if !projected.is_empty() {
-        Ok(success_response(DataValue::Object(
+        Ok(success_response(
           projected
             .into_iter()
             .next()
             .expect("Empty iterator after non-empty check"),
-        )))
+        ))
       } else {
         Err(err_response("Document not found after projection"))
       }
     } else {
-      Ok(success_response(DataValue::Array(projected)))
+      Ok(success_response(serde_json::json!(projected)))
     }
   }
 
@@ -1635,7 +1629,7 @@ impl RepositoryService {
 
     self.emit_db_change_event("created", &table, &response_doc);
 
-    Ok(success_response(DataValue::Object(response_doc)))
+    Ok(success_response(serde_json::json!(response_doc)))
   }
 
   async fn handle_github_sync_comment(
@@ -1926,7 +1920,7 @@ impl RepositoryService {
     let projected_records = self.apply_projection_recursive(validated_records);
     let _elapsed = start.elapsed();
 
-    Ok(success_response(DataValue::Array(projected_records)))
+    Ok(success_response(serde_json::json!(projected_records)))
   }
 
   async fn handle_update(
@@ -2188,7 +2182,7 @@ impl RepositoryService {
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
 
-    Ok(success_response(DataValue::Object(response_doc)))
+    Ok(success_response(serde_json::json!(response_doc)))
   }
 
   async fn handle_delete(
@@ -2335,7 +2329,7 @@ impl RepositoryService {
 
     self.emit_db_change_event("deleted", &table, &serde_json::json!({"id": id_str}));
 
-    Ok(success_response(DataValue::String(id_str.clone())))
+    Ok(success_response(serde_json::json!(id_str.clone())))
   }
 
   async fn handle_soft_delete_cascade(
@@ -2374,6 +2368,6 @@ impl RepositoryService {
         .sync_entity_to_json(&table, &id)
         .await?;
     }
-    Ok(success_response(DataValue::String(id)))
+    Ok(success_response(serde_json::json!(id)))
   }
 }

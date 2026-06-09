@@ -8,7 +8,7 @@ use nosql_orm::providers::JsonProvider;
 
 /* models */
 use crate::entities::{
-  response_entity::{DataValue, ResponseModel, ResponseStatus},
+  response_entity::{ResponseModel, ResponseStatus},
   statistics_entity::StatisticsResponseModel,
 };
 
@@ -170,14 +170,12 @@ impl StatisticsService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Statistics retrieved successfully".to_string(),
-      data: DataValue::Object(
-        serde_json::to_value(StatisticsResponseModel {
-          statistics,
-          chart_data,
-          detailed_metrics,
-        })
-        .unwrap(),
-      ),
+      data: serde_json::to_value(StatisticsResponseModel {
+        statistics,
+        chart_data,
+        detailed_metrics,
+      })
+      .unwrap(),
     })
   }
 

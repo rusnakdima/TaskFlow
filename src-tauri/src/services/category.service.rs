@@ -1,4 +1,4 @@
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
@@ -32,7 +32,7 @@ impl CategoryService {
       ));
     }
 
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_all(
@@ -66,7 +66,7 @@ impl CategoryService {
       .find_many("categories", final_filter.as_ref(), skip, limit, None, true)
       .await?;
 
-    Ok(success_response(DataValue::Array(docs)))
+    Ok(success_response(docs))
   }
 
   pub async fn create(
@@ -76,7 +76,7 @@ impl CategoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.base.get_provider(visibility)?;
     let doc = provider.insert("categories", data).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn update(
@@ -104,7 +104,7 @@ impl CategoryService {
     let provider = self.base.get_provider(stored_visibility)?;
 
     let doc = provider.patch("categories", id, data).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
@@ -126,6 +126,6 @@ impl CategoryService {
     let provider = self.base.get_provider(stored_visibility)?;
 
     let _ = soft_delete_cascade_all(&provider, "categories", id).await;
-    Ok(success_response(DataValue::Object(json!({}))))
+    Ok(success_response(json!({})))
   }
 }

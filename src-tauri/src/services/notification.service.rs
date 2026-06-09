@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::providers::data_provider::DataProvider;
 
 /* entities */
-use crate::entities::response_entity::{DataValue, ResponseModel};
+use crate::entities::response_entity::ResponseModel;
 
 /* helpers */
 use crate::helpers::response_helper::{err_response, success_response};
@@ -45,7 +45,7 @@ impl NotificationService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let doc = provider.insert("notifications", data).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn get_by_user(
@@ -60,7 +60,7 @@ impl NotificationService {
     let docs = provider
       .find_many("notifications", Some(&filter), skip, limit, None, true)
       .await?;
-    Ok(success_response(DataValue::Array(docs)))
+    Ok(success_response(docs))
   }
 
   pub async fn mark_as_read(
@@ -71,7 +71,7 @@ impl NotificationService {
     let provider = self.get_provider(visibility)?;
     let update = json!({ "read": true });
     let doc = provider.patch("notifications", id, update).await?;
-    Ok(success_response(DataValue::Object(doc)))
+    Ok(success_response(doc))
   }
 
   pub async fn mark_all_as_read(
@@ -98,13 +98,13 @@ impl NotificationService {
         }
       }
     }
-    Ok(success_response(DataValue::Array(vec![])))
+    Ok(success_response(serde_json::Value::Array(vec![])))
   }
 
   pub async fn delete(&self, id: &str, visibility: &str) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let _ = provider.delete("notifications", id).await;
-    Ok(success_response(DataValue::String(id.to_string())))
+    Ok(success_response(serde_json::json!(id.to_string())))
   }
 
   pub async fn clear_all(
@@ -123,6 +123,6 @@ impl NotificationService {
         let _ = provider.delete("notifications", id).await;
       }
     }
-    Ok(success_response(DataValue::Array(vec![])))
+    Ok(success_response(serde_json::Value::Array(vec![])))
   }
 }

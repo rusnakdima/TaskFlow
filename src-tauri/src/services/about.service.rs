@@ -7,7 +7,7 @@ use tauri_plugin_http::reqwest;
 use open;
 
 /* models */
-use crate::entities::response_entity::{DataValue, ResponseModel, ResponseStatus};
+use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
 pub struct AboutService {
   pub name_app: String,
@@ -30,7 +30,7 @@ impl AboutService {
     let mut response = reqwest::get(&url).await.map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
       message: format!("Download failed: {}", e),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })?;
 
     let total_size = response.content_length().unwrap_or(0);
@@ -42,7 +42,7 @@ impl AboutService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Failed to get download directory: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     let file_path = download_dir.join(&file_name);
@@ -51,7 +51,7 @@ impl AboutService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Failed to create file: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       })?;
 
     loop {
@@ -60,7 +60,7 @@ impl AboutService {
           file.write_all(&chunk).await.map_err(|e| ResponseModel {
             status: ResponseStatus::Error,
             message: format!("Write failed: {}", e),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })?;
 
           downloaded += chunk.len() as u64;
@@ -75,7 +75,7 @@ impl AboutService {
           return Err(ResponseModel {
             status: ResponseStatus::Error,
             message: format!("Download failed: {}", e),
-            data: DataValue::String("".to_string()),
+            data: serde_json::Value::String("".to_string()),
           })
         }
       }
@@ -84,13 +84,13 @@ impl AboutService {
     file.flush().await.map_err(|e| ResponseModel {
       status: ResponseStatus::Error,
       message: format!("Flush failed: {}", e),
-      data: DataValue::String("".to_string()),
+      data: serde_json::Value::String("".to_string()),
     })?;
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::String(file_path.display().to_string()),
+      data: serde_json::Value::String(file_path.display().to_string()),
     })
   }
 
@@ -110,14 +110,14 @@ impl AboutService {
       return Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "Unsupported target platform".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       });
     };
 
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "".to_string(),
-      data: DataValue::String(name_app),
+      data: serde_json::Value::String(name_app),
     })
   }
 
@@ -126,12 +126,12 @@ impl AboutService {
       Ok(()) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "File opened successfully".to_string(),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
       Err(e) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Failed to open file: {}", e),
-        data: DataValue::String("".to_string()),
+        data: serde_json::Value::String("".to_string()),
       }),
     }
   }
