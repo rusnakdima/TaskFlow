@@ -456,6 +456,7 @@ export class ManageTodoPage implements OnInit {
           source_provider: source,
           target_provider: target,
           new_visibility: toVisibility,
+          delete_from_source: source === "Json",
         })
       );
 

@@ -26,7 +26,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 import { AdminStorageService } from "@services/core/admin-storage.service";
 import { ArchiveStorageService } from "@services/core/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -36,6 +36,7 @@ import { ShortcutService } from "@services/ui/shortcut.service";
 import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { TodoPermission } from "@services/core/permission.service";
+import { VisibilitySyncService } from "@services/core/visibility-sync.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
@@ -100,9 +101,9 @@ export class DataManagementView implements OnInit {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
+  protected entityStore = inject(EntityStoreService);
   protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
-  private storage = inject(UnifiedStorageService);
   protected notifyService = inject(NotifyService);
   protected adminService = inject(AdminService);
   protected adminCascadeService = inject(AdminCascadeService);
@@ -110,6 +111,7 @@ export class DataManagementView implements OnInit {
   protected bulkActionService = inject(BulkActionHelper);
   protected requestService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
+  private visibilitySyncService = inject(VisibilitySyncService);
 
   paginationState = signal<{
     skip: number;
@@ -131,11 +133,21 @@ export class DataManagementView implements OnInit {
 
   adminTableFields = TableFieldFactory.createAdminFields();
 
+  dataSourceOptions = signal<SegmentOption[]>([
+    { id: "all", label: "All Sources", icon: "apps" },
+    { id: "local", label: "Local JSON DB", icon: "folder" },
+    { id: "cloud", label: "Cloud MongoDB", icon: "cloud" },
+  ]);
+
+  activeDataSource = signal<"all" | "local" | "cloud">("all");
+
+  private localTodoIds = signal<Set<string>>(new Set());
+  private cloudTodoIds = signal<Set<string>>(new Set());
+
   getAdminActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
   }
 
-  // Filter state
   titleFilter = signal<string>("");
   descriptionFilter = signal<string>("");
   priorityFilter = signal<string>("");
@@ -149,15 +161,15 @@ export class DataManagementView implements OnInit {
   taskIdFilter = signal<string>("");
   subtaskIdFilter = signal<string>("");
   visibilityFilter = signal<string>("all");
+  deletedFilter = signal<string>("all");
+  sortBy = signal<string>("createdAt");
+  sortOrder = signal<"asc" | "desc">("desc");
 
   userList = signal<{ id: string; label: string }[]>([]);
   categoryList = signal<{ id: string; label: string }[]>([]);
   todoList = signal<{ id: string; label: string }[]>([]);
   taskList = signal<{ id: string; label: string }[]>([]);
   subtaskList = signal<{ id: string; label: string }[]>([]);
-  deletedFilter = signal<string>("all");
-  sortBy = signal<string>("createdAt");
-  sortOrder = signal<"asc" | "desc">("desc");
 
   dataTypes: SegmentOption[] = [
     { id: "todos", label: "Todos", icon: "list_alt" },
@@ -444,6 +456,15 @@ export class DataManagementView implements OnInit {
 
     if (!data || data.length === 0) return [];
 
+    const source = this.activeDataSource();
+    if (source !== "all" && this.mode === "admin") {
+      if (source === "local") {
+        data = this.filterByDataSource(data, "local");
+      } else if (source === "cloud") {
+        data = this.filterByDataSource(data, "cloud");
+      }
+    }
+
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = FilterHelper.filterAdminByStatus(data, this.isCompletedFilter());
     }
@@ -474,6 +495,17 @@ export class DataManagementView implements OnInit {
       field: this.sortBy(),
       order: this.sortOrder(),
     });
+  }
+
+  private filterByDataSource(data: any[], source: "local" | "cloud"): any[] {
+    if (this.selectedType() === "todos") {
+      if (source === "local") {
+        return data.filter((item) => this.localTodoIds().has(item.id));
+      } else {
+        return data.filter((item) => this.cloudTodoIds().has(item.id));
+      }
+    }
+    return data;
   }
 
   getCurrentData(): any[] {
@@ -579,6 +611,11 @@ export class DataManagementView implements OnInit {
     this.showFilters.set(false);
     this.paginationState.set({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
     this.loadData();
+  }
+
+  onDataSourceChange(source: "all" | "local" | "cloud") {
+    this.activeDataSource.set(source);
+    this.clearSelection();
   }
 
   closeFilters() {
@@ -851,33 +888,33 @@ export class DataManagementView implements OnInit {
   }
 
   resolveUserName(userId: string): string {
-    return this.storage.getUsername(userId);
+    return this.entityStore.getUsername(userId);
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storage.todoMap().get(todoId);
+    const todo = this.entityStore.todoMap().get(todoId);
     return todo?.title || "-";
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storage.taskMap().get(taskId);
+    const task = this.entityStore.taskMap().get(taskId);
     return task?.title || "-";
   }
 
   resolveSubtaskTitle(subtaskId: string): string {
-    const subtask = this.storage.subtaskMap().get(subtaskId);
+    const subtask = this.entityStore.subtaskMap().get(subtaskId);
     return subtask?.title || "-";
   }
 
   populateFilterLists(): void {
     this.userList.set(
-      this.storage.users().map((u) => ({
+      this.entityStore.users().map((u) => ({
         id: u.id,
-        label: this.storage.getUsername(u.id),
+        label: this.entityStore.getUsername(u.id),
       }))
     );
 
-    const todos = this.storage.todos();
+    const todos = this.entityStore.todos();
     this.todoList.set(
       todos.map((t) => ({
         id: t.id,
@@ -885,7 +922,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const tasks = this.storage.tasks();
+    const tasks = this.entityStore.tasks();
     this.taskList.set(
       tasks.map((t) => ({
         id: t.id,
@@ -893,7 +930,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const subtasks = this.storage.subtasks();
+    const subtasks = this.entityStore.subtasks();
     this.subtaskList.set(
       subtasks.map((s) => ({
         id: s.id,
@@ -901,7 +938,7 @@ export class DataManagementView implements OnInit {
       }))
     );
 
-    const categories = this.storage.categories();
+    const categories = this.entityStore.categories();
     this.categoryList.set(
       categories.map((c) => ({
         id: c.id,
@@ -1039,5 +1076,15 @@ export class DataManagementView implements OnInit {
   private updateRecordInStorage(table: string, id: string, updates: Partial<any>): void {
     const storage = this.mode === "admin" ? this.adminStorageService : this.archiveStorageService;
     storage.updateRecord(table, id, updates);
+  }
+
+  async cleanupNonPrivateFromJson(): Promise<void> {
+    try {
+      await this.visibilitySyncService.cleanupNonPrivateFromJson();
+      this.notifyService.showSuccess("Cleanup completed - non-private todos removed from JSON");
+      this.loadData(true);
+    } catch (error) {
+      this.notifyService.showError(`Cleanup failed: ${error}`);
+    }
   }
 }

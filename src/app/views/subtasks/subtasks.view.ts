@@ -1,8 +1,8 @@
-import { Component, signal, computed, effect, inject, DestroyRef, ViewChild } from "@angular/core";
+import { Component, signal, computed, effect, inject, ViewChild } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterModule, NavigationEnd } from "@angular/router";
 import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
-import { firstValueFrom, Subscription } from "rxjs";
+import { firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
 
 import { CommonModule } from "@angular/common";
@@ -28,8 +28,8 @@ import { Chat } from "@models/generated/api.types";
 import { CommentService } from "@services/features/comment.service";
 import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { SearchService } from "@services/core/search.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
@@ -102,14 +102,13 @@ export class SubtasksViewComponent extends BaseListView {
   private dragDropService = inject(DragDropOrderService);
   private dragDropHandlerService = inject(DragDropHandlerService);
   private adminService = inject(AdminService);
-  private destroyRef = inject(DestroyRef);
   private commentService = inject(CommentService);
   private permissionService = inject(PermissionService);
-  private jwtTokenService = inject(JwtTokenService);
+  private searchService = inject(SearchService);
+  private entityStore = inject(EntityStoreService);
 
   kanbanHelper = inject(SubtasksKanbanHelper);
   private syncService = inject(UnifiedSyncService);
-  private searchService = inject(SearchService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -119,8 +118,6 @@ export class SubtasksViewComponent extends BaseListView {
   todoId = signal("");
   projectTitle = signal("");
   chats = signal<Chat[]>([]);
-
-  private chatSubscription?: Subscription;
 
   private readonly routeTaskId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get("taskId") ?? null)),
@@ -132,15 +129,6 @@ export class SubtasksViewComponent extends BaseListView {
   visibilityParam = signal<Visibility>("private");
 
   private lastTaskIdForEffect: string | null = null;
-
-  // @ts-ignore
-  private _taskEffect = effect(() => {
-    const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
-    if (taskId && taskId !== this.lastTaskIdForEffect) {
-      this.lastTaskIdForEffect = taskId;
-      this.loadTask(taskId);
-    }
-  });
 
   fromKanban = signal(false);
   highlightSubtask = signal<string | null>(null);
@@ -231,7 +219,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTask(taskId: string): void {
-    const reactiveTask = this.storage.taskMap().get(taskId);
+    const reactiveTask = this.entityStore.taskMap().get(taskId);
     if (reactiveTask) {
       this.task.set(reactiveTask);
       if (reactiveTask.todo_id) {
@@ -242,7 +230,7 @@ export class SubtasksViewComponent extends BaseListView {
       this.apiService.tasks.get(taskId).subscribe({
         next: (task) => {
           if (task) {
-            this.storage.addEntity("tasks", task as any);
+            this.entityStore.addEntity("tasks", task as any);
             this.task.set(task);
             if (task.todo_id) {
               this.loadTodo(task.todo_id);
@@ -260,7 +248,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   private loadTodo(todoId: string): void {
-    const reactiveTodo = this.storage.todoMap().get(todoId);
+    const reactiveTodo = this.entityStore.todoMap().get(todoId);
     if (reactiveTodo) {
       this.todo.set(reactiveTodo);
       this.todoId.set(reactiveTodo.id);
@@ -271,53 +259,9 @@ export class SubtasksViewComponent extends BaseListView {
     }
   }
 
-  private async setUserPermission(todo: Todo): Promise<void> {
+  private setUserPermission(todo: Todo): void {
     const userId = this.userId;
-    if (todo.user_id === userId) {
-      this.userPermission.set(TodoPermission.OWNER);
-      return;
-    }
-    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
-      this.userPermission.set(this.permissionService.fromStr((todo as any).assignee_roles[userId]));
-      return;
-    }
-    if (!todo.assignees?.includes(userId)) {
-      this.userPermission.set(TodoPermission.VIEWER);
-      return;
-    }
-    if (todo.visibility === "public") {
-      this.userPermission.set(TodoPermission.VIEWER);
-      return;
-    }
-    const token = this.jwtTokenService.getToken() || "";
-    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
-      todo.id,
-      todo.visibility || "private",
-      token
-    );
-    const role = assigneeRoles[userId] || "viewer";
-    this.userPermission.set(this.permissionService.fromStr(role));
-  }
-
-  // @ts-ignore
-  private _loadChats(todoId: string): void {
-    this.chatSubscription?.unsubscribe();
-    const visibility = this.todo()?.visibility || "private";
-    const sub = this.requestService
-      .loadPage<Chat>("chats", {
-        filter: { todo_id: todoId },
-        visibility: visibility as Visibility,
-        skip: 0,
-        limit: 10,
-        load: ["user"],
-      })
-      .subscribe({
-        next: (chats: Chat[]) => {
-          this.chats.set(chats);
-        },
-      });
-    this.chatSubscription = sub;
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    this.userPermission.set(this.permissionService.getTodoPermission(todo, userId));
   }
 
   loadInitialSubtasks(forceRefresh = false) {
@@ -362,11 +306,18 @@ export class SubtasksViewComponent extends BaseListView {
     if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
     const taskId = this.task()?.id;
     if (!taskId) return;
-    this.storage.loadMoreSubtasks(taskId);
+    this.entityStore.loadMoreSubtasks(taskId);
   }
 
   constructor() {
     super();
+    effect(() => {
+      const taskId = this.routeTaskId() || this.route.snapshot.paramMap.get("taskId");
+      if (taskId && taskId !== this.lastTaskIdForEffect) {
+        this.lastTaskIdForEffect = taskId;
+        this.loadTask(taskId);
+      }
+    });
   }
 
   override ngOnInit(): void {
@@ -433,7 +384,7 @@ export class SubtasksViewComponent extends BaseListView {
     } else {
       const taskId = this.route.snapshot.paramMap.get("taskId");
       if (taskId) {
-        const reactiveTask = this.storage.taskMap().get(taskId);
+        const reactiveTask = this.entityStore.taskMap().get(taskId);
         if (reactiveTask) {
           this.task.set(reactiveTask);
           this.loadTodo(reactiveTask.todo_id);
@@ -556,7 +507,7 @@ export class SubtasksViewComponent extends BaseListView {
   getUnreadCountForSubtask(subtaskId: string): number {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
-    const comments = this.storage.commentsBySubtaskId().get(subtaskId) || [];
+    const comments = this.entityStore.commentsBySubtaskId().get(subtaskId) || [];
     return comments.filter(
       (c) => c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
     ).length;
@@ -617,28 +568,42 @@ export class SubtasksViewComponent extends BaseListView {
     }
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
+    const targetDb = visibility === "private" ? "local" : "cloud";
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
 
-    this.apiService.subtasks.update(subtask.id, { status: newStatus }, visibility).subscribe({
-      next: () => {
-        this.taskSubtasks.update((subtasks: Subtask[]) =>
-          subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
-        );
-      },
-      error: (err: unknown) => {
-        const message = err instanceof Error ? err.message : "Failed to update subtask";
-        this.notifyService.showError(message);
-      },
-    });
+    this.entityStore
+      .updateEntity(
+        "subtasks",
+        subtask.id,
+        { status: newStatus },
+        { targetDb: targetDb as any, visibility: visibility as any }
+      )
+      .subscribe({
+        next: () => {
+          this.taskSubtasks.update((subtasks: Subtask[]) =>
+            subtasks.map((s: Subtask) => (s.id === subtask.id ? { ...s, status: newStatus } : s))
+          );
+        },
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to update subtask";
+          this.notifyService.showError(message);
+        },
+      });
   }
 
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
+    const targetDb = visibility === "private" ? "local" : "cloud";
 
-    this.apiService.subtasks
-      .update(event.subtask.id, { [event.field]: event.value }, visibility)
+    this.entityStore
+      .updateEntity(
+        "subtasks",
+        event.subtask.id,
+        { [event.field]: event.value },
+        { targetDb: targetDb as any, visibility: visibility as any }
+      )
       .subscribe({
         next: () => {},
         error: (err: unknown) => {
@@ -657,15 +622,19 @@ export class SubtasksViewComponent extends BaseListView {
     });
     if (!confirmed) return;
 
-    this.apiService.subtasks.delete(id, { visibility }).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Subtask deleted successfully");
-      },
-      error: (err: unknown) => {
-        const message = err instanceof Error ? err.message : "Failed to delete subtask";
-        this.notifyService.showError(message);
-      },
-    });
+    const targetDb = visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .deleteEntity("subtasks", id, { targetDb: targetDb as any, visibility: visibility as any })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Subtask deleted successfully");
+        },
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to delete subtask";
+          this.notifyService.showError(message);
+        },
+      });
   }
 
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
@@ -772,9 +741,16 @@ export class SubtasksViewComponent extends BaseListView {
     if (selected.size === 0) return;
 
     const visibility = this.isPrivate() ? "private" : "shared";
+    const targetDb = visibility === "private" ? "local" : "cloud";
+
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
-        this.apiService.subtasks.update(subtaskId, { status: status as any }, visibility)
+        this.entityStore.updateEntity(
+          "subtasks",
+          subtaskId,
+          { status: status as any },
+          { targetDb: targetDb as any, visibility }
+        )
       );
     });
 
@@ -797,7 +773,6 @@ export class SubtasksViewComponent extends BaseListView {
     if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
       // Allow bulk archive
     } else {
-      // EDITOR - check ownership of each selected subtask
       const allSubtasks = this.listSubtasks();
       const selectedIds = Array.from(this.selectedSubtasks());
       const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
@@ -924,7 +899,7 @@ export class SubtasksViewComponent extends BaseListView {
     const subtask_id = event.itemId;
     this.commentService.createComment(event.content, { subtaskId: subtask_id }).subscribe({
       next: (comment) => {
-        this.storage.addEntity("comments", comment);
+        this.entityStore.addEntity("comments", comment);
       },
       error: () => {
         this.notifyService.showError("Failed to add comment");
@@ -933,7 +908,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskCommentDelete(commentId: string): void {
-    this.storage.removeEntity("comments", commentId);
+    this.entityStore.removeEntity("comments", commentId);
     this.apiService.comments.delete(commentId).subscribe();
   }
 
@@ -980,9 +955,15 @@ export class SubtasksViewComponent extends BaseListView {
     }
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
+    const targetDb = visibility === "private" ? "local" : "cloud";
 
-    this.apiService.subtasks
-      .update(payload.item.id, { status: payload.status }, visibility)
+    this.entityStore
+      .updateEntity(
+        "subtasks",
+        payload.item.id,
+        { status: payload.status },
+        { targetDb: targetDb as any, visibility: visibility as any }
+      )
       .subscribe({
         next: () => {
           this.taskSubtasks.update((subtasks: Subtask[]) =>
@@ -999,7 +980,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   onSubtaskCommentToggle(subtaskId: string): void {
-    this.storage.ensureCommentsLoaded(undefined, this.todo()?.visibility || "private");
+    this.entityStore.ensureCommentsLoaded(undefined, this.todo()?.visibility || "private");
     this.commentExpandedSubtasks.update((set) => {
       const newSet = new Set(set);
       if (newSet.has(subtaskId)) {
@@ -1035,16 +1016,23 @@ export class SubtasksViewComponent extends BaseListView {
       return;
     }
 
-    this.apiService.subtasks.delete(subtaskId, { visibility }).subscribe({
-      next: () => {
-        this.notifyService.showSuccess("Subtask archived successfully");
-        this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
-      },
-      error: (err: unknown) => {
-        const message = err instanceof Error ? err.message : "Failed to archive subtask";
-        this.notifyService.showError(message);
-      },
-    });
+    const targetDb = visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .archiveEntity("subtasks", subtaskId, {
+        targetDb: targetDb as any,
+        visibility: visibility as any,
+      })
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Subtask archived successfully");
+          this.taskSubtasks.update((subtasks) => subtasks.filter((s) => s.id !== subtaskId));
+        },
+        error: (err: unknown) => {
+          const message = err instanceof Error ? err.message : "Failed to archive subtask";
+          this.notifyService.showError(message);
+        },
+      });
   }
 
   override clearSelection(): void {
@@ -1052,7 +1040,7 @@ export class SubtasksViewComponent extends BaseListView {
   }
 
   resolveTaskTitle(taskId: string): string {
-    const task = this.storage.taskMap().get(taskId);
+    const task = this.entityStore.taskMap().get(taskId);
     return task?.title || "-";
   }
 

@@ -30,6 +30,7 @@ import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 
@@ -107,9 +108,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private confirmDialogService = inject(ConfirmDialogService);
   private bulkActionHelper = inject(BulkActionHelper);
   private permissionService = inject(PermissionService);
-
-  stateService = inject(TodosStateService);
+  private entityStore = inject(EntityStoreService);
   private syncService = inject(UnifiedSyncService);
+  protected stateService = inject(TodosStateService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -134,19 +135,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       id: "private",
       label: "Private",
       icon: "lock",
-      count: this.storage.privateTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.entityStore.privateTodos().length,
     },
     {
       id: "shared",
       label: "Shared",
       icon: "group",
-      count: this.storage.sharedTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.entityStore.sharedTodos().length,
     },
     {
       id: "public",
       label: "Public",
       icon: "public",
-      count: this.storage.publicTodos().filter((t: Todo) => !t.deleted_at).length,
+      count: this.entityStore.publicTodos().length,
     },
   ]);
 
@@ -265,33 +266,33 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
   loadInitialTodos() {
     const hasAllTodos =
-      this.storage.privateTodos().length > 0 &&
-      this.storage.sharedTodos().length > 0 &&
-      this.storage.publicTodos().length > 0;
+      this.entityStore.privateTodos().length > 0 &&
+      this.entityStore.sharedTodos().length > 0 &&
+      this.entityStore.publicTodos().length > 0;
     if (hasAllTodos) {
       this.todoPagination.update((p) => ({
         ...p,
-        skip: this.storage.todos().length,
-        hasMore: this.storage.hasMoreTodos(),
-        total: this.storage.todos().length,
+        skip: this.entityStore.todos().length,
+        hasMore: this.entityStore.hasMoreTodos(),
+        total: this.entityStore.todos().length,
         loading: false,
       }));
       return;
     }
 
     this.todoPagination.update((p) => ({ ...p, loading: true }));
-    this.storage.ensureTodosLoaded("all");
+    this.entityStore.ensureTodosLoaded("all");
     this.todoPagination.update((p) => ({ ...p, loading: false }));
   }
 
   loadMore() {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-    this.storage.loadMoreTodos();
+    this.entityStore.loadMoreTodos();
   }
 
   onVisibilityChange(visibility: string): void {
     this.stateService.activeVisibility.set(visibility as any);
-    this.storage.ensureTodosLoaded(visibility as VisibilityFilter);
+    this.entityStore.ensureTodosLoaded(visibility as VisibilityFilter);
   }
 
   onPullToRefresh(): Promise<void> {
@@ -308,8 +309,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
     this.bulkService.updateTotalCount(
       this.isSharedMode()
-        ? this.storage.sharedTodos().filter((t: Todo) => !t.deleted_at).length
-        : this.storage.privateTodos().filter((t: Todo) => !t.deleted_at).length
+        ? this.entityStore.sharedTodos().length
+        : this.entityStore.privateTodos().length
     );
 
     this.subscriptions.add(
@@ -336,7 +337,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.syncService.refreshLocal().finally(() => {
         this.refreshState.set("idle");
       });
-      if (this.storage.todos().length === 0) {
+      if (this.entityStore.todos().length === 0) {
         this.loadInitialTodos();
       }
     });
@@ -372,16 +373,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     if (!confirmed) return;
 
-    const sub = this.apiService.todos.delete(todoId!, { visibility }).subscribe({
-      next: () => {
-        this.storage.removeEntity("todos", todoId!);
-        this.notifyService.showSuccess("Todo deleted successfully");
-      },
-      error: (err) => {
-        this.notifyService.showError(err.message || "Failed to delete todo");
-      },
-    });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    const targetDb = visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .deleteEntity("todos", todoId!, { targetDb: targetDb as any, visibility: visibility as any })
+      .subscribe({
+        next: () => {
+          this.entityStore.removeEntity("todos", todoId!);
+          this.notifyService.showSuccess("Todo deleted successfully");
+        },
+        error: (err) => {
+          this.notifyService.showError(err.message || "Failed to delete todo");
+        },
+      });
   }
 
   async archiveTodoById(todoId?: string): Promise<void> {
@@ -395,8 +399,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
-          this.storage.updateEntitySignal("todos", todoId!, {
-            deleted_at: true ? new Date().toISOString() : undefined,
+          this.entityStore.updateEntitySignal("todos", todoId!, {
+            deleted_at: new Date().toISOString(),
           });
           this.notifyService.showSuccess("Todo archived successfully");
         } else {
@@ -405,18 +409,30 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const sub = this.apiService.todos.delete(todoId!).subscribe({
-        next: () => {
-          this.storage.updateEntitySignal("todos", todoId!, {
-            deleted_at: true ? new Date().toISOString() : undefined,
-          });
-          this.notifyService.showSuccess("Todo archived successfully");
-        },
-        error: (err) => {
-          this.notifyService.showError(err.message || "Failed to archive todo");
-        },
-      });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
+      const todo = this.entityStore.todos().find((t: Todo) => t.id === todoId);
+      if (!todo) {
+        this.notifyService.showError("Todo not found");
+        return;
+      }
+
+      const targetDb = todo.visibility === "private" ? "local" : "cloud";
+
+      this.entityStore
+        .archiveEntity("todos", todoId!, {
+          targetDb: targetDb as any,
+          visibility: todo.visibility as any,
+        })
+        .subscribe({
+          next: () => {
+            this.entityStore.updateEntitySignal("todos", todoId!, {
+              deleted_at: new Date().toISOString(),
+            });
+            this.notifyService.showSuccess("Todo archived successfully");
+          },
+          error: (err) => {
+            this.notifyService.showError(err.message || "Failed to archive todo");
+          },
+        });
     }
   }
 
@@ -429,7 +445,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-green-600 hover:bg-green-700",
     });
     if (confirmed) {
-      const todo = this.storage.todos().find((t: Todo) => t.id === todoId);
+      const todo = this.entityStore.todos().find((t: Todo) => t.id === todoId);
       if (!todo) {
         this.notifyService.showError("Todo not found");
         return;
@@ -438,7 +454,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
-          this.storage.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
+          this.entityStore.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
           this.notifyService.showSuccess("Todo restored successfully");
         } else {
           this.notifyService.showError(response.message || "Failed to restore todo");
@@ -446,35 +462,45 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         return;
       }
 
-      const sub = this.apiService.todos
-        .update(todoId!, { deleted_at: undefined } as any, todo.visibility)
+      const targetDb = todo.visibility === "private" ? "local" : "cloud";
+
+      this.entityStore
+        .restoreEntity("todos", todoId!, {
+          targetDb: targetDb as any,
+          visibility: todo.visibility as any,
+        })
         .subscribe({
           next: () => {
-            this.storage.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
+            this.entityStore.updateEntitySignal("todos", todoId!, { deleted_at: undefined });
             this.notifyService.showSuccess("Todo restored successfully");
           },
           error: (err) => {
             this.notifyService.showError(err.message || "Failed to restore todo");
           },
         });
-      this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
 
   onUpdateTodo(todo: Todo, event: { field: string; value: any }): void {
     const { field, value } = event;
-    const sub = this.apiService.todos
-      .update(todo.id, { [field]: value }, todo.visibility)
+    const targetDb = todo.visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .updateEntity(
+        "todos",
+        todo.id,
+        { [field]: value },
+        { targetDb: targetDb as any, visibility: todo.visibility as any }
+      )
       .subscribe({
         next: (updatedTodo) => {
-          this.storage.updateEntitySignal("todos", todo.id, { ...updatedTodo, id: todo.id });
+          this.entityStore.updateEntitySignal("todos", todo.id, { ...updatedTodo, id: todo.id });
           this.notifyService.showSuccess("Project updated successfully");
         },
         error: (err) => {
           this.notifyService.showError(err.message || "Failed to update project");
         },
       });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
@@ -537,19 +563,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           confirmClass: "bg-orange-600 hover:bg-orange-700",
         });
         if (archiveConfirmed) {
-          const sub = this.apiService.todos
-            .delete(item.id, { visibility: item.visibility })
-            .subscribe({
-              next: () => {
-                this.storage.updateEntitySignal("todos", item.id, {
-                  deleted_at: new Date().toISOString(),
-                });
-                this.notifyService.showSuccess("Project archived successfully");
-              },
-              error: (err) =>
-                this.notifyService.showError(err.message || "Failed to archive project"),
-            });
-          this.destroyRef.onDestroy(() => sub.unsubscribe());
+          this.archiveTodoById(item.id);
         }
         break;
       case "delete":
@@ -562,20 +576,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private getUserTodoPermission(todo: Todo): TodoPermission {
-    const userId = this.currentUserId;
-    if (todo.user_id === userId) {
-      return TodoPermission.OWNER;
-    }
-    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
-      return this.permissionService.fromStr((todo as any).assignee_roles[userId]);
-    }
-    if (todo.visibility === "public") {
-      return TodoPermission.VIEWER;
-    }
-    if (todo.visibility === "shared" && todo.assignees?.includes(userId)) {
-      return TodoPermission.VIEWER;
-    }
-    return TodoPermission.VIEWER;
+    return this.permissionService.getTodoPermission(todo, this.currentUserId);
   }
 
   ngAfterViewInit(): void {
@@ -665,8 +666,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
 
     const allTodos = this.stateService.listTodos();
     const selectedIdsArr = Array.from(selected);
-    const selectedTodosList = allTodos.filter((t) => selectedIdsArr.includes(t.id));
-    const allowedTodos = selectedTodosList.filter((t) => {
+    const selectedTodosList = allTodos.filter((t: Todo) => selectedIdsArr.includes(t.id));
+    const allowedTodos = selectedTodosList.filter((t: Todo) => {
       const perm = this.getUserTodoPermission(t);
       return this.permissionService.canArchiveTodo(perm);
     });
@@ -686,14 +687,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const allowedIds = new Set(allowedTodos.map((t) => t.id));
+      const allowedIds = new Set(allowedTodos.map((t: Todo) => t.id));
       if (this.isOffline()) {
         let successCount = 0;
         let errorCount = 0;
-        for (const todoId of allowedIds) {
-          const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId);
+        for (const todoId of Array.from(allowedIds)) {
+          const response = await this.adminService.toggleDeleteStatusLocal(
+            "todos",
+            todoId as string
+          );
           if (response.status === ResponseStatus.SUCCESS) {
-            this.storage.updateEntitySignal("todos", todoId, {
+            this.entityStore.updateEntitySignal("todos", todoId, {
               deleted_at: new Date().toISOString(),
             });
             successCount++;
@@ -724,7 +728,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
             this.clearSelection();
             if (result.errorCount === 0) {
               selected.forEach((todoId) => {
-                this.storage.updateEntitySignal("todos", todoId, {
+                this.entityStore.updateEntitySignal("todos", todoId, {
                   deleted_at: new Date().toISOString(),
                 });
               });
