@@ -29,6 +29,35 @@
             class="w-full"
             (valueChange)="onTitleChange($event)"
           />
+
+          @if (!editingCategory) {
+            <div class="mt-4">
+              <label class="textNormal mb-2 block text-sm font-medium"> Storage Location </label>
+              <div class="flex gap-2">
+                @for (option of storageOptions; track option.id) {
+                  <button
+                    type="button"
+                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 transition-all"
+                    [class.border-green-500]="storageTarget() === option.id"
+                    [class.border-gray-200]="storageTarget() !== option.id"
+                    [class.bg-green-50]="storageTarget() === option.id"
+                    [class.dark:bg-green-900/20]="storageTarget() === option.id"
+                    (click)="onStorageTargetChange(option.id)"
+                  >
+                    <mat-icon class="text-xl">{{ option.icon }}</mat-icon>
+                    <span class="text-sm font-medium">{{ option.label }}</span>
+                  </button>
+                }
+              </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{
+                  storageTarget() === "local"
+                    ? "Stored locally on this device"
+                    : "Synced to cloud for access on other devices"
+                }}
+              </p>
+            </div>
+          }
         </div>
       </div>
 
