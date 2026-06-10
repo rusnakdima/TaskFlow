@@ -3,7 +3,8 @@ import { CommonModule } from "@angular/common";
 import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { Observable } from "rxjs";
+import { Observable, from } from "rxjs";
+import { invoke } from "@tauri-apps/api/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -25,6 +26,7 @@ import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { SearchService } from "@services/core/search.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -70,12 +72,16 @@ export class CategoriesView extends BaseListView implements OnInit {
   private confirmDialogService = inject(ConfirmDialogService);
   private relationLoadingService = inject(RelationLoadingService);
   private searchService = inject(SearchService);
+  private entityStore = inject(EntityStoreService);
   private route = inject(ActivatedRoute);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
 
   activeVisibility = signal<"all" | "local" | "cloud">("all");
+
+  private localCategoryIds = signal<Set<string>>(new Set());
+  private cloudCategoryIds = signal<Set<string>>(new Set());
 
   categoriesPagination = signal<{
     skip: number;
@@ -85,28 +91,38 @@ export class CategoriesView extends BaseListView implements OnInit {
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
 
+  allCategories = computed(() =>
+    this.entityStore.categories().filter((c: Category) => !c.deleted_at)
+  );
+
+  localCategories = computed(() => {
+    const localIds = this.localCategoryIds();
+    return this.allCategories().filter((c) => localIds.has(c.id));
+  });
+
+  cloudCategories = computed(() => {
+    const cloudIds = this.cloudCategoryIds();
+    return this.allCategories().filter((c) => cloudIds.has(c.id));
+  });
+
   visibilityOptions = computed<SegmentOption[]>(() => [
     {
       id: "all",
       label: "All",
       icon: "apps",
-      count: this.storage.categories().filter((c: Category) => !c.deleted_at).length,
+      count: this.allCategories().length,
     },
     {
       id: "local",
       label: "Local",
       icon: "folder",
-      count: this.storage
-        .categories()
-        .filter((c: Category) => !c.deleted_at && c.visibility === "local").length,
+      count: this.localCategories().length,
     },
     {
       id: "cloud",
       label: "Cloud",
       icon: "cloud",
-      count: this.storage
-        .categories()
-        .filter((c: Category) => !c.deleted_at && c.visibility === "cloud").length,
+      count: this.cloudCategories().length,
     },
   ]);
 
@@ -137,12 +153,12 @@ export class CategoriesView extends BaseListView implements OnInit {
     const vis = this.activeVisibility();
     const cats =
       vis === "local"
-        ? this.storage.categories().filter((c: Category) => c.visibility === "local")
+        ? this.localCategories()
         : vis === "cloud"
-          ? this.storage.categories().filter((c: Category) => c.visibility === "cloud")
-          : this.storage.categories();
+          ? this.cloudCategories()
+          : this.allCategories();
 
-    let filtered = cats.filter((c: Category) => !c.deleted_at);
+    let filtered = [...cats];
 
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
@@ -152,7 +168,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     }
     const order = this.sortOrder();
     const by = this.sortBy();
-    return [...filtered].sort((a, b) => {
+    return filtered.sort((a, b) => {
       let comparison = 0;
       if (by === "title") {
         comparison = (a.title || "").localeCompare(b.title || "");
@@ -235,7 +251,10 @@ export class CategoriesView extends BaseListView implements OnInit {
       return;
     }
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
-    this.storage.ensureCategoriesLoaded("all", 100);
+
+    this.loadLocalCategories();
+    this.loadCloudCategories();
+
     this.categoriesPagination.update((p) => ({
       ...p,
       loading: false,
@@ -244,10 +263,44 @@ export class CategoriesView extends BaseListView implements OnInit {
     }));
   }
 
+  private loadLocalCategories(): void {
+    from(invoke<any[]>("get_all_from_json", { table: "categories", limit: 1000 })).subscribe({
+      next: (localCats: any[]) => {
+        if (localCats && localCats.length > 0) {
+          const localIds = new Set(localCats.map((c) => c.id));
+          this.localCategoryIds.set(localIds);
+
+          localCats.forEach((cat) => {
+            this.entityStore.addEntity("categories", cat);
+          });
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  private loadCloudCategories(): void {
+    this.entityStore.ensureCategoriesLoaded("all", 100);
+
+    from(invoke<any[]>("get_all_from_cloud", { table: "categories", limit: 1000 })).subscribe({
+      next: (cloudCats: any[]) => {
+        if (cloudCats && cloudCats.length > 0) {
+          const cloudIds = new Set(cloudCats.map((c) => c.id));
+          this.cloudCategoryIds.set(cloudIds);
+
+          cloudCats.forEach((cat) => {
+            this.entityStore.addEntity("categories", cat);
+          });
+        }
+      },
+      error: () => {},
+    });
+  }
+
   loadMoreCategories(): void {
     if (this.categoriesPagination().loading || !this.categoriesPagination().hasMore) return;
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
-    this.storage.loadMoreCategories();
+    this.entityStore.loadMoreCategories();
   }
 
   toggleCreateForm() {
@@ -274,6 +327,16 @@ export class CategoriesView extends BaseListView implements OnInit {
     return this.relationLoadingService.load<Category>("categories", item.id, ["user"]);
   }
 
+  private getCategoryStorageType(categoryId: string): "local" | "cloud" {
+    if (this.localCategoryIds().has(categoryId)) {
+      return "local";
+    }
+    if (this.cloudCategoryIds().has(categoryId)) {
+      return "cloud";
+    }
+    return "cloud";
+  }
+
   async archiveCategory(categoryId: string) {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Category",
@@ -284,23 +347,42 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       try {
-        const response = await this.adminService.toggleDeleteStatusLocal(
-          "categories",
-          categoryId,
-          this.activeVisibility()
-        );
-        if (response.status === ResponseStatus.SUCCESS) {
-          this.notifyService.showSuccess("Category archived successfully");
-          const archivedCategory = this.storage.categories().find((c) => c.id === categoryId);
-          if (archivedCategory) {
-            this.storage.updateEntity("categories", archivedCategory.id, {
-              ...archivedCategory,
-              deleted_at: new Date().toISOString(),
-            });
+        const storageType = this.getCategoryStorageType(categoryId);
+
+        if (storageType === "local") {
+          const response = await this.adminService.toggleDeleteStatusLocal(
+            "categories",
+            categoryId,
+            "local"
+          );
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.notifyService.showSuccess("Category archived successfully");
+            this.entityStore.categories.update((cats) =>
+              cats.map((c) =>
+                c.id === categoryId ? { ...c, deleted_at: new Date().toISOString() } : c
+              )
+            );
+            this.searchQuery.set("");
+          } else {
+            this.notifyService.showError(response.message || "Failed to archive category");
           }
-          this.searchQuery.set("");
         } else {
-          this.notifyService.showError(response.message || "Failed to archive category");
+          const response = await this.adminService.toggleDeleteStatus(
+            "categories",
+            categoryId,
+            "cloud"
+          );
+          if (response.status === ResponseStatus.SUCCESS) {
+            this.notifyService.showSuccess("Category archived successfully");
+            this.entityStore.categories.update((cats) =>
+              cats.map((c) =>
+                c.id === categoryId ? { ...c, deleted_at: new Date().toISOString() } : c
+              )
+            );
+            this.searchQuery.set("");
+          } else {
+            this.notifyService.showError(response.message || "Failed to archive category");
+          }
         }
       } catch (err: any) {
         this.notifyService.showError(err.message || "Failed to archive category");
@@ -332,7 +414,7 @@ export class CategoriesView extends BaseListView implements OnInit {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
 
-    const allCategories = this.storage.categories();
+    const allCategories = this.allCategories();
     const selectedIdsArr = Array.from(selected);
     const selectedCategoriesList = allCategories.filter((c) => selectedIdsArr.includes(c.id));
     const allowedCategories = selectedCategoriesList.filter(
@@ -354,36 +436,30 @@ export class CategoriesView extends BaseListView implements OnInit {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (confirmed) {
-      const currentVisibility = this.activeVisibility();
       const archivedAt = new Date().toISOString();
 
-      for (const categoryId of allowedCategories.map((c) => c.id)) {
-        const category = allCategories.find((c) => c.id === categoryId);
-        if (category) {
-          this.storage.updateEntity("categories", category.id, {
-            ...category,
-            deleted_at: archivedAt,
-          });
-        }
+      const localCategories = allowedCategories.filter((c) => this.localCategoryIds().has(c.id));
+      const cloudCategories = allowedCategories.filter((c) => this.cloudCategoryIds().has(c.id));
+
+      for (const category of localCategories) {
+        await this.adminService.toggleDeleteStatusLocal("categories", category.id, "local");
       }
 
-      Promise.all(
-        allowedCategories.map((category) =>
-          this.adminService.toggleDeleteStatus("categories", category.id, currentVisibility)
-        )
-      )
-        .then(() => {
-          const successMsg =
-            skippedCount > 0
-              ? `${allowedCategories.length} categorie(s) archived, ${skippedCount} skipped`
-              : `${allowedCategories.length} categorie(s) archived successfully`;
-          this.notifyService.showSuccess(successMsg);
-          this.clearSelection();
-          this.searchQuery.set("");
-        })
-        .catch((err) => {
-          this.notifyService.showError(err.message || "Failed to archive categories");
-        });
+      for (const category of cloudCategories) {
+        await this.adminService.toggleDeleteStatus("categories", category.id, "cloud");
+      }
+
+      this.entityStore.categories.update((cats) =>
+        cats.map((c) => (selectedIdsArr.includes(c.id) ? { ...c, deleted_at: archivedAt } : c))
+      );
+
+      const successMsg =
+        skippedCount > 0
+          ? `${allowedCategories.length} categorie(s) archived, ${skippedCount} skipped`
+          : `${allowedCategories.length} categorie(s) archived successfully`;
+      this.notifyService.showSuccess(successMsg);
+      this.clearSelection();
+      this.searchQuery.set("");
     }
   }
 

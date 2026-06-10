@@ -40,6 +40,7 @@ import { PromptDialogService } from "@services/core/prompt-dialog.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { SearchService } from "@services/core/search.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
@@ -112,15 +113,16 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   public bulkService = inject(BulkActionService);
 
   private appStateService = inject(AppStateService);
+  private permissionService = inject(PermissionService);
+  private jwtTokenService = inject(JwtTokenService);
+  private searchService = inject(SearchService);
+  private entityStore = inject(EntityStoreService);
 
   kanbanHelper = inject(TasksKanbanHelper);
   filtersHelper = inject(TasksFiltersHelper);
   actionsHelper = inject(TasksActionsHelper);
   commentsHelper = inject(TasksCommentsHelper);
   private syncService = inject(UnifiedSyncService);
-  private permissionService = inject(PermissionService);
-  private jwtTokenService = inject(JwtTokenService);
-  private searchService = inject(SearchService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -188,10 +190,32 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   allTasksForTodo = computed(() => this.todoTasks());
 
   private async loadInitialTodo(todoId: string): Promise<void> {
+    const cachedTodo = this.entityStore.todoMap().get(todoId);
+    if (cachedTodo) {
+      this.todo.set(cachedTodo);
+      this.commentsHelper.setTodoVisibility((cachedTodo.visibility || "private") as Visibility);
+      this.setUserPermission(cachedTodo);
+      const tasks = this.entityStore.tasksByTodoId().get(todoId) || [];
+      if (tasks.length > 0) {
+        this.todoTasks.set(tasks);
+        this.taskPagination.update((p) => ({
+          ...p,
+          skip: tasks.length,
+          total: tasks.length,
+          hasMore: false,
+          loading: false,
+        }));
+      } else {
+        this.loadInitialTasks(false, cachedTodo.visibility);
+      }
+      return;
+    }
+
     this.apiService.todos.get(todoId, this.visibilityParam()).subscribe({
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
+          this.entityStore.addEntity("todos", todo);
           this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
           this.setUserPermission(todo);
           const tasks = todo.tasks || [];
@@ -217,35 +241,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     });
   }
 
-  private async setUserPermission(todo: Todo): Promise<void> {
+  private setUserPermission(todo: Todo): void {
     const userId = this.jwtTokenService.getUserId(this.jwtTokenService.getToken() || "") || "";
-    const profileId =
-      this.jwtTokenService.getProfileId(this.jwtTokenService.getToken() || "") || "";
-
-    if (todo.user_id === userId) {
-      this.userPermission.set(TodoPermission.OWNER);
-      return;
-    }
-
-    if ((todo as any).assignee_roles && (todo as any).assignee_roles[userId]) {
-      this.userPermission.set(this.permissionService.fromStr((todo as any).assignee_roles[userId]));
-      return;
-    }
-
-    if (!todo.assignees?.includes(userId)) {
-      this.userPermission.set(TodoPermission.VIEWER);
-      return;
-    }
-
-    const token = this.jwtTokenService.getToken() || "";
-    const assigneeRoles = await this.permissionService.getTodoPermissionsAsync(
-      todo.id,
-      todo.visibility || "private",
-      token
-    );
-
-    const role = assigneeRoles[userId] || (profileId ? assigneeRoles[profileId] : null) || "viewer";
-    this.userPermission.set(this.permissionService.fromStr(role));
+    this.userId = userId;
+    this.userPermission.set(this.permissionService.getTodoPermission(todo, userId));
   }
 
   taskPagination = signal<{
@@ -260,7 +259,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todoId = this.todoId();
     if (!todoId) return;
 
-    const cachedTasks = this.storage.tasksByTodoId().get(todoId) || [];
+    const cachedTasks = this.entityStore.tasksByTodoId().get(todoId) || [];
 
     if (cachedTasks.length > 0 && !forceRefresh && !visibilityOverride) {
       const storedTotal = this.taskPagination().total;
@@ -310,7 +309,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if (!todoId) return;
     const visibility = this.todo()?.visibility || this.visibilityParam();
     const userId = this.authService.getValueByKey("id");
-    this.storage.loadMoreTasks(todoId, visibility, userId, userId);
+    this.entityStore.loadMoreTasks(todoId, visibility, userId, userId);
   }
 
   override onSearchChange(query: string): void {
@@ -333,7 +332,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
 
-    const currentChats = this.storage.chats();
+    const currentChats = this.entityStore.chats();
     if (currentChats.length === 0) return 0;
 
     let count = 0;
@@ -351,7 +350,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   getTaskSubtasks(taskId: string): Subtask[] {
-    return this.storage.subtasksByTaskId().get(taskId) || [];
+    return this.entityStore.subtasksByTaskId().get(taskId) || [];
   }
 
   getToolbarConfig(): PageToolbarConfig {
@@ -511,17 +510,26 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.apiService.tasks.update(task.id, { status }, todo.visibility || "private").subscribe({
-      next: (updatedTask) => {
-        this.storage.updateEntitySignal("tasks", task.id, { ...updatedTask, id: task.id });
-        this.todoTasks.update((tasks) =>
-          tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
-        );
-      },
-      error: () => {
-        this.notifyService.showError("Failed to update task status");
-      },
-    });
+    const targetDb = todo.visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .updateEntity(
+        "tasks",
+        task.id,
+        { status },
+        { targetDb: targetDb as any, visibility: todo.visibility as any }
+      )
+      .subscribe({
+        next: (updatedTask) => {
+          this.entityStore.updateEntitySignal("tasks", task.id, { ...updatedTask, id: task.id });
+          this.todoTasks.update((tasks) =>
+            tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
+          );
+        },
+        error: () => {
+          this.notifyService.showError("Failed to update task status");
+        },
+      });
   }
 
   toggleExpandTask(task: Task) {
@@ -546,12 +554,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     }
 
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
+    const targetDb = todo.visibility === "private" ? "local" : "cloud";
 
-    this.apiService.subtasks
-      .update(subtask.id, { status: newStatus }, todo.visibility || "private")
+    this.entityStore
+      .updateEntity(
+        "subtasks",
+        subtask.id,
+        { status: newStatus },
+        { targetDb: targetDb as any, visibility: todo.visibility as any }
+      )
       .subscribe({
         next: (updatedSubtask) => {
-          this.storage.updateEntitySignal("subtasks", subtask.id, {
+          this.entityStore.updateEntitySignal("subtasks", subtask.id, {
             ...updatedSubtask,
             id: subtask.id,
           });
@@ -606,22 +620,31 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       if (nextEnd) nextTask.end_date = nextEnd.toISOString();
     }
 
-    this.apiService.tasks.create(nextTask as any, this.todo()?.visibility || "private").subscribe({
-      next: (createdTask) => {
-        this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-        if (createdTask?.todo_id) {
-          const parentTodo = this.todo();
-          if (parentTodo) {
-            this.storage.updateEntitySignal("todos", parentTodo.id, {
-              tasks_count: (parentTodo.tasks_count || 0) + 1,
-            });
+    const todo = this.todo();
+    const targetDb = todo?.visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .createEntity("tasks", nextTask as any, {
+        targetDb: targetDb as any,
+        visibility: todo?.visibility as any,
+        todoId,
+      })
+      .subscribe({
+        next: (createdTask) => {
+          this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
+          if (createdTask?.todo_id) {
+            const parentTodo = this.todo();
+            if (parentTodo) {
+              this.entityStore.updateEntitySignal("todos", parentTodo.id, {
+                tasks_count: (parentTodo.tasks_count || 0) + 1,
+              });
+            }
           }
-        }
-      },
-      error: () => {
-        this.notifyService.showError("Failed to create recurring task");
-      },
-    });
+        },
+        error: () => {
+          this.notifyService.showError("Failed to create recurring task");
+        },
+      });
   }
 
   toggleMobileInfo() {
@@ -636,11 +659,18 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     const todo = this.todo();
     if (!todo) return;
 
-    this.apiService.tasks
-      .update(event.task.id, { [event.field]: event.value }, todo.visibility || "private")
+    const targetDb = todo.visibility === "private" ? "local" : "cloud";
+
+    this.entityStore
+      .updateEntity(
+        "tasks",
+        event.task.id,
+        { [event.field]: event.value },
+        { targetDb: targetDb as any, visibility: todo.visibility as any }
+      )
       .subscribe({
         next: (updatedTask) => {
-          this.storage.updateEntitySignal("tasks", event.task.id, {
+          this.entityStore.updateEntitySignal("tasks", event.task.id, {
             ...updatedTask,
             id: event.task.id,
           });
@@ -965,7 +995,6 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
     if ([TodoPermission.MODERATOR, TodoPermission.OWNER].includes(permission)) {
       // Allow bulk archive
     } else {
-      // EDITOR - check ownership of each selected task
       const allTasks = this.listTasks();
       const selectedIds = Array.from(this.selectedTasks());
       const allSelected = allTasks.filter((t) => selectedIds.includes(t.id));
@@ -1031,7 +1060,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   resolveTodoTitle(todoId: string): string {
-    const todo = this.storage.todoMap().get(todoId);
+    const todo = this.entityStore.todoMap().get(todoId);
     return todo?.title || "-";
   }
 
