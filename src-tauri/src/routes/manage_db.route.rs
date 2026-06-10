@@ -74,7 +74,8 @@ pub async fn sync_visibility_to_provider(
     return Err(err_response("Visibility is already set to this value"));
   }
 
-  let delete_from_src = delete_from_source.unwrap_or(false);
+  let delete_from_src =
+    delete_from_source.unwrap_or_else(|| source_provider == "Json" && target_provider == "Mongo");
   let table = match entity_type.as_str() {
     "todo" | "todos" => "todos",
     "category" | "categories" => "categories",
@@ -105,7 +106,7 @@ pub async fn sync_visibility_to_provider(
           &source_provider,
           &target_provider,
           visibility,
-          false,
+          delete_from_src,
         )
         .await?;
     } else {
@@ -126,7 +127,7 @@ pub async fn sync_visibility_to_provider(
           &source_provider,
           &target_provider,
           visibility,
-          false,
+          delete_from_src,
         )
         .await?;
     } else {
@@ -137,6 +138,20 @@ pub async fn sync_visibility_to_provider(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Visibility synced".to_string(),
+    data: serde_json::Value::String("".to_string()),
+  })
+}
+
+#[tauri::command]
+pub async fn cleanup_non_private_from_json(
+  state: State<'_, AppState>,
+) -> Result<ResponseModel, ResponseModel> {
+  let cascade_service = state.cascade_service.clone();
+  cascade_service.cleanup_non_private_from_json().await?;
+
+  Ok(ResponseModel {
+    status: ResponseStatus::Success,
+    message: "Cleanup completed".to_string(),
     data: serde_json::Value::String("".to_string()),
   })
 }
@@ -163,5 +178,89 @@ pub async fn get_tasks_by_month(
   state
     .manage_db_service
     .get_tasks_by_month(year, month, is_offline, effective_visibility)
+    .await
+}
+
+// ==================== LOCAL STORAGE OPERATIONS ====================
+
+#[tauri::command]
+pub async fn upsert_to_json(
+  state: State<'_, AppState>,
+  table: String,
+  data: serde_json::Value,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .upsert_to_json(table, data, id)
+    .await
+}
+
+#[tauri::command]
+pub async fn upsert_to_mongo(
+  state: State<'_, AppState>,
+  table: String,
+  data: serde_json::Value,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .upsert_to_mongo(table, data, id)
+    .await
+}
+
+#[tauri::command]
+pub async fn delete_from_json(
+  state: State<'_, AppState>,
+  table: String,
+  id: String,
+) -> Result<ResponseModel, ResponseModel> {
+  state.manage_db_service.delete_from_json(table, id).await
+}
+
+#[tauri::command]
+pub async fn batch_soft_delete_json(
+  state: State<'_, AppState>,
+  table: String,
+  ids: Vec<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .manage_db_service
+    .batch_soft_delete_json(table, ids)
+    .await
+}
+
+#[tauri::command]
+pub async fn batch_restore_json(
+  state: State<'_, AppState>,
+  table: String,
+  ids: Vec<String>,
+) -> Result<ResponseModel, ResponseModel> {
+  state.manage_db_service.batch_restore_json(table, ids).await
+}
+
+#[tauri::command]
+pub async fn get_all_from_json(
+  state: State<'_, AppState>,
+  table: String,
+  limit: Option<u64>,
+) -> Result<ResponseModel, ResponseModel> {
+  let effective_limit = limit.unwrap_or(100);
+  state
+    .manage_db_service
+    .get_all_from_json(table, effective_limit)
+    .await
+}
+
+#[tauri::command]
+pub async fn import_private_to_local(
+  state: State<'_, AppState>,
+  user_id: String,
+  token: String,
+) -> Result<ResponseModel, ResponseModel> {
+  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
+  state
+    .manage_db_service
+    .import_private_to_local(user_id)
     .await
 }

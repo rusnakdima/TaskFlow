@@ -344,4 +344,152 @@ impl ManageDbService {
   pub async fn check_mongodb_connection_async(&self) -> bool {
     self.db_backup.check_mongodb_connection_async().await
   }
+
+  pub async fn upsert_to_json(
+    &self,
+    table: String,
+    data: Value,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let result = self.db_backup.upsert_to_json(&table, data).await;
+    Ok(ResponseModel {
+      status: if result {
+        ResponseStatus::Success
+      } else {
+        ResponseStatus::Error
+      },
+      message: if result {
+        format!("Upserted {} to {}", id, table)
+      } else {
+        format!("Failed to upsert {} to {}", id, table)
+      },
+      data: serde_json::Value::String(id),
+    })
+  }
+
+  pub async fn upsert_to_mongo(
+    &self,
+    table: String,
+    data: Value,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .lock()
+      .unwrap()
+      .clone()
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: serde_json::Value::String("".to_string()),
+      })?;
+
+    let result = self.db_backup.upsert_to_mongo(&mongo, &table, data).await;
+    Ok(ResponseModel {
+      status: if result {
+        ResponseStatus::Success
+      } else {
+        ResponseStatus::Error
+      },
+      message: if result {
+        format!("Upserted {} to MongoDB {}", id, table)
+      } else {
+        format!("Failed to upsert {} to MongoDB {}", id, table)
+      },
+      data: serde_json::Value::String(id),
+    })
+  }
+
+  pub async fn delete_from_json(
+    &self,
+    table: String,
+    id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let result = self.json_provider.delete(&table, &id).await.is_ok();
+    Ok(ResponseModel {
+      status: if result {
+        ResponseStatus::Success
+      } else {
+        ResponseStatus::Error
+      },
+      message: if result {
+        format!("Deleted {} from {}", id, table)
+      } else {
+        format!("Failed to delete {} from {}", id, table)
+      },
+      data: serde_json::Value::String(id),
+    })
+  }
+
+  pub async fn batch_soft_delete_json(
+    &self,
+    table: String,
+    ids: Vec<String>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mut success_count = 0;
+    let now = serde_json::json!({ "deleted_at": chrono::Utc::now().to_rfc3339() });
+    for id in &ids {
+      if self
+        .json_provider
+        .update(&table, id, now.clone())
+        .await
+        .is_ok()
+      {
+        success_count += 1;
+      }
+    }
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Soft deleted {} records from {}", success_count, table),
+      data: serde_json::json!({ "count": success_count }),
+    })
+  }
+
+  pub async fn batch_restore_json(
+    &self,
+    table: String,
+    ids: Vec<String>,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mut success_count = 0;
+    let now = serde_json::json!({ "deleted_at": serde_json::Value::Null });
+    for id in &ids {
+      if self
+        .json_provider
+        .update(&table, id, now.clone())
+        .await
+        .is_ok()
+      {
+        success_count += 1;
+      }
+    }
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Restored {} records in {}", success_count, table),
+      data: serde_json::json!({ "count": success_count }),
+    })
+  }
+
+  pub async fn get_all_from_json(
+    &self,
+    table: String,
+    limit: u64,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let items = self
+      .json_provider
+      .find_many(&table, None, None, Some(limit), None, true)
+      .await
+      .unwrap_or_default();
+    Ok(ResponseModel {
+      status: ResponseStatus::Success,
+      message: format!("Retrieved {} {} records", items.len(), table),
+      data: crate::helpers::common::convert_data_to_object(&items),
+    })
+  }
+
+  pub async fn import_private_to_local(
+    &self,
+    user_id: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    self.db_backup.import_to_local(user_id).await
+  }
 }
