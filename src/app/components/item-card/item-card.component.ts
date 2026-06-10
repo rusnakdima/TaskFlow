@@ -253,8 +253,9 @@ export class ItemCardComponent {
       return this.permissionService.canEditTodoFields(this.userPermission);
     }
     if (this.itemType === "task" || this.itemType === "subtask") {
+      if (!this.item) return false;
       return this.permissionService.canEditTask(
-        this.item,
+        this.item as Task,
         this.userPermission,
         this.authService.getValueByKey("id")
       );
@@ -267,15 +268,17 @@ export class ItemCardComponent {
       return this.permissionService.canArchiveTodo(this.userPermission);
     }
     if (this.itemType === "task") {
+      if (!this.item) return false;
       return this.permissionService.canArchiveTask(
-        this.item,
+        this.item as Task,
         this.userPermission,
         this.authService.getValueByKey("id")
       );
     }
     if (this.itemType === "subtask") {
+      if (!this.item) return false;
       return this.permissionService.canArchiveSubtask(
-        this.item,
+        this.item as Subtask,
         this.userPermission,
         this.authService.getValueByKey("id")
       );

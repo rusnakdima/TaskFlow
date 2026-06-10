@@ -10,11 +10,16 @@ import {
   SimpleChanges,
   inject,
   ChangeDetectionStrategy,
+  signal,
 } from "@angular/core";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { invoke } from "@tauri-apps/api/core";
+import { from } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
+import { MatSelectModule } from "@angular/material/select";
+import { MatFormFieldModule } from "@angular/material/form-field";
 
 /* components */
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
@@ -22,12 +27,14 @@ import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.
 /* models */
 import { Category } from "@models/generated/api.types";
 import { TextField, TypeField } from "@models/form-field.model";
+import { StorageTarget, CATEGORY_VISIBILITY_OPTIONS } from "@models/entity-config.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 @Component({
   selector: "app-category-form",
@@ -36,6 +43,8 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
+    MatSelectModule,
+    MatFormFieldModule,
     AppButtonComponent,
     UnifiedFieldComponent,
   ],
@@ -46,6 +55,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
   private requestService = inject(ApiService);
+  private entityStore = inject(EntityStoreService);
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;
@@ -69,6 +79,9 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   userId: string = "";
   isLoading: boolean = false;
 
+  storageTarget = signal<StorageTarget>("local");
+  storageOptions = CATEGORY_VISIBILITY_OPTIONS;
+
   ngOnInit(): void {
     this.userId = this.authService.getValueByKey("id");
   }
@@ -79,12 +92,16 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     if (changes["editingCategory"]) {
       const title = this.editingCategory ? this.editingCategory.title : "";
       this.titleFormControl.setValue(title, { emitEvent: false });
+      if (this.editingCategory) {
+        this.storageTarget.set("cloud");
+      }
     }
   }
 
   openModal(category?: Category) {
     this.editingCategory = category || null;
     this.titleFormControl.setValue(category ? category.title : "", { emitEvent: false });
+    this.storageTarget.set(category ? "cloud" : "local");
     this.isVisible = true;
   }
 
@@ -113,6 +130,10 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     this.titleFormControl.setValue(value);
   }
 
+  onStorageTargetChange(target: StorageTarget): void {
+    this.storageTarget.set(target);
+  }
+
   saveCategory() {
     const title = this.titleFormControl.value?.trim();
     if (!title || this.isLoading) return;
@@ -127,11 +148,51 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   }
 
   private createCategory() {
-    const categoryData = {
+    const categoryData: Partial<Category> = {
       title: this.titleFormControl.value?.trim() || "",
       user_id: this.userId,
     };
 
+    const targetDb = this.storageTarget();
+
+    if (targetDb === "local") {
+      this.createCategoryLocal(categoryData);
+    } else {
+      this.createCategoryCloud(categoryData);
+    }
+  }
+
+  private createCategoryLocal(categoryData: Partial<Category>) {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const fullCategory: Category = {
+      id,
+      title: categoryData.title || "",
+      user_id: categoryData.user_id || this.userId,
+      created_at: now,
+      updated_at: now,
+      deleted_at: undefined,
+    } as Category;
+
+    this.entityStore.addEntity("categories", fullCategory);
+
+    from(invoke("upsert_to_json", { table: "categories", data: fullCategory, id }))
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Category created successfully");
+          this.closeModal();
+          this.saved.emit();
+        },
+        error: (err: any) => {
+          this.notifyService.showError(err.message || "Failed to create category");
+        },
+      })
+      .add(() => {
+        this.isLoading = false;
+      });
+  }
+
+  private createCategoryCloud(categoryData: Partial<Category>) {
     this.requestService
       .create<Category>("categories", categoryData, { visibility: this.visibility })
       .subscribe({
@@ -157,8 +218,43 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       title: this.titleFormControl.value?.trim() || "",
     };
 
+    const targetDb = this.storageTarget();
+
+    if (targetDb === "local") {
+      this.updateCategoryLocal(updatedCategory);
+    } else {
+      this.updateCategoryCloud(updatedCategory);
+    }
+  }
+
+  private updateCategoryLocal(updatedCategory: Category) {
+    this.entityStore.updateEntitySignal("categories", updatedCategory.id, updatedCategory);
+
+    from(
+      invoke("upsert_to_json", {
+        table: "categories",
+        data: updatedCategory,
+        id: updatedCategory.id,
+      })
+    )
+      .subscribe({
+        next: () => {
+          this.notifyService.showSuccess("Category updated successfully");
+          this.closeModal();
+          this.saved.emit();
+        },
+        error: (err: any) => {
+          this.notifyService.showError(err.message || "Failed to update category");
+        },
+      })
+      .add(() => {
+        this.isLoading = false;
+      });
+  }
+
+  private updateCategoryCloud(updatedCategory: Category) {
     this.requestService
-      .update("categories", this.editingCategory.id, updatedCategory, {
+      .update("categories", updatedCategory.id, updatedCategory, {
         visibility: this.visibility,
       })
       .subscribe({
