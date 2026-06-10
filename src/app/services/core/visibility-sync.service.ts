@@ -34,7 +34,13 @@ export class VisibilitySyncService {
         entity_type: "todos",
         source_provider: source,
         target_provider: target,
+        new_visibility: newVisibility,
+        delete_from_source: source === "Json",
       })
     );
+  }
+
+  async cleanupNonPrivateFromJson(): Promise<void> {
+    await firstValueFrom(this.requestService.invokeCommand("cleanup_non_private_from_json", {}));
   }
 }
