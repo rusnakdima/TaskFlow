@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, OnDestroy, inject } from "@angular/core";
 import { Observable, of, Subject, BehaviorSubject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
@@ -17,6 +17,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { EntityStoreService } from "@services/core/entity-store.service";
 
 @Injectable({
   providedIn: "root",
@@ -42,6 +43,8 @@ export class UnifiedSyncService implements OnDestroy {
     currentStep: "complete",
     message: "Ready to sync",
   });
+
+  private entityStore = inject(EntityStoreService);
 
   constructor(
     private jwtTokenService: JwtTokenService,
@@ -504,6 +507,94 @@ export class UnifiedSyncService implements OnDestroy {
         error: errorMessage,
       });
       this.notifyService.showError(errorMessage);
+      throw error;
+    } finally {
+      this.setSyncing(false);
+    }
+  }
+
+  async syncPrivateData<R>(): Promise<Response<R>> {
+    this.setSyncing(true);
+    this.updateProgress({
+      currentStep: "export",
+      progress: 10,
+      message: "Syncing private data...",
+    });
+
+    try {
+      const isConnected = await firstValueFrom(this.mongoConnectionService.checkConnection());
+      if (!isConnected) {
+        this.notifyService.showWarning(
+          "Unable to sync - MongoDB is not connected. Working offline."
+        );
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "MongoDB is not connected. Working offline.",
+          data: null as unknown as R,
+        };
+      }
+
+      const token = TokenStorageHelper.getToken();
+      const userId = this.jwtTokenService.getUserId(token);
+
+      if (!token || !userId) {
+        this.setSyncing(false);
+        return {
+          status: ResponseStatus.ERROR,
+          message: "Not authenticated",
+          data: null as unknown as R,
+        };
+      }
+
+      this.updateProgress({ progress: 30, message: "Exporting private todos..." });
+
+      const privateTodos = this.entityStore.privateTodos();
+      for (const todo of privateTodos) {
+        await invoke("upsert_to_mongo", {
+          table: "todos",
+          data: todo,
+          id: todo.id,
+        });
+
+        const tasks = this.entityStore.tasksByTodoId().get(todo.id) || [];
+        for (const task of tasks) {
+          await invoke("upsert_to_mongo", {
+            table: "tasks",
+            data: task,
+            id: task.id,
+          });
+
+          const subtasks = this.entityStore.subtasksByTaskId().get(task.id) || [];
+          for (const subtask of subtasks) {
+            await invoke("upsert_to_mongo", {
+              table: "subtasks",
+              data: subtask,
+              id: subtask.id,
+            });
+          }
+        }
+      }
+
+      this.updateProgress({ progress: 80, message: "Importing private data from cloud..." });
+
+      const result = await invoke<Response<R>>("import_private_to_local", {
+        userId: userId,
+        token,
+      });
+
+      if (result.status === ResponseStatus.SUCCESS) {
+        this.updateProgress({ progress: 100, message: "Private sync complete" });
+      }
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.updateProgress({
+        currentStep: "error",
+        message: "Private sync failed",
+        error: errorMessage,
+      });
       throw error;
     } finally {
       this.setSyncing(false);
