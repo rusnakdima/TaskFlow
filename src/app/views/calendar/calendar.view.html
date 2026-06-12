@@ -51,7 +51,8 @@
                 <div
                   class="aspect-square cursor-pointer border border-[var(--accent-color)] p-1 text-center transition-colors hover:bg-[var(--accent-200)] dark:border-[var(--accent-color)] dark:hover:bg-[var(--accent-700)]"
                   [ngClass]="{
-                    'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]': day.isToday && !isSelected(day.date),
+                    'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]':
+                      day.isToday && !isSelected(day.date),
                     'bg-[var(--accent-400)] dark:bg-[var(--accent-500)]': isSelected(day.date),
                     'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
                   }"
@@ -93,7 +94,8 @@
               <div
                 class="min-h-[80px] cursor-pointer border border-[var(--accent-color)] p-2 transition-colors hover:bg-[var(--accent-200)] dark:border-[var(--accent-color)] dark:hover:bg-[var(--accent-700)]"
                 [ngClass]="{
-                  'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]': day.isToday && !isSelected(day.date),
+                  'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]':
+                    day.isToday && !isSelected(day.date),
                   'bg-[var(--accent-400)] dark:bg-[var(--accent-500)]': isSelected(day.date),
                   'text-gray-400 dark:text-gray-500': !day.isCurrentMonth,
                 }"
@@ -140,9 +142,11 @@
         <div class="block space-y-3 sm:hidden">
           @for (day of weekDays(); track day.date.getTime()) {
             <div
-              class="cursor-pointer rounded-lg bg-[var(--accent-200)] p-3 transition-colors hover:bg-[var(--accent-300)] dark:bg-[var(--accent-800)] dark:hover:bg-[var(--accent-700)]"
+              class="cursor-pointer rounded-lg p-3 transition-colors hover:bg-[var(--accent-200)] dark:hover:bg-[var(--accent-700)]"
               [ngClass]="{
-                'bg-[var(--accent-500)] dark:bg-[var(--accent-500)]': day.isToday,
+                'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]':
+                  day.isToday && !isSelected(day.date),
+                'bg-[var(--accent-400)] dark:bg-[var(--accent-500)]': isSelected(day.date),
               }"
               (click)="selectDate(day.date)"
             >
@@ -152,7 +156,7 @@
                   <span
                     class="text-sm font-semibold"
                     [ngClass]="{
-                      'text-white dark:text-white': day.isToday,
+                      'text-white dark:text-white': day.isToday && !isSelected(day.date),
                       textNormal: !day.isToday,
                     }"
                   >
@@ -203,9 +207,11 @@
 
             @for (day of weekDays(); track day.date.getTime()) {
               <div
-                class="min-h-[120px] cursor-pointer border border-[var(--accent-color)] bg-[var(--accent-200)] p-2 transition-colors hover:bg-[var(--accent-300)] dark:border-[var(--accent-color)] dark:bg-[var(--accent-800)] dark:hover:bg-[var(--accent-700)]"
+                class="min-h-[120px] cursor-pointer border border-[var(--accent-color)] p-2 transition-colors hover:bg-[var(--accent-200)] dark:border-[var(--accent-color)] dark:hover:bg-[var(--accent-700)]"
                 [ngClass]="{
-                  'bg-[var(--accent-500)] dark:bg-[var(--accent-500)]': day.isToday,
+                  'bg-[var(--accent-300)] dark:bg-[var(--accent-600)]':
+                    day.isToday && !isSelected(day.date),
+                  'bg-[var(--accent-400)] dark:bg-[var(--accent-500)]': isSelected(day.date),
                 }"
                 (click)="selectDate(day.date)"
               >
@@ -213,7 +219,7 @@
                   <span
                     class="text-sm font-medium"
                     [ngClass]="{
-                      'text-white dark:text-white': day.isToday,
+                      'text-white dark:text-white': day.isToday && !isSelected(day.date),
                       textNormal: !day.isToday,
                     }"
                   >

@@ -610,7 +610,7 @@ export class DataManagementView implements OnInit {
     this.clearFilters();
     this.showFilters.set(false);
     this.paginationState.set({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
-    this.loadData();
+    this.loadData(true);
   }
 
   onDataSourceChange(source: "all" | "local" | "cloud") {
@@ -646,7 +646,7 @@ export class DataManagementView implements OnInit {
         this.toggleDeleteStatus(item);
         break;
       case "delete":
-        this.deleteRecord(item.id);
+        this.deleteRecord(item);
         break;
       default:
         break;
