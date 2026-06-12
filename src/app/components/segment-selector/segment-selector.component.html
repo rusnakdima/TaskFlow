@@ -53,18 +53,24 @@
       <ng-container
         *ngTemplateOutlet="
           menuItemTemplate;
-          context: { options: options, active: active, select: select }
+          context: { options: options, active: active, select: select, onSelect: onSelect }
         "
       />
     </mat-menu>
   </div>
 </div>
 
-<ng-template #menuItemTemplate let-options="options" let-active="active" let-select="select">
+<ng-template
+  #menuItemTemplate
+  let-options="options"
+  let-active="active"
+  let-select="select"
+  let-onSelect="onSelect"
+>
   @for (option of options; track option.id) {
     <button
       mat-menu-item
-      (click)="select.emit(option.id)"
+      (click)="onSelect(option.id)"
       class="flex w-full items-center gap-3"
       [class.badge-accent]="active === option.id"
     >
