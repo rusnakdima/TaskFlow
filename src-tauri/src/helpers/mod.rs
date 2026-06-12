@@ -10,6 +10,8 @@ pub mod common;
 pub mod config;
 #[path = "load_param.helper.rs"]
 pub mod load_param;
+#[path = "logging.helper.rs"]
+pub mod logging_helper;
 #[path = "profile.helper.rs"]
 pub mod profile_helper;
 #[path = "qr.helper.rs"]

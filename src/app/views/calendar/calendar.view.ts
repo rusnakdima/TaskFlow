@@ -247,4 +247,8 @@ export class CalendarView extends BaseListView implements OnInit {
   getDayName(date: Date): string {
     return date.toLocaleDateString("en-US", { weekday: "short" });
   }
+
+  isSelected(date: Date): boolean {
+    return this.isSameDay(date, this.selectedDate());
+  }
 }

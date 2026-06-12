@@ -217,6 +217,8 @@ export const routes: Routes = [
     data: { breadcrumb: "Change Password" },
   },
 
+  { path: "projects", redirectTo: "todos", pathMatch: "full" },
+
   {
     path: "**",
     component: NotFoundView,

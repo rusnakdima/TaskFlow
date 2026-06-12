@@ -165,7 +165,11 @@ export class ManageProfileView implements OnInit {
         const { _id, ...updateData } = body;
         const sub = this.apiService.profiles.update(currentProfile.id, updateData).subscribe({
           next: (updatedProfile) => {
-            this.storage.updateEntitySignal("profiles", updatedProfile.id, updatedProfile);
+            const profileId = updatedProfile?.id || currentProfile.id;
+            this.storage.updateEntitySignal("profiles", profileId, updatedProfile);
+            this.storage.profiles.update((profiles) =>
+              profiles.map((p) => (p.id === profileId ? { ...p, ...updatedProfile } : p))
+            );
             this.notifyService.showSuccess("Profile updated successfully");
             this.profileRequiredService.setProfileRequiredMode(false);
             this.router.navigate(["/profile"]);
