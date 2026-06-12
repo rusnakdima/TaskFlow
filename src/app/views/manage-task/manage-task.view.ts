@@ -202,6 +202,10 @@ export class ManageTaskPage implements OnInit {
       } else {
         const result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
 
+        if (result?.id) {
+          this.storage.addEntity("tasks", result);
+        }
+
         if (result?.todo_id) {
           const todo = this.todos().find((t) => t.id === result.todo_id);
           if (todo) {
