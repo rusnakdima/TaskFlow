@@ -12,6 +12,7 @@
             type="text"
             [formControlName]="field.name"
             [readonly]="field.readonly ? true : false"
+            (input)="onValueChange($any($event.target).value)"
           />
           @if (showError && isInvalid(field.name)) {
             <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
@@ -31,6 +32,7 @@
             [formControlName]="field.name"
             [readonly]="field.readonly ? true : false"
             [min]="getMin()"
+            (input)="onValueChange($any($event.target).value)"
           />
           @if (showError && isInvalid(field.name)) {
             <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
@@ -49,6 +51,7 @@
             [formControlName]="field.name"
             [readonly]="field.readonly ? true : false"
             rows="3"
+            (input)="onValueChange($any($event.target).value)"
           ></textarea>
           @if (showError && isInvalid(field.name)) {
             <mat-error>{{ getErrorMessage(field.name) }}</mat-error>
@@ -183,6 +186,7 @@
             type="url"
             [formControlName]="field.name"
             placeholder="https://example.com/image.jpg"
+            (input)="onValueChange($any($event.target).value)"
           />
           @if (showError && isInvalid(field.name)) {
             <mat-error>{{ getErrorMessage(field.name) }}</mat-error>

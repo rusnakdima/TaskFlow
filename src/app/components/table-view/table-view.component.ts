@@ -547,6 +547,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
     if (this.itemType === "subtask") {
       return this.permissionService.canEditSubtask(item, permission, userId);
     }
+    if (this.itemType === "category") {
+      return item.user_id === userId;
+    }
     return false;
   }
 
@@ -559,6 +562,9 @@ export class TableViewComponent extends ItemRowBaseComponent {
     }
     if (this.itemType === "subtask") {
       return this.permissionService.canArchiveSubtask(item, permission, userId);
+    }
+    if (this.itemType === "category") {
+      return item.user_id === userId;
     }
     return false;
   }
