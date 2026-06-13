@@ -30,8 +30,5 @@ pub mod user_sync_helper;
 #[path = "visibility.helper.rs"]
 pub mod visibility_helper;
 
-#[path = "parse.helper.rs"]
-pub mod parse_helper;
-
 #[path = "cascade_helper.rs"]
 pub mod cascade_helper;

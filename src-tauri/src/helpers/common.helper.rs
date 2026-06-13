@@ -27,47 +27,12 @@ pub fn format_date(value: &str) -> Option<String> {
 pub fn convert_data_to_array<T: Serialize>(data: &[T]) -> serde_json::Value {
   let serialized_array: Vec<serde_json::Value> = data
     .iter()
-    .map(|item| serde_json::to_value(item).unwrap())
+    .filter_map(|item| serde_json::to_value(item).ok())
     .collect();
 
   serde_json::json!(serialized_array)
 }
 
 pub fn convert_data_to_object<T: Serialize>(data: &T) -> serde_json::Value {
-  let serialized_object: serde_json::Value = serde_json::to_value(data).unwrap();
-
-  serialized_object
-}
-
-#[allow(dead_code)]
-pub fn add_timestamps(data: &mut serde_json::Value) {
-  let now = chrono::Utc::now().to_rfc3339();
-  data["created_at"] = serde_json::json!(now);
-  data["updated_at"] = serde_json::json!(now);
-}
-
-#[allow(dead_code)]
-pub trait JsonExt {
-  fn get_str(&self, key: &str) -> Option<&str>;
-  fn get_string(&self, key: &str) -> Option<String>;
-  fn get_i64(&self, key: &str) -> Option<i64>;
-  fn get_bool(&self, key: &str) -> Option<bool>;
-}
-
-impl JsonExt for serde_json::Value {
-  fn get_str(&self, key: &str) -> Option<&str> {
-    self.get(key).and_then(|v| v.as_str())
-  }
-
-  fn get_string(&self, key: &str) -> Option<String> {
-    self.get(key).and_then(|v| v.as_str()).map(String::from)
-  }
-
-  fn get_i64(&self, key: &str) -> Option<i64> {
-    self.get(key).and_then(|v| v.as_i64())
-  }
-
-  fn get_bool(&self, key: &str) -> Option<bool> {
-    self.get(key).and_then(|v| v.as_bool())
-  }
+  serde_json::to_value(data).unwrap_or(serde_json::Value::Null)
 }

@@ -15,6 +15,7 @@ use crate::entities::{
 };
 
 use crate::helpers::response_helper::err_response;
+use bcrypt::{hash, DEFAULT_COST};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +25,24 @@ pub struct Claims {
   pub profile_id: Option<String>,
   pub role: Option<String>,
   pub exp: usize,
+}
+
+impl Claims {
+  pub fn extract_user_id(&self) -> &str {
+    &self.id
+  }
+
+  pub fn extract_profile_id(&self) -> Option<&str> {
+    self.profile_id.as_deref()
+  }
+
+  pub fn extract_role(&self) -> Option<&str> {
+    self.role.as_deref()
+  }
+}
+
+pub fn hash_password(password: &str) -> Result<String, ResponseModel> {
+  hash(password, DEFAULT_COST).map_err(|e| err_response(&format!("Error hashing password: {}", e)))
 }
 
 pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, ResponseModel> {
