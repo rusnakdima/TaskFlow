@@ -1,4 +1,4 @@
-#[path = "cascade_service.cascade.service.rs"]
+#[path = "cascade.service.rs"]
 pub mod cascade_service;
 #[path = "count_service.rs"]
 pub mod count_service;
