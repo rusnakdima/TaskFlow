@@ -16,7 +16,7 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 
-/* services */
+import { Profile } from "@models/generated/api.types";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
@@ -51,7 +51,7 @@ export class ProfileView implements OnInit, OnDestroy {
   userId: string = "";
   viewedUserId = signal<string | null>(null);
   isViewingOtherUser = signal(false);
-  viewedUserProfile = signal<any | null>(null);
+  viewedUserProfile = signal<Profile | null>(null);
 
   profile = computed(() => this.storage.profiles()[0]);
   displayProfile = computed(() =>
@@ -107,7 +107,7 @@ export class ProfileView implements OnInit, OnDestroy {
         load: "user",
       })
       .subscribe({
-        next: (profileData: any) => {
+        next: (profileData: Profile | Profile[]) => {
           const profile = Array.isArray(profileData) ? profileData[0] : profileData;
           if (profile) {
             this.viewedUserProfile.set(profile);
@@ -248,7 +248,7 @@ export class ProfileView implements OnInit, OnDestroy {
           this.stopQrScanning();
           setTimeout(() => this.location.back(), 500);
         },
-        error: (err: any) => {
+        error: (err: Error) => {
           this.notifyService.showError("Failed to approve: " + (err.message || err));
         },
       });
@@ -265,11 +265,16 @@ export class ProfileView implements OnInit, OnDestroy {
       .invokeCommand<{
         token: string;
         needsProfile: boolean;
-        profile: any;
+        profile: Profile;
         userId: string;
       }>("qr_login_complete", { token })
       .subscribe({
-        next: (response) => {
+        next: (response: {
+          token: string;
+          needsProfile: boolean;
+          profile: Profile;
+          userId: string;
+        }) => {
           if (response?.token) {
             TokenStorageHelper.setToken(response.token, true);
             this.notifyService.showSuccess("Login successful on desktop!");
@@ -278,7 +283,7 @@ export class ProfileView implements OnInit, OnDestroy {
             }, 500);
           }
         },
-        error: (err: any) => {
+        error: (err: Error) => {
           this.notifyService.showError("Failed to complete desktop login: " + (err.message || err));
         },
       });
@@ -300,19 +305,21 @@ export class ProfileView implements OnInit, OnDestroy {
           expiresAt: number;
         }>("qr_generate_for_desktop", { username, user_id: userId })
         .subscribe({
-          next: (response: any) => {
+          next: (response: { token: string; qrCode: string; expiresAt: number }) => {
             this.myQrCode.set(response?.qrCode);
             this.myQrToken.set(response?.token);
             this.showMyQr.set(true);
             this.notifyService.showInfo("Show this QR code to login from desktop");
           },
-          error: (err: any) => {
+          error: (err: Error) => {
             this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
           },
         });
       this.destroyRef.onDestroy(() => sub.unsubscribe());
-    } catch (err: any) {
-      this.notifyService.showError("Failed to generate QR code: " + (err.message || err));
+    } catch (err: unknown) {
+      this.notifyService.showError(
+        "Failed to generate QR code: " + (err instanceof Error ? err.message : err)
+      );
     }
   }
 

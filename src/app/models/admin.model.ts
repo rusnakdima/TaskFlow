@@ -1,24 +1,25 @@
 import { ResponseStatus } from "./response.model";
+import { TableItem } from "@shared/models/api.types";
 
 export interface AdminDataWithRelations {
-  data?: any;
-  relations?: Record<string, any[]>;
+  data?: TableItem;
+  relations?: Record<string, TableItem[]>;
   status?: ResponseStatus;
-  todos?: any[];
-  tasks?: any[];
-  subtasks?: any[];
-  comments?: any[];
-  chats?: any[];
-  categories?: any[];
-  users?: any[];
-  profiles?: any[];
-  daily_activities?: any[];
-  [key: string]: any;
+  todos?: TableItem[];
+  tasks?: TableItem[];
+  subtasks?: TableItem[];
+  comments?: TableItem[];
+  chats?: TableItem[];
+  categories?: TableItem[];
+  users?: TableItem[];
+  profiles?: TableItem[];
+  daily_activities?: TableItem[];
+  [key: string]: unknown;
 }
 
 export interface LoadDataOptions {
   visibility?: string;
-  filter?: Record<string, any>;
+  filter?: Record<string, unknown>;
   skip?: number;
   limit?: number;
   load?: string[];

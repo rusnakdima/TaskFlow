@@ -4,6 +4,11 @@
  * Centralized utility for detecting network-related errors.
  * Used across the application to handle offline scenarios consistently.
  */
+export interface NetworkError {
+  message?: string;
+  name?: string;
+}
+
 export class NetworkErrorHelper {
   /**
    * Check if an error is network-related
@@ -22,10 +27,11 @@ export class NetworkErrorHelper {
    * }
    * ```
    */
-  static isNetworkError(error: any): boolean {
-    const message = error?.message || error?.toString() || "";
+  static isNetworkError(error: NetworkError | unknown): boolean {
+    const errObj = error as NetworkError | null;
+    const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
-    const errorName = error?.name || "";
+    const errorName = errObj?.name || "";
 
     return (
       lowerMessage.includes("networkerror") ||
@@ -53,8 +59,9 @@ export class NetworkErrorHelper {
    * @param error - The error to check
    * @returns true if the error is a MongoDB connection error
    */
-  static isMongoConnectionError(error: any): boolean {
-    const message = error?.message || error?.toString() || "";
+  static isMongoConnectionError(error: NetworkError | unknown): boolean {
+    const errObj = error as NetworkError | null;
+    const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
 
     return (
@@ -75,8 +82,9 @@ export class NetworkErrorHelper {
    * @param error - The error to check
    * @returns true if the error is an authentication error
    */
-  static isAuthenticationError(error: any): boolean {
-    const message = error?.message || error?.toString() || "";
+  static isAuthenticationError(error: NetworkError | unknown): boolean {
+    const errObj = error as NetworkError | null;
+    const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
 
     return (
@@ -97,20 +105,21 @@ export class NetworkErrorHelper {
    * @param error - The error to get message for
    * @returns User-friendly error message
    */
-  static getNetworkErrorMessage(error: any): string {
+  static getNetworkErrorMessage(error: NetworkError | unknown): string {
+    const errObj = error as NetworkError | null;
     if (this.isMongoConnectionError(error)) {
       return "Cannot connect to database. Please check your internet connection and backend server.";
     }
 
     if (this.isAuthenticationError(error)) {
-      return error?.message || "Authentication failed. Please check your credentials.";
+      return errObj?.message || "Authentication failed. Please check your credentials.";
     }
 
     if (this.isNetworkError(error)) {
       return "Unable to connect to server. Working offline - changes will sync when connection is restored.";
     }
 
-    return error?.message || "An unexpected error occurred";
+    return errObj?.message || "An unexpected error occurred";
   }
 
   /**
@@ -119,7 +128,7 @@ export class NetworkErrorHelper {
    * @param error - The error to get steps for
    * @returns Array of troubleshooting steps
    */
-  static getTroubleshootingSteps(error: any): string[] {
+  static getTroubleshootingSteps(error: NetworkError | unknown): string[] {
     const steps: string[] = [];
 
     if (this.isMongoConnectionError(error)) {
@@ -146,7 +155,7 @@ export class NetworkErrorHelper {
    * @param error - The error to format
    * @returns Formatted error message with steps
    */
-  static formatErrorMessage(error: any): string {
+  static formatErrorMessage(error: NetworkError | unknown): string {
     const baseMessage = this.getNetworkErrorMessage(error);
     const steps = this.getTroubleshootingSteps(error);
 

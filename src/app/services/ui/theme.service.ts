@@ -1,4 +1,4 @@
-import { Injectable, signal, effect } from "@angular/core";
+import { Injectable, inject, signal, effect } from "@angular/core";
 import {
   AppearanceSettings,
   ThemePreset,
@@ -6,6 +6,7 @@ import {
   DEFAULT_APPEARANCE_SETTINGS,
   getAccentShades,
 } from "@models/theme.model";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 const STORAGE_KEY = "appearance_settings";
 
@@ -13,6 +14,7 @@ const STORAGE_KEY = "appearance_settings";
   providedIn: "root",
 })
 export class ThemeService {
+  private loggingService = inject(LoggingService);
   private settings = signal<AppearanceSettings>(this.loadSettings());
 
   mode = signal<"light" | "dark" | "system">(this.settings().mode);
@@ -22,7 +24,10 @@ export class ThemeService {
 
   constructor() {
     effect(() => {
-      this.applyTheme();
+      const mode = this.mode();
+      if (this.htmlEl) {
+        this.htmlEl.setAttribute("data-theme", mode === "system" ? "light" : mode);
+      }
     });
   }
 
@@ -34,7 +39,9 @@ export class ThemeService {
         const preset = THEME_PRESETS.find((p) => p.id === parsed.preset.id) || THEME_PRESETS[0];
         return { ...parsed, preset };
       }
-    } catch {}
+    } catch (error) {
+      this.loggingService.warn("ThemeService", "Failed to load theme settings:", error);
+    }
 
     const legacyTheme = localStorage.getItem("theme");
     if (legacyTheme === "dark" || legacyTheme === "light") {
@@ -47,57 +54,35 @@ export class ThemeService {
     return DEFAULT_APPEARANCE_SETTINGS;
   }
 
-  private saveSettings(): void {
-    const settings: AppearanceSettings = {
+  getSettings(): AppearanceSettings {
+    return {
       mode: this.mode(),
       preset: this.preset(),
     };
+  }
+
+  updateMode(mode: "light" | "dark" | "system"): void {
+    this.mode.set(mode);
+    this.persistSettings();
+  }
+
+  updatePreset(preset: ThemePreset): void {
+    this.preset.set(preset);
+    this.persistSettings();
+  }
+
+  updateAccentColor(color: string): void {
+    const current = this.settings();
+    this.settings.set({ ...current, accentColor: color });
+    this.persistSettings();
+  }
+
+  private persistSettings(): void {
+    const settings = this.getSettings();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }
 
-  private applyTheme(): void {
-    if (!this.htmlEl) return;
-
-    const currentMode = this.getEffectiveMode();
-    const shades = getAccentShades(this.preset().accentColor);
-
-    this.htmlEl.style.setProperty("--accent-color", this.preset().accentColor);
-    Object.entries(shades).forEach(([key, value]) => {
-      this.htmlEl!.style.setProperty(`--accent-${key}`, value);
-    });
-
-    this.htmlEl.setAttribute("data-theme", this.preset().id);
-
-    this.htmlEl.classList.remove("light", "dark");
-    this.htmlEl.classList.add(currentMode);
-
-    this.saveSettings();
-  }
-
-  getEffectiveMode(): "light" | "dark" {
-    const mode = this.mode();
-    if (mode === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
-    return mode;
-  }
-
-  setMode(mode: "light" | "dark" | "system"): void {
-    this.mode.set(mode);
-  }
-
-  toggleMode(): void {
-    const current = this.getEffectiveMode();
-    this.setMode(current === "dark" ? "light" : "dark");
-  }
-
-  setPreset(preset: ThemePreset): void {
-    this.preset.set(preset);
-  }
-
-  resetToDefaults(): void {
-    const defaults = DEFAULT_APPEARANCE_SETTINGS;
-    this.mode.set(defaults.mode);
-    this.preset.set(defaults.preset);
+  getAccentShades() {
+    return getAccentShades(this.preset().accentColor);
   }
 }

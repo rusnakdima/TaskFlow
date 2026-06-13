@@ -1,5 +1,4 @@
-import { Injectable } from "@angular/core";
-import { Subject } from "rxjs";
+import { Injectable, signal } from "@angular/core";
 
 import { ShortcutService } from "./shortcut.service";
 
@@ -7,22 +6,20 @@ import { ShortcutService } from "./shortcut.service";
   providedIn: "root",
 })
 export class ShortcutEmittersService {
-  private saveSubject = new Subject<void>();
-  save$ = this.saveSubject.asObservable();
+  private readonly _saveSignal = signal<void>(undefined);
+  private readonly _closeSignal = signal<void>(undefined);
+  private readonly _syncSignal = signal<void>(undefined);
+  private readonly _refreshSignal = signal<void>(undefined);
 
-  private closeSubject = new Subject<void>();
-  close$ = this.closeSubject.asObservable();
-
-  private syncSubject = new Subject<void>();
-  sync$ = this.syncSubject.asObservable();
-
-  private refreshSubject = new Subject<void>();
-  refresh$ = this.refreshSubject.asObservable();
+  saveSignal = this._saveSignal.asReadonly();
+  closeSignal = this._closeSignal.asReadonly();
+  syncSignal = this._syncSignal.asReadonly();
+  refreshSignal = this._refreshSignal.asReadonly();
 
   constructor(private shortcutService: ShortcutService) {}
 
   emitSave(): void {
-    this.saveSubject.next();
+    this._saveSignal.set(undefined);
   }
 
   emitHelp(): void {
@@ -30,15 +27,15 @@ export class ShortcutEmittersService {
   }
 
   emitClose(): void {
-    this.closeSubject.next();
+    this._closeSignal.set(undefined);
   }
 
   emitSync(): void {
-    this.syncSubject.next();
+    this._syncSignal.set(undefined);
   }
 
   emitRefresh(): void {
-    this.refreshSubject.next();
+    this._refreshSignal.set(undefined);
   }
 
   emitShortcuts(): void {

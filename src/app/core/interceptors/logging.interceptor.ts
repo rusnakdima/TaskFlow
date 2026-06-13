@@ -7,27 +7,32 @@ import {
 } from "@angular/common/http";
 import { Observable, throwError } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
-import { Logger, generateRequestId } from "@helpers/logger.helper";
+import { inject } from "@angular/core";
+import { LoggingService, LogLevel } from "@app/shared/services/logging.service";
 import { sanitizeRequestBody } from "@helpers/sanitize.helper";
-
-const log = Logger;
 
 export const loggingInterceptor: HttpInterceptorFn = (
   req: HttpRequest<any>,
   next: HttpHandlerFn
 ): Observable<any> => {
-  const requestId = generateRequestId();
+  const loggingService = inject(LoggingService);
+  const requestId = LoggingService.generateRequestId();
   const startTime = Date.now();
 
   const sanitizedUrl = sanitizeUrl(req.url);
   const sanitizedBody = req.body ? sanitizeRequestBody(req.body) : null;
 
-  log.debug("HttpInterceptor", "REQUEST", {
-    request_id: requestId,
-    method: req.method,
-    url: sanitizedUrl,
-    body: sanitizedBody,
-  });
+  loggingService.debug(
+    "HttpInterceptor",
+    "REQUEST",
+    {
+      request_id: requestId,
+      method: req.method,
+      url: sanitizedUrl,
+      body: sanitizedBody,
+    },
+    undefined
+  );
 
   const enhancedReq = req.clone({
     setHeaders: {
@@ -48,16 +53,21 @@ export const loggingInterceptor: HttpInterceptorFn = (
     tap((event) => {
       const duration = Date.now() - startTime;
       if (event && event.type === 0) {
-        log.debug("HttpInterceptor", "RESPONSE", {
-          request_id: requestId,
-          duration_ms: duration,
-          status: "pending",
-        });
+        loggingService.debug(
+          "HttpInterceptor",
+          "RESPONSE",
+          {
+            request_id: requestId,
+            duration_ms: duration,
+            status: "pending",
+          },
+          undefined
+        );
       }
     }),
     catchError((error: HttpErrorResponse) => {
       const duration = Date.now() - startTime;
-      log.error(
+      loggingService.error(
         "HttpInterceptor",
         "RESPONSE ERROR",
         {

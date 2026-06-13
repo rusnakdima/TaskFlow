@@ -1,6 +1,5 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
-import { BehaviorSubject, Observable } from "rxjs";
+import { Injectable, inject, signal } from "@angular/core";
 
 /* services */
 import { StorageService } from "@services/storage.service";
@@ -21,10 +20,10 @@ export class ConflictDetectionService {
 
   private conflicts = new Map<string, Conflict>();
   private conflictTimestamps = new Map<string, number>();
-  private conflictsSubject = new BehaviorSubject<Conflict[]>([]);
+  private readonly _conflictsSignal = signal<Conflict[]>([]);
 
-  getConflicts$(): Observable<Conflict[]> {
-    return this.conflictsSubject.asObservable();
+  get conflictsSignal() {
+    return this._conflictsSignal.asReadonly();
   }
 
   getConflicts(): Conflict[] {
@@ -88,7 +87,7 @@ export class ConflictDetectionService {
 
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
       this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
-      this.conflictsSubject.next(this.getConflicts());
+      this._conflictsSignal.set(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
     }
@@ -113,7 +112,7 @@ export class ConflictDetectionService {
 
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
       this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
-      this.conflictsSubject.next(this.getConflicts());
+      this._conflictsSignal.set(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
     }
@@ -173,7 +172,7 @@ export class ConflictDetectionService {
     conflict.resolved = true;
     this.conflicts.delete(`${entityType}:${entityId}`);
     this.conflictTimestamps.delete(`${entityType}:${entityId}`);
-    this.conflictsSubject.next(this.getConflicts());
+    this._conflictsSignal.set(this.getConflicts());
 
     this.notifyService.showSuccess("Conflict resolved");
   }
@@ -193,7 +192,7 @@ export class ConflictDetectionService {
         this.conflictTimestamps.delete(`${conflict.entityType}:${conflict.entityId}`);
       }
     });
-    this.conflictsSubject.next(this.getConflicts());
+    this._conflictsSignal.set(this.getConflicts());
   }
 
   private updateEntity(entityType: string, entityId: string, data: any): void {

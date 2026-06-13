@@ -16,17 +16,17 @@ export enum TypeField {
 }
 
 interface CommonFormField {
-  label: string | ((param: any) => string);
+  label: string | ((param: Record<string, unknown>) => string);
   name: string;
   readonly?: boolean;
   required?: boolean;
-  isShow: (param: any, index?: number) => boolean;
+  isShow: (param: Record<string, unknown>, index?: number) => boolean;
 }
 
 export interface OptionData {
-  value: any;
+  value: unknown;
   label: string;
-  isShow: (param: any, index?: number) => boolean;
+  isShow: (param: Record<string, unknown>, index?: number) => boolean;
 }
 
 export interface TextField extends CommonFormField {
@@ -73,7 +73,7 @@ export interface SliderRangeField extends CommonFormField {
 export interface MenuField extends CommonFormField {
   type: TypeField.menu;
   direction: "vertical" | "horizontal";
-  value: any;
+  value: unknown;
   subGroup: Array<FormField>;
 }
 export interface SubGroupField extends CommonFormField {

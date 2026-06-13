@@ -4,6 +4,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { Visibility } from "@services/api.service";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 @Injectable({ providedIn: "root" })
 export class TasksCommentsHelper {
@@ -11,6 +12,7 @@ export class TasksCommentsHelper {
   private notifyService = inject(NotifyService);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
+  private loggingService = inject(LoggingService);
 
   private _highlightCommentId = signal<string | null>(null);
   private _todoVisibility: Visibility = "private";
@@ -63,7 +65,12 @@ export class TasksCommentsHelper {
           this.storageService.addCommentToSubtask(comment, event.subtask_id);
         },
         error: (err) => {
-          console.error("[TasksView] Failed to add subtask comment:", err);
+          this.loggingService.error(
+            "TasksCommentsHelper",
+            "Failed to add subtask comment",
+            null,
+            err
+          );
           this.notifyService.showError("Failed to add comment");
         },
       });

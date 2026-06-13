@@ -27,5 +27,5 @@ export interface ReorderResult<T> {
 export interface DragDropHandlers<T> {
   onDragStart?: (item: T) => void;
   onDragEnd?: (item: T) => void;
-  onDrop?: (item: T, target: any) => void;
+  onDrop?: (item: T, target: T) => void;
 }

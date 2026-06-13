@@ -25,7 +25,19 @@ import { SecurityService } from "@services/auth/security.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { GithubService } from "@services/github/github.service";
 import { ThemeService } from "@services/ui/theme.service";
+import { GithubRepo } from "@models/github.model";
 import { Response, ResponseStatus } from "@models/response.model";
+
+interface GithubDeviceFlowCheckResult {
+  success: boolean;
+  pending?: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  username?: string;
+  user_id?: string;
+  avatar_url?: string;
+}
 import { ThemePreset, THEME_PRESETS } from "@models/theme.model";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
@@ -88,14 +100,14 @@ export class SettingsView implements OnInit, OnDestroy {
   githubUsername = signal("");
   githubUserId = signal("");
   githubAvatarUrl = signal("");
-  githubRepos = signal<any[]>([]);
+  githubRepos = signal<GithubRepo[]>([]);
   githubLoading = signal(false);
 
   githubDeviceFlowActive = signal(false);
   githubUserCode = signal("");
   githubVerificationUri = signal("");
   githubDeviceCode = signal("");
-  githubPollingInterval: any = null;
+  githubPollingInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     const settings = this.notifyService.getSettings();
@@ -209,7 +221,7 @@ export class SettingsView implements OnInit, OnDestroy {
     }
   }
 
-  private completeGithubConnection(_result: any): void {
+  private completeGithubConnection(_result: GithubDeviceFlowCheckResult): void {
     this.stopGithubPolling();
 
     this.githubService.getConnectionStatus().subscribe({

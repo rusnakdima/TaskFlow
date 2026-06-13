@@ -1,4 +1,4 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, OnDestroy } from "@angular/core";
 import { Observable } from "rxjs";
 import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
@@ -11,9 +11,10 @@ import { Chat, Profile } from "@models/generated/api.types";
 import { ConversationItem } from "@models/chat.model";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 @Injectable({ providedIn: "root" })
-export class ChatService {
+export class ChatService implements OnDestroy {
   private requestService = inject(ApiService);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
@@ -21,15 +22,25 @@ export class ChatService {
   private notifyService = inject(NotifyService);
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
+  private onlineHandler: (() => void) | null = null;
+  private loggingService = inject(LoggingService);
 
   constructor() {
     this.initChatQueueListener();
   }
 
+  ngOnDestroy(): void {
+    if (this.onlineHandler && typeof window !== "undefined") {
+      window.removeEventListener("online", this.onlineHandler);
+      this.onlineHandler = null;
+    }
+  }
+
   private initChatQueueListener(): void {
-    window.addEventListener("online", () => {
+    this.onlineHandler = () => {
       this.processChatQueue();
-    });
+    };
+    window.addEventListener("online", this.onlineHandler);
 
     if (navigator.onLine) {
       this.processChatQueue();
@@ -115,7 +126,7 @@ export class ChatService {
           this.loadRoomsIntoConversations(rooms);
         },
         error: (err) => {
-          console.error("get_rooms error:", err);
+          this.loggingService.error("ChatService", "get_rooms error", null, err);
           this.loadRoomsFromLocal();
         },
       });
@@ -217,7 +228,6 @@ export class ChatService {
   }
 
   private loadGroupsFromLocal(): void {
-    // Groups from local storage - chats with room_id starting with "group_"
     const chats = this.storageService.chats();
     const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
 
@@ -441,7 +451,7 @@ export class ChatService {
           }
         },
         error: (err) => {
-          console.error("Load groups error:", err);
+          this.loggingService.error("ChatService", "Load groups error", null, err);
           this.loadGroupsFromLocal();
         },
       });
@@ -744,7 +754,9 @@ export class ChatService {
   private saveChatQueue(queue: any[]): void {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
-    } catch {}
+    } catch (error) {
+      this.loggingService.error("ChatService", "Failed to save chat queue", null, error);
+    }
   }
 
   private processChatQueue(): void {
