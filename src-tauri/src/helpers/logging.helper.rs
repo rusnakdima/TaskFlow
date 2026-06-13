@@ -7,64 +7,6 @@ use std::time::Instant;
 
 static INIT: Once = Once::new();
 
-fn is_log_level_enabled(level: &str) -> bool {
-  if env::var("RUST_LOG_ENABLED").unwrap_or_else(|_| "true".to_string()) != "true" {
-    return false;
-  }
-
-  let key = format!("RUST_LOG_{}", level.to_uppercase());
-  env::var(&key).unwrap_or_else(|_| "true".to_string()) == "true"
-}
-
-pub fn should_log_debug() -> bool {
-  is_log_level_enabled("debug")
-}
-pub fn should_log_info() -> bool {
-  is_log_level_enabled("info")
-}
-pub fn should_log_warn() -> bool {
-  is_log_level_enabled("warn")
-}
-pub fn should_log_error() -> bool {
-  is_log_level_enabled("error")
-}
-
-#[macro_export]
-macro_rules! log_debug {
-    ($($arg:tt)*) => {
-        if crate::helpers::logging_helper::should_log_debug() {
-            log::debug!($($arg)*);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! log_info {
-    ($($arg:tt)*) => {
-        if crate::helpers::logging_helper::should_log_info() {
-            log::info!($($arg)*);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! log_warn {
-    ($($arg:tt)*) => {
-        if crate::helpers::logging_helper::should_log_warn() {
-            log::warn!($($arg)*);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! log_error {
-    ($($arg:tt)*) => {
-        if crate::helpers::logging_helper::should_log_error() {
-            log::error!($($arg)*);
-        }
-    };
-}
-
 pub fn init() {
   INIT.call_once(|| {
     let enabled = env::var("RUST_LOG_ENABLED").unwrap_or_else(|_| "true".to_string());

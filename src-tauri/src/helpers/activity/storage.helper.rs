@@ -84,7 +84,8 @@ impl ActivityStorage {
       date: date.clone(),
     };
     let model: DailyActivityModel = create_model.into();
-    let record: Value = to_value(&model).unwrap();
+    let record: Value =
+      to_value(&model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
 
     match self.json_provider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
@@ -135,7 +136,8 @@ impl ActivityStorage {
         .unwrap_or_else(|| now.to_rfc3339()),
     };
 
-    let record: Value = to_value(&update_model).unwrap();
+    let record: Value =
+      to_value(&update_model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
 
     match self
       .json_provider
