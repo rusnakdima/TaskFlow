@@ -1,5 +1,6 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
+use log::error;
 use std::sync::Arc;
 
 /* providers */
@@ -155,7 +156,7 @@ impl AuthRegisterService {
 
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       if let Err(e) = mongo.insert(table_name, user_val.clone()).await {
-        eprintln!("Failed to sync user to MongoDB: {:?}", e);
+        error!("Failed to sync user to MongoDB: {:?}", e);
         return Err(err_response("Failed to complete registration"));
       }
     }

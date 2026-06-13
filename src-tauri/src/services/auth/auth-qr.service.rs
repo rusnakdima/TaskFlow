@@ -384,35 +384,6 @@ impl QrAuthService {
     Ok(())
   }
 
-  #[allow(dead_code)]
-  async fn delete_expired_qr_tokens(&self) -> Result<(), ResponseModel> {
-    let now = chrono::Utc::now().timestamp();
-
-    if let Some(ref mongo_provider) = self.mongodb_provider {
-      if let Ok(results) = mongo_provider.find_all("qr_tokens").await {
-        for token_val in results {
-          if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
-            if t.expires_at < now {
-              let _ = mongo_provider.delete("qr_tokens", &t.id).await;
-            }
-          }
-        }
-      }
-    }
-
-    if let Ok(results) = self.json_provider.find_all("qr_tokens").await {
-      for token_val in results {
-        if let Ok(t) = serde_json::from_value::<QrToken>(token_val.clone()) {
-          if t.expires_at < now {
-            let _ = self.json_provider.delete("qr_tokens", &t.id).await;
-          }
-        }
-      }
-    }
-
-    Ok(())
-  }
-
   /// Complete QR login: generate a JWT token for the approved user
   pub async fn complete_qr_login(&self, token: &str) -> Result<ResponseModel, ResponseModel> {
     // Verify QR token is approved
