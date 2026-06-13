@@ -21,6 +21,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { CategorySectionComponent } from "@components/form/category-section.component";
@@ -65,6 +66,7 @@ export class ManageTodoPage implements OnInit {
   private apiService = inject(ApiService);
   private requestService = inject(ApiService);
   private permissionService = inject(PermissionService);
+  private loggingService = inject(LoggingService);
 
   form!: FormGroup;
 
@@ -294,7 +296,14 @@ export class ManageTodoPage implements OnInit {
       if (typeof item.categories === "string") {
         try {
           categoryIds = JSON.parse(item.categories);
-        } catch {}
+        } catch (error) {
+          this.loggingService.error(
+            "ManageTodoView",
+            "Failed to parse categories",
+            { categories: item.categories },
+            error
+          );
+        }
       } else if (Array.isArray(item.categories)) {
         categoryIds = item.categories;
       }

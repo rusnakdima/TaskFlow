@@ -50,7 +50,7 @@ function truncateString(str: string, maxLength: number): string {
   return str.substring(0, maxLength) + "...";
 }
 
-function sanitizeValue(key: string, value: any): any {
+function sanitizeValue(key: string, value: unknown): unknown {
   if (isSensitiveKey(key)) {
     return "[REDACTED]";
   }
@@ -71,7 +71,7 @@ function sanitizeValue(key: string, value: any): any {
   }
 
   if (Array.isArray(value)) {
-    return value.slice(0, MAX_ARRAY_LENGTH).map((item, index) => {
+    return value.slice(0, MAX_ARRAY_LENGTH).map((item) => {
       if (typeof item === "object" && item !== null) {
         return sanitizeData(item);
       }
@@ -86,7 +86,7 @@ function sanitizeValue(key: string, value: any): any {
   return "[REDACTED]";
 }
 
-export function sanitizeData(data: any): any {
+export function sanitizeData(data: unknown): unknown {
   if (data === null || data === undefined) {
     return null;
   }
@@ -104,7 +104,7 @@ export function sanitizeData(data: any): any {
     return data;
   }
 
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
     result[key] = sanitizeValue(key, value);
   }
@@ -117,10 +117,10 @@ export function sanitizeChatContent(content: string): string {
   return content.substring(0, CHAT_CONTENT_PREVIEW) + "...";
 }
 
-export function sanitizeRequestBody(body: any): any {
-  if (!body) return null;
+export function sanitizeRequestBody(body: unknown): unknown {
+  if (!body || typeof body !== "object") return null;
 
-  const sanitized = { ...body };
+  const sanitized: Record<string, unknown> = { ...(body as Record<string, unknown>) };
 
   for (const key of Object.keys(sanitized)) {
     if (isSensitiveKey(key)) {
@@ -128,20 +128,21 @@ export function sanitizeRequestBody(body: any): any {
     } else if (key === "password" || key.includes("password")) {
       sanitized[key] = "[REDACTED]";
     } else if (key === "content" && typeof sanitized[key] === "string") {
-      sanitized[key] = sanitizeChatContent(sanitized[key]);
+      sanitized[key] = sanitizeChatContent(sanitized[key] as string);
     }
   }
 
   return sanitized;
 }
 
-export function sanitizeApiResponse(data: any): any {
-  if (!data) return null;
+export function sanitizeApiResponse(data: unknown): unknown {
+  if (!data || typeof data !== "object") return null;
 
-  if (data.data && typeof data.data === "object") {
+  const dataRecord = data as Record<string, unknown>;
+  if (dataRecord["data"] && typeof dataRecord["data"] === "object") {
     return {
-      ...data,
-      data: sanitizeData(data.data),
+      ...dataRecord,
+      data: sanitizeData(dataRecord["data"]),
     };
   }
 

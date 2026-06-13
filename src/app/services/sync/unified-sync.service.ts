@@ -1,8 +1,7 @@
 /* sys lib */
-import { Injectable, OnDestroy, inject } from "@angular/core";
-import { Observable, of, Subject, BehaviorSubject, from } from "rxjs";
+import { Injectable, OnDestroy, inject, signal } from "@angular/core";
+import { Observable, of, Subject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* models */
@@ -18,6 +17,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@services/core/sync-progress.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { EntityStoreService } from "@services/core/entity-store.service";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Injectable({
   providedIn: "root",
@@ -27,6 +27,7 @@ export class UnifiedSyncService implements OnDestroy {
   private readonly MAX_RETRIES = 3;
   private readonly DEFAULT_SYNC_INTERVAL = 30000;
   private syncIntervalId?: number;
+  private isProcessingQueue = false;
 
   private onlineStatusSubject = new Subject<boolean>();
   private dbChangeSubjects: Map<string, Subject<any>> = new Map();
@@ -35,8 +36,8 @@ export class UnifiedSyncService implements OnDestroy {
 
   private readonly QUEUE_STORAGE_KEY = "taskflow_offline_queue";
 
-  private isSyncingSubject = new BehaviorSubject<boolean>(false);
-  private progressSubject = new BehaviorSubject<SyncProgress>({
+  private readonly _isSyncingSignal = signal(false);
+  private readonly _progressSignal = signal<SyncProgress>({
     stage: "idle",
     processed: 0,
     total: 0,
@@ -45,6 +46,7 @@ export class UnifiedSyncService implements OnDestroy {
   });
 
   private entityStore = inject(EntityStoreService);
+  private tauriApi = inject(TauriApiService);
 
   constructor(
     private jwtTokenService: JwtTokenService,
@@ -65,12 +67,12 @@ export class UnifiedSyncService implements OnDestroy {
     this.networkUnlisteners = [];
   }
 
-  get isSyncing$(): Observable<boolean> {
-    return this.isSyncingSubject.asObservable();
+  get isSyncingSignal() {
+    return this._isSyncingSignal.asReadonly();
   }
 
-  get progress$(): Observable<SyncProgress> {
-    return this.progressSubject.asObservable();
+  get progressSignal() {
+    return this._progressSignal.asReadonly();
   }
 
   get onlineStatus$(): Observable<boolean> {
@@ -194,29 +196,35 @@ export class UnifiedSyncService implements OnDestroy {
   }
 
   private async processOfflineQueue(): Promise<void> {
-    if (!this.isOnline() || this.offlineQueue.length === 0) {
+    if (this.isProcessingQueue || !this.isOnline() || this.offlineQueue.length === 0) {
       return;
     }
 
-    const queue = [...this.offlineQueue];
-    this.offlineQueue = [];
+    this.isProcessingQueue = true;
 
-    for (const op of queue) {
-      try {
-        await this.processOperation(op);
-      } catch (error) {
-        if (op.retries < this.MAX_RETRIES) {
-          op.retries++;
-          this.offlineQueue.push(op);
+    try {
+      const queue = [...this.offlineQueue];
+      this.offlineQueue = [];
+
+      for (const op of queue) {
+        try {
+          await this.processOperation(op);
+        } catch (error) {
+          if (op.retries < this.MAX_RETRIES) {
+            op.retries++;
+            this.offlineQueue.push(op);
+          }
         }
       }
-    }
 
-    this.saveQueueToStorage();
+      this.saveQueueToStorage();
+    } finally {
+      this.isProcessingQueue = false;
+    }
   }
 
   private async processOperation(op: QueuedOperation): Promise<void> {
-    await invoke("process_queued_operation", {
+    await this.tauriApi.invoke("process_queued_operation", {
       operation: op.operation,
       table: op.table,
       data: op.data,
@@ -258,7 +266,7 @@ export class UnifiedSyncService implements OnDestroy {
     this.syncIntervalId = window.setInterval(async () => {
       if (this.isOnline() && userId) {
         try {
-          await invoke("sync_data", { userId });
+          await this.tauriApi.invoke("sync_data", { userId });
         } catch (error) {}
       }
     }, this.DEFAULT_SYNC_INTERVAL);
@@ -272,18 +280,18 @@ export class UnifiedSyncService implements OnDestroy {
   }
 
   setSyncing(isSyncing: boolean): void {
-    this.isSyncingSubject.next(isSyncing);
-    this.progressSubject.next({
-      ...this.progressSubject.value,
+    this._isSyncingSignal.set(isSyncing);
+    this._progressSignal.update((p) => ({
+      ...p,
       isSyncing,
-    });
+    }));
   }
 
   private updateProgress(progress: Partial<SyncProgress>): void {
-    this.progressSubject.next({
-      ...this.progressSubject.value,
+    this._progressSignal.update((p) => ({
+      ...p,
       ...progress,
-    });
+    }));
   }
 
   async refreshLocal<R>(): Promise<Response<R>> {
@@ -335,7 +343,7 @@ export class UnifiedSyncService implements OnDestroy {
         };
       }
 
-      const result = await invoke<Response<R>>("import_to_local", {
+      const result = await this.tauriApi.invoke<Response<R>>("import_to_local", {
         userId,
         token,
       });
@@ -414,7 +422,10 @@ export class UnifiedSyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
 
-      const result = await invoke<Response<R>>("import_to_local", { userId: userId, token });
+      const result = await this.tauriApi.invoke<Response<R>>("import_to_local", {
+        userId: userId,
+        token,
+      });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 100, message: "Import complete" });
@@ -485,7 +496,10 @@ export class UnifiedSyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
 
-      const result = await invoke<Response<R>>("export_to_cloud", { userId: userId, token });
+      const result = await this.tauriApi.invoke<Response<R>>("export_to_cloud", {
+        userId: userId,
+        token,
+      });
 
       if (result.status === ResponseStatus.SUCCESS) {
         this.updateProgress({ progress: 100, message: "Export complete" });
@@ -550,35 +564,35 @@ export class UnifiedSyncService implements OnDestroy {
       this.updateProgress({ progress: 30, message: "Exporting private todos..." });
 
       const privateTodos = this.entityStore.privateTodos();
+      const batchRecords: Record<string, any[]> = {
+        todos: [],
+        tasks: [],
+        subtasks: [],
+      };
+
       for (const todo of privateTodos) {
-        await invoke("upsert_to_mongo", {
-          table: "todos",
-          data: todo,
-          id: todo.id,
-        });
+        batchRecords["todos"].push(todo);
 
         const tasks = this.entityStore.tasksByTodoId().get(todo.id) || [];
         for (const task of tasks) {
-          await invoke("upsert_to_mongo", {
-            table: "tasks",
-            data: task,
-            id: task.id,
-          });
+          batchRecords["tasks"].push(task);
 
           const subtasks = this.entityStore.subtasksByTaskId().get(task.id) || [];
           for (const subtask of subtasks) {
-            await invoke("upsert_to_mongo", {
-              table: "subtasks",
-              data: subtask,
-              id: subtask.id,
-            });
+            batchRecords["subtasks"].push(subtask);
           }
         }
       }
 
+      if (batchRecords["todos"].length > 0) {
+        await this.tauriApi.invoke("batch_upsert_to_mongo", {
+          records: batchRecords,
+        });
+      }
+
       this.updateProgress({ progress: 80, message: "Importing private data from cloud..." });
 
-      const result = await invoke<Response<R>>("import_private_to_local", {
+      const result = await this.tauriApi.invoke<Response<R>>("import_private_to_local", {
         userId: userId,
         token,
       });
@@ -705,7 +719,7 @@ export class UnifiedSyncService implements OnDestroy {
           } as Response<any>;
         }
 
-        const result = await invoke<Response<any>>("import_to_local", {
+        const result = await this.tauriApi.invoke<Response<any>>("import_to_local", {
           userId,
           token,
         });
@@ -736,7 +750,7 @@ export class UnifiedSyncService implements OnDestroy {
           } as Response<any>;
         }
 
-        const result = await invoke<Response<any>>("export_to_cloud", {
+        const result = await this.tauriApi.invoke<Response<any>>("export_to_cloud", {
           userId,
           token,
         });

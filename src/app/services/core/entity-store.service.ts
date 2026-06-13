@@ -1,7 +1,6 @@
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
 import { Observable, from, of } from "rxjs";
-import { tap, catchError } from "rxjs/operators";
-import { invoke } from "@tauri-apps/api/core";
+import { tap, catchError, map } from "rxjs/operators";
 
 import {
   Todo,
@@ -14,10 +13,12 @@ import {
   Profile,
   Room,
 } from "@models/generated/api.types";
+import { ConversationItem, ChatMessage } from "@models/chat.model";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
 import { ApiService, Visibility } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 import {
   upsertEntityBulk,
@@ -58,6 +59,7 @@ export class EntityStoreService {
   private readonly _apiService = inject(ApiService);
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
+  private readonly tauriApi = inject(TauriApiService);
 
   /* ════════════════════════════════════════════════════════════════════════
      SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type
@@ -75,8 +77,8 @@ export class EntityStoreService {
   readonly currentUser = signal<User | null>(null);
   readonly rooms = signal<Room[]>([]);
 
-  readonly conversations = signal<any[]>([]);
-  readonly messages = signal<any[]>([]);
+  readonly conversations = signal<ConversationItem[]>([]);
+  readonly messages = signal<ChatMessage[]>([]);
   readonly activeConversationId = signal<string | null>(null);
 
   private readonly _todosLoading = signal(false);
@@ -216,7 +218,11 @@ export class EntityStoreService {
      CREATE OPERATIONS - With visibility-based routing
      ════════════════════════════════════════════════════════════════════════ */
 
-  createEntity(type: EntityType, data: any, context: CreateContext): Observable<any> {
+  createEntity(
+    type: EntityType,
+    data: Record<string, unknown>,
+    context: CreateContext
+  ): Observable<unknown> {
     const targetDb = context.targetDb;
 
     if (targetDb === "local") {
@@ -226,21 +232,26 @@ export class EntityStoreService {
     }
   }
 
-  private createEntityLocal(type: EntityType, data: any, _context: CreateContext): Observable<any> {
+  private createEntityLocal(
+    type: EntityType,
+    data: Record<string, unknown>,
+    _context: CreateContext
+  ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
 
     this.addEntity(type, data);
 
     return from(
-      invoke<any>("upsert_to_json", {
+      this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
         data,
-        id: data.id,
+        id: (data as Record<string, unknown>)["id"],
       })
     ).pipe(
       tap((result) => {
-        if (result?.id) {
-          this.updateEntitySignal(type, result.id, result);
+        const resultRecord = result as Record<string, unknown>;
+        if (resultRecord["id"]) {
+          this.updateEntitySignal(type, resultRecord["id"] as string, resultRecord);
         }
       }),
       catchError((error) => {
@@ -251,23 +262,30 @@ export class EntityStoreService {
     );
   }
 
-  private createEntityCloud(type: EntityType, data: any, _context: CreateContext): Observable<any> {
+  private createEntityCloud(
+    type: EntityType,
+    data: Record<string, unknown>,
+    _context: CreateContext
+  ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
 
     this.addEntity(type, data);
 
-    return this._apiService.crud<any>(this.getRoute(type, "create")!, { data }).pipe(
-      tap((result) => {
-        if (result?.id) {
-          this.updateEntitySignal(type, result.id, result);
-        }
-      }),
-      catchError((error) => {
-        this.setEntitySignal(type, previousState);
-        this._notifyService.showError(`Failed to create: ${error.message}`);
-        throw error;
-      })
-    );
+    return this._apiService
+      .crud<Record<string, unknown>>(this.getRoute(type, "create")!, { data })
+      .pipe(
+        tap((result) => {
+          const resultRecord = result as Record<string, unknown>;
+          if (resultRecord["id"]) {
+            this.updateEntitySignal(type, resultRecord["id"] as string, resultRecord);
+          }
+        }),
+        catchError((error) => {
+          this.setEntitySignal(type, previousState);
+          this._notifyService.showError(`Failed to create: ${error.message}`);
+          throw error;
+        })
+      );
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -277,9 +295,9 @@ export class EntityStoreService {
   updateEntity(
     type: EntityType,
     id: string,
-    data: Partial<any>,
+    data: Partial<Record<string, unknown>>,
     context: UpdateContext
-  ): Observable<any> {
+  ): Observable<unknown> {
     const targetDb = context.targetDb;
 
     if (targetDb === "local") {
@@ -289,15 +307,21 @@ export class EntityStoreService {
     }
   }
 
-  private updateEntityLocal(type: EntityType, id: string, data: Partial<any>): Observable<any> {
+  private updateEntityLocal(
+    type: EntityType,
+    id: string,
+    data: Partial<Record<string, unknown>>
+  ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
 
-    this.getEntitySignal(type).update((items: any[]) =>
-      items.map((item: any) => (item.id === id ? { ...item, ...data } : item))
+    this.getEntitySignal(type).update((items: unknown[]) =>
+      (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
+        item["id"] === id ? { ...item, ...data } : item
+      )
     );
 
     return from(
-      invoke<any>("upsert_to_json", {
+      this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
         data: { ...data, id },
         id,
@@ -314,29 +338,33 @@ export class EntityStoreService {
   private updateEntityCloud(
     type: EntityType,
     id: string,
-    data: Partial<any>,
+    data: Partial<Record<string, unknown>>,
     _context: UpdateContext
-  ): Observable<any> {
+  ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
 
-    this.getEntitySignal(type).update((items: any[]) =>
-      items.map((item: any) => (item.id === id ? { ...item, ...data } : item))
+    this.getEntitySignal(type).update((items: unknown[]) =>
+      (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
+        item["id"] === id ? { ...item, ...data } : item
+      )
     );
 
-    return this._apiService.crud<any>(this.getRoute(type, "update")!, { id, data }).pipe(
-      catchError((error) => {
-        this.setEntitySignal(type, previousState);
-        this._notifyService.showError(`Failed to update: ${error.message}`);
-        throw error;
-      })
-    );
+    return this._apiService
+      .crud<Record<string, unknown>>(this.getRoute(type, "update")!, { id, data })
+      .pipe(
+        catchError((error) => {
+          this.setEntitySignal(type, previousState);
+          this._notifyService.showError(`Failed to update: ${error.message}`);
+          throw error;
+        })
+      );
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      DELETE OPERATIONS - With visibility-based routing
      ════════════════════════════════════════════════════════════════════════ */
 
-  deleteEntity(type: EntityType, id: string, context: UpdateContext): Observable<void> {
+  deleteEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     const targetDb = context.targetDb;
 
     if (targetDb === "local") {
@@ -346,30 +374,36 @@ export class EntityStoreService {
     }
   }
 
-  private deleteEntityLocal(type: EntityType, id: string): Observable<void> {
+  private deleteEntityLocal(type: EntityType, id: string): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
 
-    this.getEntitySignal(type).update((items: any[]) =>
-      items.filter((item: any) => item.id !== id)
+    this.getEntitySignal(type).update((items: unknown[]) =>
+      (items as Record<string, unknown>[]).filter(
+        (item: Record<string, unknown>) => item["id"] !== id
+      )
     );
 
-    return from(invoke<any>("delete_from_json", { table: type, id })).pipe(
-      tap(() => {
-        this._notifyService.showSuccess("Deleted successfully");
-      }),
-      catchError((error) => {
-        this.setEntitySignal(type, previousState);
-        this._notifyService.showError(`Failed to delete: ${error.message}`);
-        throw error;
-      })
-    );
+    return this.tauriApi
+      .invoke<Record<string, unknown>>("delete_from_json", { table: type, id })
+      .pipe(
+        tap(() => {
+          this._notifyService.showSuccess("Deleted successfully");
+        }),
+        catchError((error) => {
+          this.setEntitySignal(type, previousState);
+          this._notifyService.showError(`Failed to delete: ${error.message}`);
+          throw error;
+        })
+      );
   }
 
   private deleteEntityCloud(type: EntityType, id: string): Observable<void> {
     const previousState = this.getEntitySignal(type)();
 
-    this.getEntitySignal(type).update((items: any[]) =>
-      items.filter((item: any) => item.id !== id)
+    this.getEntitySignal(type).update((items: unknown[]) =>
+      (items as Record<string, unknown>[]).filter(
+        (item: Record<string, unknown>) => item["id"] !== id
+      )
     );
 
     return this._apiService.crud<void>(this.getRoute(type, "delete")!, { id }).pipe(
@@ -388,11 +422,11 @@ export class EntityStoreService {
      SOFT DELETE (ARCHIVE) OPERATIONS
      ════════════════════════════════════════════════════════════════════════ */
 
-  archiveEntity(type: EntityType, id: string, context: UpdateContext): Observable<any> {
+  archiveEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     return this.updateEntity(type, id, { deleted_at: new Date().toISOString() }, context);
   }
 
-  restoreEntity(type: EntityType, id: string, context: UpdateContext): Observable<any> {
+  restoreEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     return this.updateEntity(type, id, { deleted_at: null }, context);
   }
 
@@ -400,19 +434,21 @@ export class EntityStoreService {
      BATCH OPERATIONS
      ════════════════════════════════════════════════════════════════════════ */
 
-  batchArchive(type: EntityType, ids: string[], context: UpdateContext): Observable<any[]> {
+  batchArchive(type: EntityType, ids: string[], context: UpdateContext): Observable<unknown[]> {
     const targetDb = context.targetDb;
     const deletedAt = new Date().toISOString();
 
     ids.forEach((id) => {
-      this.getEntitySignal(type).update((items: any[]) =>
-        items.map((item: any) => (item.id === id ? { ...item, deleted_at: deletedAt } : item))
+      this.getEntitySignal(type).update((items: unknown[]) =>
+        (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
+          item["id"] === id ? { ...item, deleted_at: deletedAt } : item
+        )
       );
     });
 
     if (targetDb === "local") {
       return from(
-        invoke<any>("batch_soft_delete_json", {
+        this.tauriApi.invoke<unknown[]>("batch_soft_delete_json", {
           table: type,
           ids,
         })
@@ -422,18 +458,20 @@ export class EntityStoreService {
     }
   }
 
-  batchRestore(type: EntityType, ids: string[], context: UpdateContext): Observable<any[]> {
+  batchRestore(type: EntityType, ids: string[], context: UpdateContext): Observable<unknown[]> {
     const targetDb = context.targetDb;
 
     ids.forEach((id) => {
-      this.getEntitySignal(type).update((items: any[]) =>
-        items.map((item: any) => (item.id === id ? { ...item, deleted_at: null } : item))
+      this.getEntitySignal(type).update((items: unknown[]) =>
+        (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
+          item["id"] === id ? { ...item, deleted_at: null } : item
+        )
       );
     });
 
     if (targetDb === "local") {
       return from(
-        invoke<any>("batch_restore_json", {
+        this.tauriApi.invoke<unknown[]>("batch_restore_json", {
           table: type,
           ids,
         })
@@ -545,14 +583,17 @@ export class EntityStoreService {
     }
   }
 
-  private loadTodosFromLocal(limit: number): Observable<any> {
-    return from(invoke<any>("get_all_from_json", { table: "todos", limit })).pipe(
-      tap((todos: any[]) => {
+  private loadTodosFromLocal(limit: number): Observable<Todo[]> {
+    return this.tauriApi.invoke<Todo[]>("get_all_from_json", { table: "todos", limit }).pipe(
+      map((response: unknown) => {
+        const todoResponse = response as Todo[] | { data: Todo[] };
+        const todos = Array.isArray(todoResponse) ? todoResponse : todoResponse?.data;
         if (todos && todos.length > 0) {
-          const privateTodos = todos.filter((t) => t.visibility === "private");
+          const privateTodos = todos.filter((t: Todo) => t.visibility === "private");
           this.todos.update((existing) => upsertEntityBulk(existing, privateTodos));
           this.updatePagination("todos", 0, limit, privateTodos.length);
         }
+        return todos || [];
       }),
       catchError(() => {
         return of([]);
@@ -617,18 +658,23 @@ export class EntityStoreService {
     }
   }
 
-  private loadCategoriesFromLocal(limit: number): Observable<any> {
-    return from(invoke<any>("get_all_from_json", { table: "categories", limit })).pipe(
-      tap((categories: any[]) => {
-        if (categories && categories.length > 0) {
-          this.categories.update((existing) => upsertEntityBulk(existing, categories));
-          this.updatePagination("categories", 0, limit, categories.length);
-        }
-      }),
-      catchError(() => {
-        return of([]);
-      })
-    );
+  private loadCategoriesFromLocal(limit: number): Observable<Category[]> {
+    return this.tauriApi
+      .invoke<Category[]>("get_all_from_json", { table: "categories", limit })
+      .pipe(
+        map((response: unknown) => {
+          const catResponse = response as Category[] | { data: Category[] };
+          const categories = Array.isArray(catResponse) ? catResponse : catResponse?.data;
+          if (categories && categories.length > 0) {
+            this.categories.update((existing) => upsertEntityBulk(existing, categories));
+            this.updatePagination("categories", 0, limit, categories.length);
+          }
+          return categories || [];
+        }),
+        catchError(() => {
+          return of([]);
+        })
+      );
   }
 
   ensureCommentsLoaded(taskId?: string, visibility = "private", limit = 10): void {
@@ -932,25 +978,32 @@ export class EntityStoreService {
      ENTITY MANAGEMENT - Low level operations
      ════════════════════════════════════════════════════════════════════════ */
 
-  addEntity(type: EntityType, data: any): void {
-    if (!data?.id) return;
-    addEntityToSignal(this.getEntitySignal(type), data);
+  addEntity(type: EntityType, data: Record<string, unknown>): void {
+    if (!data?.["id"]) return;
+    addEntityToSignal(
+      this.getEntitySignal(type) as WritableSignal<{ id: string }[]>,
+      data as { id: string }
+    );
   }
 
-  updateEntitySignal(type: EntityType, _id: string, data: any): void {
-    if (!data?.id) return;
-    updateEntityInSignal(this.getEntitySignal(type), data.id, data);
+  updateEntitySignal(type: EntityType, _id: string, data: Record<string, unknown>): void {
+    if (!data?.["id"]) return;
+    updateEntityInSignal(
+      this.getEntitySignal(type) as WritableSignal<{ id: string }[]>,
+      data["id"] as string,
+      data as { id: string }
+    );
   }
 
   removeEntity(type: EntityType, id: string): void {
-    removeEntityFromSignal(this.getEntitySignal(type), id);
+    removeEntityFromSignal(this.getEntitySignal(type) as WritableSignal<{ id: string }[]>, id);
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      UTILITY METHODS
      ════════════════════════════════════════════════════════════════════════ */
 
-  private getEntitySignal(type: EntityType): WritableSignal<any[]> {
+  private getEntitySignal(type: EntityType): WritableSignal<unknown[]> {
     switch (type) {
       case "todos":
         return this.todos;
@@ -967,13 +1020,13 @@ export class EntityStoreService {
       case "users":
         return this.users;
       case "profiles":
-        return this.profiles as unknown as WritableSignal<any[]>;
+        return this.profiles as unknown as WritableSignal<unknown[]>;
       default:
         return this.tasks;
     }
   }
 
-  private setEntitySignal(type: EntityType, data: any[]): void {
+  private setEntitySignal(type: EntityType, data: unknown[]): void {
     const sig = this.getEntitySignal(type);
     sig.set(data);
   }

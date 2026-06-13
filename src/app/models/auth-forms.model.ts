@@ -23,6 +23,6 @@ export interface SignupForm {
 export interface AuthResponse {
   token: string;
   needsProfile: boolean;
-  profile: any | null;
+  profile: Record<string, unknown> | null;
   userId?: string;
 }

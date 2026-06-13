@@ -106,13 +106,14 @@ export class StatsView implements OnInit {
       key: "completed",
       label: "Completed",
       type: "number",
-      getValue: (item: any) => Math.round(item.count * (item.percentage / 100)).toString(),
+      getValue: (item: Record<string, unknown>) =>
+        Math.round(Number(item.count) * (Number(item.percentage) / 100)).toString(),
     },
     {
       key: "percentage",
       label: "Completion %",
       type: "text",
-      getValue: (item: any) => `${item.percentage}%`,
+      getValue: (item: Record<string, unknown>) => `${item.percentage}%`,
     },
   ];
 

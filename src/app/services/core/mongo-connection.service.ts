@@ -2,11 +2,11 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { Observable, of, throwError } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";
-import { invoke } from "@tauri-apps/api/core";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { ResponseStatus } from "@models/response.model";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 export interface ConnectionState {
   isConnected: boolean;
@@ -19,6 +19,7 @@ export interface ConnectionState {
 })
 export class MongoConnectionService {
   private notifyService = inject(NotifyService);
+  private tauriApi = inject(TauriApiService);
 
   private readonly connectionState = signal<ConnectionState>({
     isConnected: false,
@@ -46,8 +47,8 @@ export class MongoConnectionService {
     this.connectionState.update((s) => ({ ...s, checking: true }));
 
     return new Observable<boolean>((subscriber) => {
-      invoke<any>("check_mongodb_connection")
-        .then((response) => {
+      this.tauriApi.invoke<any>("check_mongodb_connection").subscribe({
+        next: (response: any) => {
           const isConnected = response.status === ResponseStatus.SUCCESS && response.data === true;
 
           this.connectionState.set({
@@ -63,8 +64,8 @@ export class MongoConnectionService {
 
           subscriber.next(isConnected);
           subscriber.complete();
-        })
-        .catch((_error) => {
+        },
+        error: (_error) => {
           this.connectionState.set({
             isConnected: false,
             lastChecked: new Date(),
@@ -73,7 +74,8 @@ export class MongoConnectionService {
 
           subscriber.next(false);
           subscriber.complete();
-        });
+        },
+      });
     });
   }
 

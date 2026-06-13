@@ -1,20 +1,21 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
 
 /* env */
 import { environment } from "@env/environment";
 
 /* models */
 import { Response } from "@models/response.model";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class AboutService {
   constructor(private http: HttpClient) {}
+  private tauriApi = inject(TauriApiService);
 
   gitRepoName: string = environment.gitRepoName;
   githubUser: string = environment.githubUser;
@@ -26,7 +27,7 @@ export class AboutService {
   }
 
   async getBinaryNameFile<R>(version: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("getBinaryNameFile", { version });
+    return await this.tauriApi.invoke<Response<R>>("getBinaryNameFile", { version });
   }
 
   checkUpdate(): Observable<any> {
@@ -36,17 +37,17 @@ export class AboutService {
   }
 
   async downloadUpdate<R>(version: string, nameFile: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("downloadUpdate", {
+    return await this.tauriApi.invoke<Response<R>>("downloadUpdate", {
       url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
       fileName: nameFile,
     });
   }
 
   async openFile<R>(path: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("openFile", { path: path });
+    return await this.tauriApi.invoke<Response<R>>("openFile", { path: path });
   }
 
   async installUpdate<R>(path: string): Promise<Response<R>> {
-    return await invoke<Response<R>>("installUpdate", { installerPath: path });
+    return await this.tauriApi.invoke<Response<R>>("installUpdate", { installerPath: path });
   }
 }

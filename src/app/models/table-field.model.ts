@@ -28,31 +28,31 @@ export interface TableFieldIconConfig {
   position?: "left" | "right";
 }
 
-export interface TableFieldActionButton {
+export interface TableFieldActionButton<T = Record<string, unknown>> {
   id?: string;
   key?: string;
   label: string;
   icon?: string;
   template?: string;
-  callback?: (item: any) => void;
-  showIf?: (item: any) => boolean;
+  callback?: (item: T) => void;
+  showIf?: (item: T) => boolean;
 }
 
-export interface TableField {
+export interface TableField<T = Record<string, unknown>> {
   key: string;
   label: string;
   type: TableFieldType;
   sortable?: boolean;
   width?: string;
   options?: Array<{ value: string; label: string }>;
-  getValue?: (item: any) => string;
-  getSortValue?: (item: any) => string | number;
-  getChipColor?: (item: any) => string;
-  getChipText?: (item: any) => string;
-  getIconConfig?: (item: any) => TableFieldIconConfig;
+  getValue?: (item: T) => string;
+  getSortValue?: (item: T) => string | number;
+  getChipColor?: (item: T) => string;
+  getChipText?: (item: T) => string;
+  getIconConfig?: (item: T) => TableFieldIconConfig;
   iconConfig?: TableFieldIconConfig & { default?: string };
   colorConfig?: TableFieldColorConfig & { default?: string };
-  onClick?: (item: any) => void;
-  actionButtons?: TableFieldActionButton[];
+  onClick?: (item: T) => void;
+  actionButtons?: TableFieldActionButton<T>[];
   size?: "sm" | "md" | "lg";
 }

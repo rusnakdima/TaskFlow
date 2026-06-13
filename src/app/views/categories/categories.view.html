@@ -25,6 +25,7 @@
     [isVisible]="showCreateForm()"
     [editingCategory]="editingCategory()"
     [visibility]="activeVisibility() === 'all' ? 'private' : activeVisibility()"
+    [initialStorageTarget]="getCategoryStorageTarget()"
     (close)="onFormClose()"
     (saved)="onFormSaved()"
   />

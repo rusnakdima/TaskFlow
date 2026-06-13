@@ -1,45 +1,38 @@
-import { Injectable, NgZone, OnDestroy } from "@angular/core";
+import { Injectable, NgZone, OnDestroy, signal } from "@angular/core";
 import { Router, NavigationEnd } from "@angular/router";
 import { Location } from "@angular/common";
-import { Subject, filter, Subscription } from "rxjs";
+import { filter, Subscription } from "rxjs";
 
 @Injectable({
   providedIn: "root",
 })
 export class ShortcutService implements OnDestroy {
-  private saveSubject = new Subject<void>();
-  save$ = this.saveSubject.asObservable();
+  private readonly _saveSignal = signal<void>(undefined);
+  private readonly _helpSignal = signal<void>(undefined);
+  private readonly _closeSignal = signal<void>(undefined);
+  private readonly _syncSignal = signal<void>(undefined);
+  private readonly _refreshSignal = signal<void>(undefined);
+  private readonly _filterSignal = signal<void>(undefined);
+  private readonly _submitFormSignal = signal<void>(undefined);
+  private readonly _createCategorySignal = signal<void>(undefined);
+  private readonly _focusSearchSignal = signal<void>(undefined);
 
-  private helpSubject = new Subject<void>();
-  help$ = this.helpSubject.asObservable();
-
-  private closeSubject = new Subject<void>();
-  close$ = this.closeSubject.asObservable();
-
-  private syncSubject = new Subject<void>();
-  sync$ = this.syncSubject.asObservable();
-
-  private refreshSubject = new Subject<void>();
-  refresh$ = this.refreshSubject.asObservable();
-
-  private filterSubject = new Subject<void>();
-  filter$ = this.filterSubject.asObservable();
-
-  private submitFormSubject = new Subject<void>();
-  submitForm$ = this.submitFormSubject.asObservable();
-
-  private createCategorySubject = new Subject<void>();
-  createCategory$ = this.createCategorySubject.asObservable();
-
-  private focusSearchSubject = new Subject<void>();
-  focusSearch$ = this.focusSearchSubject.asObservable();
+  saveSignal = this._saveSignal.asReadonly();
+  helpSignal = this._helpSignal.asReadonly();
+  closeSignal = this._closeSignal.asReadonly();
+  syncSignal = this._syncSignal.asReadonly();
+  refreshSignal = this._refreshSignal.asReadonly();
+  filterSignal = this._filterSignal.asReadonly();
+  submitFormSignal = this._submitFormSignal.asReadonly();
+  createCategorySignal = this._createCategorySignal.asReadonly();
+  focusSearchSignal = this._focusSearchSignal.asReadonly();
 
   showHelp(): void {
-    this.helpSubject.next();
+    this._helpSignal.set(undefined);
   }
 
   focusSearch(): void {
-    this.focusSearchSubject.next();
+    this._focusSearchSignal.set(undefined);
   }
 
   private currentUrl = "";
@@ -75,7 +68,7 @@ export class ShortcutService implements OnDestroy {
       );
 
       if (event.key === "Escape") {
-        this.zone.run(() => this.closeSubject.next());
+        this.zone.run(() => this._closeSignal.set(undefined));
         return;
       }
 
@@ -90,25 +83,25 @@ export class ShortcutService implements OnDestroy {
 
       if ((event.ctrlKey || event.metaKey) && event.key === "s") {
         event.preventDefault();
-        this.zone.run(() => this.saveSubject.next());
+        this.zone.run(() => this._saveSignal.set(undefined));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        this.zone.run(() => this.syncSubject.next());
+        this.zone.run(() => this._syncSignal.set(undefined));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === "r") {
         event.preventDefault();
-        this.zone.run(() => this.refreshSubject.next());
+        this.zone.run(() => this._refreshSignal.set(undefined));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === "f") {
         event.preventDefault();
-        this.zone.run(() => this.filterSubject.next());
+        this.zone.run(() => this._filterSignal.set(undefined));
         return;
       }
 
@@ -121,7 +114,7 @@ export class ShortcutService implements OnDestroy {
       if (!isInput) {
         if ((event.ctrlKey || event.metaKey) && event.key === "k") {
           event.preventDefault();
-          this.zone.run(() => this.focusSearchSubject.next());
+          this.zone.run(() => this._focusSearchSignal.set(undefined));
           return;
         }
 
@@ -133,7 +126,7 @@ export class ShortcutService implements OnDestroy {
 
         if (event.key === "F1") {
           event.preventDefault();
-          this.zone.run(() => this.helpSubject.next());
+          this.zone.run(() => this._helpSignal.set(undefined));
           return;
         }
 
@@ -228,7 +221,7 @@ export class ShortcutService implements OnDestroy {
 
     if (url === "/categories") {
       this.zone.run(() => {
-        this.createCategorySubject.next();
+        this._createCategorySignal.set(undefined);
       });
       return;
     }

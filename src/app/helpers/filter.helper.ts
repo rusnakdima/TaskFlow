@@ -10,7 +10,7 @@ import { ObjectHelper } from "@helpers/object.helper";
  */
 export interface FilterConfig {
   field: string;
-  value: any;
+  value: string | number | boolean | null;
   operator?:
     | "equals"
     | "contains"
@@ -66,9 +66,9 @@ export class FilterHelper {
         case "endsWith":
           return String(itemValue).toLowerCase().endsWith(String(value).toLowerCase());
         case "greaterThan":
-          return itemValue > value;
+          return (itemValue as number) > (value as number);
         case "lessThan":
-          return itemValue < value;
+          return (itemValue as number) < (value as number);
         case "contains":
         default:
           return String(itemValue).toLowerCase().includes(String(value).toLowerCase());
@@ -232,34 +232,37 @@ export class FilterHelper {
   /**
    * Apply admin-specific custom filters
    */
-  static applyAdminCustomFilters(
-    data: any[],
+  static applyAdminCustomFilters<T extends object>(
+    data: T[],
     filters: AdminFilterState,
     selectedType: string
-  ): any[] {
+  ): T[] {
     if (filters.userFilter) {
       const filter = filters.userFilter;
-      data = data.filter((item) => {
-        if (item.user && item.user.id === filter) return true;
-        if (item.user_id && item.user_id === filter) return true;
-        // Fallback for search
+      data = data.filter((item: T) => {
+        const itemRecord = item as Record<string, unknown>;
+        const user = itemRecord["user"] as Record<string, unknown> | undefined;
+        const user_id = itemRecord["user_id"];
+        if (user && user["id"] === filter) return true;
+        if (user_id && user_id === filter) return true;
         const filterStr = filter.toLowerCase();
-        const username = item.user?.username?.toLowerCase() || "";
+        const username = user?.["username"]?.toLowerCase() || "";
         return username.includes(filterStr);
       });
     }
 
     if (filters.categoriesFilter) {
       const filter = filters.categoriesFilter;
-      data = data.filter((item) => {
-        // Case: categories is an array of objects (check ID)
-        if (item.categories && Array.isArray(item.categories)) {
-          return item.categories.some((cat: any) =>
-            typeof cat === "object" ? cat.id === filter : cat === filter
+      data = data.filter((item: T) => {
+        const itemRecord = item as Record<string, unknown>;
+        const categories = itemRecord["categories"];
+        if (categories && Array.isArray(categories)) {
+          return categories.some((cat: unknown) =>
+            typeof cat === "object" ? (cat as { id?: string })["id"] === filter : cat === filter
           );
         }
-        // Case: item has a direct categoryId field
-        if (item.categoryId && item.categoryId === filter) return true;
+        const categoryId = itemRecord["categoryId"];
+        if (categoryId && categoryId === filter) return true;
 
         return false;
       });
@@ -267,29 +270,31 @@ export class FilterHelper {
 
     if (filters.startDateFilter) {
       const filterDate = new Date(filters.startDateFilter);
-      data = data.filter((item) => {
-        const itemDate = new Date(item.start_date || item.created_at);
+      data = data.filter((item: T) => {
+        const itemRecord = item as Record<string, unknown>;
+        const itemDate = new Date((itemRecord["start_date"] || itemRecord["created_at"]) as string);
         return itemDate >= filterDate;
       });
     }
 
     if (filters.endDateFilter) {
       const filterDate = new Date(filters.endDateFilter);
-      data = data.filter((item) => {
-        const itemDate = new Date(item.end_date || item.created_at);
+      data = data.filter((item: T) => {
+        const itemRecord = item as Record<string, unknown>;
+        const itemDate = new Date((itemRecord["end_date"] || itemRecord["created_at"]) as string);
         return itemDate <= filterDate;
       });
     }
 
     if (filters.todoIdFilter && selectedType === "tasks") {
-      data = data.filter((item) => {
-        return item.todo_id === filters.todoIdFilter;
+      data = data.filter((item: T) => {
+        return (item as Record<string, unknown>)["todo_id"] === filters.todoIdFilter;
       });
     }
 
     if (filters.taskIdFilter && selectedType === "subtasks") {
-      data = data.filter((item) => {
-        return item.task_id === filters.taskIdFilter;
+      data = data.filter((item: T) => {
+        return (item as Record<string, unknown>)["task_id"] === filters.taskIdFilter;
       });
     }
 
@@ -299,10 +304,12 @@ export class FilterHelper {
   /**
    * Admin-specific status filtering (uses TaskStatus enum logic)
    */
-  static filterAdminByStatus(data: any[], statusFilter: string): any[] {
+  static filterAdminByStatus<T extends object>(data: T[], statusFilter: string): T[] {
     if (statusFilter === "done") {
       return data.filter((item) =>
-        [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(item.status)
+        [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(
+          (item as Record<string, unknown>)["status"] as TaskStatus
+        )
       );
     } else if (statusFilter !== "all") {
       const filterConfigs: FilterConfig[] = [

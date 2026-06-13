@@ -14,7 +14,7 @@ export interface StatsConfig {
 }
 
 export interface ToolbarFilterConfig {
-  filters?: Array<{ key: string; label: string; value: any }>;
+  filters?: Array<{ key: string; label: string; value: unknown }>;
   activeFilter?: string;
   isActive?: boolean;
   onToggle?: () => void;
@@ -88,6 +88,6 @@ export interface PageToolbarConfig {
   };
   filterFields?: FilterField[];
   showFilter?: boolean;
-  activeFilters?: Record<string, string | string[] | any>;
-  onFiltersChange?: (filters: Record<string, string | string[] | any>) => void;
+  activeFilters?: Record<string, string | string[] | unknown>;
+  onFiltersChange?: (filters: Record<string, string | string[] | unknown>) => void;
 }

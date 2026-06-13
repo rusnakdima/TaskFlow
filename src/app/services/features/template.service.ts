@@ -2,6 +2,7 @@ import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { ProjectTemplate, TemplateTask } from "@models/template.model";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 export { ProjectTemplate, TemplateTask } from "@models/template.model";
 
@@ -11,6 +12,7 @@ export { ProjectTemplate, TemplateTask } from "@models/template.model";
 export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
   private storageService = inject(StorageService);
+  private loggingService = inject(LoggingService);
 
   templates = signal<ProjectTemplate[]>([]);
 
@@ -23,7 +25,9 @@ export class TemplateService {
     if (stored) {
       try {
         this.templates.set(JSON.parse(stored));
-      } catch {}
+      } catch (error) {
+        this.loggingService.error("TemplateService", "Failed to load templates", null, error);
+      }
     }
   }
 

@@ -26,6 +26,7 @@ import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/uti
 
 import { StorageEntityService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -38,6 +39,7 @@ export class StorageQueryService {
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _profileRequiredService: ProfileRequiredService | null = null;
+  private loggingService = inject(LoggingService);
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -663,7 +665,12 @@ export class StorageQueryService {
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: (err) => {
-        console.error(`[ensureTodosLoaded] ERROR fetching ${visibility}:`, err);
+        this.loggingService.error(
+          "StorageQueryService",
+          "ensureTodosLoaded ERROR",
+          { visibility },
+          err
+        );
       },
       complete: () => {
         this._todosLoading.set(false);
@@ -804,7 +811,8 @@ export class StorageQueryService {
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
-      error: (err) => console.error(`[loadMoreTodos] ERROR:`, err),
+      error: (err) =>
+        this.loggingService.error("StorageQueryService", "loadMoreTodos ERROR", null, err),
       complete: () => {
         this._todosLoading.set(false);
       },

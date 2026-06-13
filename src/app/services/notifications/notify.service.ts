@@ -6,6 +6,7 @@ import { firstValueFrom } from "rxjs";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
@@ -32,6 +33,7 @@ export class NotifyService implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private injector = inject(Injector);
   private destroy$ = new Subject<void>();
+  private loggingService = inject(LoggingService);
 
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
@@ -94,7 +96,9 @@ export class NotifyService implements OnDestroy {
         this.notificationsStorageKey,
         JSON.stringify(this.notificationsSignal())
       );
-    } catch {}
+    } catch (error) {
+      this.loggingService.error("NotifyService", "Failed to save notifications", null, error);
+    }
   }
 
   private cleanupOldEvents(): void {
@@ -122,7 +126,9 @@ export class NotifyService implements OnDestroy {
       if (result && (result as any).title) {
         return (result as any).title;
       }
-    } catch {}
+    } catch (error) {
+      this.loggingService.warn("NotifyService", "Failed to fetch entity title:", error);
+    }
     return "";
   }
 

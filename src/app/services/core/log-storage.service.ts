@@ -1,7 +1,7 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, OnDestroy } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-import { Logger, generateRequestId } from "@helpers/logger.helper";
+import { LoggingService } from "@app/shared/services/logging.service";
 import { environment } from "@env/environment";
 
 interface LogEntry {
@@ -12,7 +12,7 @@ interface LogEntry {
   request_id: string;
   user_id: string | null;
   duration_ms: number | null;
-  data: any;
+  data: unknown;
   error: { message: string; stack?: string } | null;
 }
 
@@ -22,23 +22,45 @@ const FLUSH_INTERVAL = 10000;
 const MAX_RETRIES = 3;
 
 @Injectable({ providedIn: "root" })
-export class LogStorageService {
+export class LogStorageService implements OnDestroy {
   private http = inject(HttpClient);
+  private loggingService = inject(LoggingService);
   private buffer: LogEntry[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
   private retryCount = 0;
+  private onlineHandler: (() => void) | null = null;
+  private offlineHandler: (() => void) | null = null;
 
   constructor() {
     if (typeof window !== "undefined") {
-      window.addEventListener("online", () => {
+      this.onlineHandler = () => {
         this.isOnline = true;
         this.flush();
-      });
-      window.addEventListener("offline", () => {
+      };
+      this.offlineHandler = () => {
         this.isOnline = false;
-      });
+      };
+      window.addEventListener("online", this.onlineHandler);
+      window.addEventListener("offline", this.offlineHandler);
       this.startFlushTimer();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    if (typeof window !== "undefined") {
+      if (this.onlineHandler) {
+        window.removeEventListener("online", this.onlineHandler);
+        this.onlineHandler = null;
+      }
+      if (this.offlineHandler) {
+        window.removeEventListener("offline", this.offlineHandler);
+        this.offlineHandler = null;
+      }
     }
   }
 
@@ -74,7 +96,7 @@ export class LogStorageService {
 
   private async sendLogs(entries: LogEntry[]): Promise<void> {
     if (!environment.production) {
-      console.log("[LogStorage] Would send logs to backend:", entries.length);
+      this.loggingService.debug("[LogStorage] Would send logs to backend:", entries.length);
       return;
     }
 
@@ -85,10 +107,15 @@ export class LogStorageService {
     }
   }
 
-  private handleFlushError(error: any): void {
+  private handleFlushError(error: unknown): void {
     this.retryCount++;
     if (this.retryCount >= MAX_RETRIES) {
-      console.error("[LogStorage] Max retries reached, logs will be lost:", error);
+      this.loggingService.error(
+        "LogStorage",
+        "Max retries reached, logs will be lost",
+        null,
+        error
+      );
       this.persistToLocalStorage();
       this.buffer = [];
       this.retryCount = 0;
@@ -105,7 +132,7 @@ export class LogStorageService {
       logs.push(...this.buffer);
       localStorage.setItem("app_logs", JSON.stringify(logs.slice(-1000)));
     } catch (e) {
-      console.error("[LogStorage] Failed to persist to localStorage:", e);
+      this.loggingService.error("LogStorage", "Failed to persist to localStorage", null, e);
     }
   }
 
@@ -122,8 +149,8 @@ export function createLogEntry(
   service: string,
   operation: string,
   level: string,
-  data?: any,
-  error?: any,
+  data?: unknown,
+  error?: unknown,
   durationMs?: number
 ): LogEntry {
   return {
@@ -131,7 +158,7 @@ export function createLogEntry(
     level,
     service,
     operation,
-    request_id: generateRequestId(),
+    request_id: LoggingService.generateRequestId(),
     user_id: null,
     duration_ms: durationMs ?? null,
     data: data ?? null,

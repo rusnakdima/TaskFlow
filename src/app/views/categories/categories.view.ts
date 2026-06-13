@@ -4,7 +4,6 @@ import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { Observable, from } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -16,6 +15,7 @@ import { Category } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
 import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { StorageTarget } from "@models/entity-config.model";
 import {
   SegmentSelectorComponent,
   SegmentOption,
@@ -27,6 +27,8 @@ import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
 import { RelationLoadingService } from "@services/core/relation-loading.service";
 import { SearchService } from "@services/core/search.service";
 import { EntityStoreService } from "@services/core/entity-store.service";
+import { ApiService } from "@services/api.service";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 /* views */
 import { BaseListView } from "@views/base-list.view";
@@ -74,6 +76,8 @@ export class CategoriesView extends BaseListView implements OnInit {
   private searchService = inject(SearchService);
   private entityStore = inject(EntityStoreService);
   private route = inject(ActivatedRoute);
+  private _apiService = inject(ApiService);
+  private tauriApi = inject(TauriApiService);
 
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
@@ -264,37 +268,39 @@ export class CategoriesView extends BaseListView implements OnInit {
   }
 
   private loadLocalCategories(): void {
-    from(invoke<any[]>("get_all_from_json", { table: "categories", limit: 1000 })).subscribe({
-      next: (localCats: any[]) => {
-        if (localCats && localCats.length > 0) {
-          const localIds = new Set(localCats.map((c) => c.id));
-          this.localCategoryIds.set(localIds);
+    this.subscriptions.add(
+      this.tauriApi
+        .invoke<any>("get_all_from_json", { table: "categories", limit: 1000 })
+        .subscribe({
+          next: (response: any) => {
+            const localCats = Array.isArray(response) ? response : response?.data;
+            if (localCats && localCats.length > 0) {
+              const localIds = new Set<string>(localCats.map((c: any) => c.id));
+              this.localCategoryIds.set(localIds);
 
-          localCats.forEach((cat) => {
-            this.entityStore.addEntity("categories", cat);
-          });
-        }
-      },
-      error: () => {},
-    });
+              localCats.forEach((cat: any) => {
+                this.entityStore.addEntity("categories", cat);
+              });
+            }
+          },
+          error: () => {},
+        })
+    );
   }
 
   private loadCloudCategories(): void {
-    this.entityStore.ensureCategoriesLoaded("all", 100);
-
-    from(invoke<any[]>("get_all_from_cloud", { table: "categories", limit: 1000 })).subscribe({
-      next: (cloudCats: any[]) => {
-        if (cloudCats && cloudCats.length > 0) {
-          const cloudIds = new Set(cloudCats.map((c) => c.id));
+    this.subscriptions.add(
+      this._apiService.categories.getAll({ visibility: "all", limit: 1000 }).subscribe({
+        next: (cloudCats: Category[]) => {
+          const cloudIds = new Set<string>(cloudCats.map((c: Category) => c.id));
           this.cloudCategoryIds.set(cloudIds);
-
-          cloudCats.forEach((cat) => {
+          cloudCats.forEach((cat: Category) => {
             this.entityStore.addEntity("categories", cat);
           });
-        }
-      },
-      error: () => {},
-    });
+        },
+        error: () => {},
+      })
+    );
   }
 
   loadMoreCategories(): void {
@@ -335,6 +341,12 @@ export class CategoriesView extends BaseListView implements OnInit {
       return "cloud";
     }
     return "cloud";
+  }
+
+  getCategoryStorageTarget(): StorageTarget {
+    const editing = this.editingCategory();
+    if (!editing) return "local";
+    return this.getCategoryStorageType(editing.id) as StorageTarget;
   }
 
   async archiveCategory(categoryId: string) {
@@ -439,7 +451,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       const archivedAt = new Date().toISOString();
 
       const localCategories = allowedCategories.filter((c) => this.localCategoryIds().has(c.id));
-      const cloudCategories = allowedCategories.filter((c) => this.cloudCategoryIds().has(c.id));
+      const cloudCategories = allowedCategories.filter((c) => !this.localCategoryIds().has(c.id));
 
       for (const category of localCategories) {
         await this.adminService.toggleDeleteStatusLocal("categories", category.id, "local");

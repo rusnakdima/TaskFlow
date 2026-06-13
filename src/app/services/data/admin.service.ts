@@ -1,12 +1,12 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { invoke } from "@tauri-apps/api/core";
 import { Observable, from } from "rxjs";
 
 /* models */
 import { Response } from "@models/response.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Injectable({
   providedIn: "root",
@@ -14,17 +14,18 @@ import { ApiService } from "@services/api.service";
 export class AdminService {
   private jwtTokenService = inject(JwtTokenService);
   private apiService = inject(ApiService);
+  private tauriApi = inject(TauriApiService);
 
   constructor() {}
 
   getAllDataForAdmin<R>(): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(invoke<Response<R>>("get_all_admin_data", { token }));
+    return from(this.tauriApi.invoke<Response<R>>("get_all_admin_data", { token }));
   }
 
   getAllDataForArchive<R>(): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(invoke<Response<R>>("get_all_archive_data", { token }));
+    return from(this.tauriApi.invoke<Response<R>>("get_all_archive_data", { token }));
   }
 
   getAllArchiveData<R>(): Observable<Response<R>> {
@@ -41,7 +42,12 @@ export class AdminService {
     visibility?: string
   ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<void>>("permanent_delete", { table, id, token, visibility });
+    return await this.tauriApi.invoke<Response<void>>("permanent_delete", {
+      table,
+      id,
+      token,
+      visibility,
+    });
   }
 
   async permanentlyDeleteRecordLocal(
@@ -50,7 +56,12 @@ export class AdminService {
     visibility: string = "private"
   ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<void>>("permanent_delete", { table, id, token, visibility });
+    return await this.tauriApi.invoke<Response<void>>("permanent_delete", {
+      table,
+      id,
+      token,
+      visibility,
+    });
   }
 
   async toggleDeleteStatus(
@@ -60,7 +71,13 @@ export class AdminService {
     visibility?: string
   ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("soft_delete", { table, id, token, todoId, visibility });
+    return await this.tauriApi.invoke<Response<boolean>>("soft_delete", {
+      table,
+      id,
+      token,
+      todoId,
+      visibility,
+    });
   }
 
   async toggleDeleteStatusLocal(
@@ -70,20 +87,36 @@ export class AdminService {
     visibility: string = "private"
   ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await invoke<Response<boolean>>("soft_delete", { table, id, token, todoId, visibility });
+    return await this.tauriApi.invoke<Response<boolean>>("soft_delete", {
+      table,
+      id,
+      token,
+      todoId,
+      visibility,
+    });
   }
 
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("get_all_admin_paginated", { dataType: type, skip, limit, token })
+      this.tauriApi.invoke<Response<R>>("get_all_admin_paginated", {
+        dataType: type,
+        skip,
+        limit,
+        token,
+      })
     );
   }
 
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
     return from(
-      invoke<Response<R>>("get_all_archive_paginated", { dataType: type, skip, limit, token })
+      this.tauriApi.invoke<Response<R>>("get_all_archive_paginated", {
+        dataType: type,
+        skip,
+        limit,
+        token,
+      })
     );
   }
 }
