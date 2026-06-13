@@ -78,13 +78,8 @@
               <button
                 cdkDragHandle
                 title="Drag to reorder"
-                class="cursor-move rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-[var(--accent-color)]/10 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-[var(--accent-color)]/10"
-                style="
-                  touch-action: none;
-                  -webkit-user-drag: none;
-                  -webkit-tap-highlight-color: transparent;
-                  -webkit-user-select: none;
-                "
+                class="cursor-move touch-none rounded-lg p-2 text-gray-600 transition-all duration-200 select-none hover:scale-110 hover:bg-[var(--accent-color)]/10 active:scale-95 active:cursor-grabbing dark:text-gray-400 dark:hover:bg-[var(--accent-color)]/10"
+                style="-webkit-user-drag: none; -webkit-tap-highlight-color: transparent"
                 (click)="$event.stopPropagation()"
               >
                 <mat-icon class="h-5! w-5! min-w-5 text-base!" fontIcon="drag_indicator" />

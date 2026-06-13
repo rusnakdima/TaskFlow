@@ -13,7 +13,6 @@ import {
   signal,
 } from "@angular/core";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { invoke } from "@tauri-apps/api/core";
 import { from } from "rxjs";
 
 /* materials */
@@ -35,6 +34,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { EntityStoreService } from "@services/core/entity-store.service";
+import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Component({
   selector: "app-category-form",
@@ -56,10 +56,12 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   private notifyService = inject(NotifyService);
   private requestService = inject(ApiService);
   private entityStore = inject(EntityStoreService);
+  private tauriApi = inject(TauriApiService);
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;
   @Input() visibility: string = "private";
+  @Input() initialStorageTarget: StorageTarget = "local";
 
   @Output() close: EventEmitter<void> = new EventEmitter<void>();
   @Output() saved: EventEmitter<void> = new EventEmitter<void>();
@@ -92,16 +94,16 @@ export class CategoryFormComponent implements OnInit, OnChanges {
     if (changes["editingCategory"]) {
       const title = this.editingCategory ? this.editingCategory.title : "";
       this.titleFormControl.setValue(title, { emitEvent: false });
-      if (this.editingCategory) {
-        this.storageTarget.set("cloud");
-      }
+    }
+    if (changes["initialStorageTarget"]) {
+      this.storageTarget.set(this.initialStorageTarget);
     }
   }
 
   openModal(category?: Category) {
     this.editingCategory = category || null;
     this.titleFormControl.setValue(category ? category.title : "", { emitEvent: false });
-    this.storageTarget.set(category ? "cloud" : "local");
+    this.storageTarget.set(this.initialStorageTarget);
     this.isVisible = true;
   }
 
@@ -176,7 +178,8 @@ export class CategoryFormComponent implements OnInit, OnChanges {
 
     this.entityStore.addEntity("categories", fullCategory);
 
-    from(invoke("upsert_to_json", { table: "categories", data: fullCategory, id }))
+    this.tauriApi
+      .invoke("upsert_to_json", { table: "categories", data: fullCategory, id })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category created successfully");
@@ -230,13 +233,12 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   private updateCategoryLocal(updatedCategory: Category) {
     this.entityStore.updateEntitySignal("categories", updatedCategory.id, updatedCategory);
 
-    from(
-      invoke("upsert_to_json", {
+    this.tauriApi
+      .invoke("upsert_to_json", {
         table: "categories",
         data: updatedCategory,
         id: updatedCategory.id,
       })
-    )
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");

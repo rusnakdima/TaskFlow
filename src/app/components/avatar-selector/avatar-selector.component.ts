@@ -9,6 +9,7 @@ import {
   ViewChild,
   AfterViewInit,
   OnDestroy,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
@@ -18,6 +19,7 @@ import { UserAvatarComponent } from "@components/user-avatar/user-avatar.compone
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 import { TextField, TypeField } from "@models/form-field.model";
+import { LoggingService } from "@app/shared/services/logging.service";
 
 @Component({
   selector: "app-avatar-selector",
@@ -83,6 +85,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   private cropDebounceTimer: any = null;
   private readonly MAX_IMAGE_SIZE = 2048;
   private readonly CROP_DEBOUNCE_MS = 500;
+  private loggingService = inject(LoggingService);
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
@@ -122,7 +125,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
     };
 
     img.onerror = () => {
-      console.error("[AvatarSelector] Failed to load image from URL:", url);
+      this.loggingService.error("AvatarSelector", "Failed to load image from URL", { url });
     };
 
     img.src = url;

@@ -7,12 +7,7 @@ import { inject } from "@angular/core";
   selector: "app-online-status",
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <span
-      class="absolute right-0 bottom-0 block rounded-full border-2"
-      [ngClass]="indicatorClasses"
-    ></span>
-  `,
+  templateUrl: "./online-status.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnlineStatusComponent {

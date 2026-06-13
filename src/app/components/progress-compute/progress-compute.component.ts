@@ -6,7 +6,7 @@ import { CommonModule } from "@angular/common";
   selector: "app-progress-compute",
   standalone: true,
   imports: [CommonModule],
-  template: ` {{ progress() }} `,
+  templateUrl: "./progress-compute.component.html",
 })
 export class ProgressComputeComponent {
   @Input() set completed(count: number) {
