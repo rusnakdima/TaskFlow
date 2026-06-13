@@ -4,7 +4,6 @@ mod helpers;
 mod providers;
 mod routes;
 mod services;
-mod shared;
 
 /* sys lib */
 use std::sync::Arc;
@@ -21,10 +20,10 @@ use routes::{
   archive_route::{get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete},
   auth_data_sync_route::initialize_user_data,
   auth_route::{
-    change_password, check_token, disable_totp, enable_totp, get_user_security_status,
-    init_totp_qr_login, login, qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete,
-    qr_status, qr_toggle, register, request_password_reset, reset_password, setup_totp,
-    use_recovery_code, verify_code, verify_login_totp,
+    change_password, check_token, disable_totp, enable_totp, get_user_security_status, login,
+    qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete, qr_status, qr_toggle,
+    register, request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
+    verify_login_totp,
   },
   cascade_route::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade, hard_remove_data,
@@ -95,12 +94,14 @@ use nosql_orm::providers::{JsonProvider, MongoProvider};
 #[tauri::command]
 async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<ResponseModel, String> {
   let export_result = state
+    .system
     .manage_db_service
     .export_to_cloud(user_id.clone())
     .await
     .map_err(|e| e.message)?;
 
   let import_result = state
+    .system
     .manage_db_service
     .import_to_local(user_id)
     .await
@@ -132,7 +133,7 @@ async fn search_data(
 
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .ok();
 
@@ -143,6 +144,7 @@ async fn search_data(
   };
 
   state
+    .data
     .repository_service
     .execute(
       "search".to_string(),
@@ -169,6 +171,7 @@ async fn get_notifications(
   limit: Option<u64>,
 ) -> Result<ResponseModel, String> {
   state
+    .system
     .notification_service
     .get_by_user(&user_id, "private", page, limit)
     .await
@@ -183,6 +186,7 @@ async fn create_notification(
 ) -> Result<ResponseModel, String> {
   let vis = visibility.unwrap_or_else(|| "private".to_string());
   state
+    .system
     .notification_service
     .create(data, &vis)
     .await
@@ -197,6 +201,7 @@ async fn mark_notification_read(
 ) -> Result<ResponseModel, String> {
   let vis = visibility.unwrap_or_else(|| "private".to_string());
   state
+    .system
     .notification_service
     .mark_as_read(&id, &vis)
     .await
@@ -211,6 +216,7 @@ async fn mark_all_notifications_read(
 ) -> Result<ResponseModel, String> {
   let vis = visibility.unwrap_or_else(|| "private".to_string());
   state
+    .system
     .notification_service
     .mark_all_as_read(&user_id, &vis)
     .await
@@ -225,6 +231,7 @@ async fn delete_notification(
 ) -> Result<ResponseModel, String> {
   let vis = visibility.unwrap_or_else(|| "private".to_string());
   state
+    .system
     .notification_service
     .delete(&id, &vis)
     .await
@@ -239,6 +246,7 @@ async fn clear_all_notifications(
 ) -> Result<ResponseModel, String> {
   let vis = visibility.unwrap_or_else(|| "private".to_string());
   state
+    .system
     .notification_service
     .clear_all(&user_id, &vis)
     .await
@@ -246,28 +254,48 @@ async fn clear_all_notifications(
 }
 
 pub struct AppState {
+  pub logger: Arc<()>,
+  pub config: ConfigState,
+  pub auth: AuthState,
+  pub data: DataState,
+  pub chat: ChatState,
+  pub system: SystemState,
+}
+
+pub struct ConfigState {
   pub config_helper: Arc<ConfigHelper>,
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
+}
+
+pub struct AuthState {
+  pub auth_service: Arc<AuthService>,
+  pub totp_service: Arc<AuthTotpService>,
+  pub qr_auth_service: Arc<QrAuthService>,
+  pub auth_data_sync_service: Arc<AuthDataSyncService>,
+}
+
+pub struct DataState {
   pub repository_service: Arc<RepositoryService>,
   pub todo_service: Arc<TodoService>,
   pub task_service: Arc<TaskService>,
   pub subtask_service: Arc<SubtaskService>,
-  pub comment_service: Arc<CommentService>,
   pub category_service: Arc<CategoryService>,
+  pub cascade_service: CascadeService,
+}
+
+pub struct ChatState {
   pub chat_service: Arc<ChatService>,
   pub group_service: Arc<GroupService>,
   pub room_service: Arc<RoomService>,
+}
+
+pub struct SystemState {
   pub about_service: Arc<AboutService>,
-  pub auth_service: Arc<AuthService>,
   pub manage_db_service: Arc<ManageDbService>,
   pub notification_service: Arc<NotificationService>,
   pub profile_service: Arc<ProfileService>,
   pub statistics_service: Arc<StatisticsService>,
-  pub cascade_service: CascadeService,
-  pub qr_auth_service: Arc<QrAuthService>,
-  pub totp_service: Arc<AuthTotpService>,
-  pub auth_data_sync_service: Arc<AuthDataSyncService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -453,28 +481,38 @@ pub fn run() {
       ));
 
       app.manage(AppState {
-        config_helper,
-        json_provider,
-        mongodb_provider,
-        repository_service,
-        todo_service,
-        task_service,
-        subtask_service,
-        comment_service,
-        category_service,
-        chat_service,
-        group_service,
-        room_service,
-        about_service,
-        auth_service,
-        manage_db_service,
-        notification_service,
-        profile_service,
-        statistics_service,
-        cascade_service,
-        qr_auth_service,
-        totp_service,
-        auth_data_sync_service,
+        logger: Arc::new(()),
+        config: ConfigState {
+          config_helper,
+          json_provider,
+          mongodb_provider,
+        },
+        auth: AuthState {
+          auth_service,
+          totp_service,
+          qr_auth_service,
+          auth_data_sync_service,
+        },
+        data: DataState {
+          repository_service,
+          todo_service,
+          task_service,
+          subtask_service,
+          category_service,
+          cascade_service,
+        },
+        chat: ChatState {
+          chat_service,
+          group_service,
+          room_service,
+        },
+        system: SystemState {
+          about_service,
+          manage_db_service,
+          notification_service,
+          profile_service,
+          statistics_service,
+        },
       });
 
       Ok(())
@@ -496,7 +534,6 @@ pub fn run() {
       disable_totp,
       use_recovery_code,
       get_user_security_status,
-      init_totp_qr_login,
       qr_generate,
       qr_generate_for_desktop,
       qr_approve,
@@ -616,5 +653,8 @@ pub fn run() {
       clear_all_notifications,
     ])
     .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .unwrap_or_else(|e| {
+      eprintln!("Error while running tauri application: {}", e);
+      std::process::exit(1);
+    });
 }
