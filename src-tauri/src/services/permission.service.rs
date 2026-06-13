@@ -112,14 +112,6 @@ impl PermissionService {
     false
   }
 
-  #[allow(dead_code)]
-  pub fn can_manage_assignees(todo: &Value, user_id: &str) -> bool {
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      return permission == TodoPermission::OWNER;
-    }
-    false
-  }
-
   pub fn can_delete_todo(todo: &Value, user_id: &str) -> bool {
     if let Some(permission) = Self::get_todo_permission(todo, user_id) {
       return permission.can_delete_todo();
@@ -187,88 +179,6 @@ impl PermissionService {
           .and_then(|v| v.as_str())
           .unwrap_or("");
         return subtask_creator_id == user_id;
-      }
-    }
-    false
-  }
-
-  #[allow(dead_code)]
-  pub fn can_edit_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
-    if Self::is_owner_or_admin(todo, user_id) {
-      return true;
-    }
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      if permission.can_edit_comment() {
-        let comment_creator_id = comment
-          .get("user_id")
-          .and_then(|v| v.as_str())
-          .unwrap_or("");
-        return comment_creator_id == user_id;
-      }
-    }
-    false
-  }
-
-  #[allow(dead_code)]
-  pub fn can_delete_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
-    if Self::is_owner_or_admin(todo, user_id) {
-      return true;
-    }
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      if permission.can_delete_comment() {
-        let comment_creator_id = comment
-          .get("user_id")
-          .and_then(|v| v.as_str())
-          .unwrap_or("");
-        return comment_creator_id == user_id;
-      }
-    }
-    false
-  }
-
-  #[allow(dead_code)]
-  pub fn can_archive_task(task: &Value, todo: &Value, user_id: &str) -> bool {
-    if Self::is_owner_or_admin(todo, user_id) {
-      return true;
-    }
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      if permission.can_archive_task() {
-        let task_creator_id = task.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-        return task_creator_id == user_id;
-      }
-    }
-    false
-  }
-
-  #[allow(dead_code)]
-  pub fn can_archive_subtask(subtask: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
-    if Self::is_owner_or_admin(todo, user_id) {
-      return true;
-    }
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      if permission.can_archive_subtask() {
-        let subtask_creator_id = subtask
-          .get("user_id")
-          .and_then(|v| v.as_str())
-          .unwrap_or("");
-        return subtask_creator_id == user_id;
-      }
-    }
-    false
-  }
-
-  #[allow(dead_code)]
-  pub fn can_archive_comment(comment: &Value, _task: &Value, todo: &Value, user_id: &str) -> bool {
-    if Self::is_owner_or_admin(todo, user_id) {
-      return true;
-    }
-    if let Some(permission) = Self::get_todo_permission(todo, user_id) {
-      if permission.can_archive_comment() {
-        let comment_creator_id = comment
-          .get("user_id")
-          .and_then(|v| v.as_str())
-          .unwrap_or("");
-        return comment_creator_id == user_id;
       }
     }
     false

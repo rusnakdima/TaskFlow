@@ -126,11 +126,6 @@ impl StatisticsService {
 
     let user_id_filter = Filter::from_json(&json!({ "user_id": user_id }))
       .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-    let _categories: Vec<Value> = self
-      .json_provider
-      .find_many("categories", Some(&user_id_filter), None, None, None, true)
-      .await
-      .unwrap_or_default();
     let categories: Vec<Value> = self
       .json_provider
       .find_many("categories", Some(&user_id_filter), None, None, None, true)

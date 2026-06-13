@@ -3,7 +3,7 @@ use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
+use crate::services::base_crud_service::BaseCrudService;
 use serde_json::{json, Value};
 
 pub struct CommentService {

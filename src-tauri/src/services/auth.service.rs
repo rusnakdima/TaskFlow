@@ -112,4 +112,17 @@ impl AuthService {
   ) -> Result<ResponseModel, ResponseModel> {
     self.password_service.reset_password(reset_data).await
   }
+
+  pub async fn change_password(
+    &self,
+    token: &str,
+    jwt_secret: &str,
+    new_password: String,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let user_id = crate::helpers::auth_helper::extract_user_from_token(token, jwt_secret)?;
+    self
+      .password_service
+      .change_password(user_id, new_password)
+      .await
+  }
 }

@@ -400,6 +400,58 @@ impl ManageDbService {
     })
   }
 
+  pub async fn batch_upsert_to_mongo(
+    &self,
+    records: Value,
+  ) -> Result<ResponseModel, ResponseModel> {
+    let mongo = self
+      .mongodb_provider
+      .lock()
+      .unwrap()
+      .clone()
+      .ok_or_else(|| ResponseModel {
+        status: ResponseStatus::Error,
+        message: "MongoDB not available".to_string(),
+        data: serde_json::Value::String("".to_string()),
+      })?;
+
+    let mut total_count = 0;
+    let mut success_count = 0;
+
+    if let Some(obj) = records.as_object() {
+      for (table, items) in obj {
+        if let Some(arr) = items.as_array() {
+          for item in arr {
+            total_count += 1;
+            if self
+              .db_backup
+              .upsert_to_mongo(&mongo, table, item.clone())
+              .await
+            {
+              success_count += 1;
+            }
+          }
+        }
+      }
+    }
+
+    Ok(ResponseModel {
+      status: if success_count == total_count {
+        ResponseStatus::Success
+      } else {
+        ResponseStatus::Error
+      },
+      message: format!(
+        "Batch upserted {}/{} records to MongoDB",
+        success_count, total_count
+      ),
+      data: serde_json::json!({
+        "total": total_count,
+        "success": success_count
+      }),
+    })
+  }
+
   pub async fn delete_from_json(
     &self,
     table: String,

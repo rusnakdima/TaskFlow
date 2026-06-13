@@ -175,26 +175,15 @@ impl RepositoryService {
     self
   }
 
-  #[allow(dead_code)]
-  fn use_json_provider_for_visibility(visibility: &str) -> bool {
-    visibility == "private"
-  }
-
-  #[allow(dead_code)]
-  fn use_json_provider(&self, table: &str, visibility: Option<&str>, offline: bool) -> bool {
-    if offline || table == "daily_activities" {
-      return true;
-    }
-    visibility.unwrap_or("private") == "private"
-  }
-
   fn emit_db_change_event(&self, operation: &str, table: &str, data: &serde_json::Value) {
     let event_name = format!("db-change-{}", table);
     let payload = serde_json::json!({
       "operationType": operation,
       "data": data,
     });
-    let _ = self.app_handle.emit(&event_name, payload);
+    if let Err(e) = self.app_handle.emit(&event_name, payload) {
+      log::warn!("Failed to emit db-change event for {}: {}", table, e);
+    }
   }
 
   fn resolve_visibility_for_offline(&self, visibility: Option<String>) -> String {
@@ -933,7 +922,7 @@ impl RepositoryService {
       self.filter_out_deleted(docs)
     };
 
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
 
     Ok(success_response(self.apply_projection_recursive(docs)))
   }
@@ -1175,7 +1164,7 @@ impl RepositoryService {
       self.filter_out_deleted(docs)
     };
 
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
 
     Ok(success_response(self.apply_projection_recursive(docs)))
   }
@@ -1250,7 +1239,7 @@ impl RepositoryService {
                   .await?
               } else if use_both_providers {
                 // visibility was None - we might be using wrong provider, try the other one
-                let _json_provider = self.json_provider.clone();
+                let _ = self.json_provider.clone();
                 let mongo_provider = self.mongodb_provider.clone();
                 if visibility_str == "private" {
                   // We used "all" but fell through here - try mongo directly
@@ -1331,16 +1320,13 @@ impl RepositoryService {
       }
     }
 
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
 
     if id.is_some() {
       if !projected.is_empty() {
-        Ok(success_response(
-          projected
-            .into_iter()
-            .next()
-            .expect("Empty iterator after non-empty check"),
-        ))
+        Ok(success_response(projected.into_iter().next().ok_or_else(
+          || err_response("Document not found after projection"),
+        )?))
       } else {
         Err(err_response("Document not found after projection"))
       }
@@ -1621,7 +1607,7 @@ impl RepositoryService {
 
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&final_record);
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
     let _created_id = final_record
       .get("id")
       .and_then(|v| v.as_str())
@@ -1918,7 +1904,7 @@ impl RepositoryService {
     }
 
     let projected_records = self.apply_projection_recursive(validated_records);
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
 
     Ok(success_response(serde_json::json!(projected_records)))
   }
@@ -2325,7 +2311,7 @@ impl RepositoryService {
       .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
       .await;
 
-    let _elapsed = start.elapsed();
+    let _ = start.elapsed();
 
     self.emit_db_change_event("deleted", &table, &serde_json::json!({"id": id_str}));
 

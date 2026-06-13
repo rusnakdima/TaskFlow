@@ -1,7 +1,7 @@
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::{BaseCrudService, BaseCrudServiceTrait};
+use crate::services::base_crud_service::BaseCrudService;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 
@@ -22,31 +22,6 @@ impl GroupService {
 
   pub fn get_mongo_provider(&self) -> Option<&DataProvider> {
     self.base.get_mongo_provider()
-  }
-
-  #[allow(dead_code)]
-  async fn insert_to_mongo(&self, table: &str, data: Value) -> Result<Value, ResponseModel> {
-    if let Some(mongo) = self.get_mongo_provider() {
-      let doc = mongo.insert(table, data).await?;
-      Ok(doc)
-    } else {
-      Err(err_response("MongoDB provider not available"))
-    }
-  }
-
-  #[allow(dead_code)]
-  async fn update_in_mongo(
-    &self,
-    table: &str,
-    id: &str,
-    data: Value,
-  ) -> Result<Value, ResponseModel> {
-    if let Some(mongo) = self.get_mongo_provider() {
-      let doc = mongo.update(table, id, data).await?;
-      Ok(doc)
-    } else {
-      Err(err_response("MongoDB provider not available"))
-    }
   }
 
   pub async fn get_by_id(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
