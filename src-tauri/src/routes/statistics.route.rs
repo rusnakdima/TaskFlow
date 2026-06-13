@@ -10,6 +10,7 @@ pub async fn statistics_get(
   time_range: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
+    .system
     .statistics_service
     .get_statistics(user_id, time_range, "private".to_string())
     .await

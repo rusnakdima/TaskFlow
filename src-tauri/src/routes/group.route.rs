@@ -10,13 +10,13 @@ pub async fn get_group_by_room(
   room_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.group_service.get_by_room_id(&room_id).await
+  state.chat.group_service.get_by_room_id(&room_id).await
 }
 
 #[tauri::command]
@@ -28,9 +28,9 @@ pub async fn get_groups(
   page: Option<u64>,
   limit: Option<u64>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _request_user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .ok();
 
@@ -43,6 +43,7 @@ pub async fn get_groups(
   });
 
   state
+    .chat
     .group_service
     .get_all(&visibility, Some(filter), Some(page * limit), Some(limit))
     .await
@@ -58,9 +59,9 @@ pub async fn create_group(
   avatar: Option<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
@@ -77,7 +78,7 @@ pub async fn create_group(
     "avatar": avatar
   });
 
-  state.group_service.create(data, false).await
+  state.chat.group_service.create(data, false).await
 }
 
 #[tauri::command]
@@ -88,9 +89,9 @@ pub async fn update_group(
   avatar: Option<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
@@ -110,7 +111,7 @@ pub async fn update_group(
     return Err(err_response("No update data provided"));
   }
 
-  state.group_service.update(&id, update_data).await
+  state.chat.group_service.update(&id, update_data).await
 }
 
 #[tauri::command]
@@ -120,13 +121,13 @@ pub async fn add_group_members(
   member_ids: Vec<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.group_service.add_members(&id, member_ids).await
+  state.chat.group_service.add_members(&id, member_ids).await
 }
 
 #[tauri::command]
@@ -136,13 +137,17 @@ pub async fn remove_group_members(
   member_ids: Vec<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.group_service.remove_members(&id, member_ids).await
+  state
+    .chat
+    .group_service
+    .remove_members(&id, member_ids)
+    .await
 }
 
 #[tauri::command]
@@ -151,13 +156,13 @@ pub async fn delete_group(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.group_service.delete(&id).await
+  state.chat.group_service.delete(&id).await
 }
 
 #[tauri::command]
@@ -166,13 +171,13 @@ pub async fn delete_group_cascade(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.group_service.hard_delete_cascade(&id).await
+  state.chat.group_service.hard_delete_cascade(&id).await
 }
 
 #[tauri::command]
@@ -183,13 +188,17 @@ pub async fn get_messages_by_room(
   limit: Option<u64>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.get_by_room(&room_id, skip, limit).await
+  state
+    .chat
+    .chat_service
+    .get_by_room(&room_id, skip, limit)
+    .await
 }
 
 #[tauri::command]
@@ -203,13 +212,14 @@ pub async fn send_message(
   reply_id: Option<String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   let _ = state
+    .chat
     .room_service
     .find_or_create_dm_room(
       &room_id,
@@ -230,7 +240,7 @@ pub async fn send_message(
     data["reply_id"] = serde_json::json!(rid);
   }
 
-  state.chat_service.create(data).await
+  state.chat.chat_service.create(data).await
 }
 
 #[tauri::command]
@@ -238,14 +248,15 @@ pub async fn ensure_rooms_for_groups(
   state: State<'_, AppState>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   let filter = serde_json::json!({});
   let groups_result = state
+    .chat
     .group_service
     .get_all("all", Some(filter), Some(0), Some(1000))
     .await?;
@@ -276,7 +287,7 @@ pub async fn ensure_rooms_for_groups(
       continue;
     }
 
-    let existing_room = state.room_service.get_by_room(room_id).await?;
+    let existing_room = state.chat.room_service.get_by_room(room_id).await?;
     let room_exists = match &existing_room.data {
       serde_json::Value::Object(obj) => !obj.is_empty(),
       _ => false,
@@ -294,7 +305,7 @@ pub async fn ensure_rooms_for_groups(
       "participant_ids": member_ids
     });
 
-    let _ = state.room_service.create(room_data).await?;
+    let _ = state.chat.room_service.create(room_data).await?;
     created_count += 1;
   }
 
@@ -311,13 +322,13 @@ pub async fn mark_message_read(
   user_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.mark_read(&id, &user_id).await
+  state.chat.chat_service.mark_read(&id, &user_id).await
 }
 
 #[tauri::command]
@@ -326,13 +337,13 @@ pub async fn delete_message(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.delete(&id).await
+  state.chat.chat_service.delete(&id).await
 }
 
 #[tauri::command]
@@ -341,13 +352,13 @@ pub async fn hard_delete_message(
   id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.hard_delete(&id).await
+  state.chat.chat_service.hard_delete(&id).await
 }
 
 #[tauri::command]
@@ -357,13 +368,13 @@ pub async fn edit_message(
   content: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.edit_message(&id, &content).await
+  state.chat.chat_service.edit_message(&id, &content).await
 }
 
 #[tauri::command]
@@ -375,11 +386,12 @@ pub async fn add_message_reaction(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   state
+    .chat
     .chat_service
     .add_reaction(&message_id, &emoji, &user_id)
     .await
@@ -394,11 +406,12 @@ pub async fn remove_message_reaction(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   state
+    .chat
     .chat_service
     .remove_reaction(&message_id, &emoji, &user_id)
     .await
@@ -410,13 +423,13 @@ pub async fn delete_room_messages(
   room_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.delete_by_room(&room_id).await
+  state.chat.chat_service.delete_by_room(&room_id).await
 }
 
 #[tauri::command]
@@ -425,11 +438,11 @@ pub async fn hard_delete_room_messages(
   room_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(
+  let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
-  state.chat_service.hard_delete_by_room(&room_id).await
+  state.chat.chat_service.hard_delete_by_room(&room_id).await
 }

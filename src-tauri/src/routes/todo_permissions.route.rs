@@ -14,12 +14,13 @@ pub async fn change_todo_visibility(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::helpers::auth_helper::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   // First get the current todo to find its stored visibility
   let existing = state
+    .data
     .repository_service
     .execute(
       "get".to_string(),
@@ -57,6 +58,7 @@ pub async fn change_todo_visibility(
   });
 
   state
+    .data
     .repository_service
     .execute(
       "update".to_string(),
@@ -86,7 +88,7 @@ pub async fn change_todo_visibility(
   };
 
   if source_provider != target_provider {
-    let cascade_service = state.cascade_service.clone();
+    let cascade_service = state.data.cascade_service.clone();
     cascade_service
       .sync_todo_with_children(
         &todo_id,
@@ -113,11 +115,12 @@ pub async fn update_todo_permissions(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::helpers::auth_helper::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   let response_model = state
+    .data
     .repository_service
     .execute(
       "update".to_string(),
@@ -149,11 +152,12 @@ pub async fn transfer_todo_ownership(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::helpers::auth_helper::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   let response_model = state
+    .data
     .repository_service
     .execute(
       "update".to_string(),
@@ -184,11 +188,12 @@ pub async fn get_todo_permissions(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::helpers::auth_helper::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   )
   .map_err(|e| e)?;
 
   let response = state
+    .data
     .repository_service
     .execute(
       "get".to_string(),
