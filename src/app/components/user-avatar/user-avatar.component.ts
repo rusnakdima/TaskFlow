@@ -6,19 +6,7 @@ import { MatIconModule } from "@angular/material/icon";
   selector: "app-user-avatar",
   standalone: true,
   imports: [CommonModule, MatIconModule],
-  template: `
-    @if (src && src.trim() !== "") {
-      <img [ngClass]="imgClasses" [src]="src" [alt]="name" (error)="onImageError($event)" />
-    } @else if (showGroupIcon) {
-      <div [ngClass]="divClasses">
-        <mat-icon [ngClass]="iconClasses">group</mat-icon>
-      </div>
-    } @else {
-      <div [ngClass]="divClasses">
-        <span [ngClass]="textClasses">{{ initials }}</span>
-      </div>
-    }
-  `,
+  templateUrl: "./user-avatar.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserAvatarComponent {

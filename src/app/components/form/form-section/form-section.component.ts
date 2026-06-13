@@ -7,22 +7,7 @@ import { MatIconModule } from "@angular/material/icon";
   standalone: true,
   imports: [CommonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div
-      class="rounded-xl border-2 border-[var(--accent-color)]/50 p-6 shadow-lg dark:border-[var(--accent-color)]/50"
-    >
-      <div class="mb-6 flex items-center gap-3">
-        <div [ngClass]="iconBgClass">
-          <mat-icon [ngClass]="iconClass" [fontIcon]="icon" />
-        </div>
-        <div>
-          <h3 class="textNormal text-lg font-semibold">{{ title }}</h3>
-          <p class="textMuted text-sm">{{ description }}</p>
-        </div>
-      </div>
-      <ng-content />
-    </div>
-  `,
+  templateUrl: "./form-section.component.html",
 })
 export class FormSectionComponent {
   @Input() icon = "";

@@ -5,19 +5,7 @@ import { CommonModule } from "@angular/common";
   selector: "app-overlay-dropdown",
   standalone: true,
   imports: [CommonModule],
-  template: `
-    @if (isOpen) {
-      <div class="fixed inset-0 z-40" (click)="onBackdropClick()"></div>
-      <div
-        class="absolute z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-        [class]="widthClass"
-        [style.left.px]="left"
-        [style.top.px]="top"
-      >
-        <ng-content></ng-content>
-      </div>
-    }
-  `,
+  templateUrl: "./overlay-dropdown.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OverlayDropdownComponent {

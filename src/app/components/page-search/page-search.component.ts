@@ -7,17 +7,7 @@ import { PageSearchConfig, DEFAULT_EXCLUDE_FIELDS } from "@models/page-search.mo
   selector: "app-page-search",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <div class="page-search-container">
-      <input
-        type="text"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange($event)"
-        [placeholder]="config?.placeholder || 'Search...'"
-        class="page-search-input"
-      />
-    </div>
-  `,
+  templateUrl: "./page-search.component.html",
   styles: [
     `
       .page-search-container {

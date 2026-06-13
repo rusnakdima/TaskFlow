@@ -6,10 +6,12 @@
     tabindex="-1"
   >
     <div
-      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border-2 border-[var(--accent-color)]/50 bg-[var(--accent-200)] opacity-100 shadow-xl transition-all duration-300 dark:border-[var(--accent-color)]/50 dark:bg-[var(--accent-800)]"
+      class="mx-4 w-full max-w-md scale-100 transform rounded-xl border-2 border-[var(--accent-color)]/50 bg-white opacity-100 shadow-xl transition-all duration-300 dark:border-[var(--accent-color)]/50 dark:bg-zinc-800"
       (click)="$event.stopPropagation()"
     >
-      <div class="flex items-center justify-between border-b border-[var(--accent-color)] p-6">
+      <div
+        class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-zinc-700"
+      >
         <h3 class="textNormal text-lg font-semibold">
           {{ editingCategory ? "Edit Category" : "Create New Category" }}
         </h3>
@@ -30,38 +32,38 @@
             (valueChange)="onTitleChange($event)"
           />
 
-          @if (!editingCategory) {
-            <div class="mt-4">
-              <label class="textNormal mb-2 block text-sm font-medium"> Storage Location </label>
-              <div class="flex gap-2">
-                @for (option of storageOptions; track option.id) {
-                  <button
-                    type="button"
-                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 transition-all"
-                    [class.border-green-500]="storageTarget() === option.id"
-                    [class.border-gray-200]="storageTarget() !== option.id"
-                    [class.bg-green-50]="storageTarget() === option.id"
-                    [class.dark:bg-green-900/20]="storageTarget() === option.id"
-                    (click)="onStorageTargetChange(option.id)"
-                  >
-                    <mat-icon class="text-xl">{{ option.icon }}</mat-icon>
-                    <span class="text-sm font-medium">{{ option.label }}</span>
-                  </button>
-                }
-              </div>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{
-                  storageTarget() === "local"
-                    ? "Stored locally on this device"
-                    : "Synced to cloud for access on other devices"
-                }}
-              </p>
+          <div class="mt-4">
+            <label class="textNormal mb-2 block text-sm font-medium"> Storage Location </label>
+            <div class="flex gap-2">
+              @for (option of storageOptions; track option.id) {
+                <button
+                  type="button"
+                  class="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 transition-all"
+                  [class.border-green-500]="storageTarget() === option.id"
+                  [class.border-gray-200]="storageTarget() !== option.id"
+                  [class.bg-green-50]="storageTarget() === option.id"
+                  [class.dark:bg-green-900/20]="storageTarget() === option.id"
+                  (click)="onStorageTargetChange(option.id)"
+                >
+                  <mat-icon class="text-xl">{{ option.icon }}</mat-icon>
+                  <span class="text-sm font-medium">{{ option.label }}</span>
+                </button>
+              }
             </div>
-          }
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{
+                storageTarget() === "local"
+                  ? "Stored locally on this device"
+                  : "Synced to cloud for access on other devices"
+              }}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-3 border-t border-[var(--accent-color)] p-6">
+      <div
+        class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-zinc-700"
+      >
         <app-button variant="cancel" (clicked)="closeModal()" [disabled]="isLoading">
           Cancel
         </app-button>

@@ -6,36 +6,7 @@ import { CommonModule } from "@angular/common";
   selector: "app-modal-dialog",
   standalone: true,
   imports: [CommonModule],
-  template: `
-    @if (isOpen) {
-      <div
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
-        (click)="onBackdropClick()"
-      >
-        <div
-          class="w-full rounded-xl bg-white p-6 shadow-2xl dark:bg-zinc-800"
-          [ngClass]="sizeClasses"
-          (click)="$event.stopPropagation()"
-        >
-          <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {{ title }}
-            </h3>
-            @if (showClose) {
-              <button
-                type="button"
-                class="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                (click)="close()"
-              >
-                <span class="text-2xl">&times;</span>
-              </button>
-            }
-          </div>
-          <ng-content />
-        </div>
-      </div>
-    }
-  `,
+  templateUrl: "./modal-dialog.component.html",
 })
 export class ModalDialogComponent {
   @Input() title: string = "";

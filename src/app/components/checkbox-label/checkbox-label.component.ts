@@ -9,17 +9,7 @@ import { CheckboxComponent } from "@components/fields/checkbox/checkbox.componen
   selector: "app-checkbox-label",
   standalone: true,
   imports: [CommonModule, CheckboxComponent],
-  template: `
-    <label
-      class="inline-flex shrink-0 cursor-pointer items-center transition-all duration-200 select-none hover:scale-110"
-      (click)="$event.stopPropagation()"
-    >
-      <app-checkbox [checked]="checked" (checkedChange)="onCheckedChange($event)" />
-      @if (label) {
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
-      }
-    </label>
-  `,
+  templateUrl: "./checkbox-label.component.html",
 })
 export class CheckboxLabelComponent {
   @Input() checked: boolean = false;
