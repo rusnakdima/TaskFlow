@@ -17,8 +17,12 @@ pub async fn import_to_local(
   user_id: String,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
-  state.manage_db_service.import_to_local(user_id).await
+  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
+  state
+    .system
+    .manage_db_service
+    .import_to_local(user_id)
+    .await
 }
 
 #[tauri::command]
@@ -30,8 +34,12 @@ pub async fn export_to_cloud(
   if user_id.is_empty() {
     return Err(err_response("Missing required parameter: user_id"));
   };
-  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
-  state.manage_db_service.export_to_cloud(user_id).await
+  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
+  state
+    .system
+    .manage_db_service
+    .export_to_cloud(user_id)
+    .await
 }
 
 #[tauri::command]
@@ -39,6 +47,7 @@ pub async fn check_mongodb_connection(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
   let is_connected = state
+    .system
     .manage_db_service
     .check_mongodb_connection_async()
     .await;
@@ -66,9 +75,9 @@ pub async fn sync_visibility_to_provider(
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
+    &state.config.config_helper.jwt_secret,
   );
-  let cascade_service = state.cascade_service.clone();
+  let cascade_service = state.data.cascade_service.clone();
 
   if source_provider == target_provider {
     return Err(err_response("Visibility is already set to this value"));
@@ -146,7 +155,7 @@ pub async fn sync_visibility_to_provider(
 pub async fn cleanup_non_private_from_json(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let cascade_service = state.cascade_service.clone();
+  let cascade_service = state.data.cascade_service.clone();
   cascade_service.cleanup_non_private_from_json().await?;
 
   Ok(ResponseModel {
@@ -176,6 +185,7 @@ pub async fn get_tasks_by_month(
   }
 
   state
+    .system
     .manage_db_service
     .get_tasks_by_month(year, month, is_offline, effective_visibility)
     .await
@@ -191,6 +201,7 @@ pub async fn upsert_to_json(
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
+    .system
     .manage_db_service
     .upsert_to_json(table, data, id)
     .await
@@ -204,8 +215,21 @@ pub async fn upsert_to_mongo(
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
+    .system
     .manage_db_service
     .upsert_to_mongo(table, data, id)
+    .await
+}
+
+#[tauri::command]
+pub async fn batch_upsert_to_mongo(
+  state: State<'_, AppState>,
+  records: serde_json::Value,
+) -> Result<ResponseModel, ResponseModel> {
+  state
+    .system
+    .manage_db_service
+    .batch_upsert_to_mongo(records)
     .await
 }
 
@@ -215,7 +239,11 @@ pub async fn delete_from_json(
   table: String,
   id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.delete_from_json(table, id).await
+  state
+    .system
+    .manage_db_service
+    .delete_from_json(table, id)
+    .await
 }
 
 #[tauri::command]
@@ -225,6 +253,7 @@ pub async fn batch_soft_delete_json(
   ids: Vec<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   state
+    .system
     .manage_db_service
     .batch_soft_delete_json(table, ids)
     .await
@@ -236,7 +265,11 @@ pub async fn batch_restore_json(
   table: String,
   ids: Vec<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  state.manage_db_service.batch_restore_json(table, ids).await
+  state
+    .system
+    .manage_db_service
+    .batch_restore_json(table, ids)
+    .await
 }
 
 #[tauri::command]
@@ -247,6 +280,7 @@ pub async fn get_all_from_json(
 ) -> Result<ResponseModel, ResponseModel> {
   let effective_limit = limit.unwrap_or(100);
   state
+    .system
     .manage_db_service
     .get_all_from_json(table, effective_limit)
     .await
@@ -258,8 +292,9 @@ pub async fn import_private_to_local(
   user_id: String,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  validate_user_owns_data(&token, &state.config_helper.jwt_secret, &user_id)?;
+  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
   state
+    .system
     .manage_db_service
     .import_private_to_local(user_id)
     .await

@@ -10,12 +10,20 @@ pub async fn get_all_admin_data(
 ) -> Result<ResponseModel, ResponseModel> {
   validate_admin_role(
     &token,
-    &state.config_helper.jwt_secret,
-    &state.manage_db_service.json_provider,
-    state.manage_db_service.get_mongodb_provider().as_ref(),
+    &state.config.config_helper.jwt_secret,
+    &state.system.manage_db_service.json_provider,
+    state
+      .system
+      .manage_db_service
+      .get_mongodb_provider()
+      .as_ref(),
   )
   .await?;
-  state.manage_db_service.get_all_data_for_admin().await
+  state
+    .system
+    .manage_db_service
+    .get_all_data_for_admin()
+    .await
 }
 
 #[tauri::command]
@@ -28,12 +36,17 @@ pub async fn get_all_admin_paginated(
 ) -> Result<ResponseModel, ResponseModel> {
   validate_admin_role(
     &token,
-    &state.config_helper.jwt_secret,
-    &state.json_provider,
-    state.manage_db_service.get_mongodb_provider().as_ref(),
+    &state.config.config_helper.jwt_secret,
+    &state.config.json_provider,
+    state
+      .system
+      .manage_db_service
+      .get_mongodb_provider()
+      .as_ref(),
   )
   .await?;
   state
+    .system
     .manage_db_service
     .get_admin_data_paginated(data_type, skip, limit)
     .await

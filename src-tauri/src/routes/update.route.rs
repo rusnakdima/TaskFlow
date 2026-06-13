@@ -14,6 +14,7 @@ pub async fn getBinaryNameFile(
   version: String,
 ) -> Result<ResponseModel, ResponseModel> {
   state
+    .system
     .about_service
     .get_binary_name_file(version)
     .await

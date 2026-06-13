@@ -24,6 +24,7 @@ async fn get_user_github_token(
   let filter = Filter::Eq("id".to_string(), json!(user_id));
 
   let user_val = state
+    .data
     .repository_service
     .json_provider
     .find_many(table_name, Some(&filter), None, None, None, true)
@@ -81,7 +82,7 @@ async fn update_user_github_tokens(
 
 #[tauri::command]
 pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseModel, ResponseModel> {
-  let client_id_github = state.config_helper.client_id_github.clone();
+  let client_id_github = state.config.config_helper.client_id_github.clone();
 
   if client_id_github.is_empty() {
     return Err(err_response(
@@ -89,10 +90,13 @@ pub async fn github_oauth_url(state: State<'_, AppState>) -> Result<ResponseMode
     ));
   }
 
-  let redirect_uri = if state.config_helper.callback_url_github.is_empty() {
-    format!("https://{}/github/callback", state.config_helper.rp_domain)
+  let redirect_uri = if state.config.config_helper.callback_url_github.is_empty() {
+    format!(
+      "https://{}/github/callback",
+      state.config.config_helper.rp_domain
+    )
   } else {
-    state.config_helper.callback_url_github.clone()
+    state.config.config_helper.callback_url_github.clone()
   };
 
   let service = GithubService::new();
@@ -109,8 +113,8 @@ pub async fn github_oauth_callback(
   user_id: String,
   code: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let client_id_github = state.config_helper.client_id_github.clone();
-  let client_secret_github = state.config_helper.client_secret_github.clone();
+  let client_id_github = state.config.config_helper.client_id_github.clone();
+  let client_secret_github = state.config.config_helper.client_secret_github.clone();
 
   if client_id_github.is_empty() || client_secret_github.is_empty() {
     return Err(err_response(
@@ -131,8 +135,8 @@ pub async fn github_oauth_callback(
 
   let github_username = github_user.login.clone();
   let _ = update_user_github_tokens(
-    &state.repository_service.json_provider,
-    state.repository_service.mongodb_provider.as_ref(),
+    &state.data.repository_service.json_provider,
+    state.data.repository_service.mongodb_provider.as_ref(),
     GithubTokenUpdate {
       user_id,
       access_token: tokens.access_token,
@@ -215,13 +219,14 @@ pub async fn github_disconnect(
   });
 
   state
+    .data
     .repository_service
     .json_provider
     .patch(table_name, &user_id, update_data.clone())
     .await
     .map_err(|e| err_response_formatted("Failed to patch user", &e.to_string()))?;
 
-  if let Some(mongo) = state.repository_service.mongodb_provider.as_ref() {
+  if let Some(mongo) = state.data.repository_service.mongodb_provider.as_ref() {
     let _ = mongo.patch(table_name, &user_id, update_data).await;
   }
 
@@ -313,7 +318,7 @@ pub async fn github_update_issue(
 pub async fn github_start_device_flow(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let client_id_github = state.config_helper.client_id_github.clone();
+  let client_id_github = state.config.config_helper.client_id_github.clone();
 
   if client_id_github.is_empty() {
     return Err(err_response(
@@ -341,7 +346,7 @@ pub async fn github_check_device_flow(
   device_code: String,
   user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  let client_id_github = state.config_helper.client_id_github.clone();
+  let client_id_github = state.config.config_helper.client_id_github.clone();
 
   if client_id_github.is_empty() {
     return Err(err_response(
@@ -366,8 +371,8 @@ pub async fn github_check_device_flow(
       let expires_in_clone = tokens.expires_in;
 
       let _ = update_user_github_tokens(
-        &state.repository_service.json_provider,
-        state.repository_service.mongodb_provider.as_ref(),
+        &state.data.repository_service.json_provider,
+        state.data.repository_service.mongodb_provider.as_ref(),
         GithubTokenUpdate {
           user_id: user_id.clone(),
           access_token: access_token_clone,

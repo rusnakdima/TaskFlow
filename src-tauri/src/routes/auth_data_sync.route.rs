@@ -14,6 +14,7 @@ pub async fn initialize_user_data(
   user_id: String,
 ) -> Result<ResponseModel, ResponseModel> {
   let result = state
+    .auth
     .auth_data_sync_service
     .initialize_user_data(&user_id)
     .await?;

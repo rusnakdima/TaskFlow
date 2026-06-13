@@ -14,12 +14,12 @@ fn extract_user_id(
 ) -> Result<Option<String>, ResponseModel> {
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(t, &state.config_helper.jwt_secret).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config.config_helper.jwt_secret).ok());
   Ok(user_id)
 }
 
 fn get_json_provider(state: &AppState) -> DataProvider {
-  DataProvider::Json(Arc::new(state.json_provider.clone()))
+  DataProvider::Json(Arc::new(state.config.json_provider.clone()))
 }
 
 #[tauri::command]
@@ -256,7 +256,7 @@ pub async fn get_all_archive_paginated(
       }
     }
   } else {
-    let user_id_str = user_id.unwrap();
+    let user_id_str = user_id.ok_or_else(|| err_response("User not authenticated"))?;
     // User-specific archive data (existing behavior)
     match data_type.as_str() {
       "todos" => {
@@ -445,101 +445,104 @@ pub async fn soft_delete(
   let user_id = extract_user_id(&state, &token)?;
   let is_global_admin = validate_admin_role(
     token.as_deref().unwrap_or(""),
-    &state.config_helper.jwt_secret,
-    &state.json_provider,
-    state.mongodb_provider.as_ref(),
+    &state.config.config_helper.jwt_secret,
+    &state.config.json_provider,
+    state.config.mongodb_provider.as_ref(),
   )
   .await
   .is_ok();
 
   if let Some(tid) = todo_id {
-    let todo_json = state.json_provider.find_by_id("todos", &tid).await;
-    let todo = if let Ok(Some(t)) = todo_json {
-      Some(t)
-    } else if let Some(mongo) = state.mongodb_provider.as_ref() {
-      match mongo.find_by_id("todos", &tid).await {
-        Ok(Some(t)) => Some(t),
-        _ => None,
-      }
-    } else {
-      None
-    };
-
-    let todo = todo.ok_or_else(|| err_response("Todo not found"))?;
-
-    let user_id_str = user_id
-      .as_ref()
-      .ok_or_else(|| err_response("User not found"))?;
-    let permission = crate::services::permission_service::PermissionService::get_todo_permission_with_profile_and_admin(
-      &todo,
-      user_id_str,
-      None,
-      is_global_admin,
-    );
-
-    if let Some(perm) = permission {
-      match table.as_str() {
-        "todos" => {
-          if !perm.can_archive_todo() {
-            return Err(err_response(
-              "You don't have permission to archive this project",
-            ));
-          }
+    if !tid.is_empty() {
+      let todo_json = state.config.json_provider.find_by_id("todos", &tid).await;
+      let todo = if let Ok(Some(t)) = todo_json {
+        Some(t)
+      } else if let Some(mongo) = state.config.mongodb_provider.as_ref() {
+        match mongo.find_by_id("todos", &tid).await {
+          Ok(Some(t)) => Some(t),
+          _ => None,
         }
-        "tasks" | "subtasks" | "comments" => {
-          let can_archive = if perm.can_archive_task()
-            || perm.can_archive_subtask()
-            || perm.can_archive_comment()
-          {
-            true
-          } else if perm == crate::entities::permission_entity::TodoPermission::EDITOR {
-            let mut item: Option<serde_json::Value> = None;
-            if table == "tasks" {
-              if let Ok(Some(i)) = state.json_provider.find_by_id("tasks", &id).await {
-                item = Some(i);
-              } else if let Some(m) = state.mongodb_provider.as_ref() {
-                if let Ok(Some(i)) = m.find_by_id("tasks", &id).await {
+      } else {
+        None
+      };
+
+      let todo = todo.ok_or_else(|| err_response("Todo not found"))?;
+
+      let user_id_str = user_id
+        .as_ref()
+        .ok_or_else(|| err_response("User not found"))?;
+      let permission = crate::services::permission_service::PermissionService::get_todo_permission_with_profile_and_admin(
+        &todo,
+        user_id_str,
+        None,
+        is_global_admin,
+      );
+
+      if let Some(perm) = permission {
+        match table.as_str() {
+          "todos" => {
+            if !perm.can_archive_todo() {
+              return Err(err_response(
+                "You don't have permission to archive this project",
+              ));
+            }
+          }
+          "tasks" | "subtasks" | "comments" => {
+            let can_archive = if perm.can_archive_task()
+              || perm.can_archive_subtask()
+              || perm.can_archive_comment()
+            {
+              true
+            } else if perm == crate::entities::permission_entity::TodoPermission::EDITOR {
+              let mut item: Option<serde_json::Value> = None;
+              if table == "tasks" {
+                if let Ok(Some(i)) = state.config.json_provider.find_by_id("tasks", &id).await {
                   item = Some(i);
+                } else if let Some(m) = state.config.mongodb_provider.as_ref() {
+                  if let Ok(Some(i)) = m.find_by_id("tasks", &id).await {
+                    item = Some(i);
+                  }
                 }
-              }
-            } else if table == "subtasks" {
-              if let Ok(Some(i)) = state.json_provider.find_by_id("subtasks", &id).await {
-                item = Some(i);
-              } else if let Some(m) = state.mongodb_provider.as_ref() {
-                if let Ok(Some(i)) = m.find_by_id("subtasks", &id).await {
+              } else if table == "subtasks" {
+                if let Ok(Some(i)) = state.config.json_provider.find_by_id("subtasks", &id).await {
                   item = Some(i);
+                } else if let Some(m) = state.config.mongodb_provider.as_ref() {
+                  if let Ok(Some(i)) = m.find_by_id("subtasks", &id).await {
+                    item = Some(i);
+                  }
                 }
-              }
-            } else {
-              if let Ok(Some(i)) = state.json_provider.find_by_id("comments", &id).await {
-                item = Some(i);
-              } else if let Some(m) = state.mongodb_provider.as_ref() {
-                if let Ok(Some(i)) = m.find_by_id("comments", &id).await {
+              } else {
+                if let Ok(Some(i)) = state.config.json_provider.find_by_id("comments", &id).await {
                   item = Some(i);
+                } else if let Some(m) = state.config.mongodb_provider.as_ref() {
+                  if let Ok(Some(i)) = m.find_by_id("comments", &id).await {
+                    item = Some(i);
+                  }
                 }
+              };
+              if let Some(i) = item {
+                i.get("user_id").and_then(|v| v.as_str()) == Some(user_id_str)
+              } else {
+                false
               }
-            };
-            if let Some(i) = item {
-              i.get("user_id").and_then(|v| v.as_str()) == Some(user_id_str)
             } else {
               false
+            };
+            if !can_archive {
+              return Err(err_response(&format!(
+                "You don't have permission to archive this {}",
+                table
+              )));
             }
-          } else {
-            false
-          };
-          if !can_archive {
-            return Err(err_response(&format!(
-              "You don't have permission to archive this {}",
-              table
-            )));
           }
+          _ => {}
         }
-        _ => {}
       }
     }
   }
 
   state
+    .system
     .manage_db_service
     .toggle_delete_status(table, id, visibility)
     .await
@@ -555,6 +558,7 @@ pub async fn permanent_delete(
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_id(&state, &token)?;
   state
+    .system
     .manage_db_service
     .permanently_delete_record(table, id, visibility)
     .await

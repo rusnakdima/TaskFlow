@@ -22,17 +22,18 @@ macro_rules! crud_route {
 
       let user_id = extract_user_from_token(
         token.as_deref().unwrap_or(""),
-        &state.config_helper.jwt_secret,
+        &state.config.config_helper.jwt_secret,
       )
       .ok();
 
       let profile_id = extract_profile_from_token(
         token.as_deref().unwrap_or(""),
-        &state.config_helper.jwt_secret,
+        &state.config.config_helper.jwt_secret,
       )
       .ok();
 
       state
+        .data
         .repository_service
         .execute(
           $operation.to_string(),

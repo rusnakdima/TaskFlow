@@ -13,17 +13,20 @@ pub async fn soft_remove_data(
   token: String,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
+  let _user_id =
+    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
 
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
 
   let result = if use_json {
     state
+      .data
       .cascade_service
       .soft_delete_cascade_json(&table, &id)
       .await?
   } else {
     state
+      .data
       .cascade_service
       .soft_delete_cascade_mongo(&table, &id)
       .await?
@@ -40,17 +43,20 @@ pub async fn hard_remove_data(
   token: String,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
+  let _user_id =
+    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
 
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
 
   let result = if use_json {
     state
+      .data
       .cascade_service
       .permanent_delete_cascade_json(&table, &id)
       .await?
   } else {
     state
+      .data
       .cascade_service
       .permanent_delete_cascade_mongo(&table, &id)
       .await?
@@ -67,7 +73,8 @@ pub async fn batch_soft_delete_cascade(
   token: String,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
+  let _user_id =
+    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
 
@@ -76,11 +83,13 @@ pub async fn batch_soft_delete_cascade(
   for id in &ids {
     let result = if use_json {
       state
+        .data
         .cascade_service
         .soft_delete_cascade_json(&table, id)
         .await
     } else {
       state
+        .data
         .cascade_service
         .soft_delete_cascade_mongo(&table, id)
         .await
@@ -117,7 +126,8 @@ pub async fn batch_hard_delete_cascade(
   token: String,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
+  let _user_id =
+    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
 
@@ -126,11 +136,13 @@ pub async fn batch_hard_delete_cascade(
   for id in &ids {
     let result = if use_json {
       state
+        .data
         .cascade_service
         .permanent_delete_cascade_json(&table, id)
         .await
     } else {
       state
+        .data
         .cascade_service
         .permanent_delete_cascade_mongo(&table, id)
         .await
@@ -167,7 +179,8 @@ pub async fn batch_restore_cascade(
   token: String,
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let _user_id = extract_user_from_token(&token, &state.config_helper.jwt_secret).map_err(|e| e)?;
+  let _user_id =
+    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
   let mut all_affected_todo_ids: Vec<String> = Vec::new();
@@ -176,9 +189,14 @@ pub async fn batch_restore_cascade(
 
   for id in &ids {
     let result = if use_json {
-      state.cascade_service.restore_cascade_json(&table, id).await
+      state
+        .data
+        .cascade_service
+        .restore_cascade_json(&table, id)
+        .await
     } else {
       state
+        .data
         .cascade_service
         .restore_cascade_mongo(&table, id)
         .await
@@ -211,12 +229,14 @@ pub async fn batch_restore_cascade(
     for todo_id in &unique_todo_ids {
       if use_json {
         let _ = state
+          .data
           .repository_service
           .count_service
-          .refresh_todo_counts(todo_id, &state.json_provider, is_json)
+          .refresh_todo_counts(todo_id, &state.config.json_provider, is_json)
           .await;
-      } else if let Some(ref mongo) = state.mongodb_provider {
+      } else if let Some(ref mongo) = state.config.mongodb_provider {
         let _ = state
+          .data
           .repository_service
           .count_service
           .refresh_todo_counts(todo_id, mongo.as_ref(), is_json)
