@@ -78,7 +78,7 @@ export class App implements OnInit, OnDestroy {
     "/change-password",
     "/profile/manage",
   ];
-  private connectionCheckInterval: any;
+  private connectionCheckInterval: ReturnType<typeof setInterval> | undefined;
 
   ngOnInit(): void {
     this.shortcutService.help$.subscribe(() => {
