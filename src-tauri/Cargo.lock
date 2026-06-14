@@ -5553,6 +5553,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-logger",
  "tauri-plugin-http",
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-opener",
@@ -5663,6 +5664,18 @@ dependencies = [
  "url",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-logger"
+version = "0.1.0"
+source = "git+https://github.com/rusnakdima/tauri-logger.git?branch=main#d37c9aa7b94872e6561befdb2088108ac401e2f8"
+dependencies = [
+ "chrono",
+ "log",
+ "parking_lot",
+ "serde",
+ "tauri",
 ]
 
 [[package]]

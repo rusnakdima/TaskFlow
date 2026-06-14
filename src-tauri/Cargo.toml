@@ -47,6 +47,7 @@ tauri-plugin-mcp-bridge = "0.11"
 tauri-plugin-shell = "2"
 ts-rs = "12.0.1"
 
+tauri-logger = { git = "https://github.com/rusnakdima/tauri-logger.git", branch = "main", features = ["tauri"] }
 nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
 # nosql_orm = { path = "/mnt/Other/Projects/Rust/nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
 # nosql_orm = { path = "C:\\Users\\D.Rusnak\\Projects\\nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }

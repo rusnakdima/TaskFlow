@@ -36,6 +36,7 @@
     "@angular/router": "^20.3.15",
     "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/logger": "git+https://github.com/rusnakdima/tauri-apps-logger.git#main",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",

@@ -1,12 +1,11 @@
-import { Injectable, inject } from "@angular/core";
-import { Observable, from } from "rxjs";
+import { Injectable } from "@angular/core";
+import { Observable } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
-import { Response } from "@models/response.model";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Injectable({ providedIn: "root" })
 export class TauriApiService {
-  private readonly loggingService = inject(LoggingService);
+  private readonly loggingService = getLoggingService();
 
   invoke<T>(command: string, args?: Record<string, unknown>): Observable<T> {
     return new Observable((subscriber) => {
@@ -30,18 +29,18 @@ export class TauriApiService {
   }
 
   logError(service: string, operation: string, data?: unknown, error?: unknown): void {
-    this.loggingService.error(service, operation, data, error);
+    this.loggingService.error(`${service}: ${operation}`, error, data as Record<string, unknown>);
   }
 
   logInfo(service: string, operation: string, data?: unknown): void {
-    this.loggingService.info(service, operation, data);
+    this.loggingService.info(`${service}: ${operation}`, data as Record<string, unknown>);
   }
 
   logWarn(service: string, operation: string, data?: unknown): void {
-    this.loggingService.warn(service, operation, data);
+    this.loggingService.warn(`${service}: ${operation}`, data as Record<string, unknown>);
   }
 
   logDebug(service: string, operation: string, data?: unknown): void {
-    this.loggingService.debug(service, operation, data);
+    this.loggingService.debug(`${service}: ${operation}`, data as Record<string, unknown>);
   }
 }
