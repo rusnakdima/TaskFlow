@@ -2,6 +2,9 @@
 import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
+/* services */
+import { getLoggingService } from "@tauri-apps/logger";
+
 /* models */
 import { Todo, User, Profile, Room } from "@models/generated/api.types";
 import { Task, TaskStatus } from "@models/generated/api.types";
@@ -41,6 +44,7 @@ export class StorageService {
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
   private readonly mongoConnectionService = inject(MongoConnectionService);
+  private readonly loggingService = getLoggingService();
 
   private _notifyService: NotifyService | null = null;
   private _cascadeService: CascadeService | null = null;
@@ -395,7 +399,7 @@ export class StorageService {
             : sharedTodos;
 
       if (newList().some((t) => t.id === id)) {
-        console.warn("[updateEntityVisibility] Entity already in target list, skipping:", id);
+        this.loggingService.warn("updateEntityVisibility: Entity already in target list, skipping", { id });
         return;
       }
 
@@ -919,31 +923,37 @@ export class StorageService {
   }
 
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
-    console.log(
-      `[StorageService ensureTodosLoaded] visibility=${visibility}, private=${this.privateTodos().length}, shared=${this.sharedTodos().length}, public=${this.publicTodos().length}`
-    );
+    this.loggingService.debug("ensureTodosLoaded", {
+      visibility,
+      private: this.privateTodos().length,
+      shared: this.sharedTodos().length,
+      public: this.publicTodos().length,
+    });
     if (visibility === "all") {
       if (
         this.privateTodos().length > 0 &&
         this.sharedTodos().length > 0 &&
         this.publicTodos().length > 0
       ) {
-        console.log(`[StorageService ensureTodosLoaded] ALL loaded, skipping`);
+        this.loggingService.debug("ensureTodosLoaded ALL loaded, skipping");
         return;
       }
       const loadPrivate = this.privateTodos().length === 0;
       const loadShared = this.sharedTodos().length === 0;
       const loadPublic = this.publicTodos().length === 0;
-      console.log(
-        `[StorageService ensureTodosLoaded] need to load: private=${loadPrivate}, shared=${loadShared}, public=${loadPublic}`
-      );
+      this.loggingService.debug("ensureTodosLoaded need to load", {
+        loadPrivate,
+        loadShared,
+        loadPublic,
+      });
       if (loadPrivate) this._queryService.ensureTodosLoaded("private", limit);
       if (loadShared) this._queryService.ensureTodosLoaded("shared", limit);
       if (loadPublic) {
         this.mongoConnectionService.checkConnection().subscribe((isConnected) => {
-          console.log(
-            `[StorageService ensureTodosLoaded] connected=${isConnected}, publicTodos=${this.publicTodos().length}`
-          );
+          this.loggingService.debug("ensureTodosLoaded connected", {
+            isConnected,
+            publicTodos: this.publicTodos().length,
+          });
           if (isConnected && this.publicTodos().length === 0) {
             this._queryService.ensureTodosLoaded("public", limit);
           }
@@ -958,9 +968,10 @@ export class StorageService {
           ? this.publicTodos()
           : this.sharedTodos();
     if (targetTodos.length > 0) {
-      console.log(
-        `[StorageService ensureTodosLoaded] ${visibility} already has ${targetTodos.length}, skipping`
-      );
+      this.loggingService.debug("ensureTodosLoaded skipping", {
+        visibility,
+        count: targetTodos.length,
+      });
       return;
     }
     this._queryService.ensureTodosLoaded(visibility, limit);

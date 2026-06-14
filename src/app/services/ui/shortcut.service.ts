@@ -1,4 +1,5 @@
 import { Injectable, NgZone, OnDestroy, signal } from "@angular/core";
+import { toObservable } from "@angular/core/rxjs-interop";
 import { Router, NavigationEnd } from "@angular/router";
 import { Location } from "@angular/common";
 import { filter, Subscription } from "rxjs";
@@ -26,6 +27,15 @@ export class ShortcutService implements OnDestroy {
   submitFormSignal = this._submitFormSignal.asReadonly();
   createCategorySignal = this._createCategorySignal.asReadonly();
   focusSearchSignal = this._focusSearchSignal.asReadonly();
+
+  help$ = toObservable(this._helpSignal);
+  sync$ = toObservable(this._syncSignal);
+  close$ = toObservable(this._closeSignal);
+  refresh$ = toObservable(this._refreshSignal);
+  filter$ = toObservable(this._filterSignal);
+  save$ = toObservable(this._saveSignal);
+  createCategory$ = toObservable(this._createCategorySignal);
+  focusSearch$ = toObservable(this._focusSearchSignal);
 
   showHelp(): void {
     this._helpSignal.set(undefined);

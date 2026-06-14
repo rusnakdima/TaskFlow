@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
-import { Observable, from } from "rxjs";
+import { Observable } from "rxjs";
 
 import { Response, ResponseStatus } from "@models/response.model";
 import {
@@ -185,24 +185,21 @@ export class ApiService {
     return new Observable((subscriber) => {
       const offline = this.isOffline();
       const invokeArgs = { ...args, offline };
-      this.tauriApi.invoke<Response<T>>(command, invokeArgs).subscribe({
-        next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            subscriber.next(response.data as T);
-            subscriber.complete();
-          } else {
-            subscriber.error(
-              new ApiError(response.message || `Command failed: ${command}`, "server")
-            );
-          }
-        },
-        error: (err) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as any).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
-        },
+      this.tauriApi.invokeAsync<Response<T>>(command, invokeArgs).then((response: any) => {
+        if (response.status === ResponseStatus.SUCCESS) {
+          subscriber.next(response.data as T);
+          subscriber.complete();
+        } else {
+          subscriber.error(
+            new ApiError(response.message || `Command failed: ${command}`, "server")
+          );
+        }
+      }).catch((err: any) => {
+        const errMsg =
+          err && typeof err === "object" && "message" in err
+            ? String(err.message)
+            : String(err);
+        subscriber.error(new ApiError(errMsg, "network"));
       });
     });
   }
@@ -390,20 +387,22 @@ export class ApiService {
     return new Observable((subscriber) => {
       this.tauriApi
         .invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
-        .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            subscriber.next(response.data as T);
-            subscriber.complete();
-          } else {
-            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
-          }
-        })
-        .catch((err) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as any).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
+        .subscribe({
+          next: (response) => {
+            if (response.status === ResponseStatus.SUCCESS) {
+              subscriber.next(response.data as T);
+              subscriber.complete();
+            } else {
+              subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+            }
+          },
+          error: (err: unknown) => {
+            const errMsg =
+              err && typeof err === "object" && "message" in err
+                ? String((err as { message?: unknown }).message)
+                : String(err);
+            subscriber.error(new ApiError(errMsg, "network"));
+          },
         });
     });
   }
@@ -427,20 +426,22 @@ export class ApiService {
     return new Observable((subscriber) => {
       this.tauriApi
         .invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
-        .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            subscriber.next(response.data as T);
-            subscriber.complete();
-          } else {
-            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
-          }
-        })
-        .catch((err) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as any).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
+        .subscribe({
+          next: (response) => {
+            if (response.status === ResponseStatus.SUCCESS) {
+              subscriber.next(response.data as T);
+              subscriber.complete();
+            } else {
+              subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+            }
+          },
+          error: (err: unknown) => {
+            const errMsg =
+              err && typeof err === "object" && "message" in err
+                ? String((err as { message?: unknown }).message)
+                : String(err);
+            subscriber.error(new ApiError(errMsg, "network"));
+          },
         });
     });
   }
@@ -484,23 +485,25 @@ export class ApiService {
     return new Observable((subscriber) => {
       this.tauriApi
         .invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
-        .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
-            const items = Array.isArray(response.data)
-              ? response.data
-              : (response.data as any)?.items || [];
-            subscriber.next(items as T[]);
-            subscriber.complete();
-          } else {
-            subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
-          }
-        })
-        .catch((err) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as any).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
+        .subscribe({
+          next: (response) => {
+            if (response.status === ResponseStatus.SUCCESS) {
+              const items = Array.isArray(response.data)
+                ? response.data
+                : (response.data as { items?: T[] })?.items || [];
+              subscriber.next(items as T[]);
+              subscriber.complete();
+            } else {
+              subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
+            }
+          },
+          error: (err: unknown) => {
+            const errMsg =
+              err && typeof err === "object" && "message" in err
+                ? String((err as { message?: unknown }).message)
+                : String(err);
+            subscriber.error(new ApiError(errMsg, "network"));
+          },
         });
     });
   }

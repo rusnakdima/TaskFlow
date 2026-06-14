@@ -26,7 +26,7 @@ import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/uti
 
 import { StorageEntityService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -39,7 +39,7 @@ export class StorageQueryService {
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _profileRequiredService: ProfileRequiredService | null = null;
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -595,7 +595,7 @@ export class StorageQueryService {
   }
 
   getAdminDataWithRelations(): AdminDataWithRelations {
-    return {
+    const data = {
       todos: this._entityService.privateTodos(),
       tasks: this._entityService.tasks(),
       subtasks: this._entityService.subtasks(),
@@ -606,6 +606,7 @@ export class StorageQueryService {
       users: this._entityService.users(),
       profiles: this._entityService.profiles() ? [this._entityService.profiles()!] : [],
     };
+    return data as any;
   }
 
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
@@ -636,40 +637,43 @@ export class StorageQueryService {
           ? this._entityService.publicTodos
           : this._entityService.sharedTodos;
 
-    console.log(
-      `[ensureTodosLoaded] visibility=${visibility}, currentLength=${targetSignal().length}, targetSignal=${visibility === "private" ? "privateTodos" : visibility === "public" ? "publicTodos" : "sharedTodos"}`
-    );
+    this.loggingService.debug("ensureTodosLoaded", {
+      visibility,
+      currentLength: targetSignal().length,
+      targetSignal: visibility === "private" ? "privateTodos" : visibility === "public" ? "publicTodos" : "sharedTodos",
+    });
 
     if (targetSignal().length > 0 && visibility !== "all") {
-      console.log(
-        `[ensureTodosLoaded] SKIP - ${visibility} already has ${targetSignal().length} items`
-      );
+      this.loggingService.debug("ensureTodosLoaded SKIP", {
+        visibility,
+        currentLength: targetSignal().length,
+      });
       return;
     }
 
     this._todosLoading.set(true);
-    console.log(`[ensureTodosLoaded] FETCHING ${visibility} with limit=${limit}`);
+    this.loggingService.debug("ensureTodosLoaded FETCHING", { visibility, limit });
     this.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
-        console.log(
-          `[ensureTodosLoaded] RECEIVED ${todos.length} ${visibility} todos`,
-          todos.map((t: any) => ({
+        this.loggingService.debug("ensureTodosLoaded RECEIVED", {
+          count: todos.length,
+          visibility,
+          todos: todos.map((t: any) => ({
             id: t.id,
             title: t.title,
             visibility: t.visibility,
             user_id: t.user_id,
             assignees: t.assignees,
-          }))
-        );
+          })),
+        });
         targetSignal.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: (err) => {
         this.loggingService.error(
-          "StorageQueryService",
           "ensureTodosLoaded ERROR",
-          { visibility },
-          err
+          err,
+          { visibility }
         );
       },
       complete: () => {
@@ -800,19 +804,22 @@ export class StorageQueryService {
   loadMoreTodos(todoId?: string): void {
     if (this._todosLoading()) return;
     const currentPage = Math.floor(this._pagination().todos.skip / 10);
-    console.log(`[loadMoreTodos] page=${currentPage + 1}, todoId=${todoId}`);
+    this.loggingService.debug("loadMoreTodos", {
+      page: currentPage + 1,
+      todoId,
+    });
     this._todosLoading.set(true);
     this.apiService.todos.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (todos) => {
-        console.log(
-          `[loadMoreTodos] RECEIVED ${todos.length} todos`,
-          todos.map((t: any) => ({ id: t.id, title: t.title, visibility: t.visibility }))
-        );
+        this.loggingService.debug("loadMoreTodos RECEIVED", {
+          count: todos.length,
+          todos: todos.map((t: any) => ({ id: t.id, title: t.title, visibility: t.visibility })),
+        });
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
       error: (err) =>
-        this.loggingService.error("StorageQueryService", "loadMoreTodos ERROR", null, err),
+        this.loggingService.error("loadMoreTodos ERROR", err),
       complete: () => {
         this._todosLoading.set(false);
       },

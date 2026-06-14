@@ -23,7 +23,7 @@ import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 /* utils */
 import {
@@ -41,7 +41,7 @@ export class UnifiedStorageService {
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
   private readonly _mongoConnectionService = inject(MongoConnectionService);
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   /* ════════════════════════════════════════════════════════════════════════
      SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type
@@ -1208,7 +1208,7 @@ export class UnifiedStorageService {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
     } catch (error) {
-      this.loggingService.error("UnifiedStorageService", "Failed to save chat queue", null, error);
+      this.loggingService.error("Failed to save chat queue", error);
     }
   }
 

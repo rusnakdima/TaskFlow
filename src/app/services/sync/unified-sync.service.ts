@@ -1,5 +1,6 @@
 /* sys lib */
 import { Injectable, OnDestroy, inject, signal } from "@angular/core";
+import { toObservable } from "@angular/core/rxjs-interop";
 import { Observable, of, Subject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
@@ -74,6 +75,8 @@ export class UnifiedSyncService implements OnDestroy {
   get progressSignal() {
     return this._progressSignal.asReadonly();
   }
+  isSyncing$ = toObservable(this._isSyncingSignal);
+
 
   get onlineStatus$(): Observable<boolean> {
     return this.onlineStatusSubject.asObservable();
@@ -224,7 +227,7 @@ export class UnifiedSyncService implements OnDestroy {
   }
 
   private async processOperation(op: QueuedOperation): Promise<void> {
-    await this.tauriApi.invoke("process_queued_operation", {
+    await this.tauriApi.invokeAsync("process_queued_operation", {
       operation: op.operation,
       table: op.table,
       data: op.data,
@@ -266,7 +269,7 @@ export class UnifiedSyncService implements OnDestroy {
     this.syncIntervalId = window.setInterval(async () => {
       if (this.isOnline() && userId) {
         try {
-          await this.tauriApi.invoke("sync_data", { userId });
+          await this.tauriApi.invokeAsync("sync_data", { userId });
         } catch (error) {}
       }
     }, this.DEFAULT_SYNC_INTERVAL);
@@ -343,7 +346,7 @@ export class UnifiedSyncService implements OnDestroy {
         };
       }
 
-      const result = await this.tauriApi.invoke<Response<R>>("import_to_local", {
+      const result = await this.tauriApi.invokeAsync<Response<R>>("import_to_local", {
         userId,
         token,
       });
@@ -422,7 +425,7 @@ export class UnifiedSyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
 
-      const result = await this.tauriApi.invoke<Response<R>>("import_to_local", {
+      const result = await this.tauriApi.invokeAsync<Response<R>>("import_to_local", {
         userId: userId,
         token,
       });
@@ -496,7 +499,7 @@ export class UnifiedSyncService implements OnDestroy {
 
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
 
-      const result = await this.tauriApi.invoke<Response<R>>("export_to_cloud", {
+      const result = await this.tauriApi.invokeAsync<Response<R>>("export_to_cloud", {
         userId: userId,
         token,
       });
@@ -585,14 +588,14 @@ export class UnifiedSyncService implements OnDestroy {
       }
 
       if (batchRecords["todos"].length > 0) {
-        await this.tauriApi.invoke("batch_upsert_to_mongo", {
+        await this.tauriApi.invokeAsync("batch_upsert_to_mongo", {
           records: batchRecords,
         });
       }
 
       this.updateProgress({ progress: 80, message: "Importing private data from cloud..." });
 
-      const result = await this.tauriApi.invoke<Response<R>>("import_private_to_local", {
+      const result = await this.tauriApi.invokeAsync<Response<R>>("import_private_to_local", {
         userId: userId,
         token,
       });
@@ -719,7 +722,7 @@ export class UnifiedSyncService implements OnDestroy {
           } as Response<any>;
         }
 
-        const result = await this.tauriApi.invoke<Response<any>>("import_to_local", {
+        const result = await this.tauriApi.invokeAsync<Response<any>>("import_to_local", {
           userId,
           token,
         });
@@ -750,7 +753,7 @@ export class UnifiedSyncService implements OnDestroy {
           } as Response<any>;
         }
 
-        const result = await this.tauriApi.invoke<Response<any>>("export_to_cloud", {
+        const result = await this.tauriApi.invokeAsync<Response<any>>("export_to_cloud", {
           userId,
           token,
         });

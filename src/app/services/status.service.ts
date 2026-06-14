@@ -7,7 +7,7 @@ import {
   STATUS_BUTTON_COLORS,
   STATUS_BUTTON_ICONS,
   PRIORITY_ICONS,
-} from "@constants/table-field.constants";
+} from "@shared/utils/constants";
 
 @Injectable({
   providedIn: "root",
