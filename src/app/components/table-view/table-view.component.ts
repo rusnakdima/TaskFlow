@@ -31,6 +31,7 @@ import { DateHelper } from "@helpers/date.helper";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 /* components */
 
@@ -44,7 +45,7 @@ import { ItemDisplayAction, ItemDisplayConfig } from "@models/item-display.model
 import { Comment, TaskStatus } from "@models/generated/api.types";
 
 /* constants */
-import { TableFieldColors, TableFieldIcons, ActionColors } from "@constants/table-field.constants";
+import { TableFieldColors, TableFieldIcons, ActionColors } from "@shared/utils/constants";
 
 @Component({
   selector: "app-table-view",
@@ -68,6 +69,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   private storageService = inject(StorageService);
   private authServiceLocal = inject(AuthService);
   private permissionService = inject(PermissionService);
+  private loggingService = getLoggingService();
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -452,9 +454,12 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   isActionDisabledForItem(item: any): boolean {
     const currentUserId = this.authServiceLocal.getValueByKey("id");
-    console.log(
-      `[TableView isActionDisabledForItem] itemType=${this.itemType}, userId=${currentUserId}, userPermission=${this.userPermission}, itemPermissionResolver=${!!this.itemPermissionResolver}`
-    );
+    this.loggingService.debug("isActionDisabledForItem", {
+      itemType: this.itemType,
+      userId: currentUserId,
+      userPermission: this.userPermission,
+      hasItemPermissionResolver: !!this.itemPermissionResolver,
+    });
     if (!currentUserId) return false;
     if (this.itemType === "category") {
       return item.user_id !== currentUserId;
@@ -464,9 +469,10 @@ export class TableViewComponent extends ItemRowBaseComponent {
       ? this.itemPermissionResolver(item)
       : this.userPermission;
 
-    console.log(
-      `[TableView isActionDisabledForItem] computed permission=${permission}, isViewer=${permission === TodoPermission.VIEWER}`
-    );
+    this.loggingService.debug("isActionDisabledForItem computed", {
+      permission,
+      isViewer: permission === TodoPermission.VIEWER,
+    });
 
     if (permission === TodoPermission.VIEWER) {
       return true;

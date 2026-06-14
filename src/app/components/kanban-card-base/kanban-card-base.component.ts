@@ -5,7 +5,7 @@ import { Component, EventEmitter, Output } from "@angular/core";
 import { TaskStatus } from "@models/generated/api.types";
 
 /* helpers */
-import { PRIORITY_COLORS, STATUS_ICONS } from "@constants/table-field.constants";
+import { PRIORITY_COLORS, STATUS_ICONS } from "@shared/utils/constants";
 
 @Component({
   selector: "app-base-kanban-card",

@@ -13,7 +13,6 @@ import {
   signal,
 } from "@angular/core";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { from } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -176,7 +175,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       deleted_at: undefined,
     } as Category;
 
-    this.entityStore.addEntity("categories", fullCategory);
+    this.entityStore.addEntity("categories", fullCategory as any);
 
     this.tauriApi
       .invoke("upsert_to_json", { table: "categories", data: fullCategory, id })
@@ -231,7 +230,7 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   }
 
   private updateCategoryLocal(updatedCategory: Category) {
-    this.entityStore.updateEntitySignal("categories", updatedCategory.id, updatedCategory);
+    this.entityStore.updateEntitySignal("categories", updatedCategory.id, updatedCategory as any);
 
     this.tauriApi
       .invoke("upsert_to_json", {

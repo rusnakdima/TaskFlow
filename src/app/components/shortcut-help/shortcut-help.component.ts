@@ -9,7 +9,6 @@ import { Subscription } from "rxjs";
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: "./shortcut-help.component.html",
-  styleUrl: "./shortcut-help.component.css",
 })
 export class ShortcutHelpComponent implements OnInit, OnDestroy {
   isVisible = signal(false);

@@ -47,14 +47,14 @@ export class UnifiedFieldComponent {
   getLabel(): string {
     if (!this.field?.label) return "";
     if (this.field.label instanceof Function) {
-      return this.field.label(this.form);
+      return this.field.label(this.form as any);
     }
     return this.field.label;
   }
 
   isShow(): boolean {
     if (!this.field?.isShow) return true;
-    return this.field.isShow(this.form);
+    return this.field.isShow(this.form as any);
   }
 
   isInvalid(attr: string): boolean {
@@ -94,7 +94,7 @@ export class UnifiedFieldComponent {
   }
 
   isOptionVisible(option: OptionData): boolean {
-    return option.isShow(this.form);
+    return option.isShow(this.form as any);
   }
 
   onValueChange(value: any) {
@@ -110,6 +110,6 @@ export class UnifiedFieldComponent {
   }
 
   trackByValue(_index: number, item: OptionData): string {
-    return item.value;
+    return String(item.value);
   }
 }

@@ -22,11 +22,11 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { SectionSelectAllComponent } from "@components/section-select-all/section-select-all.component";
-import { TODO_TABLE_CONFIG, TODO_CARD_CONFIG } from "@constants/item-display.constants";
+import { TODO_TABLE_CONFIG, TODO_CARD_CONFIG } from "@shared/utils/constants";
 import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { TABLE_ACTIONS } from "@shared/utils/constants";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
@@ -102,9 +102,9 @@ export class TodosListComponent {
       key: "status",
       label: "Status",
       type: "status",
-      getValue: (item) => this.computeTodoStatus(item),
+      getValue: (item) => this.computeTodoStatus(item as unknown as Todo),
     },
-    { key: "tasks", label: "Tasks", type: "number", getValue: (item) => item.tasks_count || 0 },
+    { key: "tasks", label: "Tasks", type: "number", getValue: (item) => String(item['tasks_count'] || 0) },
   ];
 
   tableActions: TableFieldActionButton[] = [

@@ -26,7 +26,7 @@ import { DisplayMode } from "@models/item-display.types";
 import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/generated/api.types";
 import { ItemType } from "@models/base.model";
 import { TableField } from "@models/table-field.model";
-import { ActionColors } from "@constants/table-field.constants";
+import { ActionColors } from "@shared/utils/constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";

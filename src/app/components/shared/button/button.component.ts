@@ -12,7 +12,6 @@ export type ButtonSize = "sm" | "md" | "lg";
   imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./button.component.html",
-  styleUrl: "./button.styles.css",
 })
 export class AppButtonComponent {
   @Input() variant: ButtonVariant = "accent";
