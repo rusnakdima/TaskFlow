@@ -33,7 +33,7 @@ import { EntityStoreService } from "@services/core/entity-store.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { TABLE_ACTIONS } from "@shared/utils/constants";
 
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import {
@@ -48,7 +48,7 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 import { TableViewComponent } from "@components/table-view/table-view.component";
 
 import { KanbanSubtaskCardComponent } from "@components/kanban-subtask-card/kanban-subtask-card.component";
-import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@constants/item-display.constants";
+import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@shared/utils/constants";
 import {
   PullToRefreshDirective,
   PullToRefreshIndicatorComponent,
@@ -899,7 +899,7 @@ export class SubtasksViewComponent extends BaseListView {
     const subtask_id = event.itemId;
     this.commentService.createComment(event.content, { subtaskId: subtask_id }).subscribe({
       next: (comment) => {
-        this.entityStore.addEntity("comments", comment);
+        this.entityStore.addEntity("comments", comment as any);
       },
       error: () => {
         this.notifyService.showError("Failed to add comment");

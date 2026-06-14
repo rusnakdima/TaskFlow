@@ -67,7 +67,7 @@ import {
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { LoadingStateComponent } from "@components/loading-state/loading-state.component";
 import { ItemCardComponent } from "@components/item-card/item-card.component";
-import { TASK_CARD_CONFIG } from "@constants/item-display.constants";
+import { TASK_CARD_CONFIG } from "@shared/utils/constants";
 import { KanbanTaskCardComponent } from "@components/kanban-task-card/kanban-task-card.component";
 import {
   PullToRefreshDirective,
@@ -215,7 +215,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       next: (todo) => {
         if (todo) {
           this.todo.set(todo);
-          this.entityStore.addEntity("todos", todo);
+          this.entityStore.addEntity("todos", todo as any);
           this.commentsHelper.setTodoVisibility((todo.visibility || "private") as Visibility);
           this.setUserPermission(todo);
           const tasks = todo.tasks || [];
@@ -406,7 +406,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   taskTableFields: TableField[] = [
     { key: "title", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item) },
+    { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item as any) },
   ];
 
   override ngOnInit(): void {
@@ -521,7 +521,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (updatedTask) => {
-          this.entityStore.updateEntitySignal("tasks", task.id, { ...updatedTask, id: task.id });
+          this.entityStore.updateEntitySignal("tasks", task.id, { ...(updatedTask as any), id: task.id });
           this.todoTasks.update((tasks) =>
             tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
           );
@@ -566,7 +566,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .subscribe({
         next: (updatedSubtask) => {
           this.entityStore.updateEntitySignal("subtasks", subtask.id, {
-            ...updatedSubtask,
+            ...(updatedSubtask as any),
             id: subtask.id,
           });
         },
@@ -632,7 +632,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .subscribe({
         next: (createdTask) => {
           this.notifyService.showInfo(`Next recurring task created: ${task.title}`);
-          if (createdTask?.todo_id) {
+          if ((createdTask as any)?.["todo_id"]) {
             const parentTodo = this.todo();
             if (parentTodo) {
               this.entityStore.updateEntitySignal("todos", parentTodo.id, {
@@ -671,7 +671,7 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       .subscribe({
         next: (updatedTask) => {
           this.entityStore.updateEntitySignal("tasks", event.task.id, {
-            ...updatedTask,
+            ...(updatedTask as any),
             id: event.task.id,
           });
         },

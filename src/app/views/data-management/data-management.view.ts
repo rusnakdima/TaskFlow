@@ -48,13 +48,13 @@ import { AdminFilterState } from "@models/admin-table.model";
 import { ResponseStatus } from "@models/response.model";
 
 /* constants */
-import { ActionColors } from "@constants/table-field.constants";
-import { FILTER_CONFIGS } from "@constants/filter.constants";
+import { ActionColors } from "@shared/utils/constants";
+import { FILTER_CONFIGS } from "@shared/utils/constants";
 
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { TABLE_ACTIONS } from "@shared/utils/constants";
 import { TableFieldFactory } from "@helpers/table-field.factory";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";

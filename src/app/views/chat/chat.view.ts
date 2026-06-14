@@ -10,6 +10,7 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
 } from "@angular/core";
+import { getLoggingService } from "@tauri-apps/logger";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -34,7 +35,7 @@ import {
   GESTURES_EMOJIS,
   OBJECTS_EMOJIS,
   RECENT_EMOJIS_DEFAULT,
-} from "@constants/emoji.constants";
+} from "@shared/utils/constants";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({
@@ -71,6 +72,7 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   private readonly MAX_PAGINATION_PAGES = 10;
   private isLoadingPreviousMessages = false;
   private debounceTimeout: any = null;
+  private loggingService = getLoggingService();
 
   smileysEmojis = SMILEYS_EMOJIS;
   gesturesEmojis = GESTURES_EMOJIS;
@@ -227,7 +229,7 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   }
 
   onMessageContextMenu(payload: { event: MouseEvent; message: ChatMessage; isOwn: boolean }): void {
-    console.log("[ChatView] onMessageContextMenu called", payload);
+    this.loggingService.debug("onMessageContextMenu", payload);
     if (!payload.isOwn) return;
     this.state.contextMenuMessage.set(payload.message);
     this.state.contextMenuMessageId.set(payload.message.id);
@@ -240,7 +242,7 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   }
 
   startEditMessage(message?: ChatMessage): void {
-    console.log("[ChatView] startEditMessage called", message);
+    this.loggingService.debug("startEditMessage", { message });
     const msg = message || this.state.contextMenuMessage();
     if (!msg) return;
     this.state.editingMessageId.set(msg.id);
@@ -256,7 +258,7 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   }
 
   deleteMessage(message?: ChatMessage): void {
-    console.log("[ChatView] deleteMessage called", message);
+    this.loggingService.debug("deleteMessage", { message });
     const msg = message || this.state.contextMenuMessage();
     if (!msg) return;
     this.chatService.deleteMessageById(msg.id);
@@ -510,12 +512,12 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   }
 
   onReplyMessage(message: ChatMessage): void {
-    console.log("[ChatView] onReplyMessage called", message);
+    this.loggingService.debug("onReplyMessage", { message });
     this.state.setReplyTo(message);
   }
 
   onReactToMessage(payload: { message: ChatMessage; emoji: string }): void {
-    console.log("[ChatView] onReactToMessage called", payload);
+    this.loggingService.debug("onReactToMessage", payload);
     if (payload.emoji) {
       this.chatService.addReaction(payload.message.id, payload.emoji);
     }

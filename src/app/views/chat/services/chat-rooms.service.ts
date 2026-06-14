@@ -6,7 +6,7 @@ import { UnifiedStorageService } from "@services/core/unified-storage.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
 import { ConversationItem } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Injectable({ providedIn: "root" })
 export class ChatRoomsService {
@@ -15,7 +15,7 @@ export class ChatRoomsService {
   private storageService = inject(UnifiedStorageService);
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   loadRooms(): void {
     const userId = this.state.currentUserId();
@@ -44,7 +44,7 @@ export class ChatRoomsService {
           this.loadRoomsIntoConversations(rooms);
         },
         error: (err) => {
-          this.loggingService.error("ChatRoomsService", "get_rooms error", null, err);
+          this.loggingService.error("get_rooms error", err);
           this.loadRoomsFromLocal();
         },
       });
@@ -369,7 +369,7 @@ export class ChatRoomsService {
           }
         },
         error: (err) => {
-          this.loggingService.error("ChatRoomsService", "Load groups error", null, err);
+          this.loggingService.error("Load groups error", err);
           this.loadGroupsFromLocal();
         },
       });

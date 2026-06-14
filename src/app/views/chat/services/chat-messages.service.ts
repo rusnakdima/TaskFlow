@@ -8,7 +8,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { Chat, Profile } from "@models/generated/api.types";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Injectable({ providedIn: "root" })
 export class ChatMessagesService implements OnDestroy {
@@ -18,7 +18,7 @@ export class ChatMessagesService implements OnDestroy {
   private notifyService = inject(NotifyService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   ngOnDestroy(): void {
     if (this.onlineHandler && typeof window !== "undefined") {
@@ -302,7 +302,7 @@ export class ChatMessagesService implements OnDestroy {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
     } catch (error) {
-      this.loggingService.error("ChatMessagesService", "Failed to save chat queue", null, error);
+      this.loggingService.error("Failed to save chat queue", error);
     }
   }
 
@@ -357,7 +357,7 @@ export class ChatMessagesService implements OnDestroy {
     const queue = this.getChatQueue();
     const op = queue.find((o) => o.id === tempId);
     if (!op) {
-      console.warn("[ChatMessagesService] retrySendMessage: op not found in queue", tempId);
+      this.loggingService.warn("retrySendMessage: op not found in queue", { tempId });
       return;
     }
 
@@ -482,7 +482,7 @@ export class ChatMessagesService implements OnDestroy {
   }
 
   deleteMessageById(messageId: string): void {
-    console.log("[ChatMessagesService] deleteMessageById called", messageId);
+    this.loggingService.debug("deleteMessageById", { messageId });
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: messageId,

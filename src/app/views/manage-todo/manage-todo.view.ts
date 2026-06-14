@@ -21,7 +21,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { CategorySectionComponent } from "@components/form/category-section.component";
@@ -66,7 +66,7 @@ export class ManageTodoPage implements OnInit {
   private apiService = inject(ApiService);
   private requestService = inject(ApiService);
   private permissionService = inject(PermissionService);
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   form!: FormGroup;
 
@@ -298,10 +298,9 @@ export class ManageTodoPage implements OnInit {
           categoryIds = JSON.parse(item.categories);
         } catch (error) {
           this.loggingService.error(
-            "ManageTodoView",
             "Failed to parse categories",
-            { categories: item.categories },
-            error
+            error,
+            { categories: item.categories }
           );
         }
       } else if (Array.isArray(item.categories)) {
@@ -367,14 +366,17 @@ export class ManageTodoPage implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
-    console.log(`[ManageTodoPage] onSubmit called, form.invalid: ${this.form.invalid}`);
-    console.log(`[ManageTodoPage] form value:`, this.form.value);
-    console.log(`[ManageTodoPage] basicInfo group:`, this.form.get("basicInfo")?.value);
-    console.log(`[ManageTodoPage] basicInfo invalid: ${this.form.get("basicInfo")?.invalid}`);
-    console.log(
-      `[ManageTodoPage] basicInfo title errors:`,
-      this.form.get("basicInfo.title")?.errors
-    );
+    this.loggingService.debug("onSubmit", { formInvalid: this.form.invalid });
+    this.loggingService.debug("onSubmit form value", { formValue: this.form.value });
+    this.loggingService.debug("onSubmit basicInfo group", {
+      basicInfo: this.form.get("basicInfo")?.value,
+    });
+    this.loggingService.debug("onSubmit basicInfo invalid", {
+      invalid: this.form.get("basicInfo")?.invalid,
+    });
+    this.loggingService.debug("onSubmit basicInfo title errors", {
+      errors: this.form.get("basicInfo.title")?.errors,
+    });
 
     if (this.form.invalid) {
       this.notifyService.showError("Please fill in required fields");
