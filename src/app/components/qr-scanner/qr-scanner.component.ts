@@ -16,7 +16,6 @@ import jsQR from "jsqr";
   standalone: true,
   imports: [MatIconModule],
   templateUrl: "./qr-scanner.component.html",
-  styleUrl: "./qr-scanner.component.scss",
 })
 export class QrScannerComponent implements OnDestroy, AfterViewInit {
   @ViewChild("qrVideo") qrVideoRef!: ElementRef<HTMLVideoElement>;

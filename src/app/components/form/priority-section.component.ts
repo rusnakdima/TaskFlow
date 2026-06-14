@@ -10,6 +10,7 @@ import { CommonModule } from "@angular/common";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatIconModule } from "@angular/material/icon";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Component({
   selector: "app-priority-section",
@@ -43,9 +44,10 @@ export class PrioritySectionComponent implements ControlValueAccessor {
 
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
+  private loggingService = getLoggingService();
 
   writeValue(obj: string): void {
-    console.log(`[PrioritySection] writeValue called: "${obj}"`);
+    this.loggingService.debug("writeValue", { value: obj });
     if (obj) {
       this._priority = obj;
     }
@@ -64,7 +66,7 @@ export class PrioritySectionComponent implements ControlValueAccessor {
   }
 
   onPriorityChange(value: string): void {
-    console.log(`[PrioritySection] priority changed: "${value}"`);
+    this.loggingService.debug("priority changed", { value });
     this._priority = value;
     this.priorityChange.emit(value);
     this.onChange(value);

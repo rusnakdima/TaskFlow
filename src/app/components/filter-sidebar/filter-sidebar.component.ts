@@ -21,7 +21,6 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
     AppButtonComponent,
   ],
   templateUrl: "./filter-sidebar.component.html",
-  styleUrls: ["./filter-sidebar.component.scss"],
 })
 export class FilterSidebarComponent {
   @Input() isOpen = false;

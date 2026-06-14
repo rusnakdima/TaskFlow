@@ -13,6 +13,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "../../models/chat.model";
 import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Component({
   selector: "app-chat-message",
@@ -28,6 +29,8 @@ import { UserAvatarComponent } from "@components/user-avatar/user-avatar.compone
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatMessageComponent implements OnInit {
+  private loggingService = getLoggingService();
+
   @Input() message!: ChatMessage;
   @Input() isGroupStart = false;
   @Input() isGroupChat = false;
@@ -72,7 +75,7 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onContextMenu(event: MouseEvent): void {
-    console.log("[ChatMessage] onContextMenu called", {
+    this.loggingService.debug("onContextMenu", {
       event,
       message: this.message,
       isOwn: this.isOwn,
@@ -91,35 +94,35 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onReply(message: ChatMessage): void {
-    console.log("[ChatMessage] onReply called", message);
+    this.loggingService.debug("onReply", { message });
     this.reply.emit(message);
   }
 
   onReact(payload: { message: ChatMessage; emoji: string }): void {
-    console.log("[ChatMessage] onReact called", payload);
+    this.loggingService.debug("onReact", payload);
     this.react.emit(payload);
     this.showReactionPicker.set(false);
     this.showEmojiGrid.set(false);
   }
 
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
-    console.log("[ChatMessage] onRemoveReaction called", payload);
+    this.loggingService.debug("onRemoveReaction", payload);
     this.removeReaction.emit(payload);
     this.showEmojiGrid.set(false);
   }
 
   onCancelReply(message: ChatMessage): void {
-    console.log("[ChatMessage] onCancelReply called", message);
+    this.loggingService.debug("onCancelReply", { message });
     this.cancelReply.emit(message);
   }
 
   onToggleReactionPicker(): void {
-    console.log("[ChatMessage] onToggleReactionPicker called");
+    this.loggingService.debug("onToggleReactionPicker");
     this.showReactionPicker.update((v) => !v);
   }
 
   onToggleEmojiGrid(): void {
-    console.log("[ChatMessage] onToggleEmojiGrid called");
+    this.loggingService.debug("onToggleEmojiGrid");
     this.showEmojiGrid.update((v) => !v);
   }
 
@@ -133,28 +136,28 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onQuickReaction(emoji: string): void {
-    console.log("[ChatMessage] onQuickReaction called", emoji);
+    this.loggingService.debug("onQuickReaction", { emoji });
     this.react.emit({ message: this.message, emoji });
     this.showEmojiGrid.set(false);
   }
 
   onPickerClosed(): void {
-    console.log("[ChatMessage] onPickerClosed called");
+    this.loggingService.debug("onPickerClosed");
     this.showReactionPicker.set(false);
   }
 
   onRetrySend(): void {
-    console.log("[ChatMessage] onRetrySend called");
+    this.loggingService.debug("onRetrySend");
     this.retrySend.emit(this.message);
   }
 
   onDeleteMessage(): void {
-    console.log("[ChatMessage] onDeleteMessage called", this.message);
+    this.loggingService.debug("onDeleteMessage", { message: this.message });
     this.deleteMessage.emit(this.message);
   }
 
   startEditMessageInline(): void {
-    console.log("[ChatMessage] startEditMessageInline called", this.message);
+    this.loggingService.debug("startEditMessageInline", { message: this.message });
     this.startEditMessage.emit(this.message);
   }
 
