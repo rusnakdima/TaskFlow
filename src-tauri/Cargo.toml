@@ -18,7 +18,6 @@ tauri-build = { version = "2", features = [] }
 bcrypt = "0.17.0"
 async-trait = "0.1.86"
 chrono = "0.4.41"
-env_logger = "0.11"
 log = "0.4"
 dotenvy = "0.15.7"
 futures-util = { version = "0.3", features = ["io"] }

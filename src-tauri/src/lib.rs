@@ -14,7 +14,7 @@ use crate::providers::data_provider::DataProvider;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
-use tauri_logger::{init_file_logger, FileLogger};
+use tauri_logger::{init_file_logger, log_warn, FileLogger};
 
 /* routes */
 use routes::{
@@ -301,6 +301,48 @@ pub struct SystemState {
   pub statistics_service: Arc<StatisticsService>,
 }
 
+#[tauri::command]
+async fn write_log_to_file(
+  state: State<'_, AppState>,
+  level: String,
+  message: String,
+  source: String,
+) -> Result<(), String> {
+  state.file_logger.write_log(&level, &source, &message)
+}
+
+#[tauri::command]
+async fn get_log_file_info(
+  state: State<'_, AppState>,
+) -> Result<tauri_logger::LogFileInfo, String> {
+  let path = state
+    .file_logger
+    .get_log_file_path()
+    .ok_or("Log file not initialized")?;
+
+  let metadata =
+    std::fs::metadata(&path).map_err(|e| format!("Failed to get log file metadata: {}", e))?;
+
+  let created_at = metadata
+    .created()
+    .ok()
+    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+    .map(|d| chrono::DateTime::from_timestamp(d.as_secs() as i64, 0))
+    .flatten()
+    .map(|dt| dt.to_rfc3339())
+    .unwrap_or_default();
+
+  Ok(tauri_logger::LogFileInfo {
+    path: path.to_string_lossy().to_string(),
+    name: path
+      .file_name()
+      .map(|n| n.to_string_lossy().to_string())
+      .unwrap_or_default(),
+    size: metadata.len(),
+    created_at,
+  })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
@@ -343,7 +385,7 @@ pub fn run() {
       let config_helper = Arc::new(ConfigHelper::new());
 
       let file_logger = init_file_logger(&app.handle()).unwrap_or_else(|e| {
-        log::warn!("Failed to initialize file logger: {}", e);
+        log_warn!("Failed to initialize file logger: {}", e);
         FileLogger::new()
       });
 
@@ -660,8 +702,8 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
-      tauri_logger::write_log_to_file,
-      tauri_logger::get_log_file_info,
+      write_log_to_file,
+      get_log_file_info,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {
