@@ -378,54 +378,31 @@
 
   /* ---- Unified Flat Buttons ---- */
   .btn-accent {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border! border-solid! border-[var(--accent-color)]! bg-[var(--accent-color)]! px-4! py-2! text-center! font-medium! text-slate-900! transition-all! hover:opacity-90!;
-  }
-  .dark .btn-accent {
-    @apply text-white!;
+    @apply flex flex-row items-center justify-center rounded-lg border border-solid border-[var(--accent-color)] bg-[var(--accent-color)] px-4 py-2 text-center font-medium text-slate-900 transition-all hover:opacity-90 dark:text-white;
   }
 
   .btn-cancel {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border! border-solid! px-4! py-2! text-center! font-medium! text-slate-900! transition-all!;
-    background-color: var(--btn-cancel-bg) !important;
-    border-color: var(--btn-cancel-border-lr) !important;
-  }
-  .dark .btn-cancel {
-    background-color: transparent !important;
-    border-color: var(--btn-cancel-dark-border-lr) !important;
-    color: white !important;
+    @apply flex flex-row items-center justify-center rounded-lg border border-solid px-4 py-2 text-center font-medium text-slate-900 transition-all dark:border-zinc-600 dark:text-white;
+    background-color: var(--btn-cancel-bg);
+    border-color: var(--btn-cancel-border-lr);
   }
 
   .btn-danger {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border! border-solid! px-4! py-2! text-center! font-medium! text-slate-900! transition-all! hover:opacity-90!;
-    background-color: var(--btn-danger-bg) !important;
-    border-color: var(--btn-danger-border-lr) !important;
-  }
-  .dark .btn-danger {
-    background-color: transparent !important;
-    border-color: var(--btn-danger-dark-border-lr) !important;
-    color: white !important;
+    @apply flex flex-row items-center justify-center rounded-lg border border-solid px-4 py-2 text-center font-medium text-slate-900 transition-all hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+    background-color: var(--btn-danger-bg);
+    border-color: var(--btn-danger-border-lr);
   }
 
   .btn-warning {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border! border-solid! px-4! py-2! text-center! font-medium! text-slate-900! transition-all! hover:opacity-90!;
-    background-color: var(--btn-warning-bg) !important;
-    border-color: var(--btn-warning-border-lr) !important;
-  }
-  .dark .btn-warning {
-    background-color: transparent !important;
-    border-color: var(--btn-warning-dark-border-lr) !important;
-    color: white !important;
+    @apply flex flex-row items-center justify-center rounded-lg border border-solid px-4 py-2 text-center font-medium text-slate-900 transition-all hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+    background-color: var(--btn-warning-bg);
+    border-color: var(--btn-warning-border-lr);
   }
 
   .btn-success {
-    @apply flex! flex-row! items-center! justify-center! rounded-lg! border! border-solid! px-4! py-2! text-center! font-medium! text-slate-900! transition-all! hover:opacity-90!;
-    background-color: var(--btn-success-bg) !important;
-    border-color: var(--btn-success-border-lr) !important;
-  }
-  .dark .btn-success {
-    background-color: transparent !important;
-    border-color: var(--btn-success-dark-border-lr) !important;
-    color: white !important;
+    @apply flex flex-row items-center justify-center rounded-lg border border-solid px-4 py-2 text-center font-medium text-slate-900 transition-all hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+    background-color: var(--btn-success-bg);
+    border-color: var(--btn-success-border-lr);
   }
 
   /* ---- Card Selected State ---- */
@@ -1402,22 +1379,22 @@ html.dark,
 
 /* Accent color utilities */
 .text-accent {
-  color: var(--accent-color) !important;
+  color: var(--accent-color);
 }
 .bg-accent {
-  background-color: var(--accent-color) !important;
+  background-color: var(--accent-color);
 }
 .border-accent {
-  border-color: var(--accent-color) !important;
+  border-color: var(--accent-color);
 }
 .ring-accent {
-  --tw-ring-color: var(--accent-color) !important;
+  --tw-ring-color: var(--accent-color);
 }
 
 /* Accent hover effects */
 .hover-accent:hover {
-  color: var(--accent-color) !important;
-  background-color: var(--accent-100) !important;
+  color: var(--accent-color);
+  background-color: var(--accent-100);
 }
 
 /* Info panels with accent borders */
