@@ -23,23 +23,25 @@
     "useDefineForClassFields": false,
     "lib": ["ES2022", "dom"],
     "paths": {
-      "@helpers/*": ["./src/app/helpers/*"],
+      "@helpers/*": ["./src/app/shared/utils/*"],
       "@models/*": ["./src/app/models/*"],
       "@providers/*": ["./src/app/providers/*"],
-      "@resolvers/*": ["./src/app/resolvers/*"],
+      "@resolvers/*": ["./src/app/features/tasks/services/*"],
       "@services/*": ["./src/app/services/*"],
       "@env/*": ["./src/environments/*"],
       "@components/*": ["./src/app/components/*"],
       "@views/*": ["./src/app/views/*"],
       "@controllers/*": ["./src/app/controllers/*"],
       "@app/*": ["./src/app/*"],
-      "@guards/*": ["./src/app/guards/*"],
+      "@guards/*": ["./src/app/shared/*"],
       "@bases/*": ["./src/app/bases/*"],
       "@stores/*": ["./src/app/stores/*"],
-      "@mixins/*": ["./src/app/mixins/*"],
-      "@constants/*": ["./src/app/constants/*"],
-      "@validators/*": ["./src/app/validators/*"],
-      "@utils/*": ["./src/app/utils/*"]
+      "@mixins/*": ["./src/app/shared/*"],
+      "@constants/*": ["./src/app/shared/utils/*"],
+      "@validators/*": ["./src/app/shared/*"],
+      "@utils/*": ["./src/app/shared/utils/*"],
+      "@shared/*": ["./src/app/shared/*"],
+      "@tauri-shared/*": ["../_shared/*"]
     }
   },
   "angularCompilerOptions": {

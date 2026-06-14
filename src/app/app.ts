@@ -82,7 +82,7 @@ export class App implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.shortcutService.help$.subscribe(() => {
-      this.shortcutHelp.show();
+      this.shortcutHelp?.show();
     });
 
     this.shortcutService.sync$.subscribe(() => {
