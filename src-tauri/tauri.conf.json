@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Task Flow",
         "fullscreen": false,
         "resizable": true,
