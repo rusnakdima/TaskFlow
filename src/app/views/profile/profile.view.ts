@@ -107,8 +107,8 @@ export class ProfileView implements OnInit, OnDestroy {
         load: "user",
       })
       .subscribe({
-        next: (profileData: Profile | Profile[]) => {
-          const profile = Array.isArray(profileData) ? profileData[0] : profileData;
+        next: (profileData) => {
+          const profile = Array.isArray(profileData) ? profileData[0] : profileData as Profile;
           if (profile) {
             this.viewedUserProfile.set(profile);
           }

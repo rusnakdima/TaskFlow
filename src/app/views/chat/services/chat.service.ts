@@ -11,7 +11,7 @@ import { Chat, Profile } from "@models/generated/api.types";
 import { ConversationItem } from "@models/chat.model";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Injectable({ providedIn: "root" })
 export class ChatService implements OnDestroy {
@@ -23,7 +23,7 @@ export class ChatService implements OnDestroy {
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   constructor() {
     this.initChatQueueListener();
@@ -50,10 +50,9 @@ export class ChatService implements OnDestroy {
   loadAllUsers(): void {
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
-        console.log(
-          "[ChatService] loadAllUsers completed, profiles:",
-          this.profileSearchService.profiles().length
-        );
+        this.loggingService.debug("loadAllUsers completed", {
+          profiles: this.profileSearchService.profiles().length,
+        });
         this.loadRooms();
         this.updateConversationsWithProfiles();
       },
@@ -126,7 +125,7 @@ export class ChatService implements OnDestroy {
           this.loadRoomsIntoConversations(rooms);
         },
         error: (err) => {
-          this.loggingService.error("ChatService", "get_rooms error", null, err);
+          this.loggingService.error("get_rooms error", err);
           this.loadRoomsFromLocal();
         },
       });
@@ -451,7 +450,7 @@ export class ChatService implements OnDestroy {
           }
         },
         error: (err) => {
-          this.loggingService.error("ChatService", "Load groups error", null, err);
+          this.loggingService.error("Load groups error", err);
           this.loadGroupsFromLocal();
         },
       });
@@ -755,7 +754,7 @@ export class ChatService implements OnDestroy {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
     } catch (error) {
-      this.loggingService.error("ChatService", "Failed to save chat queue", null, error);
+      this.loggingService.error("Failed to save chat queue", error);
     }
   }
 
@@ -810,7 +809,7 @@ export class ChatService implements OnDestroy {
     const queue = this.getChatQueue();
     const op = queue.find((o) => o.id === tempId);
     if (!op) {
-      console.warn("[ChatService] retrySendMessage: op not found in queue", tempId);
+      this.loggingService.warn("retrySendMessage: op not found in queue", { tempId });
       return;
     }
 
@@ -1163,7 +1162,7 @@ export class ChatService implements OnDestroy {
   }
 
   deleteMessageById(messageId: string): void {
-    console.log("[ChatService] deleteMessageById called", messageId);
+    this.loggingService.debug("deleteMessageById", { messageId });
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: messageId,
@@ -1180,7 +1179,7 @@ export class ChatService implements OnDestroy {
   }
 
   addReaction(messageId: string, emoji: string): void {
-    console.log("[ChatService] addReaction called", { messageId, emoji });
+    this.loggingService.debug("addReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("add_message_reaction", {
         messageId,
@@ -1219,7 +1218,7 @@ export class ChatService implements OnDestroy {
   }
 
   removeReaction(messageId: string, emoji: string): void {
-    console.log("[ChatService] removeReaction called", { messageId, emoji });
+    this.loggingService.debug("removeReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("remove_message_reaction", {
         messageId,

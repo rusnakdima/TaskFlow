@@ -8,7 +8,6 @@ import { Reaction } from "@models/chat.model";
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: "./message-reactions.component.html",
-  styleUrls: ["./message-reactions.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MessageReactionsComponent {

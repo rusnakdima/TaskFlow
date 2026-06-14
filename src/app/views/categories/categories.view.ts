@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { Observable, from } from "rxjs";
+import { Observable } from "rxjs";
 
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
@@ -14,7 +14,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { Category } from "@models/generated/api.types";
 import { ResponseStatus } from "@models/response.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";
-import { TABLE_ACTIONS } from "@constants/table-field.constants";
+import { TABLE_ACTIONS } from "@shared/utils/constants";
 import { StorageTarget } from "@models/entity-config.model";
 import {
   SegmentSelectorComponent,
@@ -46,7 +46,7 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
-import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@constants/item-display.constants";
+import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@shared/utils/constants";
 
 @Component({
   selector: "app-categories",
@@ -295,7 +295,7 @@ export class CategoriesView extends BaseListView implements OnInit {
           const cloudIds = new Set<string>(cloudCats.map((c: Category) => c.id));
           this.cloudCategoryIds.set(cloudIds);
           cloudCats.forEach((cat: Category) => {
-            this.entityStore.addEntity("categories", cat);
+            this.entityStore.addEntity("categories", cat as any);
           });
         },
         error: () => {},

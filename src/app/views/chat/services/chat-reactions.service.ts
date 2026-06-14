@@ -3,16 +3,18 @@ import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 @Injectable({ providedIn: "root" })
 export class ChatReactionsService {
   private requestService = inject(ApiService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
+  private loggingService = getLoggingService();
   state = inject(ChatState);
 
   addReaction(messageId: string, emoji: string): void {
-    console.log("[ChatReactionsService] addReaction called", { messageId, emoji });
+    this.loggingService.debug("addReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("add_message_reaction", {
         messageId,
@@ -51,7 +53,7 @@ export class ChatReactionsService {
   }
 
   removeReaction(messageId: string, emoji: string): void {
-    console.log("[ChatReactionsService] removeReaction called", { messageId, emoji });
+    this.loggingService.debug("removeReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("remove_message_reaction", {
         messageId,
