@@ -2,21 +2,23 @@ import { Injectable, NgZone, OnDestroy, signal } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
 import { Router, NavigationEnd } from "@angular/router";
 import { Location } from "@angular/common";
-import { filter, Subscription } from "rxjs";
+import { filter, Subscription, skip } from "rxjs";
 
 @Injectable({
   providedIn: "root",
 })
 export class ShortcutService implements OnDestroy {
-  private readonly _saveSignal = signal<void>(undefined);
-  private readonly _helpSignal = signal<void>(undefined);
-  private readonly _closeSignal = signal<void>(undefined);
-  private readonly _syncSignal = signal<void>(undefined);
-  private readonly _refreshSignal = signal<void>(undefined);
-  private readonly _filterSignal = signal<void>(undefined);
-  private readonly _submitFormSignal = signal<void>(undefined);
-  private readonly _createCategorySignal = signal<void>(undefined);
-  private readonly _focusSearchSignal = signal<void>(undefined);
+  private readonly _saveSignal = signal<number>(0);
+  private readonly _helpSignal = signal<number>(0);
+  private readonly _closeSignal = signal<number>(0);
+  private readonly _syncSignal = signal<number>(0);
+  private readonly _refreshSignal = signal<number>(0);
+  private readonly _filterSignal = signal<number>(0);
+  private readonly _submitFormSignal = signal<number>(0);
+  private readonly _createCategorySignal = signal<number>(0);
+  private readonly _focusSearchSignal = signal<number>(0);
+
+  private _counter = 0;
 
   saveSignal = this._saveSignal.asReadonly();
   helpSignal = this._helpSignal.asReadonly();
@@ -28,21 +30,21 @@ export class ShortcutService implements OnDestroy {
   createCategorySignal = this._createCategorySignal.asReadonly();
   focusSearchSignal = this._focusSearchSignal.asReadonly();
 
-  help$ = toObservable(this._helpSignal);
-  sync$ = toObservable(this._syncSignal);
-  close$ = toObservable(this._closeSignal);
-  refresh$ = toObservable(this._refreshSignal);
-  filter$ = toObservable(this._filterSignal);
-  save$ = toObservable(this._saveSignal);
-  createCategory$ = toObservable(this._createCategorySignal);
-  focusSearch$ = toObservable(this._focusSearchSignal);
+  help$ = toObservable(this._helpSignal).pipe(skip(1));
+  sync$ = toObservable(this._syncSignal).pipe(skip(1));
+  close$ = toObservable(this._closeSignal).pipe(skip(1));
+  refresh$ = toObservable(this._refreshSignal).pipe(skip(1));
+  filter$ = toObservable(this._filterSignal).pipe(skip(1));
+  save$ = toObservable(this._saveSignal).pipe(skip(1));
+  createCategory$ = toObservable(this._createCategorySignal).pipe(skip(1));
+  focusSearch$ = toObservable(this._focusSearchSignal).pipe(skip(1));
 
   showHelp(): void {
-    this._helpSignal.set(undefined);
+    this._helpSignal.set(++this._counter);
   }
 
   focusSearch(): void {
-    this._focusSearchSignal.set(undefined);
+    this._focusSearchSignal.set(++this._counter);
   }
 
   private currentUrl = "";
@@ -78,7 +80,7 @@ export class ShortcutService implements OnDestroy {
       );
 
       if (event.key === "Escape") {
-        this.zone.run(() => this._closeSignal.set(undefined));
+        this.zone.run(() => this._closeSignal.set(++this._counter));
         return;
       }
 
@@ -93,25 +95,25 @@ export class ShortcutService implements OnDestroy {
 
       if ((event.ctrlKey || event.metaKey) && event.key === "s") {
         event.preventDefault();
-        this.zone.run(() => this._saveSignal.set(undefined));
+        this.zone.run(() => this._saveSignal.set(++this._counter));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        this.zone.run(() => this._syncSignal.set(undefined));
+        this.zone.run(() => this._syncSignal.set(++this._counter));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === "r") {
         event.preventDefault();
-        this.zone.run(() => this._refreshSignal.set(undefined));
+        this.zone.run(() => this._refreshSignal.set(++this._counter));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === "f") {
         event.preventDefault();
-        this.zone.run(() => this._filterSignal.set(undefined));
+        this.zone.run(() => this._filterSignal.set(++this._counter));
         return;
       }
 
@@ -124,7 +126,7 @@ export class ShortcutService implements OnDestroy {
       if (!isInput) {
         if ((event.ctrlKey || event.metaKey) && event.key === "k") {
           event.preventDefault();
-          this.zone.run(() => this._focusSearchSignal.set(undefined));
+          this.zone.run(() => this._focusSearchSignal.set(++this._counter));
           return;
         }
 
@@ -136,7 +138,7 @@ export class ShortcutService implements OnDestroy {
 
         if (event.key === "F1") {
           event.preventDefault();
-          this.zone.run(() => this._helpSignal.set(undefined));
+          this.zone.run(() => this._helpSignal.set(++this._counter));
           return;
         }
 
@@ -231,7 +233,7 @@ export class ShortcutService implements OnDestroy {
 
     if (url === "/categories") {
       this.zone.run(() => {
-        this._createCategorySignal.set(undefined);
+        this._createCategorySignal.set(++this._counter);
       });
       return;
     }

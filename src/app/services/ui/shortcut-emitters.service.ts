@@ -6,10 +6,12 @@ import { ShortcutService } from "./shortcut.service";
   providedIn: "root",
 })
 export class ShortcutEmittersService {
-  private readonly _saveSignal = signal<void>(undefined);
-  private readonly _closeSignal = signal<void>(undefined);
-  private readonly _syncSignal = signal<void>(undefined);
-  private readonly _refreshSignal = signal<void>(undefined);
+  private readonly _saveSignal = signal<number>(0);
+  private readonly _closeSignal = signal<number>(0);
+  private readonly _syncSignal = signal<number>(0);
+  private readonly _refreshSignal = signal<number>(0);
+
+  private _counter = 0;
 
   saveSignal = this._saveSignal.asReadonly();
   closeSignal = this._closeSignal.asReadonly();
@@ -19,7 +21,7 @@ export class ShortcutEmittersService {
   constructor(private shortcutService: ShortcutService) {}
 
   emitSave(): void {
-    this._saveSignal.set(undefined);
+    this._saveSignal.set(++this._counter);
   }
 
   emitHelp(): void {
@@ -27,15 +29,15 @@ export class ShortcutEmittersService {
   }
 
   emitClose(): void {
-    this._closeSignal.set(undefined);
+    this._closeSignal.set(++this._counter);
   }
 
   emitSync(): void {
-    this._syncSignal.set(undefined);
+    this._syncSignal.set(++this._counter);
   }
 
   emitRefresh(): void {
-    this._refreshSignal.set(undefined);
+    this._refreshSignal.set(++this._counter);
   }
 
   emitShortcuts(): void {
