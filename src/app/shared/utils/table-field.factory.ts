@@ -1,0 +1,63 @@
+import { AdminFieldConfig } from "@models/admin-table.model";
+import { TableFieldType, TableField } from "@models/table-field.model";
+import { TABLE_COLUMNS } from "@shared/utils/constants";
+
+export class TableFieldFactory {
+  static fromAdminConfig(config: AdminFieldConfig): TableField {
+    return {
+      key: config.key,
+      label: config.label,
+      type: config.type as TableFieldType,
+      sortable: true,
+      width: config.width,
+      options: config.options?.map((o) => ({ value: o, label: o })),
+      getValue: config.getValue,
+      getChipColor: config.getChipColor,
+      getChipText: config.getChipText,
+    };
+  }
+
+  static createAdminFields(): TableField[] {
+    return [
+      { key: "title", label: "Title", type: "text", sortable: true },
+      { key: "status", label: "Status", type: "status", sortable: true },
+      { key: "priority", label: "Priority", type: "priority", sortable: true },
+      { key: "visibility", label: "Visibility", type: "chip", sortable: true },
+      {
+        key: "deleted_at",
+        label: "Deleted",
+        type: "chip",
+        sortable: true,
+        getChipColor: (item: any) =>
+          item?.deleted_at
+            ? "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50"
+            : "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
+        getChipText: (item: any) => (item?.deleted_at ? "Yes" : "No"),
+      },
+      { key: "created_at", label: "Created", type: "datetime", sortable: true },
+      { key: "expand", label: "", type: "expand" },
+    ];
+  }
+
+  static createAdminExpandTemplate(item: any): Record<string, any> {
+    return {
+      title: item.title,
+      description: item.description,
+      status: item.status,
+      priority: item.priority,
+      visibility: item.visibility,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    };
+  }
+
+  static getColumns(dataType: string): TableField[] {
+    const columns = TABLE_COLUMNS[dataType as keyof typeof TABLE_COLUMNS];
+    if (!columns) return [];
+    return columns.map((config) => this.fromAdminConfig(config));
+  }
+
+  static getArchiveColumns(dataType: string): TableField[] {
+    return this.getColumns(dataType);
+  }
+}
