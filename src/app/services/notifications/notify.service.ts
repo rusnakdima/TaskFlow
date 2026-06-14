@@ -6,7 +6,7 @@ import { firstValueFrom } from "rxjs";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 
 /* models */
 import { INotify, ResponseStatus } from "@models/response.model";
@@ -33,7 +33,7 @@ export class NotifyService implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private injector = inject(Injector);
   private destroy$ = new Subject<void>();
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
 
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
@@ -97,7 +97,7 @@ export class NotifyService implements OnDestroy {
         JSON.stringify(this.notificationsSignal())
       );
     } catch (error) {
-      this.loggingService.error("NotifyService", "Failed to save notifications", null, error);
+      this.loggingService.error("Failed to save notifications", error);
     }
   }
 
@@ -127,7 +127,7 @@ export class NotifyService implements OnDestroy {
         return (result as any).title;
       }
     } catch (error) {
-      this.loggingService.warn("NotifyService", "Failed to fetch entity title:", error);
+      this.loggingService.warn("Failed to fetch entity title: " + error);
     }
     return "";
   }

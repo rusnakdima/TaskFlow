@@ -1,7 +1,7 @@
 import { Injectable, inject, OnDestroy } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-import { LoggingService } from "@app/shared/services/logging.service";
+import { getLoggingService } from "@tauri-apps/logger";
 import { environment } from "@env/environment";
 
 interface LogEntry {
@@ -24,7 +24,7 @@ const MAX_RETRIES = 3;
 @Injectable({ providedIn: "root" })
 export class LogStorageService implements OnDestroy {
   private http = inject(HttpClient);
-  private loggingService = inject(LoggingService);
+  private loggingService = getLoggingService();
   private buffer: LogEntry[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
@@ -96,7 +96,7 @@ export class LogStorageService implements OnDestroy {
 
   private async sendLogs(entries: LogEntry[]): Promise<void> {
     if (!environment.production) {
-      this.loggingService.debug("[LogStorage] Would send logs to backend:", entries.length);
+      this.loggingService.debug("Would send logs to backend: " + entries.length);
       return;
     }
 
@@ -111,9 +111,7 @@ export class LogStorageService implements OnDestroy {
     this.retryCount++;
     if (this.retryCount >= MAX_RETRIES) {
       this.loggingService.error(
-        "LogStorage",
         "Max retries reached, logs will be lost",
-        null,
         error
       );
       this.persistToLocalStorage();
@@ -132,7 +130,7 @@ export class LogStorageService implements OnDestroy {
       logs.push(...this.buffer);
       localStorage.setItem("app_logs", JSON.stringify(logs.slice(-1000)));
     } catch (e) {
-      this.loggingService.error("LogStorage", "Failed to persist to localStorage", null, e);
+      this.loggingService.error("Failed to persist to localStorage", e);
     }
   }
 
@@ -158,7 +156,7 @@ export function createLogEntry(
     level,
     service,
     operation,
-    request_id: LoggingService.generateRequestId(),
+    request_id: getLoggingService().generateRequestId(),
     user_id: null,
     duration_ms: durationMs ?? null,
     data: data ?? null,

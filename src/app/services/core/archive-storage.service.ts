@@ -58,7 +58,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
    * Get all archive data with relations
    */
   getArchiveDataWithRelations(): AdminDataWithRelations {
-    return {
+    const data = {
       todos: this.todosSignal() || [],
       tasks: this.tasksSignal() || [],
       subtasks: this.subtasksSignal() || [],
@@ -69,6 +69,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       users: this.usersSignal() || [],
       profiles: this.profilesSignal() || [],
     };
+    return data as any;
   }
 
   /**
