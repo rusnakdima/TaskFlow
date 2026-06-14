@@ -405,6 +405,51 @@
     border-color: var(--btn-success-border-lr);
   }
 
+  /* ---- App Button Component Variants ---- */
+  .app-btn {
+    @apply flex flex-row items-center justify-center gap-2 rounded-lg border border-solid px-4 py-2 text-center font-medium transition-all;
+  }
+
+  .app-btn--accent {
+    @apply border-[var(--accent-color)] bg-[var(--accent-color)] text-slate-900 hover:opacity-90 dark:text-white;
+  }
+
+  .app-btn--cancel {
+    @apply border-[var(--btn-cancel-border-lr)] bg-[var(--btn-cancel-bg)] text-slate-900 dark:border-zinc-600 dark:text-white;
+  }
+
+  .app-btn--danger {
+    @apply border-[var(--btn-danger-border-lr)] bg-[var(--btn-danger-bg)] text-slate-900 hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+  }
+
+  .app-btn--warning {
+    @apply border-[var(--btn-warning-border-lr)] bg-[var(--btn-warning-bg)] text-slate-900 hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+  }
+
+  .app-btn--success {
+    @apply border-[var(--btn-success-border-lr)] bg-[var(--btn-success-bg)] text-slate-900 hover:opacity-90 dark:border-[var(--accent-color)] dark:text-white;
+  }
+
+  .app-btn--sm {
+    @apply px-3 py-1 text-sm;
+  }
+
+  .app-btn--lg {
+    @apply px-6 py-3 text-lg;
+  }
+
+  .app-btn--full {
+    @apply w-full;
+  }
+
+  .app-btn--disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .app-btn__icon {
+    @apply h-5 w-5 text-xl;
+  }
+
   /* ---- Card Selected State ---- */
   .card-selected {
     @apply ring-2! ring-[var(--accent-color)]!;
