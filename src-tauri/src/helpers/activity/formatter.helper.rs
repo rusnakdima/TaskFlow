@@ -1,4 +1,5 @@
 use crate::entities::daily_activity_entity::DailyActivityModel;
+use crate::helpers::percentage_helper::calculate_percentage;
 
 pub struct ActivityFormatter;
 
@@ -18,10 +19,6 @@ impl ActivityFormatter {
   }
 
   pub fn calculate_productivity_score(activity: &DailyActivityModel) -> i32 {
-    if activity.total_tasks > 0 {
-      ((activity.completed_tasks as f32 / activity.total_tasks as f32) * 100.0) as i32
-    } else {
-      0
-    }
+    calculate_percentage(activity.completed_tasks, activity.total_tasks)
   }
 }

@@ -1,4 +1,5 @@
 /* imports */
+mod constants;
 mod entities;
 mod helpers;
 mod providers;
@@ -13,6 +14,7 @@ use crate::providers::data_provider::DataProvider;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
+use tauri_logger::{init_file_logger, FileLogger};
 
 /* routes */
 use routes::{
@@ -255,6 +257,7 @@ async fn clear_all_notifications(
 
 pub struct AppState {
   pub logger: Arc<()>,
+  pub file_logger: Arc<FileLogger>,
   pub config: ConfigState,
   pub auth: AuthState,
   pub data: DataState,
@@ -338,6 +341,11 @@ pub fn run() {
   builder
     .setup(|app| {
       let config_helper = Arc::new(ConfigHelper::new());
+
+      let file_logger = init_file_logger(&app.handle()).unwrap_or_else(|e| {
+        log::warn!("Failed to initialize file logger: {}", e);
+        FileLogger::new()
+      });
 
       let app_data_dir = app
         .path()
@@ -425,7 +433,7 @@ pub fn run() {
         data_provider.clone(),
         mongo_data_provider.clone(),
       ));
-      let comment_service = Arc::new(CommentService::new(
+      let _comment_service = Arc::new(CommentService::new(
         data_provider.clone(),
         mongo_data_provider.clone(),
       ));
@@ -482,6 +490,7 @@ pub fn run() {
 
       app.manage(AppState {
         logger: Arc::new(()),
+        file_logger: Arc::new(file_logger),
         config: ConfigState {
           config_helper,
           json_provider,
@@ -651,6 +660,8 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
+      tauri_logger::write_log_to_file,
+      tauri_logger::get_log_file_info,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {

@@ -222,18 +222,6 @@ pub async fn upsert_to_mongo(
 }
 
 #[tauri::command]
-pub async fn batch_upsert_to_mongo(
-  state: State<'_, AppState>,
-  records: serde_json::Value,
-) -> Result<ResponseModel, ResponseModel> {
-  state
-    .system
-    .manage_db_service
-    .batch_upsert_to_mongo(records)
-    .await
-}
-
-#[tauri::command]
 pub async fn delete_from_json(
   state: State<'_, AppState>,
   table: String,
@@ -278,7 +266,7 @@ pub async fn get_all_from_json(
   table: String,
   limit: Option<u64>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let effective_limit = limit.unwrap_or(100);
+  let effective_limit = limit.unwrap_or(crate::constants::MAX_PAGE_SIZE);
   state
     .system
     .manage_db_service
