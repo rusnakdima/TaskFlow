@@ -57,24 +57,3 @@ impl From<GroupCreateModel> for GroupEntity {
     }
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct GroupUpdateModel {
-  pub name: Option<String>,
-  pub avatar: Option<String>,
-  pub add_member_ids: Option<Vec<String>>,
-  pub remove_member_ids: Option<Vec<String>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct GroupAddMemberModel {
-  pub member_ids: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct GroupRemoveMemberModel {
-  pub member_ids: Vec<String>,
-}

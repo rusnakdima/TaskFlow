@@ -1,5 +1,5 @@
 use chrono::Utc;
-use log::{info, LevelFilter};
+use log::LevelFilter;
 use serde_json::Value;
 use std::env;
 use std::sync::Once;

@@ -158,7 +158,7 @@ impl GithubService {
       (Some(access_token), expires_in) => Ok(Some(GithubOAuthTokens {
         access_token,
         refresh_token: token_resp.refresh_token.unwrap_or_default(),
-        expires_in: expires_in.unwrap_or(3600) as i64,
+        expires_in: expires_in.unwrap_or(crate::constants::TOKEN_REFRESH_SECS) as i64,
         token_type: token_resp.token_type.unwrap_or_default(),
       })),
       _ => Err("Missing tokens in response".to_string()),

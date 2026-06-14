@@ -12,8 +12,6 @@ pub mod email_config;
 pub mod group_entity;
 #[path = "login_form.entity.rs"]
 pub mod login_form_entity;
-#[path = "notification.entity.rs"]
-pub mod notification_entity;
 #[path = "password_reset.entity.rs"]
 pub mod password_reset;
 #[path = "permission.entity.rs"]

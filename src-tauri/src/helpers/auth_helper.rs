@@ -28,19 +28,23 @@ pub struct Claims {
 }
 
 impl Claims {
+  #[allow(dead_code)]
   pub fn extract_user_id(&self) -> &str {
     &self.id
   }
 
+  #[allow(dead_code)]
   pub fn extract_profile_id(&self) -> Option<&str> {
     self.profile_id.as_deref()
   }
 
+  #[allow(dead_code)]
   pub fn extract_role(&self) -> Option<&str> {
     self.role.as_deref()
   }
 }
 
+#[allow(dead_code)]
 pub fn hash_password(password: &str) -> Result<String, ResponseModel> {
   hash(password, DEFAULT_COST).map_err(|e| err_response(&format!("Error hashing password: {}", e)))
 }

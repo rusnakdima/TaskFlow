@@ -74,6 +74,47 @@ pub fn validate_table(table_name: &str) -> Result<TableModelType, String> {
   }
 }
 
+macro_rules! validate_model_case {
+  ($create_model_type:ty, $entity_type:ty, $label:expr, $data:expr, $is_create:expr, $visibility:expr) => {{
+    if $is_create {
+      let create_model: $create_model_type = serde_json::from_value($data.clone())
+        .map_err(|e| format!("Invalid {} data: {}", $label, e))?;
+      create_model.validate().map_err(|e| e.to_string())?;
+      let model: $entity_type = create_model.into();
+      Ok(inject_visibility(
+        serialize_for_insert(&model, $label)?,
+        $visibility,
+      ))
+    } else {
+      Ok(inject_visibility(
+        with_update_timestamp($data.clone()),
+        $visibility,
+      ))
+    }
+  }};
+}
+
+macro_rules! validate_model_case_with_preprocess {
+  ($create_model_type:ty, $entity_type:ty, $label:expr, $data:expr, $is_create:expr, $visibility:expr, $preprocess:ident) => {{
+    if $is_create {
+      let filtered_data = $preprocess($data.clone());
+      let create_model: $create_model_type = serde_json::from_value(filtered_data)
+        .map_err(|e| format!("Invalid {} data: {}", $label, e))?;
+      create_model.validate().map_err(|e| e.to_string())?;
+      let model: $entity_type = create_model.into();
+      Ok(inject_visibility(
+        serialize_for_insert(&model, $label)?,
+        $visibility,
+      ))
+    } else {
+      Ok(inject_visibility(
+        with_update_timestamp($data.clone()),
+        $visibility,
+      ))
+    }
+  }};
+}
+
 /// Validate data for create or update operation
 /// Returns validated data ready for database operation
 pub fn validate_model(
@@ -89,160 +130,79 @@ pub fn validate_model(
   }
 
   match model_type {
-    TableModelType::Chat => {
-      if is_create {
-        let create_model: ChatCreateModel =
-          serde_json::from_value(data.clone()).map_err(|e| format!("Invalid chat data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: ChatEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "chat")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Todo => {
-      if is_create {
-        let create_model: TodoCreateModel =
-          serde_json::from_value(data.clone()).map_err(|e| format!("Invalid todo data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: TodoEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "todo")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Task => {
-      if is_create {
-        let create_model: TaskCreateModel =
-          serde_json::from_value(data.clone()).map_err(|e| format!("Invalid task data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: TaskEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "task")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Subtask => {
-      if is_create {
-        let create_model: SubtaskCreateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid subtask data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: SubtaskEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "subtask")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Category => {
-      if is_create {
-        let create_model: CategoryCreateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid category data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: CategoryEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "category")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::User => {
-      if is_create {
-        let create_model: UserCreateModel =
-          serde_json::from_value(data.clone()).map_err(|e| format!("Invalid user data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: UserEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "user")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Profile => {
-      if is_create {
-        let filtered_data = filter_empty_fields(data.clone());
-        let create_model: ProfileCreateModel = serde_json::from_value(filtered_data)
-          .map_err(|e| format!("Invalid profile data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: ProfileEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "profile")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::DailyActivity => {
-      if is_create {
-        let create_model: DailyActivityCreateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid daily activity data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: DailyActivityModel = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "daily activity")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
-    TableModelType::Comment => {
-      if is_create {
-        let create_model: CommentCreateModel = serde_json::from_value(data.clone())
-          .map_err(|e| format!("Invalid comment data: {}", e))?;
-        create_model.validate().map_err(|e| e.to_string())?;
-        let model: CommentEntity = create_model.into();
-        Ok(inject_visibility(
-          serialize_for_insert(&model, "comment")?,
-          visibility,
-        ))
-      } else {
-        Ok(inject_visibility(
-          with_update_timestamp(data.clone()),
-          visibility,
-        ))
-      }
-    }
+    TableModelType::Chat => validate_model_case!(
+      ChatCreateModel,
+      ChatEntity,
+      "chat",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Todo => validate_model_case!(
+      TodoCreateModel,
+      TodoEntity,
+      "todo",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Task => validate_model_case!(
+      TaskCreateModel,
+      TaskEntity,
+      "task",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Subtask => validate_model_case!(
+      SubtaskCreateModel,
+      SubtaskEntity,
+      "subtask",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Category => validate_model_case!(
+      CategoryCreateModel,
+      CategoryEntity,
+      "category",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::User => validate_model_case!(
+      UserCreateModel,
+      UserEntity,
+      "user",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Profile => validate_model_case_with_preprocess!(
+      ProfileCreateModel,
+      ProfileEntity,
+      "profile",
+      data,
+      is_create,
+      visibility,
+      filter_empty_fields
+    ),
+    TableModelType::DailyActivity => validate_model_case!(
+      DailyActivityCreateModel,
+      DailyActivityModel,
+      "daily activity",
+      data,
+      is_create,
+      visibility
+    ),
+    TableModelType::Comment => validate_model_case!(
+      CommentCreateModel,
+      CommentEntity,
+      "comment",
+      data,
+      is_create,
+      visibility
+    ),
   }
 }
 

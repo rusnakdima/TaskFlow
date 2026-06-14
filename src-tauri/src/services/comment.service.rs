@@ -6,10 +6,12 @@ use crate::providers::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use serde_json::{json, Value};
 
+#[allow(dead_code)]
 pub struct CommentService {
   base: BaseCrudService,
 }
 
+#[allow(dead_code)]
 impl CommentService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
