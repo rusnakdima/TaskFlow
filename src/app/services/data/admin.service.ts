@@ -42,12 +42,14 @@ export class AdminService {
     visibility?: string
   ): Promise<ResponseModel<void>> {
     const token = this.jwtTokenService.getToken();
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<void>>("permanent_delete", {
-      table,
-      id,
-      token,
-      visibility,
-    }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<void>>("permanent_delete", {
+        table,
+        id,
+        token,
+        visibility,
+      })
+    );
   }
 
   async permanentlyDeleteRecordLocal(
@@ -56,12 +58,14 @@ export class AdminService {
     visibility: string = "private"
   ): Promise<ResponseModel<void>> {
     const token = this.jwtTokenService.getToken();
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<void>>("permanent_delete", {
-      table,
-      id,
-      token,
-      visibility,
-    }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<void>>("permanent_delete", {
+        table,
+        id,
+        token,
+        visibility,
+      })
+    );
   }
 
   async toggleDeleteStatus(
@@ -71,13 +75,15 @@ export class AdminService {
     visibility?: string
   ): Promise<ResponseModel<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<boolean>>("soft_delete", {
-      table,
-      id,
-      token,
-      todoId,
-      visibility,
-    }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<boolean>>("soft_delete", {
+        table,
+        id,
+        token,
+        todoId,
+        visibility,
+      })
+    );
   }
 
   async toggleDeleteStatusLocal(
@@ -87,13 +93,15 @@ export class AdminService {
     visibility: string = "private"
   ): Promise<ResponseModel<boolean>> {
     const token = this.jwtTokenService.getToken();
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<boolean>>("soft_delete", {
-      table,
-      id,
-      token,
-      todoId,
-      visibility,
-    }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<boolean>>("soft_delete", {
+        table,
+        id,
+        token,
+        todoId,
+        visibility,
+      })
+    );
   }
 
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {

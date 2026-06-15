@@ -26,9 +26,12 @@ export class ThemeService {
     effect(() => {
       const mode = this.mode();
       const preset = this.preset();
-      const effectiveMode = mode === "system"
-        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-        : mode;
+      const effectiveMode =
+        mode === "system"
+          ? window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+          : mode;
 
       if (this.htmlEl) {
         this.htmlEl.setAttribute("data-theme", effectiveMode);

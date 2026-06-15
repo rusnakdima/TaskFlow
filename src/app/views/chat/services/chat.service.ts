@@ -11,7 +11,7 @@ import { Chat, Profile } from "@models/generated/api.types";
 import { ConversationItem } from "@models/chat.model";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class ChatService implements OnDestroy {
@@ -23,7 +23,7 @@ export class ChatService implements OnDestroy {
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   constructor() {
     this.initChatQueueListener();

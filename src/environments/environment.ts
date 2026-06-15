@@ -3,11 +3,11 @@ export const environment = {
   version: "0.18.0",
   logging: {
     enabled: true,
-    minLevel: 'debug',
+    minLevel: "debug",
     consoleOutput: true,
     memoryOutput: true,
     fileOutput: false,
-    fileLogLevel: 'error',
+    fileLogLevel: "error",
     levels: {
       debug: true,
       info: true,

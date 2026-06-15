@@ -494,7 +494,10 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (updatedTodo) => {
-          this.entityStore.updateEntitySignal("todos", todo.id, { ...(updatedTodo as any), id: todo.id });
+          this.entityStore.updateEntitySignal("todos", todo.id, {
+            ...(updatedTodo as any),
+            id: todo.id,
+          });
           this.notifyService.showSuccess("Project updated successfully");
         },
         error: (err) => {

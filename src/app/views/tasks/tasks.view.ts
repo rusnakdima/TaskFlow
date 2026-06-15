@@ -406,7 +406,12 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
   taskTableFields: TableField[] = [
     { key: "title", label: "Task", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
-    { key: "status", label: "Status", type: "status", onClick: (item) => this.cycleStatus(item as any) },
+    {
+      key: "status",
+      label: "Status",
+      type: "status",
+      onClick: (item) => this.cycleStatus(item as any),
+    },
   ];
 
   override ngOnInit(): void {
@@ -521,7 +526,10 @@ export class TasksView extends BaseListView implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (updatedTask) => {
-          this.entityStore.updateEntitySignal("tasks", task.id, { ...(updatedTask as any), id: task.id });
+          this.entityStore.updateEntitySignal("tasks", task.id, {
+            ...(updatedTask as any),
+            id: task.id,
+          });
           this.todoTasks.update((tasks) =>
             tasks.map((t) => (t.id === task.id ? { ...t, status } : t))
           );

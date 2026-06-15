@@ -1,10 +1,10 @@
-import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
+import { Component, Input, ChangeDetectionStrategy, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormGroup, ReactiveFormsModule, AbstractControl } from "@angular/forms";
 import { FormSectionComponent } from "./form-section/form-section.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 import { TextField, TextareaField, TypeField } from "@models/form-field.model";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Component({
   selector: "app-basic-info-section",
@@ -14,7 +14,7 @@ import { getLoggingService } from "@tauri-apps/logger";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BasicInfoSectionComponent {
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   @Input() itemType = "";
   @Input() formGroup!: FormGroup | AbstractControl;

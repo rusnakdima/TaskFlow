@@ -5,12 +5,13 @@ import {
   forwardRef,
   Output,
   EventEmitter,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatIconModule } from "@angular/material/icon";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Component({
   selector: "app-priority-section",
@@ -44,7 +45,7 @@ export class PrioritySectionComponent implements ControlValueAccessor {
 
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   writeValue(obj: string): void {
     this.loggingService.debug("writeValue", { value: obj });

@@ -2,7 +2,6 @@
 @plugin "flowbite/plugin";
 @variant dark (&:where(.dark, .dark *));
 @variant light (&:where(.light, .light *));
-@import "flowbite/src/themes/default";
 @source "../node_modules/flowbite";
 
 @theme {

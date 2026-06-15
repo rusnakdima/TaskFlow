@@ -26,7 +26,7 @@ import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/uti
 
 import { StorageEntityService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -39,7 +39,7 @@ export class StorageQueryService {
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _profileRequiredService: ProfileRequiredService | null = null;
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -640,7 +640,12 @@ export class StorageQueryService {
     this.loggingService.debug("ensureTodosLoaded", {
       visibility,
       currentLength: targetSignal().length,
-      targetSignal: visibility === "private" ? "privateTodos" : visibility === "public" ? "publicTodos" : "sharedTodos",
+      targetSignal:
+        visibility === "private"
+          ? "privateTodos"
+          : visibility === "public"
+            ? "publicTodos"
+            : "sharedTodos",
     });
 
     if (targetSignal().length > 0 && visibility !== "all") {
@@ -670,11 +675,7 @@ export class StorageQueryService {
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: (err) => {
-        this.loggingService.error(
-          "ensureTodosLoaded ERROR",
-          err,
-          { visibility }
-        );
+        this.loggingService.error("ensureTodosLoaded ERROR", err, { visibility });
       },
       complete: () => {
         this._todosLoading.set(false);
@@ -818,8 +819,7 @@ export class StorageQueryService {
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
-      error: (err) =>
-        this.loggingService.error("loadMoreTodos ERROR", err),
+      error: (err) => this.loggingService.error("loadMoreTodos ERROR", err),
       complete: () => {
         this._todosLoading.set(false);
       },

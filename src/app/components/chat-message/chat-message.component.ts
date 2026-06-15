@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   signal,
   OnInit,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -13,7 +14,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "../../models/chat.model";
 import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Component({
   selector: "app-chat-message",
@@ -29,7 +30,7 @@ import { getLoggingService } from "@tauri-apps/logger";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatMessageComponent implements OnInit {
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   @Input() message!: ChatMessage;
   @Input() isGroupStart = false;

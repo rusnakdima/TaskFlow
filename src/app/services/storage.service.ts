@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* services */
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 /* models */
 import { Todo, User, Profile, Room } from "@models/generated/api.types";
@@ -44,7 +44,7 @@ export class StorageService {
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
   private readonly mongoConnectionService = inject(MongoConnectionService);
-  private readonly loggingService = getLoggingService();
+  private readonly loggingService = inject(LoggerService);
 
   private _notifyService: NotifyService | null = null;
   private _cascadeService: CascadeService | null = null;
@@ -399,7 +399,10 @@ export class StorageService {
             : sharedTodos;
 
       if (newList().some((t) => t.id === id)) {
-        this.loggingService.warn("updateEntityVisibility: Entity already in target list, skipping", { id });
+        this.loggingService.warn(
+          "updateEntityVisibility: Entity already in target list, skipping",
+          { id }
+        );
         return;
       }
 

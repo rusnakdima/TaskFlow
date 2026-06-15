@@ -34,7 +34,9 @@ export class AboutService {
   }
 
   async getBinaryNameFile<R>(version: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<R>>("getBinaryNameFile", { version }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<R>>("getBinaryNameFile", { version })
+    );
   }
 
   checkUpdate(): Observable<GitHubRelease> {
@@ -44,10 +46,12 @@ export class AboutService {
   }
 
   async downloadUpdate<R>(version: string, nameFile: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<R>>("downloadUpdate", {
-      url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
-      fileName: nameFile,
-    }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<R>>("downloadUpdate", {
+        url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
+        fileName: nameFile,
+      })
+    );
   }
 
   async openFile<R>(path: string): Promise<ResponseModel<R>> {
@@ -55,6 +59,8 @@ export class AboutService {
   }
 
   async installUpdate<R>(path: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<R>>("installUpdate", { installerPath: path }));
+    return await firstValueFrom(
+      this.tauriApi.invoke<ResponseModel<R>>("installUpdate", { installerPath: path })
+    );
   }
 }
