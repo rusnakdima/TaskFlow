@@ -1,33 +1,33 @@
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::BaseCrudService;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 
 pub struct GroupService {
-  base: BaseCrudService,
+  json_provider: DataProvider,
+  mongo_provider: Option<DataProvider>,
 }
 
 impl GroupService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      base: BaseCrudService::new(json_provider, mongo_provider),
+      json_provider,
+      mongo_provider,
     }
   }
 
-  pub fn get_json_provider(&self) -> &DataProvider {
-    self.base.get_json_provider()
+  fn get_json_provider(&self) -> &DataProvider {
+    &self.json_provider
   }
 
-  pub fn get_mongo_provider(&self) -> Option<&DataProvider> {
-    self.base.get_mongo_provider()
+  fn get_mongo_provider(&self) -> Option<&DataProvider> {
+    self.mongo_provider.as_ref()
   }
 
   pub async fn get_by_id(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("groups", id)
       .await?
       .ok_or_else(|| err_response("Group not found"))?;
@@ -42,8 +42,7 @@ impl GroupService {
     );
 
     let docs = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
       .await?;
     if !docs.is_empty() {
@@ -81,8 +80,7 @@ impl GroupService {
     let mut all_docs: Vec<Value> = Vec::new();
 
     let json_docs = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_many("groups", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
     all_docs.extend(json_docs);
@@ -118,7 +116,7 @@ impl GroupService {
     create_data["updated_at"] = serde_json::json!(now);
     let doc = mongo.insert("groups", create_data).await?;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("groups", doc.clone()).await;
     }
@@ -168,7 +166,7 @@ impl GroupService {
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
     let doc = mongo.patch("groups", id, update_data.clone()).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
@@ -221,7 +219,7 @@ impl GroupService {
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
     let doc = mongo.patch("groups", group_id, update_data.clone()).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", group_id, update_data).await;
     }
@@ -257,7 +255,7 @@ impl GroupService {
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
     let doc = mongo.patch("groups", id, update_data.clone()).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
@@ -339,7 +337,7 @@ impl GroupService {
 
     if !is_1on1 {
       let _ = mongo.delete("groups", &doc_id).await;
-      let json_provider = self.base.get_json_provider();
+      let json_provider = self.get_json_provider();
       if let DataProvider::Json(p) = json_provider {
         let _ = p.delete("groups", &doc_id).await;
       }
@@ -370,7 +368,7 @@ impl GroupService {
         }
       }
 
-      let json_provider = self.base.get_json_provider();
+      let json_provider = self.get_json_provider();
       if let DataProvider::Json(p) = json_provider {
         let json_chat_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
           p.as_ref(),
@@ -403,7 +401,7 @@ impl GroupService {
           let _ = mongo.delete("rooms", room_doc_id).await;
         }
       }
-      let json_provider = self.base.get_json_provider();
+      let json_provider = self.get_json_provider();
       if let DataProvider::Json(p) = json_provider {
         let json_room_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
           p.as_ref(),
@@ -428,7 +426,6 @@ impl GroupService {
   }
 
   pub async fn hard_delete_cascade(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
-    // Try MongoDB first (primary database), fallback to JSON
     let filter = json!({ "room_id": room_id });
     let filter_obj = nosql_orm::query::Filter::from_json(&filter)
       .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
@@ -447,8 +444,7 @@ impl GroupService {
       g
     } else {
       let json_docs = self
-        .base
-        .get_json_provider()
+        .json_provider
         .find_many("groups", Some(&filter_obj), None, Some(1), None, true)
         .await?;
       json_docs
@@ -465,8 +461,7 @@ impl GroupService {
     if !actual_room_id.is_empty() {
       let chat_filter = json!({ "room_id": actual_room_id });
       if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
-        // Delete chats from JSON provider
-        let json_provider = self.base.get_json_provider();
+        let json_provider = self.get_json_provider();
         if let DataProvider::Json(p) = json_provider {
           let json_chat_docs: Vec<serde_json::Value> = json_provider
             .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
@@ -479,7 +474,6 @@ impl GroupService {
           }
         }
 
-        // Delete chats from MongoDB
         if let Some(mongo) = self.get_mongo_provider() {
           let mongo_docs: Vec<serde_json::Value> = mongo
             .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
@@ -494,8 +488,7 @@ impl GroupService {
       }
     }
 
-    // Delete group from JSON provider
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let group_filter = json!({ "room_id": room_id });
       if let Ok(group_filter_obj) = nosql_orm::query::Filter::from_json(&group_filter) {
@@ -511,7 +504,6 @@ impl GroupService {
       }
     }
 
-    // Delete group from MongoDB
     if let Some(mongo) = self.get_mongo_provider() {
       let group_filter = json!({ "room_id": room_id });
       if let Ok(group_filter_obj) = nosql_orm::query::Filter::from_json(&group_filter) {
@@ -526,7 +518,6 @@ impl GroupService {
         }
       }
 
-      // Soft delete related rooms
       let room_filter = json!({ "room": actual_room_id });
       if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
         let rooms: Vec<serde_json::Value> = mongo
@@ -541,7 +532,6 @@ impl GroupService {
       }
     }
 
-    // Delete room from JSON provider
     if let DataProvider::Json(p) = json_provider {
       let room_filter = json!({ "room": actual_room_id });
       if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {

@@ -3,25 +3,41 @@ use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use serde_json::{json, Value};
 
 pub struct CategoryService {
-  base: BaseCrudService,
+  json_provider: DataProvider,
+  mongo_provider: Option<DataProvider>,
 }
 
 impl CategoryService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      base: BaseCrudService::new(json_provider, mongo_provider),
+      json_provider,
+      mongo_provider,
+    }
+  }
+
+  fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
+    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
+    let use_json = visibility == "private" || offline || visibility == "all";
+
+    if use_json {
+      Ok(self.json_provider.clone())
+    } else {
+      match self.mongo_provider.clone() {
+        Some(p) => Ok(p),
+        None => Err(err_response(
+          "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
+        )),
+      }
     }
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
@@ -43,7 +59,7 @@ impl CategoryService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
     let permission_filter =
       PermissionService::get_category_filter_for_user(user_id, Some(visibility));
 
@@ -74,7 +90,7 @@ impl CategoryService {
     data: Value,
     visibility: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
     let doc = provider.insert("categories", data).await?;
     Ok(success_response(doc))
   }
@@ -85,10 +101,8 @@ impl CategoryService {
     data: Value,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    // First find existing category to get its stored visibility
     let existing = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
@@ -99,9 +113,8 @@ impl CategoryService {
       ));
     }
 
-    // Use stored visibility to get correct provider
     let stored_visibility = get_visibility(&existing);
-    let provider = self.base.get_provider(stored_visibility)?;
+    let provider = self.get_provider(stored_visibility)?;
 
     let doc = provider.patch("categories", id, data).await?;
     Ok(success_response(doc))
@@ -109,8 +122,7 @@ impl CategoryService {
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
@@ -121,9 +133,8 @@ impl CategoryService {
       ));
     }
 
-    // Use stored visibility to get correct provider
     let stored_visibility = get_visibility(&existing);
-    let provider = self.base.get_provider(stored_visibility)?;
+    let provider = self.get_provider(stored_visibility)?;
 
     let _ = soft_delete_cascade_all(&provider, "categories", id).await;
     Ok(success_response(json!({})))
