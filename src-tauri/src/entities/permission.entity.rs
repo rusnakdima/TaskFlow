@@ -65,7 +65,6 @@ impl TodoPermission {
     )
   }
 
-  #[allow(dead_code)]
   pub fn can_edit_comment(&self) -> bool {
     matches!(
       self,
@@ -73,7 +72,6 @@ impl TodoPermission {
     )
   }
 
-  #[allow(dead_code)]
   pub fn can_delete_comment(&self) -> bool {
     matches!(
       self,

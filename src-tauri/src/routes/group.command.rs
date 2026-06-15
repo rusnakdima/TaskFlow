@@ -44,7 +44,7 @@ pub async fn get_groups_cmd(
 
   let visibility = visibility.unwrap_or_else(|| "all".to_string());
   let page = page.unwrap_or(0);
-  let limit = limit.unwrap_or(crate::constants::MAX_PAGE_SIZE);
+  let limit = limit.unwrap_or(100);
 
   let filter = serde_json::json!({
     "member_ids": { "$in": [user_id] }
@@ -270,7 +270,7 @@ pub async fn ensure_rooms_for_groups(
       "all",
       Some(filter),
       Some(0),
-      Some(crate::constants::MAX_GROUP_SIZE),
+      Some(1000),
     )
     .await?;
 

@@ -18,9 +18,6 @@ pub mod task_service;
 #[path = "subtask.service.rs"]
 pub mod subtask_service;
 
-#[path = "comment.service.rs"]
-pub mod comment_service;
-
 #[path = "category.service.rs"]
 pub mod category_service;
 

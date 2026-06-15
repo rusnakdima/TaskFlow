@@ -15,9 +15,7 @@ pub struct DbBackupService {
   json_provider: JsonProvider,
   #[allow(dead_code)]
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
-  #[allow(dead_code)]
   mongo_db_uri: String,
-  #[allow(dead_code)]
   mongo_db_name: String,
 }
 
