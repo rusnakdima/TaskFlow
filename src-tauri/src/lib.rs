@@ -1,6 +1,9 @@
 /* imports */
 mod entities;
+mod errors;
 mod helpers;
+mod logger;
+mod models;
 mod providers;
 mod routes;
 mod services;
@@ -13,7 +16,6 @@ use crate::providers::data_provider::DataProvider;
 
 /* helpers */
 use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
-use tauri_logger::{init_file_logger, log_warn, FileLogger};
 
 /* routes */
 use routes::{
@@ -249,7 +251,6 @@ async fn clear_all_notifications(
 
 pub struct AppState {
   pub logger: Arc<()>,
-  pub file_logger: Arc<FileLogger>,
   pub config: ConfigState,
   pub auth: AuthState,
   pub data: DataState,
@@ -293,50 +294,10 @@ pub struct SystemState {
   pub statistics_service: Arc<StatisticsService>,
 }
 
-#[tauri::command]
-async fn write_log_to_file(
-  state: State<'_, AppState>,
-  level: String,
-  message: String,
-  source: String,
-) -> Result<(), String> {
-  state.file_logger.write_log(&level, &source, &message)
-}
-
-#[tauri::command]
-async fn get_log_file_info(
-  state: State<'_, AppState>,
-) -> Result<tauri_logger::LogFileInfo, String> {
-  let path = state
-    .file_logger
-    .get_log_file_path()
-    .ok_or("Log file not initialized")?;
-
-  let metadata =
-    std::fs::metadata(&path).map_err(|e| format!("Failed to get log file metadata: {}", e))?;
-
-  let created_at = metadata
-    .created()
-    .ok()
-    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-    .map(|d| chrono::DateTime::from_timestamp(d.as_secs() as i64, 0))
-    .flatten()
-    .map(|dt| dt.to_rfc3339())
-    .unwrap_or_default();
-
-  Ok(tauri_logger::LogFileInfo {
-    path: path.to_string_lossy().to_string(),
-    name: path
-      .file_name()
-      .map(|n| n.to_string_lossy().to_string())
-      .unwrap_or_default(),
-    size: metadata.len(),
-    created_at,
-  })
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  logger::init_logger();
+
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
@@ -371,11 +332,6 @@ pub fn run() {
   builder
     .setup(|app| {
       let config_helper = Arc::new(ConfigHelper::new());
-
-      let file_logger = init_file_logger(&app.handle()).unwrap_or_else(|e| {
-        log_warn!("Failed to initialize file logger: {}", e);
-        FileLogger::new()
-      });
 
       let app_data_dir = app
         .path()
@@ -516,7 +472,6 @@ pub fn run() {
 
       app.manage(AppState {
         logger: Arc::new(()),
-        file_logger: Arc::new(file_logger),
         config: ConfigState {
           config_helper,
           json_provider,
@@ -660,8 +615,6 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
-      write_log_to_file,
-      get_log_file_info,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {

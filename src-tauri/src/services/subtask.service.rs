@@ -3,25 +3,41 @@ use crate::helpers::cascade_helper::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use serde_json::{json, Value};
 
 pub struct SubtaskService {
-  base: BaseCrudService,
+  json_provider: DataProvider,
+  mongo_provider: Option<DataProvider>,
 }
 
 impl SubtaskService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      base: BaseCrudService::new(json_provider, mongo_provider),
+      json_provider,
+      mongo_provider,
+    }
+  }
+
+  fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
+    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
+    let use_json = visibility == "private" || offline || visibility == "all";
+
+    if use_json {
+      Ok(self.json_provider.clone())
+    } else {
+      match self.mongo_provider.clone() {
+        Some(p) => Ok(p),
+        None => Err(err_response(
+          "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
+        )),
+      }
     }
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;
@@ -31,7 +47,6 @@ impl SubtaskService {
 
     if !task_id.is_empty() {
       if let Some(task) = self
-        .base
         .get_provider(visibility)?
         .find_by_id("tasks", task_id)
         .await?
@@ -39,7 +54,6 @@ impl SubtaskService {
         let todo_id = task.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
         if !todo_id.is_empty() {
           if let Some(todo) = self
-            .base
             .get_provider(visibility)?
             .find_by_id("todos", todo_id)
             .await?
@@ -65,7 +79,7 @@ impl SubtaskService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
 
     let todos_filter = PermissionService::get_todo_filter_for_user(user_id, None, Some(visibility));
 
@@ -147,7 +161,7 @@ impl SubtaskService {
     visibility: &str,
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
 
     let task_id = data.get("task_id").and_then(|v| v.as_str()).unwrap_or("");
 
@@ -177,15 +191,14 @@ impl SubtaskService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;
 
     let visibility = get_visibility(&existing);
 
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
 
     let task_id = existing
       .get("task_id")
@@ -213,15 +226,14 @@ impl SubtaskService {
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;
 
     let visibility = get_visibility(&existing);
 
-    let provider = self.base.get_provider(visibility)?;
+    let provider = self.get_provider(visibility)?;
 
     let task_id = existing
       .get("task_id")

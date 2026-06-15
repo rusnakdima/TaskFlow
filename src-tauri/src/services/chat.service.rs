@@ -2,26 +2,34 @@ use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
 use crate::providers::data_provider::DataProvider;
-use crate::services::base_crud_service::BaseCrudService;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
 
 pub struct ChatService {
-  base: BaseCrudService,
+  json_provider: DataProvider,
+  mongo_provider: Option<DataProvider>,
 }
 
 impl ChatService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      base: BaseCrudService::new(json_provider, mongo_provider),
+      json_provider,
+      mongo_provider,
     }
+  }
+
+  fn get_json_provider(&self) -> &DataProvider {
+    &self.json_provider
+  }
+
+  fn get_mongo_provider(&self) -> Option<&DataProvider> {
+    self.mongo_provider.as_ref()
   }
 
   pub async fn get_by_id(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_by_id("chats", id)
       .await?
       .ok_or_else(|| err_response("Chat not found"))?;
@@ -41,8 +49,7 @@ impl ChatService {
     );
 
     let docs = self
-      .base
-      .get_json_provider()
+      .json_provider
       .find_many(
         "chats",
         filter_opt.as_ref(),
@@ -54,7 +61,7 @@ impl ChatService {
       .await?;
 
     let mut enriched_docs: Vec<Value> = Vec::new();
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
 
     for doc in docs {
       let mut enriched = doc.clone();
@@ -125,7 +132,16 @@ impl ChatService {
     skip: Option<u64>,
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
-    let provider = self.base.get_provider(visibility)?;
+    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
+    let use_json = visibility == "private" || offline || visibility == "all";
+
+    let provider = if use_json {
+      self.json_provider.clone()
+    } else {
+      self.mongo_provider.clone().ok_or_else(|| err_response(
+        "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
+      ))?
+    };
 
     let filter_opt = if let Some(f) = filter {
       Some(
@@ -144,7 +160,6 @@ impl ChatService {
 
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
@@ -152,7 +167,7 @@ impl ChatService {
     create_data["created_at"] = serde_json::json!(now);
     create_data["updated_at"] = serde_json::json!(now);
     let doc: Value = mongo.insert("chats", create_data).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("chats", doc.clone()).await;
     }
@@ -161,14 +176,13 @@ impl ChatService {
 
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
     let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
@@ -177,7 +191,6 @@ impl ChatService {
 
   pub async fn mark_read(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let existing: Value = mongo
@@ -203,7 +216,7 @@ impl ChatService {
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "read_by": read_by, "updated_at": now });
     let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
@@ -212,7 +225,6 @@ impl ChatService {
 
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let existing: Value = mongo
@@ -225,7 +237,7 @@ impl ChatService {
     let update_data = json!({ "deleted_at": now, "updated_at": now });
     let _doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let cascade = CascadeManager::new(p.as_ref().clone());
       let _ = cascade.soft_delete("chats", id).await;
@@ -237,12 +249,11 @@ impl ChatService {
 
   pub async fn hard_delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let _ = mongo.delete("chats", id).await;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.delete("chats", id).await;
     }
@@ -256,14 +267,13 @@ impl ChatService {
     content: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "content": content, "updated_at": now, "is_edited": true });
     let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
@@ -278,7 +288,6 @@ impl ChatService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
 
@@ -322,7 +331,7 @@ impl ChatService {
       .patch("chats", message_id, update_data.clone())
       .await?;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", message_id, update_data).await;
     }
@@ -337,7 +346,6 @@ impl ChatService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
 
@@ -370,7 +378,6 @@ impl ChatService {
           new_r["user_ids"] = serde_json::json!(user_ids);
           new_reactions.push(new_r);
         }
-        // If count == 1, don't push (remove entirely)
       } else {
         new_reactions.push(r);
       }
@@ -381,7 +388,7 @@ impl ChatService {
       .patch("chats", message_id, update_data.clone())
       .await?;
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", message_id, update_data).await;
     }
@@ -397,7 +404,6 @@ impl ChatService {
     );
 
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
@@ -413,7 +419,7 @@ impl ChatService {
       }
     }
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let cascade = CascadeManager::new(p.as_ref().clone());
       let docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
@@ -448,7 +454,6 @@ impl ChatService {
     );
 
     let mongo = self
-      .base
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
 
@@ -462,7 +467,7 @@ impl ChatService {
       }
     }
 
-    let json_provider = self.base.get_json_provider();
+    let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
         p.as_ref(),

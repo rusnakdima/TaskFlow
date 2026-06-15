@@ -18,6 +18,7 @@ tauri-build = { version = "2", features = [] }
 bcrypt = "0.17.0"
 async-trait = "0.1.86"
 chrono = "0.4.41"
+dirs = "5"
 log = "0.4"
 dotenvy = "0.15.7"
 futures-util = { version = "0.3", features = ["io"] }
@@ -46,7 +47,6 @@ tauri-plugin-mcp-bridge = "0.11"
 tauri-plugin-shell = "2"
 ts-rs = "12.0.1"
 
-tauri-logger = { git = "https://github.com/rusnakdima/tauri-logger.git", branch = "main", features = ["tauri"] }
 nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
 
 [features]

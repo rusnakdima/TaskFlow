@@ -67,6 +67,3 @@ pub mod statistics_service;
 
 #[path = "github.service.rs"]
 pub mod github_service;
-
-#[path = "base_crud.service.rs"]
-pub mod base_crud_service;
