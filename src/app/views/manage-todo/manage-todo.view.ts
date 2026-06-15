@@ -21,7 +21,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { CategorySectionComponent } from "@components/form/category-section.component";
@@ -66,7 +66,7 @@ export class ManageTodoPage implements OnInit {
   private apiService = inject(ApiService);
   private requestService = inject(ApiService);
   private permissionService = inject(PermissionService);
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   form!: FormGroup;
 
@@ -297,11 +297,9 @@ export class ManageTodoPage implements OnInit {
         try {
           categoryIds = JSON.parse(item.categories);
         } catch (error) {
-          this.loggingService.error(
-            "Failed to parse categories",
-            error,
-            { categories: item.categories }
-          );
+          this.loggingService.error("Failed to parse categories", error, {
+            categories: item.categories,
+          });
         }
       } else if (Array.isArray(item.categories)) {
         categoryIds = item.categories;

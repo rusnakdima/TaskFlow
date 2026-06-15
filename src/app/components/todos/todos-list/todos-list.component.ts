@@ -104,7 +104,12 @@ export class TodosListComponent {
       type: "status",
       getValue: (item) => this.computeTodoStatus(item as unknown as Todo),
     },
-    { key: "tasks", label: "Tasks", type: "number", getValue: (item) => String(item['tasks_count'] || 0) },
+    {
+      key: "tasks",
+      label: "Tasks",
+      type: "number",
+      getValue: (item) => String(item["tasks_count"] || 0),
+    },
   ];
 
   tableActions: TableFieldActionButton[] = [

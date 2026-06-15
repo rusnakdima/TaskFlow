@@ -46,7 +46,10 @@ export class ErrorHandlerService {
     });
   }
 
-  withErrorHandling<T extends unknown[], R>(fn: (...args: T) => R, context?: string): (...args: T) => R {
+  withErrorHandling<T extends unknown[], R>(
+    fn: (...args: T) => R,
+    context?: string
+  ): (...args: T) => R {
     return (...args: T): R => {
       try {
         return fn(...args);

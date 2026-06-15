@@ -65,10 +65,7 @@ export class TasksCommentsHelper {
           this.storageService.addCommentToSubtask(comment, event.subtask_id);
         },
         error: (err) => {
-          this.loggingService.error(
-            "Failed to add subtask comment",
-            err
-          );
+          this.loggingService.error("Failed to add subtask comment", err);
           this.notifyService.showError("Failed to add comment");
         },
       });

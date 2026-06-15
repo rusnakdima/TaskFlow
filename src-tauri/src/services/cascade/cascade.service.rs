@@ -564,8 +564,6 @@ impl CascadeService {
     self.sync_entity_to_json("todos", id).await
   }
 
-  
-
   pub async fn sync_entity_to_json_and_delete_from_source(
     &self,
     table: &str,

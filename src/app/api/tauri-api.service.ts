@@ -1,11 +1,11 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class TauriApiService {
-  private readonly loggingService = getLoggingService();
+  private readonly loggingService = inject(LoggerService);
 
   invoke<T>(command: string, args?: Record<string, unknown>): Observable<T> {
     return new Observable((subscriber) => {

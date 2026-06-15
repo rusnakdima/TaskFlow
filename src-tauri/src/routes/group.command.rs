@@ -266,12 +266,7 @@ pub async fn ensure_rooms_for_groups(
   let groups_result = state
     .chat
     .group_service
-    .get_all(
-      "all",
-      Some(filter),
-      Some(0),
-      Some(1000),
-    )
+    .get_all("all", Some(filter), Some(0), Some(1000))
     .await?;
 
   let groups = match &groups_result.data {

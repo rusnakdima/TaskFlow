@@ -23,7 +23,7 @@ import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 /* utils */
 import {
@@ -41,7 +41,7 @@ export class UnifiedStorageService {
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
   private readonly _mongoConnectionService = inject(MongoConnectionService);
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   /* ════════════════════════════════════════════════════════════════════════
      SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type

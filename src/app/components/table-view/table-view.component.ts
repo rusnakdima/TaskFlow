@@ -31,7 +31,7 @@ import { DateHelper } from "@helpers/date.helper";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 /* components */
 
@@ -69,7 +69,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
   private storageService = inject(StorageService);
   private authServiceLocal = inject(AuthService);
   private permissionService = inject(PermissionService);
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];

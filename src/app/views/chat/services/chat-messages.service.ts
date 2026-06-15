@@ -8,7 +8,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { Chat, Profile } from "@models/generated/api.types";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class ChatMessagesService implements OnDestroy {
@@ -18,7 +18,7 @@ export class ChatMessagesService implements OnDestroy {
   private notifyService = inject(NotifyService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   ngOnDestroy(): void {
     if (this.onlineHandler && typeof window !== "undefined") {

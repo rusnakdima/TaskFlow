@@ -185,22 +185,23 @@ export class ApiService {
     return new Observable((subscriber) => {
       const offline = this.isOffline();
       const invokeArgs = { ...args, offline };
-      this.tauriApi.invokeAsync<Response<T>>(command, invokeArgs).then((response: any) => {
-        if (response.status === ResponseStatus.SUCCESS) {
-          subscriber.next(response.data as T);
-          subscriber.complete();
-        } else {
-          subscriber.error(
-            new ApiError(response.message || `Command failed: ${command}`, "server")
-          );
-        }
-      }).catch((err: any) => {
-        const errMsg =
-          err && typeof err === "object" && "message" in err
-            ? String(err.message)
-            : String(err);
-        subscriber.error(new ApiError(errMsg, "network"));
-      });
+      this.tauriApi
+        .invokeAsync<Response<T>>(command, invokeArgs)
+        .then((response: any) => {
+          if (response.status === ResponseStatus.SUCCESS) {
+            subscriber.next(response.data as T);
+            subscriber.complete();
+          } else {
+            subscriber.error(
+              new ApiError(response.message || `Command failed: ${command}`, "server")
+            );
+          }
+        })
+        .catch((err: any) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
     });
   }
 

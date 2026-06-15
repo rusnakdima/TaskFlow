@@ -1,7 +1,7 @@
 import { Injectable, inject, OnDestroy } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 import { environment } from "@env/environment";
 
 interface LogEntry {
@@ -24,7 +24,7 @@ const MAX_RETRIES = 3;
 @Injectable({ providedIn: "root" })
 export class LogStorageService implements OnDestroy {
   private http = inject(HttpClient);
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
   private buffer: LogEntry[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
@@ -110,10 +110,7 @@ export class LogStorageService implements OnDestroy {
   private handleFlushError(error: unknown): void {
     this.retryCount++;
     if (this.retryCount >= MAX_RETRIES) {
-      this.loggingService.error(
-        "Max retries reached, logs will be lost",
-        error
-      );
+      this.loggingService.error("Max retries reached, logs will be lost", error);
       this.persistToLocalStorage();
       this.buffer = [];
       this.retryCount = 0;

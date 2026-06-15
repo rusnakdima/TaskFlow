@@ -3,14 +3,14 @@ import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class ChatReactionsService {
   private requestService = inject(ApiService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
   state = inject(ChatState);
 
   addReaction(messageId: string, emoji: string): void {

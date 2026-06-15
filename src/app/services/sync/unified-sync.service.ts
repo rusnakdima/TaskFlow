@@ -77,7 +77,6 @@ export class UnifiedSyncService implements OnDestroy {
   }
   isSyncing$ = toObservable(this._isSyncingSignal);
 
-
   get onlineStatus$(): Observable<boolean> {
     return this.onlineStatusSubject.asObservable();
   }

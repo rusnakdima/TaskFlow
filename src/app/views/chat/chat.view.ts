@@ -10,7 +10,7 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
 } from "@angular/core";
-import { getLoggingService } from "@tauri-apps/logger";
+import { LoggerService } from "@shared/services/logger.service";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -72,7 +72,7 @@ export class ChatView implements OnInit, AfterViewChecked, AfterViewInit, OnDest
   private readonly MAX_PAGINATION_PAGES = 10;
   private isLoadingPreviousMessages = false;
   private debounceTimeout: any = null;
-  private loggingService = getLoggingService();
+  private loggingService = inject(LoggerService);
 
   smileysEmojis = SMILEYS_EMOJIS;
   gesturesEmojis = GESTURES_EMOJIS;
