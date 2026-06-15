@@ -8,7 +8,7 @@ export class LoggerService {
   private logger = getLoggingService();
 
   debug(message: string, context?: Record<string, unknown>, data?: unknown): void {
-    this.logger.warn(message, context, data);
+    this.logger.debug(message, context, data);
   }
 
   warn(message: string, context?: Record<string, unknown>, data?: unknown): void {
@@ -20,7 +20,7 @@ export class LoggerService {
   }
 
   info(message: string, context?: Record<string, unknown>, data?: unknown): void {
-    this.logger.warn(message, context, data);
+    this.logger.info(message, context, data);
   }
 
   startOperation(name: string, context?: Record<string, unknown>): string {
