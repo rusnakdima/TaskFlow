@@ -9,23 +9,8 @@ static INIT: Once = Once::new();
 
 pub fn init() {
   INIT.call_once(|| {
-    let enabled = env::var("RUST_LOG_ENABLED").unwrap_or_else(|_| "true".to_string());
-    let debug = env::var("RUST_LOG_DEBUG").unwrap_or_else(|_| "false".to_string());
-    let info = env::var("RUST_LOG_INFO").unwrap_or_else(|_| "false".to_string());
-    let warn = env::var("RUST_LOG_WARN").unwrap_or_else(|_| "true".to_string());
-    let error = env::var("RUST_LOG_ERROR").unwrap_or_else(|_| "true".to_string());
-
     let log_level = env::var("RUST_LOG").unwrap_or_else(|_| "debug".to_string());
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(&log_level)).init();
-
-    log::info!(
-      "Logging initialized: enabled={}, debug={}, info={}, warn={}, error={}",
-      enabled,
-      debug,
-      info,
-      warn,
-      error
-    );
+    log::info!("Logging initialized with level: {}", log_level);
   });
 }
 

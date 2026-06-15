@@ -1,4 +1,3 @@
-/* sys lib */
 use crate::entities::response_entity::ResponseModel;
 use crate::AppState;
 use tauri::State;

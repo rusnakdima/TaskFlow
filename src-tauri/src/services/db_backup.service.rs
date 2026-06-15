@@ -36,23 +36,6 @@ impl DbBackupService {
     }
   }
 
-  #[allow(dead_code)]
-  pub fn get_json_provider(&self) -> JsonProvider {
-    self.json_provider.clone()
-  }
-
-  #[allow(dead_code)]
-  pub fn get_mongo_provider(&self) -> Option<Arc<MongoProvider>> {
-    self.mongodb_provider.lock().unwrap().clone()
-  }
-
-  #[allow(dead_code)]
-  pub fn set_mongo_provider(&self, provider: Arc<MongoProvider>) {
-    if let Ok(mut guard) = self.mongodb_provider.lock() {
-      *guard = Some(provider);
-    }
-  }
-
   pub async fn upsert_to_json(&self, collection: &str, item: Value) -> bool {
     let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
       Some(id) => id,

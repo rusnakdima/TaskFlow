@@ -15,10 +15,6 @@ pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
   admin_manager: Mutex<Option<AdminManager>>,
-  #[allow(dead_code)]
-  mongo_db_uri: String,
-  #[allow(dead_code)]
-  mongo_db_name: String,
   db_backup: DbBackupService,
 }
 
@@ -37,16 +33,14 @@ impl ManageDbService {
     let db_backup = DbBackupService::new(
       json_provider.clone(),
       mongodb_provider.clone(),
-      mongo_db_uri.clone(),
-      mongo_db_name.clone(),
+      mongo_db_uri,
+      mongo_db_name,
     );
 
     Self {
       json_provider,
       mongodb_provider: Mutex::new(mongodb_provider),
       admin_manager: Mutex::new(admin_manager),
-      mongo_db_uri,
-      mongo_db_name,
       db_backup,
     }
   }
