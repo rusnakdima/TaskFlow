@@ -1,13 +1,21 @@
-use tauri::State;
+use crate::crud_route;
+
+crud_route!(get_todo, "todos", "get");
+crud_route!(get_todos, "todos", "getAll");
+crud_route!(create_todo, "todos", "create");
+crud_route!(update_todo, "todos", "update");
+crud_route!(delete_todo, "todos", "delete");
 
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility_helper::get_visibility;
+use crate::AppState;
 use std::collections::HashMap;
+use tauri::State;
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn change_todo_visibility(
-  state: State<'_, crate::AppState>,
+  state: State<'_, AppState>,
   todo_id: String,
   new_visibility: String,
   token: Option<String>,
@@ -18,7 +26,6 @@ pub async fn change_todo_visibility(
   )
   .map_err(|e| e)?;
 
-  // First get the current todo to find its stored visibility
   let existing = state
     .data
     .repository_service
@@ -31,7 +38,7 @@ pub async fn change_todo_visibility(
       None,
       None,
       Some(user_id.clone()),
-      None, // profile_id
+      None,
       None,
       None,
     )
@@ -52,10 +59,7 @@ pub async fn change_todo_visibility(
     ));
   }
 
-  // Update the todo with new visibility
-  let update_data = serde_json::json!({
-    "visibility": new_visibility
-  });
+  let update_data = serde_json::json!({ "visibility": new_visibility });
 
   state
     .data
@@ -69,14 +73,13 @@ pub async fn change_todo_visibility(
       None,
       None,
       Some(user_id.clone()),
-      None, // profile_id
+      None,
       None,
       None,
     )
     .await
     .map_err(|e| err_response(&e.message))?;
 
-  // Sync todo to the new provider
   let source_provider = match old_visibility {
     "private" => "Json",
     _ => "Mongo",
@@ -108,7 +111,7 @@ pub async fn change_todo_visibility(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn update_todo_permissions(
-  state: State<'_, crate::AppState>,
+  state: State<'_, AppState>,
   todo_id: String,
   assignee_roles: HashMap<String, String>,
   token: Option<String>,
@@ -131,7 +134,7 @@ pub async fn update_todo_permissions(
       None,
       None,
       Some(user_id),
-      None, // profile_id
+      None,
       None,
       None,
     )
@@ -145,7 +148,7 @@ pub async fn update_todo_permissions(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn transfer_todo_ownership(
-  state: State<'_, crate::AppState>,
+  state: State<'_, AppState>,
   todo_id: String,
   new_user_id: String,
   token: Option<String>,
@@ -168,7 +171,7 @@ pub async fn transfer_todo_ownership(
       None,
       None,
       Some(user_id),
-      None, // profile_id
+      None,
       None,
       None,
     )
@@ -182,7 +185,7 @@ pub async fn transfer_todo_ownership(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn get_todo_permissions(
-  state: State<'_, crate::AppState>,
+  state: State<'_, AppState>,
   todo_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
@@ -204,7 +207,7 @@ pub async fn get_todo_permissions(
       None,
       None,
       Some(user_id),
-      None, // profile_id
+      None,
       None,
       None,
     )

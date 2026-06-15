@@ -1,10 +1,18 @@
+use crate::crud_route;
+
+crud_route!(get_room, "rooms", "get");
+crud_route!(get_rooms, "rooms", "getAll");
+crud_route!(create_room, "rooms", "create");
+crud_route!(update_room, "rooms", "update");
+crud_route!(delete_room, "rooms", "delete");
+
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::auth_helper::extract_user_from_token;
 use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
-pub async fn get_rooms(
+pub async fn get_rooms_cmd(
   state: State<'_, AppState>,
   token: Option<String>,
   load: Option<String>,
@@ -27,7 +35,7 @@ pub async fn get_rooms(
 }
 
 #[tauri::command]
-pub async fn delete_room(
+pub async fn delete_room_cmd(
   state: State<'_, AppState>,
   room_id: String,
   token: Option<String>,

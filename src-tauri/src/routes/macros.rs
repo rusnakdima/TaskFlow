@@ -2,6 +2,7 @@
 macro_rules! crud_route {
   ($route:ident, $table:expr, $operation:expr) => {
     #[allow(clippy::too_many_arguments)]
+    #[allow(dead_code)]
     #[tauri::command]
     pub async fn $route(
       state: tauri::State<'_, crate::AppState>,

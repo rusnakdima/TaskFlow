@@ -57,7 +57,6 @@ pub mod entity_resolution_service;
 #[path = "activity_monitor.service.rs"]
 pub mod activity_monitor_service;
 
-// Admin operations (note: admin/ directory removed - unused)
 #[path = "admin.service.rs"]
 pub mod admin_manager;
 

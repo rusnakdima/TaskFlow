@@ -18,50 +18,44 @@ use tauri_logger::{init_file_logger, log_warn, FileLogger};
 
 /* routes */
 use routes::{
-  admin_route::{get_all_admin_data, get_all_admin_paginated},
   archive_route::{get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete},
-  auth_data_sync_route::initialize_user_data,
-  auth_route::{
-    change_password, check_token, disable_totp, enable_totp, get_user_security_status, login,
-    qr_approve, qr_generate, qr_generate_for_desktop, qr_login_complete, qr_status, qr_toggle,
-    register, request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
-    verify_login_totp,
-  },
-  cascade_route::{
-    batch_hard_delete_cascade, batch_restore_cascade, batch_soft_delete_cascade, hard_remove_data,
-    soft_remove_data,
-  },
-  crud_routes::{
-    create_category, create_chat, create_comment, create_profile, create_subtask, create_task,
-    create_todo, delete_category, delete_chat, delete_comment, delete_profile, delete_subtask,
-    delete_task, delete_todo, get_categories, get_category, get_chat, get_chats, get_comment,
-    get_comments, get_profile, get_profiles, get_subtask, get_subtasks, get_task, get_tasks,
-    get_todo, get_todos, get_user, get_users, update_category, update_chat, update_comment,
-    update_profile, update_subtask, update_task, update_todo,
-  },
-  github_route::{
-    github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
-    github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
-    github_start_device_flow, github_update_issue,
-  },
-  group_route::{
-    add_group_members, add_message_reaction, create_group, delete_group, delete_group_cascade,
-    delete_message, delete_room_messages, edit_message, ensure_rooms_for_groups, get_group_by_room,
-    get_groups, get_messages_by_room, hard_delete_message, hard_delete_room_messages,
-    mark_message_read, remove_group_members, remove_message_reaction, send_message, update_group,
-  },
-  manage_db_route::{
-    batch_restore_json, batch_soft_delete_json, check_mongodb_connection,
-    cleanup_non_private_from_json, delete_from_json, export_to_cloud, get_all_from_json,
-    get_tasks_by_month, import_private_to_local, import_to_local, sync_visibility_to_provider,
+  update_route::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
+};
+
+/* commands */
+use routes::{
+  admin_command::{
+    batch_hard_delete_cascade, batch_restore_cascade, batch_restore_json,
+    batch_soft_delete_cascade, batch_soft_delete_json, check_mongodb_connection,
+    cleanup_non_private_from_json, delete_from_json, export_to_cloud, get_all_admin_data,
+    get_all_admin_paginated, get_all_from_json, get_tasks_by_month, hard_remove_data,
+    import_private_to_local, import_to_local, soft_remove_data, sync_visibility_to_provider,
     upsert_to_json, upsert_to_mongo,
   },
-  room_route::{delete_room, get_rooms},
-  statistics_route::statistics_get,
-  todo_permissions_route::{
-    change_todo_visibility, get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
+  auth_command::{
+    change_password, check_token, disable_totp, enable_totp, get_user_security_status,
+    github_check_device_flow, github_create_comment, github_create_issue, github_disconnect,
+    github_get_connection_status, github_get_repos, github_oauth_callback, github_oauth_url,
+    github_start_device_flow, github_update_issue, initialize_user_data, login, qr_approve,
+    qr_generate, qr_generate_for_desktop, qr_login_complete, qr_status, qr_toggle, register,
+    request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
+    verify_login_totp,
   },
-  update_route::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
+  group_command::{
+    add_group_members, add_message_reaction, create_group_cmd, delete_group_cascade,
+    delete_group_cmd, delete_message, delete_room_messages, edit_message, ensure_rooms_for_groups,
+    get_group_by_room, get_groups_cmd, get_messages_by_room, hard_delete_message,
+    hard_delete_room_messages, mark_message_read, remove_group_members, remove_message_reaction,
+    send_message, update_group_cmd,
+  },
+  room_command::{
+    create_room, delete_room, delete_room_cmd, get_room, get_rooms, get_rooms_cmd, update_room,
+  },
+  stats_command::statistics_get,
+  todo_command::{
+    change_todo_visibility, create_todo, delete_todo, get_todo, get_todo_permissions, get_todos,
+    transfer_todo_ownership, update_todo, update_todo_permissions,
+  },
 };
 
 /* services */
@@ -157,7 +151,7 @@ async fn search_data(
       load,
       visibility,
       user_id,
-      None, // profile_id - not available in search_data
+      None,
       page,
       limit,
     )
@@ -348,7 +342,6 @@ pub fn run() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
-  // Import entities to register their relations
   use crate::entities::category_entity::CategoryEntity;
   use crate::entities::chat_entity::ChatEntity;
   use crate::entities::comment_entity::CommentEntity;
@@ -359,10 +352,8 @@ pub fn run() {
   use crate::entities::todo_entity::TodoEntity;
   use crate::entities::user_entity::UserEntity;
 
-  // Use nosql_orm macros to auto-register relations from entity definitions
   use nosql_orm::relations::register_relations_for_entity;
 
-  // Register relations from entity macros (auto-detected from #[one_to_many], #[many_to_one], etc.)
   register_relations_for_entity::<RoomEntity>();
   register_relations_for_entity::<CategoryEntity>();
   register_relations_for_entity::<TodoEntity>();
@@ -375,7 +366,6 @@ pub fn run() {
 
   let builder = tauri::Builder::default();
 
-  // Skip frontend issues for testing - just run backend
   if std::env::var("SKIP_FRONTEND").is_ok() {
     return;
   }
@@ -632,51 +622,18 @@ pub fn run() {
       create_todo,
       update_todo,
       delete_todo,
-      get_task,
-      get_tasks,
-      create_task,
-      update_task,
-      delete_task,
-      get_subtask,
-      get_subtasks,
-      create_subtask,
-      update_subtask,
-      delete_subtask,
-      get_category,
-      get_categories,
-      create_category,
-      update_category,
-      delete_category,
-      get_chat,
-      get_chats,
-      create_chat,
-      update_chat,
-      delete_chat,
-      get_comment,
-      get_comments,
-      create_comment,
-      update_comment,
-      delete_comment,
-      get_profile,
-      get_profiles,
-      create_profile,
-      update_profile,
-      delete_profile,
-      get_user,
-      get_users,
-      sync_data,
-      change_todo_visibility,
-      get_todo_permissions,
-      update_todo_permissions,
-      transfer_todo_ownership,
+      get_room,
       get_rooms,
+      create_room,
+      update_room,
+      delete_room,
       get_group_by_room,
-      get_groups,
-      create_group,
-      update_group,
+      get_groups_cmd,
+      create_group_cmd,
+      update_group_cmd,
       add_group_members,
       remove_group_members,
-      delete_group,
+      delete_group_cmd,
       delete_group_cascade,
       ensure_rooms_for_groups,
       get_messages_by_room,
@@ -687,7 +644,7 @@ pub fn run() {
       edit_message,
       add_message_reaction,
       remove_message_reaction,
-      delete_room,
+      delete_room_cmd,
       delete_room_messages,
       hard_delete_room_messages,
       getBinaryNameFile,
@@ -695,6 +652,13 @@ pub fn run() {
       openFile,
       installUpdate,
       getCurrentVersion,
+      sync_data,
+      change_todo_visibility,
+      get_todo_permissions,
+      update_todo_permissions,
+      transfer_todo_ownership,
+      get_rooms_cmd,
+      delete_room_cmd,
       search_data,
       get_notifications,
       create_notification,

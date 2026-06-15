@@ -1,3 +1,11 @@
+use crate::crud_route;
+
+crud_route!(get_group, "groups", "get");
+crud_route!(get_groups, "groups", "getAll");
+crud_route!(create_group, "groups", "create");
+crud_route!(update_group, "groups", "update");
+crud_route!(delete_group, "groups", "delete");
+
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::auth_helper::extract_user_from_token;
 use crate::helpers::response_helper::{err_response, success_response};
@@ -20,7 +28,7 @@ pub async fn get_group_by_room(
 }
 
 #[tauri::command]
-pub async fn get_groups(
+pub async fn get_groups_cmd(
   state: State<'_, AppState>,
   user_id: String,
   token: Option<String>,
@@ -50,7 +58,7 @@ pub async fn get_groups(
 }
 
 #[tauri::command]
-pub async fn create_group(
+pub async fn create_group_cmd(
   state: State<'_, AppState>,
   name: String,
   room_id: String,
@@ -82,7 +90,7 @@ pub async fn create_group(
 }
 
 #[tauri::command]
-pub async fn update_group(
+pub async fn update_group_cmd(
   state: State<'_, AppState>,
   id: String,
   name: Option<String>,
@@ -151,7 +159,7 @@ pub async fn remove_group_members(
 }
 
 #[tauri::command]
-pub async fn delete_group(
+pub async fn delete_group_cmd(
   state: State<'_, AppState>,
   id: String,
   token: Option<String>,
