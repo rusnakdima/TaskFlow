@@ -1,5 +1,4 @@
 /* imports */
-mod constants;
 mod entities;
 mod helpers;
 mod providers;
@@ -67,7 +66,6 @@ use services::{
   cascade::{CascadeService, CountService},
   category_service::CategoryService,
   chat_service::ChatService,
-  comment_service::CommentService,
   entity_resolution_service::EntityResolutionService,
   group_service::GroupService,
   manage_db_service::ManageDbService,
@@ -462,10 +460,6 @@ pub fn run() {
         mongo_data_provider.clone(),
       ));
       let subtask_service = Arc::new(SubtaskService::new(
-        data_provider.clone(),
-        mongo_data_provider.clone(),
-      ));
-      let _comment_service = Arc::new(CommentService::new(
         data_provider.clone(),
         mongo_data_provider.clone(),
       ));

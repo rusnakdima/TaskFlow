@@ -393,7 +393,7 @@ pub async fn sync_visibility_to_provider(
   if source_provider == "Json" && target_provider == "Mongo" {
     if delete_from_src {
       cascade_service
-        .sync_entity_to_mongo_and_delete_from_source(table, &todo_id)
+        .sync_entity_to_json_and_delete_from_source(table, &todo_id)
         .await?;
     } else if table == "todos" {
       let visibility = new_visibility
@@ -556,7 +556,7 @@ pub async fn get_all_from_json(
   table: String,
   limit: Option<u64>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let effective_limit = limit.unwrap_or(crate::constants::MAX_PAGE_SIZE);
+  let effective_limit = limit.unwrap_or(100);
   state
     .system
     .manage_db_service

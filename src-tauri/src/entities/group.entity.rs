@@ -11,7 +11,6 @@ use nosql_orm::{Model, Validate};
 #[timestamp]
 #[index("owner_id", 1)]
 #[index("room_id", 1)]
-#[allow(dead_code)]
 pub struct GroupEntity {
   pub id: Option<String>,
   pub name: String,
@@ -29,7 +28,6 @@ pub struct GroupEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[allow(dead_code)]
 pub struct GroupCreateModel {
   #[validate(required)]
   pub name: String,
