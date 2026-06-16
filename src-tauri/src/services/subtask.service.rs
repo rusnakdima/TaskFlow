@@ -3,41 +3,29 @@ use crate::helpers::cascade::soft_delete_cascade_all;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::helpers::visibility::get_visibility;
 use crate::providers::data_provider::DataProvider;
+use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use serde_json::{json, Value};
 
 pub struct SubtaskService {
-  json_provider: DataProvider,
-  mongo_provider: Option<DataProvider>,
+  base: BaseCrudService,
 }
 
 impl SubtaskService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
-      json_provider,
-      mongo_provider,
+      base: BaseCrudService::new(json_provider, mongo_provider),
     }
   }
 
   fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
-    let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
-    let use_json = visibility == "private" || offline || visibility == "all";
-
-    if use_json {
-      Ok(self.json_provider.clone())
-    } else {
-      match self.mongo_provider.clone() {
-        Some(p) => Ok(p),
-        None => Err(err_response(
-          "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
-        )),
-      }
-    }
+    self.base.get_provider(visibility)
   }
 
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;
@@ -191,7 +179,8 @@ impl SubtaskService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;
@@ -226,7 +215,8 @@ impl SubtaskService {
 
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
-      .json_provider
+      .base
+      .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
       .ok_or_else(|| err_response("Subtask not found"))?;

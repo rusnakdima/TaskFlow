@@ -1,5 +1,8 @@
 pub mod repository;
 
+#[path = "base-crud.service.rs"]
+pub mod base_crud_service;
+
 #[path = "manage-db.service.rs"]
 pub mod manage_db_service;
 

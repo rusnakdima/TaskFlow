@@ -4,7 +4,7 @@ const AUTH_TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
 @Injectable({ providedIn: "root" })
-export class StorageService {
+export class AuthTokenService {
   getAuthToken(): string | null {
     return localStorage.getItem(AUTH_TOKEN_KEY);
   }
