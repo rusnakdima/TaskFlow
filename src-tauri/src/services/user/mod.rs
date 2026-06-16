@@ -1,2 +1,2 @@
-#[path = "user_sync.service.rs"]
+#[path = "user-sync.service.rs"]
 pub mod user_sync;

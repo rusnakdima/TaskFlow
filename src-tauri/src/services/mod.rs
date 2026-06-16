@@ -1,6 +1,6 @@
 pub mod repository;
 
-#[path = "manage_db.service.rs"]
+#[path = "manage-db.service.rs"]
 pub mod manage_db_service;
 
 #[path = "notification.service.rs"]
@@ -30,7 +30,7 @@ pub mod group_service;
 #[path = "room.service.rs"]
 pub mod room_service;
 
-#[path = "db_backup.service.rs"]
+#[path = "db-backup.service.rs"]
 pub mod db_backup;
 
 // Special services (not CRUD)
@@ -48,10 +48,10 @@ pub mod about_service;
 // Refactored from crud.service.rs - now modularized
 pub mod cascade;
 
-#[path = "entity_resolution.service.rs"]
+#[path = "entity-resolution.service.rs"]
 pub mod entity_resolution_service;
 
-#[path = "activity_monitor.service.rs"]
+#[path = "activity-monitor.service.rs"]
 pub mod activity_monitor_service;
 
 #[path = "admin.service.rs"]

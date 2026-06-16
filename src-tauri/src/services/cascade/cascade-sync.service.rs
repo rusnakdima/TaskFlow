@@ -8,7 +8,7 @@ use crate::entities::response_entity::ResponseModel;
 
 use crate::helpers::response_helper::err_response_formatted;
 
-use super::CascadeService;
+use super::{CascadeResult, CascadeService};
 
 fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
   if let serde_json::Value::Object(obj) = value {

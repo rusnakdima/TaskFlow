@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use nosql_orm::query::Filter;
 
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::{response_helper::err_response, security_helper::security_projection};
+use crate::helpers::{response_helper::err_response, security::security_projection};
 use crate::providers::data_provider::DataProvider;
 use crate::providers::json_provider::JsonProvider;
 use crate::providers::mongodb_provider::MongoProvider;

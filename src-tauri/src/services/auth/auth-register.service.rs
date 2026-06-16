@@ -23,7 +23,7 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::response_helper::err_response;
-use crate::helpers::timestamp_helper::get_current_datetime;
+use crate::helpers::timestamp::get_current_datetime;
 
 #[derive(Clone)]
 pub struct AuthRegisterService {

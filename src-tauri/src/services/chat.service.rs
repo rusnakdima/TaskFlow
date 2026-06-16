@@ -1,6 +1,6 @@
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::visibility_helper::get_visibility;
+use crate::helpers::visibility::get_visibility;
 use crate::providers::data_provider::DataProvider;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;

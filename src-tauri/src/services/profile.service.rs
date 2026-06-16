@@ -156,7 +156,7 @@ impl ProfileService {
   ) -> Result<ResponseModel, ResponseModel> {
     use crate::entities::table_entity::validate_model;
     use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
-    use crate::helpers::user_sync_helper;
+    use crate::helpers::user_sync;
 
     let validated_profile = validate_model("profiles", &profile_data, true, None)
       .map_err(|e| err_response_formatted("Profile validation failed", &e))?;
@@ -193,7 +193,7 @@ impl ProfileService {
       .unwrap_or_default()
       .to_string();
 
-    user_sync_helper::update_user_profile_id_both(
+    user_sync::update_user_profile_id_both(
       &self.json_provider,
       self.mongodb_provider.as_ref(),
       &user_id,

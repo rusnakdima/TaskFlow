@@ -15,7 +15,7 @@ use crate::entities::todo_entity::TodoEntity;
 use crate::helpers::response_helper::err_response_formatted;
 use crate::services::activity_monitor_service::ActivityMonitorService;
 
-use super::CascadeService;
+use super::{CascadeResult, CascadeService};
 
 impl CascadeService {
   pub async fn soft_delete_cascade_json(

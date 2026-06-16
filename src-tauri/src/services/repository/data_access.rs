@@ -16,8 +16,8 @@ use crate::helpers::{
   load_param::parse_load_param,
   relation_stripper::strip_relation_fields,
   response_helper::{err_response, err_response_formatted, success_response},
-  security_helper::security_projection,
-  user_sync_helper,
+  security::security_projection,
+  user_sync,
 };
 use crate::providers::data_provider::DataProvider;
 use crate::providers::json_provider::JsonProvider;
@@ -957,7 +957,7 @@ impl RepositoryService {
             let _ = profile_service
               .sync_profile_to_cloud(profile_id_clone.clone())
               .await;
-            let _ = user_sync_helper::update_user_profile_id_both(
+            let _ = user_sync::update_user_profile_id_both(
               &json_provider,
               mongo_provider.as_ref(),
               &user_id_clone,

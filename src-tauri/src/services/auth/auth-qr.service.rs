@@ -11,8 +11,8 @@ use crate::entities::{
   user_entity::UserEntity,
 };
 use crate::helpers::{
-  profile_helper::check_profile_exists,
-  qr_helper,
+  profile::check_profile_exists,
+  qr,
   response_helper::{err_response, success_response},
 };
 use nosql_orm::provider::DatabaseProvider;
@@ -299,7 +299,7 @@ impl QrAuthService {
   }
 
   fn generate_qr_code_image(&self, data: &str) -> String {
-    qr_helper::generate_qr_code_data_url(data)
+    qr::generate_qr_code_data_url(data)
   }
 
   async fn find_qr_token(&self, token: &str) -> Result<QrToken, ResponseModel> {
