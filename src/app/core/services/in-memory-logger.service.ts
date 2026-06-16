@@ -13,19 +13,19 @@ export interface LogEntry {
   data?: unknown;
 }
 
-export class LoggerService {
-  private static instance: LoggerService;
+export class InMemoryLoggerService {
+  private static instance: InMemoryLoggerService;
   private logs: LogEntry[] = [];
   private maxEntries = 1000;
   private currentLevel: LogLevel = LogLevel.Info;
 
   private constructor() {}
 
-  static getInstance(): LoggerService {
-    if (!LoggerService.instance) {
-      LoggerService.instance = new LoggerService();
+  static getInstance(): InMemoryLoggerService {
+    if (!InMemoryLoggerService.instance) {
+      InMemoryLoggerService.instance = new InMemoryLoggerService();
     }
-    return LoggerService.instance;
+    return InMemoryLoggerService.instance;
   }
 
   setLevel(level: LogLevel): void {

@@ -8,11 +8,13 @@ export class LoggerService {
   private logger = getLoggingService();
 
   debug(message: string, context?: Record<string, unknown>, data?: unknown): void {
-    this.logger.debug(message, context, data);
+    const merged = data ? { ...context, data } : context;
+    this.logger.debug(message, merged);
   }
 
   warn(message: string, context?: Record<string, unknown>, data?: unknown): void {
-    this.logger.warn(message, context, data);
+    const merged = data ? { ...context, data } : context;
+    this.logger.warn(message, merged);
   }
 
   error(message: string, error?: unknown, context?: Record<string, unknown>): void {
@@ -20,7 +22,8 @@ export class LoggerService {
   }
 
   info(message: string, context?: Record<string, unknown>, data?: unknown): void {
-    this.logger.info(message, context, data);
+    const merged = data ? { ...context, data } : context;
+    this.logger.info(message, merged);
   }
 
   startOperation(name: string, context?: Record<string, unknown>): string {
