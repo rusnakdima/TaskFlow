@@ -24,13 +24,13 @@ import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { BulkActionService } from "@services/bulk-action.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { ApiService } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@models/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
 

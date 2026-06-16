@@ -10,7 +10,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { TaskStatus } from "@models/generated/api.types";
 
 /* services */
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 

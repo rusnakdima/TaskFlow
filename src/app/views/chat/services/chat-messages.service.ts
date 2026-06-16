@@ -3,7 +3,7 @@ import { Observable } from "rxjs";
 import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Chat, Profile } from "@models/generated/api.types";
 import { ChatMessage } from "@models/chat.model";

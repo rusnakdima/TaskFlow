@@ -20,8 +20,8 @@ import { Profile } from "@models/generated/api.types";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 import { ThemeService } from "@services/ui/theme.service";
 

@@ -6,7 +6,7 @@ import { BulkActionService } from "@services/bulk-action.service";
 import { ApiService } from "@services/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 
 export type ViewMode = "card" | "grid" | "table" | "list" | "kanban";
 
