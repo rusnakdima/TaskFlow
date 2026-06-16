@@ -306,7 +306,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
 ];
 
 import { TaskStatus } from "@models/generated/api.types";
-import { TodoPermission } from "@services/core/permission.service";
+import { TodoPermission } from "@core/services/permission.service";
 
 export const TableFieldColors = {
   boolean: { true: "text-green-600!", false: "text-gray-400!" },

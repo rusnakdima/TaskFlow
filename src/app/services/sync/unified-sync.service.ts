@@ -15,9 +15,9 @@ import { TokenStorageHelper } from "@helpers/token-storage.helper";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { SyncProgressService } from "@services/core/sync-progress.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { SyncProgressService } from "@core/services/sync-progress.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Injectable({
