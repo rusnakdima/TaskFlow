@@ -3,7 +3,7 @@ import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
-import { SearchService } from "@services/core/search.service";
+import { SearchService } from "@core/services/search.service";
 
 @Injectable({ providedIn: "root" })
 export class TodosStateService {

@@ -18,7 +18,7 @@ import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { ThemeService } from "@services/ui/theme.service";
-import { SearchService } from "@services/core/search.service";
+import { SearchService } from "@core/services/search.service";
 
 type CommandCategory =
   | "page"

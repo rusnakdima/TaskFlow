@@ -5,7 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 
 /* models */
 import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
-import { TodoPermission } from "@services/core/permission.service";
+import { TodoPermission } from "@core/services/permission.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";

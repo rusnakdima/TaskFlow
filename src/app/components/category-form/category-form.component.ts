@@ -32,7 +32,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Component({

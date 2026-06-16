@@ -29,7 +29,7 @@ import { TableField } from "@models/table-field.model";
 import { ActionColors } from "@shared/utils/constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
 
 @Component({
   selector: "app-item-card",
