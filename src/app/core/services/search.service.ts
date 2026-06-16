@@ -4,8 +4,8 @@ import { takeUntil } from "rxjs/operators";
 import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
-import { ProfileSearchService } from "@services/core/profile-search.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
+import { ProfileSearchService } from "@core/services/profile-search.service";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 
 export type SearchableEntity = "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories";

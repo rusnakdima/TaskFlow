@@ -16,7 +16,7 @@ import {
 /* services */
 import { BaseStorageService } from "./base-storage.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
-import { AdminDataWithRelations } from "@services/core/admin-data.service";
+import { AdminDataWithRelations } from "@core/services/admin-data.service";
 
 export abstract class BaseAdminStorageService extends BaseStorageService {
   // Common data signals
