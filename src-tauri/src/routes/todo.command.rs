@@ -8,7 +8,7 @@ crud_route!(delete_todo, "todos", "delete");
 
 use crate::entities::response_entity::ResponseModel;
 use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::visibility_helper::get_visibility;
+use crate::helpers::visibility::get_visibility;
 use crate::AppState;
 use std::collections::HashMap;
 use tauri::State;
@@ -20,7 +20,7 @@ pub async fn change_todo_visibility(
   new_visibility: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = crate::helpers::auth_helper::extract_user_from_token(
+  let user_id = crate::helpers::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config.config_helper.jwt_secret,
   )
@@ -116,7 +116,7 @@ pub async fn update_todo_permissions(
   assignee_roles: HashMap<String, String>,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = crate::helpers::auth_helper::extract_user_from_token(
+  let user_id = crate::helpers::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config.config_helper.jwt_secret,
   )
@@ -153,7 +153,7 @@ pub async fn transfer_todo_ownership(
   new_user_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = crate::helpers::auth_helper::extract_user_from_token(
+  let user_id = crate::helpers::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config.config_helper.jwt_secret,
   )
@@ -189,7 +189,7 @@ pub async fn get_todo_permissions(
   todo_id: String,
   token: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
-  let user_id = crate::helpers::auth_helper::extract_user_from_token(
+  let user_id = crate::helpers::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
     &state.config.config_helper.jwt_secret,
   )

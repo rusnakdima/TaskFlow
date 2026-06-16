@@ -7,7 +7,7 @@ crud_route!(update_room, "rooms", "update");
 crud_route!(delete_room, "rooms", "delete");
 
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
+use crate::helpers::auth::extract_user_from_token;
 use crate::AppState;
 use tauri::State;
 

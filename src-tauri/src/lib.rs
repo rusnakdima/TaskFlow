@@ -125,7 +125,7 @@ async fn search_data(
   load: Option<String>,
   _offline: Option<bool>,
 ) -> Result<ResponseModel, String> {
-  use crate::helpers::auth_helper::extract_user_from_token;
+  use crate::helpers::auth::extract_user_from_token;
 
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),

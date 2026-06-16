@@ -18,7 +18,7 @@ macro_rules! crud_route {
       crate::entities::response_entity::ResponseModel,
       crate::entities::response_entity::ResponseModel,
     > {
-      use crate::helpers::auth_helper::{extract_profile_from_token, extract_user_from_token};
+      use crate::helpers::auth::{extract_profile_from_token, extract_user_from_token};
       use crate::helpers::response_helper::err_response;
 
       let user_id = extract_user_from_token(
