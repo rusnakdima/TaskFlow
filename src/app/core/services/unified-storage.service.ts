@@ -22,7 +22,7 @@ import { ConversationItem, ChatMessage } from "@models/chat.model";
 import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { LoggerService } from "@shared/services/logger.service";
 
 /* utils */
