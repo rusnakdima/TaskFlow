@@ -19,7 +19,7 @@ use crate::entities::{
 
 /* helpers */
 use crate::helpers::{
-  qr_helper,
+  qr,
   response_helper::{err_response, err_response_formatted, success_response},
 };
 
@@ -56,7 +56,7 @@ impl AuthTotpService {
       "otpauth://totp/TaskFlow:{}?secret={}&issuer=TaskFlow",
       email, secret
     );
-    qr_helper::generate_qr_code_data_url(&otpauth)
+    qr::generate_qr_code_data_url(&otpauth)
   }
 
   fn decode_base32_secret(secret: &str) -> Option<Vec<u8>> {
@@ -292,7 +292,7 @@ impl AuthTotpService {
   }
 
   async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    crate::helpers::auth_helper::find_user_by_username(
+    crate::helpers::auth::find_user_by_username(
       &self.json_provider,
       self.mongodb_provider.as_ref(),
       username,

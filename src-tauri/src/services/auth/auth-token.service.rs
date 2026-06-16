@@ -19,7 +19,7 @@ use crate::services::auth::auth_data_sync::AuthDataSyncService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* helpers */
-use crate::helpers::auth_helper::Claims;
+use crate::helpers::auth::Claims;
 use crate::helpers::response_helper::err_response;
 
 #[derive(Clone)]

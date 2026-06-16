@@ -18,7 +18,7 @@ use crate::entities::{
 };
 
 /* helpers */
-use crate::helpers::{auth_helper::find_user_by_username, response_helper::err_response};
+use crate::helpers::{auth::find_user_by_username, response_helper::err_response};
 
 #[derive(Clone)]
 pub struct AuthLoginService {

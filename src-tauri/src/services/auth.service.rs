@@ -119,7 +119,7 @@ impl AuthService {
     jwt_secret: &str,
     new_password: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user_id = crate::helpers::auth_helper::extract_user_from_token(token, jwt_secret)?;
+    let user_id = crate::helpers::auth::extract_user_from_token(token, jwt_secret)?;
     self
       .password_service
       .change_password(user_id, new_password)
