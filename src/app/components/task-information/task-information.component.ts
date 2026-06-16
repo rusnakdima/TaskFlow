@@ -20,7 +20,7 @@ import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 
 /* components */
 import {

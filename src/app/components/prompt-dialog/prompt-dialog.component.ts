@@ -1,7 +1,7 @@
 import { Component, inject, signal, ViewChild, ElementRef, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { PromptDialogService } from "@services/core/prompt-dialog.service";
+import { PromptDialogService } from "@core/services/prompt-dialog.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({

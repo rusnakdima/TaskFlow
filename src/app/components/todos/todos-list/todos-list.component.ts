@@ -27,7 +27,7 @@ import { TodosStateService } from "../todos-filters/todos-state.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { TABLE_ACTIONS } from "@shared/utils/constants";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 @Component({

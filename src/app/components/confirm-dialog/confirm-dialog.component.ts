@@ -1,6 +1,6 @@
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({

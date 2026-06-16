@@ -26,7 +26,7 @@ import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/
 /* models */
 import { SubtaskCommentGroup } from "@models/comment-ext.model";
 import { Comment, Todo } from "@models/generated/api.types";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";

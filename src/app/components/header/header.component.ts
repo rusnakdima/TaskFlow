@@ -31,7 +31,7 @@ import { NotificationAction } from "@models/notification.model";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-import { AppStateService } from "@services/core/app-state.service";
+import { AppStateService } from "@core/services/app-state.service";
 import { ThemeService } from "@services/ui/theme.service";
 
 /* helpers */

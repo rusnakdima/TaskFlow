@@ -5,7 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
 
 /* services */
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
 
 @Component({
   selector: "app-connection-status",

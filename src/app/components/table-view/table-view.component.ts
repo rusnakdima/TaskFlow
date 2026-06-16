@@ -30,7 +30,7 @@ import { DateHelper } from "@helpers/date.helper";
 /* services */
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { LoggerService } from "@shared/services/logger.service";
 
 /* components */
