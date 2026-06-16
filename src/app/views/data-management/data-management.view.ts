@@ -26,17 +26,17 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 
 /* services */
-import { EntityStoreService } from "@services/core/entity-store.service";
-import { AdminStorageService } from "@services/core/admin-storage.service";
-import { ArchiveStorageService } from "@services/core/archive-storage.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
+import { AdminStorageService } from "@core/services/admin-storage.service";
+import { ArchiveStorageService } from "@core/services/archive-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AdminService } from "@services/data/admin.service";
 import { AdminCascadeService } from "@services/admin/admin-cascade.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { ApiService } from "@services/api.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-import { TodoPermission } from "@services/core/permission.service";
-import { VisibilitySyncService } from "@services/core/visibility-sync.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
+import { TodoPermission } from "@core/services/permission.service";
+import { VisibilitySyncService } from "@core/services/visibility-sync.service";
 
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";

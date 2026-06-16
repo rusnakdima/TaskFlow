@@ -34,13 +34,13 @@ import { Visibility } from "@services/api.service";
 import { ApiService } from "@services/api.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 
-import { AppStateService } from "@services/core/app-state.service";
+import { AppStateService } from "@core/services/app-state.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
-import { PromptDialogService } from "@services/core/prompt-dialog.service";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { PromptDialogService } from "@core/services/prompt-dialog.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { SearchService } from "@services/core/search.service";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { SearchService } from "@core/services/search.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";

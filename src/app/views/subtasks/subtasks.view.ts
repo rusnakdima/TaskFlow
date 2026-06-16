@@ -10,8 +10,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 import { BaseListView } from "@views/base-list.view";
-import { AppStateService } from "@services/core/app-state.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { AppStateService } from "@core/services/app-state.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { BulkActionService } from "@services/bulk-action.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
@@ -27,9 +27,9 @@ import { Todo } from "@models/generated/api.types";
 import { Chat } from "@models/generated/api.types";
 import { CommentService } from "@services/features/comment.service";
 import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
-import { SearchService } from "@services/core/search.service";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
+import { SearchService } from "@core/services/search.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 
 import { FilterField } from "@models/filter-config.model";
 import { TableField, TableFieldActionButton } from "@models/table-field.model";

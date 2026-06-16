@@ -12,15 +12,15 @@ import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { GithubService } from "@services/github/github.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { TransferOwnershipDialogComponent } from "@components/transfer-ownership-dialog/transfer-ownership-dialog.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-import { PermissionService, TodoPermission } from "@services/core/permission.service";
+import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { LoggerService } from "@shared/services/logger.service";
 
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";

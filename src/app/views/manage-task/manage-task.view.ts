@@ -10,7 +10,7 @@ import { Todo } from "@models/generated/api.types";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { GithubService } from "@services/github/github.service";
 import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";

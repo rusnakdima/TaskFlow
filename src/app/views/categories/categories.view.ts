@@ -23,10 +23,10 @@ import {
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
-import { RelationLoadingService } from "@services/core/relation-loading.service";
-import { SearchService } from "@services/core/search.service";
-import { EntityStoreService } from "@services/core/entity-store.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
+import { RelationLoadingService } from "@core/services/relation-loading.service";
+import { SearchService } from "@core/services/search.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 import { ApiService } from "@services/api.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
 

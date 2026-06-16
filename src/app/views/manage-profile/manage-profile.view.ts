@@ -15,8 +15,8 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
-import { UnifiedStorageService } from "@services/core/unified-storage.service";
-import { ProfileRequiredService } from "@services/core/profile-required.service";
+import { UnifiedStorageService } from "@core/services/unified-storage.service";
+import { ProfileRequiredService } from "@core/services/profile-required.service";
 
 interface ProfileMetadata {
   _id: string;

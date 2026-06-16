@@ -3,7 +3,7 @@ import { ConversationItem, ChatMessage, FilterType, EmojiTab } from "@models/cha
 import { Profile } from "@models/generated/api.types";
 import { AuthService } from "@services/auth/auth.service";
 import { ThemeService } from "@services/ui/theme.service";
-import { ProfileSearchService } from "@services/core/profile-search.service";
+import { ProfileSearchService } from "@core/services/profile-search.service";
 import { formatTime } from "@utils/format-time.util";
 
 @Injectable({ providedIn: "root" })
