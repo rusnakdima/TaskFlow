@@ -1,3 +1,3 @@
 pub mod response;
 
-pub use response::{Response, Status};
+pub use response::{ResponseModel, ResponseStatus};
