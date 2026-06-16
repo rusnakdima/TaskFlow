@@ -28,6 +28,7 @@
       "@providers/*": ["./src/app/providers/*"],
       "@resolvers/*": ["./src/app/features/tasks/services/*"],
       "@services/*": ["./src/app/services/*"],
+      "@core/*": ["./src/app/core/*"],
       "@env/*": ["./src/environments/*"],
       "@components/*": ["./src/app/components/*"],
       "@views/*": ["./src/app/views/*"],

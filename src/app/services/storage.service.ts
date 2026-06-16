@@ -20,16 +20,16 @@ import {
   ChildType,
   PaginationState,
 } from "@models/storage.model";
-import { AdminDataWithRelations } from "@services/core/admin-data.service";
+import { AdminDataWithRelations } from "@core/services/admin-data.service";
 
 /* services */
-import { CascadeService } from "@services/core/cascade.service";
+import { CascadeService } from "@core/services/cascade.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
-import { StorageEntityService } from "@services/core/storage-entity.service";
-import { StorageCacheService } from "@services/core/storage-cache.service";
-import { StorageQueryService } from "@services/core/storage-query.service";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { StorageEntityService } from "@core/services/storage-entity.service";
+import { StorageCacheService } from "@core/services/storage-cache.service";
+import { StorageQueryService } from "@core/services/storage-query.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
 
 /* utils */
 import { deduplicateById, groupByKey, createGroupedMap } from "@stores/utils/store-helpers";

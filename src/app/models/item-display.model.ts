@@ -29,7 +29,7 @@ export type ItemDisplayType =
   | "comment-toggle";
 
 import { TableField } from "./table-field.model";
-import { TodoPermission } from "@services/core/permission.service";
+import { TodoPermission } from "@core/services/permission.service";
 
 export interface ItemDisplayConfig {
   key: string;

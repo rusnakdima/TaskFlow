@@ -5,7 +5,7 @@ import { ResponseStatus } from "@models/response.model";
 import { ApiService, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
-import { ConfirmDialogService } from "@services/core/confirm-dialog.service";
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 
 import { NotifyService } from "@services/notifications/notify.service";
 import { GithubService } from "@services/github/github.service";

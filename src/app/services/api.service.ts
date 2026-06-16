@@ -13,7 +13,7 @@ import {
   User,
   Group,
 } from "@models/generated/api.types";
-import { MongoConnectionService } from "@services/core/mongo-connection.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
