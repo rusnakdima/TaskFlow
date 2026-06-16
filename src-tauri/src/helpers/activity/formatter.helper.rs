@@ -1,5 +1,5 @@
 use crate::entities::daily_activity_entity::DailyActivityModel;
-use crate::helpers::percentage_helper::calculate_percentage;
+use crate::helpers::percentage::calculate_percentage;
 
 pub struct ActivityFormatter;
 
