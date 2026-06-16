@@ -130,7 +130,7 @@ pub async fn get_user_security_status(
 ) -> Result<ResponseModel, ResponseModel> {
   use crate::entities::response_entity::{ResponseModel, ResponseStatus};
 
-  let user = crate::helpers::auth_helper::find_user_by_username(
+  let user = crate::helpers::auth::find_user_by_username(
     &state.config.json_provider,
     state.config.mongodb_provider.as_ref(),
     &username,

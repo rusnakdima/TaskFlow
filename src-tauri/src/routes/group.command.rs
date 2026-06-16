@@ -7,7 +7,7 @@ crud_route!(update_group, "groups", "update");
 crud_route!(delete_group, "groups", "delete");
 
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::extract_user_from_token;
+use crate::helpers::auth::extract_user_from_token;
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::AppState;
 use tauri::State;

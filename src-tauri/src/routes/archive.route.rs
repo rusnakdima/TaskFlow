@@ -1,5 +1,5 @@
 use crate::entities::response_entity::ResponseModel;
-use crate::helpers::auth_helper::{extract_user_from_token, validate_admin_role};
+use crate::helpers::auth::{extract_user_from_token, validate_admin_role};
 use crate::helpers::response_helper::{err_response, success_response};
 use crate::providers::data_provider::DataProvider;
 use crate::AppState;
