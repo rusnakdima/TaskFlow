@@ -1,5 +1,7 @@
 import { Injectable } from "@angular/core";
 
+export type StorageValidator<T> = (value: unknown) => value is T;
+
 export const STORAGE_KEYS = {
   SETTINGS: "taskflow-settings",
   PROJECT_ORDER: "taskflow-project-order",
@@ -11,28 +13,28 @@ export const STORAGE_KEYS = {
 
 @Injectable({ providedIn: "root" })
 export class LocalStorageService {
-  get<T>(key: string): T | null {
-    const stored = localStorage.getItem(key);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored) as T;
-    } catch {
-      return null;
-    }
-  }
+  get<T>(key: string, defaultValue: T, validator?: StorageValidator<T>): T {
+    const storedValue = localStorage.getItem(key);
 
-  getOrSet<T>(key: string, defaultValue: T): T {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        return JSON.parse(stored) as T;
-      } catch {
-        return defaultValue;
-      }
+    if (!storedValue) {
+      return defaultValue;
     }
-    const value = defaultValue;
-    localStorage.setItem(key, JSON.stringify(value));
-    return value;
+
+    try {
+      const parsed = JSON.parse(storedValue);
+
+      if (validator && validator(parsed)) {
+        return parsed;
+      }
+
+      if (!validator) {
+        return parsed as T;
+      }
+
+      return defaultValue;
+    } catch {
+      return defaultValue;
+    }
   }
 
   set<T>(key: string, value: T): void {

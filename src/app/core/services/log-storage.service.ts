@@ -2,6 +2,7 @@ import { Injectable, inject, OnDestroy } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
 import { LoggerService } from "@shared/services/logger.service";
+import { logger } from "@services/logger.service";
 import { environment } from "@env/environment";
 
 interface LogEntry {
@@ -153,7 +154,7 @@ export function createLogEntry(
     level,
     service,
     operation,
-    request_id: getLoggingService().generateRequestId(),
+    request_id: crypto.randomUUID(),
     user_id: null,
     duration_ms: durationMs ?? null,
     data: data ?? null,

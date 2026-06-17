@@ -87,10 +87,11 @@ export const routes: Routes = [
       },
       {
         path: "admin",
+        canActivate: [canActivateAuth],
         loadComponent: () =>
           import("@views/data-management/data-management.view").then((m) => m.DataManagementView),
         title: "Admin",
-        data: { breadcrumb: "Admin", mode: "admin" },
+        data: { breadcrumb: "Admin", mode: "admin", expectedRoles: ["admin"] },
       },
       {
         path: "archive",

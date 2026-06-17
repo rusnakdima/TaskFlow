@@ -2,7 +2,7 @@ import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@models/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { ProjectTemplate, TemplateTask } from "@models/template.model";
-import { getLoggingService } from "@tauri-apps/logger";
+import { logger } from "@services/logger.service";
 
 export { ProjectTemplate, TemplateTask } from "@models/template.model";
 
@@ -12,7 +12,7 @@ export { ProjectTemplate, TemplateTask } from "@models/template.model";
 export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
   private storageService = inject(StorageService);
-  private loggingService = getLoggingService();
+
 
   templates = signal<ProjectTemplate[]>([]);
 
@@ -26,7 +26,7 @@ export class TemplateService {
       try {
         this.templates.set(JSON.parse(stored));
       } catch (error) {
-        this.loggingService.error("Failed to load templates", error);
+        logger.error("Failed to load templates: " + String(error));
       }
     }
   }

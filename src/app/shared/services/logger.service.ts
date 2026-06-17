@@ -1,36 +1,38 @@
 import { Injectable } from "@angular/core";
-import { getLoggingService } from "@tauri-apps/logger";
+import { logger } from "@services/logger.service";
 
 @Injectable({
   providedIn: "root",
 })
 export class LoggerService {
-  private logger = getLoggingService();
-
   debug(message: string, context?: Record<string, unknown>, data?: unknown): void {
     const merged = data ? { ...context, data } : context;
-    this.logger.debug(message, merged);
+    logger.debug(merged ? JSON.stringify(merged) : message);
   }
 
   warn(message: string, context?: Record<string, unknown>, data?: unknown): void {
     const merged = data ? { ...context, data } : context;
-    this.logger.warn(message, merged);
+    logger.warn(merged ? JSON.stringify(merged) : message);
   }
 
   error(message: string, error?: unknown, context?: Record<string, unknown>): void {
-    this.logger.error(message, error, context);
+    const errorStr = error ? ` ${JSON.stringify(error)}` : "";
+    const contextStr = context ? ` ${JSON.stringify(context)}` : "";
+    logger.error(message + errorStr + contextStr);
   }
 
   info(message: string, context?: Record<string, unknown>, data?: unknown): void {
     const merged = data ? { ...context, data } : context;
-    this.logger.info(message, merged);
+    logger.info(merged ? JSON.stringify(merged) : message);
   }
 
   startOperation(name: string, context?: Record<string, unknown>): string {
-    return this.logger.startOperation(name, context);
+    logger.info(`Operation started: ${name}${context ? ` ${JSON.stringify(context)}` : ""}`);
+    return name;
   }
 
-  completeOperation(name: string, operationId: string, success?: boolean, data?: unknown): void {
-    this.logger.completeOperation(name, operationId, success, data);
+  completeOperation(name: string, _operationId: string, success?: boolean, data?: unknown): void {
+    const status = success === false ? "failed" : "completed";
+    logger.info(`Operation ${status}: ${name}${data ? ` ${JSON.stringify(data)}` : ""}`);
   }
 }
