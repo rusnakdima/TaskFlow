@@ -34,7 +34,6 @@ export class NotifyService implements OnDestroy {
   private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
-
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
 

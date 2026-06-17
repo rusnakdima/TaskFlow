@@ -13,7 +13,6 @@ export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
   private storageService = inject(StorageService);
 
-
   templates = signal<ProjectTemplate[]>([]);
 
   constructor() {

@@ -85,7 +85,6 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   private readonly MAX_IMAGE_SIZE = 2048;
   private readonly CROP_DEBOUNCE_MS = 500;
 
-
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
     if (!this.expanded()) {

@@ -14,7 +14,6 @@ const STORAGE_KEY = "appearance_settings";
   providedIn: "root",
 })
 export class ThemeService {
-
   private settings = signal<AppearanceSettings>(this.loadSettings());
 
   mode = signal<"light" | "dark" | "system">(this.settings().mode);

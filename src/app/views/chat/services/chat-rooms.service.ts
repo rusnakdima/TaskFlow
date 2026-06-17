@@ -16,7 +16,6 @@ export class ChatRoomsService {
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
 
-
   loadRooms(): void {
     const userId = this.state.currentUserId();
     if (!userId) {
