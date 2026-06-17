@@ -4,16 +4,70 @@ import { StorageService } from "@services/storage.service";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { SearchService } from "@core/services/search.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
+import { FilterField } from "@models/filter-config.model";
 
 @Injectable({ providedIn: "root" })
 export class TodosStateService {
   private storageService = inject(StorageService);
   private searchService = inject(SearchService);
+  private entityStore = inject(EntityStoreService);
 
   activeVisibility = signal<"all" | "private" | "shared" | "public">("all");
   statusFilter = signal("all");
   priorityFilter = signal("all");
   searchQuery = signal("");
+
+  highlightTodoId = signal<string | null>(null);
+  showStats = signal(false);
+
+  visibilityOptions = computed(() => [
+    { id: "all", label: "All", icon: "apps", count: this.allTodosFlat().length },
+    {
+      id: "private",
+      label: "Private",
+      icon: "lock",
+      count: this.entityStore.privateTodos().length,
+    },
+    {
+      id: "shared",
+      label: "Shared",
+      icon: "group",
+      count: this.entityStore.sharedTodos().length,
+    },
+    {
+      id: "public",
+      label: "Public",
+      icon: "public",
+      count: this.entityStore.publicTodos().length,
+    },
+  ]);
+
+  filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "radio",
+      options: [
+        { key: "all", label: "All" },
+        { key: "active", label: "Active" },
+        { key: "completed", label: "Completed" },
+        { key: "week", label: "This Week" },
+      ],
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      type: "radio",
+      options: [
+        { key: "all", label: "All" },
+        { key: "low", label: "Low" },
+        { key: "medium", label: "Medium" },
+        { key: "high", label: "High" },
+        { key: "urgent", label: "Urgent" },
+      ],
+    },
+  ];
 
   onSearchChange(query: string): void {
     this.searchQuery.set(query);

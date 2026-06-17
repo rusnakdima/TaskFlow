@@ -50,6 +50,8 @@ import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blu
 
 import { TodosListComponent } from "@components/todos/todos-list/todos-list.component";
 import { TodosStateService } from "@components/todos/todos-filters/todos-state.service";
+import { TodosPaginationStateService } from "./todos-pagination.state";
+import { TodosSelectionStateService } from "./todos-selection.state";
 import {
   PullToRefreshDirective,
   PullToRefreshIndicatorComponent,
@@ -111,6 +113,8 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private entityStore = inject(EntityStoreService);
   private syncService = inject(UnifiedSyncService);
   protected stateService = inject(TodosStateService);
+  private paginationState = inject(TodosPaginationStateService);
+  private selectionState = inject(TodosSelectionStateService);
 
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
@@ -125,63 +129,15 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.stateService.onSearchChange(query);
   }
 
-  highlightTodoId = signal<string | null>(null);
   userId = signal("");
-  showStats = signal(false);
 
-  visibilityOptions = computed(() => [
-    { id: "all", label: "All", icon: "apps", count: this.stateService.allTodosFlat().length },
-    {
-      id: "private",
-      label: "Private",
-      icon: "lock",
-      count: this.entityStore.privateTodos().length,
-    },
-    {
-      id: "shared",
-      label: "Shared",
-      icon: "group",
-      count: this.entityStore.sharedTodos().length,
-    },
-    {
-      id: "public",
-      label: "Public",
-      icon: "public",
-      count: this.entityStore.publicTodos().length,
-    },
-  ]);
-
-  selectedTodos = this.selectedItems;
+  get visibility() {
+    return this.stateService.activeVisibility();
+  }
 
   isSharedMode = computed(() => {
     return this.route.snapshot.url[0]?.path === "shared-tasks";
   });
-
-  filterFields: FilterField[] = [
-    {
-      key: "status",
-      label: "Status",
-      type: "radio",
-      options: [
-        { key: "all", label: "All" },
-        { key: "active", label: "Active" },
-        { key: "completed", label: "Completed" },
-        { key: "week", label: "This Week" },
-      ],
-    },
-    {
-      key: "priority",
-      label: "Priority",
-      type: "radio",
-      options: [
-        { key: "all", label: "All" },
-        { key: "low", label: "Low" },
-        { key: "medium", label: "Medium" },
-        { key: "high", label: "High" },
-        { key: "urgent", label: "Urgent" },
-      ],
-    },
-  ];
 
   getToolbarConfig(): PageToolbarConfig {
     return {
@@ -190,13 +146,13 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           ? {
               onToggle: () => this.toggleSelectAll(),
               isAllSelected: this.isAllSelected(),
-              count: this.selectedTodos().size,
-              highlight: this.selectedTodos().size > 0 && !this.isAllSelected(),
+              count: this.selectionState.selectedTodos().size,
+              highlight: this.selectionState.selectedTodos().size > 0 && !this.isAllSelected(),
             }
           : undefined,
       stats: {
-        onToggle: () => this.showStats.update((v) => !v),
-        isActive: this.showStats(),
+        onToggle: () => this.stateService.showStats.update((v) => !v),
+        isActive: this.stateService.showStats(),
       },
       filter: {
         onToggle: () => this.toggleFilter(),
@@ -228,12 +184,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           this.refreshState.set("refreshing");
           this.syncService.refreshLocal().finally(() => {
             this.refreshState.set("idle");
-            this.loadInitialTodos();
+            this.paginationState.loadInitialTodos();
           });
         },
         loading: this.refreshState() === "refreshing",
       },
-      filterFields: this.filterFields,
+      filterFields: this.stateService.filterFields,
       showFilter: this.showFilter(),
       onFiltersChange: (filters: Record<string, string | string[] | any>) =>
         this.onFiltersChange(filters),
@@ -251,44 +207,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   private _activeFilters = signal<Record<string, string | string[] | any>>({});
-
-  get visibility() {
-    return this.stateService.activeVisibility();
-  }
-
-  todoPagination = signal<{
-    skip: number;
-    limit: number;
-    total: number;
-    hasMore: boolean;
-    loading: boolean;
-  }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
-
-  loadInitialTodos() {
-    const hasAllTodos =
-      this.entityStore.privateTodos().length > 0 &&
-      this.entityStore.sharedTodos().length > 0 &&
-      this.entityStore.publicTodos().length > 0;
-    if (hasAllTodos) {
-      this.todoPagination.update((p) => ({
-        ...p,
-        skip: this.entityStore.todos().length,
-        hasMore: this.entityStore.hasMoreTodos(),
-        total: this.entityStore.todos().length,
-        loading: false,
-      }));
-      return;
-    }
-
-    this.todoPagination.update((p) => ({ ...p, loading: true }));
-    this.entityStore.ensureTodosLoaded("all");
-    this.todoPagination.update((p) => ({ ...p, loading: false }));
-  }
-
-  loadMore() {
-    if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
-    this.entityStore.loadMoreTodos();
-  }
 
   onVisibilityChange(visibility: string): void {
     this.stateService.activeVisibility.set(visibility as any);
@@ -338,7 +256,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.refreshState.set("idle");
       });
       if (this.entityStore.todos().length === 0) {
-        this.loadInitialTodos();
+        this.paginationState.loadInitialTodos();
       }
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
@@ -348,7 +266,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     });
     this.destroyRef.onDestroy(() => filterSub.unsubscribe());
 
-    this.loadInitialTodos();
+    this.paginationState.loadInitialTodos();
   }
 
   override ngOnDestroy(): void {
@@ -613,21 +531,40 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
     this.blueprintService.removeBlueprint(templateId);
   }
 
+  override clearSelection(): void {
+    super.clearSelection();
+    this.selectionState.selectedTodos.set(new Set());
+  }
+
+  override toggleItemSelection(id: string): void {
+    super.toggleItemSelection(id);
+    this.selectionState.selectedTodos.set(new Set(this.selectedItems()));
+    this.bulkService.setSelectionState(
+      this.selectionState.selectedTodos().size,
+      this.isAllSelected()
+    );
+  }
+
+  protected override selectRange(fromId: string, toId: string, items: { id: string }[]): void {
+    super.selectRange(fromId, toId, items);
+    this.selectionState.selectedTodos.set(new Set(this.selectedItems()));
+    this.bulkService.setSelectionState(
+      this.selectionState.selectedTodos().size,
+      this.isAllSelected()
+    );
+  }
+
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     if (selected) {
       this.lastSelectedId.set(id);
     }
-    this.selectedItems.update((todoIds) => {
-      const newSelected = new Set(todoIds);
-      if (selected) {
-        newSelected.add(id);
-      } else {
-        newSelected.delete(id);
-      }
-      this.bulkService.setSelectionState(newSelected.size, this.isAllSelected());
-      return newSelected;
-    });
+    this.selectionState.toggleTodoSelection(event);
+    this.selectedItems.set(new Set(this.selectionState.selectedTodos()));
+    this.bulkService.setSelectionState(
+      this.selectionState.selectedTodos().size,
+      this.isAllSelected()
+    );
   }
 
   override toggleSelectAll(): void {
@@ -638,25 +575,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   onTableSelectAll(event: { selectAll: boolean; section?: "private" | "shared" | "public" }): void {
-    const { selectAll, section } = event;
-    this.selectedItems.update((todoIds) => {
-      const newSelected = new Set(todoIds);
-      if (section) {
-        const sectionTodos = this.stateService.groupedTodos()[section];
-        if (selectAll) {
-          sectionTodos.forEach((todo: Todo) => newSelected.add(todo.id));
-        } else {
-          sectionTodos.forEach((todo: Todo) => newSelected.delete(todo.id));
-        }
-      } else {
-        if (selectAll) {
-          this.stateService.listTodos().forEach((todo: Todo) => newSelected.add(todo.id));
-        } else {
-          this.stateService.listTodos().forEach((todo: Todo) => newSelected.delete(todo.id));
-        }
-      }
-      return newSelected;
-    });
+    this.selectionState.onTableSelectAll(event);
+    this.selectedItems.set(new Set(this.selectionState.selectedTodos()));
+    this.bulkService.setSelectionState(
+      this.selectionState.selectedTodos().size,
+      this.isAllSelected()
+    );
   }
 
   override isAllSelected(): boolean {
@@ -664,7 +588,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   }
 
   async bulkArchive(): Promise<void> {
-    const selected = this.selectedTodos();
+    const selected = this.selectionState.selectedTodos();
     if (selected.size === 0) return;
 
     const allTodos = this.stateService.listTodos();
