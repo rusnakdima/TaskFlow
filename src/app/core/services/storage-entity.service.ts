@@ -1,5 +1,7 @@
 /* sys lib */
-import { Injectable, signal, WritableSignal } from "@angular/core";
+import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
+import { Observable, of, from } from "rxjs";
+import { tap, catchError, map } from "rxjs/operators";
 
 /* models */
 import {
@@ -13,91 +15,244 @@ import {
   Profile,
   Room,
 } from "@models/generated/api.types";
-import { EntityType } from "@models/storage.model";
+import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
+import { ConversationItem, ChatMessage } from "@models/chat.model";
+
+/* services */
+import { ApiService } from "@services/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
+import { LoggerService } from "@shared/services/logger.service";
 
 /* utils */
 import {
+  upsertEntityBulk,
   updateEntityInSignal,
   removeEntityFromSignal,
   addEntityToSignal,
 } from "@stores/utils/store-helpers";
 
+export const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
+
 @Injectable({ providedIn: "root" })
-export class StorageEntityService {
+export class BaseStorageService {
+  protected readonly _apiService = inject(ApiService);
+  protected readonly _jwtTokenService = inject(JwtTokenService);
+  protected readonly _notifyService = inject(NotifyService);
+  protected readonly _mongoConnectionService = inject(MongoConnectionService);
+  protected loggingService = inject(LoggerService);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type
+     ════════════════════════════════════════════════════════════════════════ */
+
   readonly todos = signal<Todo[]>([]);
   readonly tasks = signal<Task[]>([]);
   readonly subtasks = signal<Subtask[]>([]);
   readonly comments = signal<Comment[]>([]);
   readonly chats = signal<Chat[]>([]);
   readonly categories = signal<Category[]>([]);
-  readonly localCategories = signal<Category[]>([]);
-  readonly cloudCategories = signal<Category[]>([]);
-  readonly profiles = signal<Profile | null>(null);
+  readonly profiles = signal<Profile[]>([]);
   readonly publicProfiles = signal<Profile[]>([]);
   readonly users = signal<User[]>([]);
   readonly currentUser = signal<User | null>(null);
   readonly rooms = signal<Room[]>([]);
 
-  readonly privateTodos = signal<Todo[]>([]);
-  readonly sharedTodos = signal<Todo[]>([]);
-  readonly publicTodos = signal<Todo[]>([]);
+  // Chat state
+  readonly conversations = signal<ConversationItem[]>([]);
+  readonly messages = signal<ChatMessage[]>([]);
+  readonly activeConversationId = signal<string | null>(null);
+
+  // Loading states
+  private readonly _todosLoading = signal(false);
+  private readonly _tasksLoading = signal(false);
+  private readonly _subtasksLoading = signal(false);
+  private readonly _categoriesLoading = signal(false);
+  private readonly _chatsLoading = signal(false);
+  private readonly _commentsLoading = signal(false);
+  private readonly _userLoading = signal(false);
+  private readonly _profileLoading = signal(false);
+  private readonly _roomsLoading = signal(false);
+
+  protected readonly _loaded = signal(false);
+  protected readonly _lastLoaded = signal<Date | null>(null);
+
+  protected readonly _pagination = signal<Record<ChildType, PaginationState>>({
+    todos: { ...DEFAULT_PAGINATION },
+    tasks: { ...DEFAULT_PAGINATION },
+    subtasks: { ...DEFAULT_PAGINATION },
+    categories: { ...DEFAULT_PAGINATION },
+    comments: { ...DEFAULT_PAGINATION },
+    chats: { ...DEFAULT_PAGINATION },
+  });
+
+  /* ════════════════════════════════════════════════════════════════════════
+     FILTERED COMPUTED SIGNALS - Derived from single source signals
+     ════════════════════════════════════════════════════════════════════════ */
+
+  // Todo filters by visibility
+  readonly privateTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "private" && !t.deleted_at)
+  );
+  readonly sharedTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "shared" && !t.deleted_at)
+  );
+  readonly publicTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "public" && !t.deleted_at)
+  );
+  readonly allTodos = computed(() => this.todos().filter((t) => !t.deleted_at));
+  readonly archivedTodos = computed(() => this.todos().filter((t) => !!t.deleted_at));
+
+  // Task filters
+  readonly activeTasks = computed(() => this.tasks().filter((t) => !t.deleted_at));
+  readonly archivedTasks = computed(() => this.tasks().filter((t) => !!t.deleted_at));
+  readonly tasksByTodoId = computed(() => {
+    const map = new Map<string, Task[]>();
+    for (const task of this.activeTasks()) {
+      const arr = map.get(task.todo_id) || [];
+      arr.push(task);
+      map.set(task.todo_id, arr);
+    }
+    return map;
+  });
+
+  // Subtask filters
+  readonly activeSubtasks = computed(() => this.subtasks().filter((s) => !s.deleted_at));
+  readonly archivedSubtasks = computed(() => this.subtasks().filter((s) => !!s.deleted_at));
+  readonly subtasksByTaskId = computed(() => {
+    const map = new Map<string, Subtask[]>();
+    for (const subtask of this.activeSubtasks()) {
+      const arr = map.get(subtask.task_id) || [];
+      arr.push(subtask);
+      map.set(subtask.task_id, arr);
+    }
+    return map;
+  });
+
+  // Comment filters
+  readonly activeComments = computed(() => this.comments().filter((c) => !c.deleted_at));
+  readonly commentsByTaskId = computed(() => {
+    const map = new Map<string, Comment[]>();
+    for (const comment of this.activeComments()) {
+      if (comment.task_id) {
+        const arr = map.get(comment.task_id) || [];
+        arr.push(comment);
+        map.set(comment.task_id, arr);
+      }
+    }
+    return map;
+  });
+
+  readonly commentsBySubtaskId = computed(() => {
+    const map = new Map<string, Comment[]>();
+    for (const comment of this.activeComments()) {
+      if (comment.subtask_id) {
+        const arr = map.get(comment.subtask_id) || [];
+        arr.push(comment);
+        map.set(comment.subtask_id, arr);
+      }
+    }
+    return map;
+  });
+
+  // Chat filters
+  readonly activeChats = computed(() => this.chats().filter((c) => !c.deleted_at));
+
+  // Maps for quick lookups
+  readonly todoMap = computed(() => new Map(this.allTodos().map((t) => [t.id, t])));
+  readonly taskMap = computed(() => new Map(this.activeTasks().map((t) => [t.id, t])));
+  readonly subtaskMap = computed(() => new Map(this.activeSubtasks().map((s) => [s.id, s])));
+  readonly commentMap = computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LOADING STATE GETTERS
+     ════════════════════════════════════════════════════════════════════════ */
+
+  get isLoading(): ReturnType<typeof this._loaded.asReadonly> {
+    return this._loaded.asReadonly();
+  }
+
+  get lastLoaded(): ReturnType<typeof this._lastLoaded.asReadonly> {
+    return this._lastLoaded.asReadonly();
+  }
+
+  isEntityLoading(type: EntityType): boolean {
+    switch (type) {
+      case "todos":
+        return this._todosLoading();
+      case "tasks":
+        return this._tasksLoading();
+      case "subtasks":
+        return this._subtasksLoading();
+      case "categories":
+        return this._categoriesLoading();
+      case "chats":
+        return this._chatsLoading();
+      case "comments":
+        return this._commentsLoading();
+      case "users":
+        return this._userLoading();
+      case "profiles":
+        return this._profileLoading();
+      default:
+        return false;
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PAGINATION GETTERS
+     ════════════════════════════════════════════════════════════════════════ */
+
+  hasMoreTodos(): boolean {
+    return this._pagination().todos.hasMore;
+  }
+  hasMoreTasks(): boolean {
+    return this._pagination().tasks.hasMore;
+  }
+  hasMoreSubtasks(): boolean {
+    return this._pagination().subtasks.hasMore;
+  }
+  hasMoreComments(): boolean {
+    return this._pagination().comments.hasMore;
+  }
+  hasMoreChats(): boolean {
+    return this._pagination().chats.hasMore;
+  }
+  hasMoreCategories(): boolean {
+    return this._pagination().categories.hasMore;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PAGINATION UPDATE
+     ════════════════════════════════════════════════════════════════════════ */
+
+  updatePagination(type: ChildType, skip: number, limit: number, receivedCount: number): void {
+    this._pagination.update((p) => ({
+      ...p,
+      [type]: { skip: skip + receivedCount, limit, hasMore: receivedCount >= limit },
+    }));
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     ENTITY MANAGEMENT - Low level operations
+     ════════════════════════════════════════════════════════════════════════ */
 
   addEntity(type: EntityType, data: any): void {
     if (!data?.id) return;
-    if (type === "profiles") {
-      this.profiles.set(data);
-      return;
-    }
-    if (type === "todos") {
-      const visibility = data.visibility || "shared";
-      const target =
-        visibility === "private"
-          ? this.privateTodos
-          : visibility === "public"
-            ? this.publicTodos
-            : this.sharedTodos;
-      addEntityToSignal(target, data);
-    } else {
-      addEntityToSignal(this.getSignal(type), data);
-    }
+    addEntityToSignal(this.getEntitySignal(type), data);
   }
 
-  updateEntity(type: EntityType, data: any): void {
+  updateEntitySignal(type: EntityType, _id: string, data: any): void {
     if (!data?.id) return;
-    if (type === "profiles") {
-      const current = this.profiles();
-      if (current?.id === data.id) this.profiles.set({ ...current, ...data });
-      return;
-    }
-    if (type === "todos") {
-      if (this.privateTodos().some((t) => t.id === data.id)) {
-        updateEntityInSignal(this.privateTodos, data.id, data);
-      } else if (this.sharedTodos().some((t) => t.id === data.id)) {
-        updateEntityInSignal(this.sharedTodos, data.id, data);
-      } else if (this.publicTodos().some((t) => t.id === data.id)) {
-        updateEntityInSignal(this.publicTodos, data.id, data);
-      }
-    } else {
-      updateEntityInSignal(this.getSignal(type) as WritableSignal<any[]>, data.id, data);
-    }
+    updateEntityInSignal(this.getEntitySignal(type), data.id, data);
   }
 
   removeEntity(type: EntityType, id: string): void {
-    if (type === "profiles") {
-      const current = this.profiles();
-      if (current?.id === id) this.profiles.set(null);
-      return;
-    }
-    if (type === "todos") {
-      removeEntityFromSignal(this.privateTodos, id);
-      removeEntityFromSignal(this.sharedTodos, id);
-      removeEntityFromSignal(this.publicTodos, id);
-    } else {
-      removeEntityFromSignal(this.getSignal(type) as WritableSignal<any[]>, id);
-    }
+    removeEntityFromSignal(this.getEntitySignal(type), id);
   }
 
-  getSignal(type: EntityType): WritableSignal<any[]> {
+  getEntitySignal(type: EntityType): WritableSignal<any[]> {
     switch (type) {
       case "todos":
         return this.todos;
@@ -113,117 +268,43 @@ export class StorageEntityService {
         return this.categories;
       case "users":
         return this.users;
+      case "profiles":
+        return this.profiles as unknown as WritableSignal<any[]>;
       default:
         return this.tasks;
     }
   }
 
-  addCommentToTask(comment: Comment, task_id?: string): void {
-    if (!task_id) return;
-    addEntityToSignal(this.comments, { ...comment, task_id });
-    updateEntityInSignal(this.tasks, task_id, {
-      comments_count: (this.tasks().find((t) => t.id === task_id)?.comments_count || 0) + 1,
-    });
+  setEntitySignal(type: EntityType, data: any[]): void {
+    const sig = this.getEntitySignal(type);
+    sig.set(data);
   }
 
-  addCommentToSubtask(comment: Comment, subtask_id?: string): void {
-    if (!subtask_id) return;
-    const commentWithSubtaskId = { ...comment, subtask_id };
-    addEntityToSignal(this.comments, commentWithSubtaskId);
-    updateEntityInSignal(this.subtasks, subtask_id, {
-      comments_count: (this.subtasks().find((s) => s.id === subtask_id)?.comments_count || 0) + 1,
-    });
+  getRoute(type: EntityType, operation: "create" | "update" | "delete"): string | null {
+    const routes: Record<string, Record<string, string>> = {
+      todos: { create: "create_todo", update: "update_todo", delete: "delete_todo" },
+      tasks: { create: "create_task", update: "update_task", delete: "delete_task" },
+      subtasks: { create: "create_subtask", update: "update_subtask", delete: "delete_subtask" },
+      categories: {
+        create: "create_category",
+        update: "update_category",
+        delete: "delete_category",
+      },
+      comments: { create: "create_comment", update: "update_comment", delete: "delete_comment" },
+      chats: { create: "create_chat", update: "update_chat", delete: "delete_chat" },
+      profiles: { create: "create_profile", update: "update_profile", delete: "delete_profile" },
+    };
+    return routes[type]?.[operation] || null;
   }
 
-  removeCommentFromAll(commentId: string): void {
-    removeEntityFromSignal(this.comments, commentId);
+  currentUserId(): string {
+    return this._jwtTokenService.getCurrentUserId() || "";
   }
 
-  updateChat(
-    _todoId: string,
-    op: "set" | "add" | "update" | "delete" | "clear",
-    data?: Chat
-  ): void {
-    switch (op) {
-      case "set":
-        if (data)
-          this.chats.update((chats) =>
-            chats.some((c) => c.id === data.id) ? chats : [...chats, data]
-          );
-        break;
-      case "add":
-        if (data)
-          this.chats.update((chats) =>
-            chats.some((c) => c.id === data.id) ? chats : [...chats, data]
-          );
-        break;
-      case "update":
-        if (data)
-          this.chats.update((chats) =>
-            chats.map((c) => (c.id === data.id ? { ...c, ...data } : c))
-          );
-        break;
-      case "delete":
-        if (data) this.chats.update((chats) => chats.filter((c) => c.id !== data.id));
-        break;
-      case "clear":
-        this.chats.set([]);
-        break;
-    }
-  }
-
-  updateChatByTempId(
-    tempId: string,
-    cloudId: string,
-    syncStatus: "pending" | "synced" | "failed"
-  ): void {
-    this.chats.update((chats) =>
-      chats.map((c) =>
-        c.temp_id === tempId
-          ? { ...c, id: cloudId, sync_status: syncStatus, temp_id: undefined }
-          : c
-      )
-    );
-  }
-
-  updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed"): void {
-    this.chats.update((chats) =>
-      chats.map((c) =>
-        c.temp_id === tempId || c.id === tempId ? { ...c, sync_status: syncStatus } : c
-      )
-    );
-  }
-
-  bulkUpsertSubtasks(subtasks: Subtask[]): void {
-    this.subtasks.update((existing) => {
-      const map = new Map(existing.map((s) => [s.id, s]));
-      subtasks.forEach((s) => map.set(s.id, { ...map.get(s.id), ...s }));
-      return Array.from(map.values());
-    });
-  }
-
-  clearEntitySignals(): void {
-    this.privateTodos.set([]);
-    this.sharedTodos.set([]);
-    this.publicTodos.set([]);
-    this.tasks.set([]);
-    this.subtasks.set([]);
-    this.comments.set([]);
-    this.chats.set([]);
-    this.categories.set([]);
-    this.localCategories.set([]);
-    this.cloudCategories.set([]);
-    this.profiles.set(null);
-    this.publicProfiles.set([]);
-    this.users.set([]);
-    this.currentUser.set(null);
-  }
-
-  setCurrentUser(user: User | null): void {
-    this.currentUser.set(user);
-  }
-
-  getCurrentUser(): User | null {
-    return this.currentUser();
+  getUsername(userId: string): string {
+    const user = this.users().find((u) => u.id === userId);
+    const profile = this.profiles().find((p) => p.user_id === userId);
+    if (profile?.name) return `${profile.name} ${profile.last_name || ""}`.trim();
+    return user?.username || "Unknown";
   }
 }
