@@ -20,8 +20,6 @@ pub mod permission_entity;
 pub mod profile_entity;
 #[path = "provider_type.entity.rs"]
 pub mod provider_type_entity;
-#[path = "response.entity.rs"]
-pub mod response_entity;
 #[path = "room.entity.rs"]
 pub mod room_entity;
 #[path = "signup_form.entity.rs"]

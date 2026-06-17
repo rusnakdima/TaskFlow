@@ -12,13 +12,11 @@ use super::auth_token::AuthTokenService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
-use crate::entities::{
-  login_form_entity::LoginForm,
-  response_entity::{ResponseModel, ResponseStatus},
-};
+use crate::entities::login_form_entity::LoginForm;
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::{auth::find_user_by_username, response_helper::err_response};
+use crate::utils::{auth::find_user_by_username, response_helper::err_response};
 
 #[derive(Clone)]
 pub struct AuthLoginService {

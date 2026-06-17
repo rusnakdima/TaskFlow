@@ -1,6 +1,6 @@
-use crate::entities::response_entity::ResponseModel;
-use crate::helpers::response_helper::err_response;
-use crate::providers::data_provider::DataProvider;
+use crate::models::response::ResponseModel;
+use crate::repositories::data_provider::DataProvider;
+use crate::utils::response_helper::err_response;
 
 pub struct BaseCrudService {
   json_provider: DataProvider,

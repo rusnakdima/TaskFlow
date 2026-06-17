@@ -3,7 +3,7 @@ use bcrypt::{hash, DEFAULT_COST};
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{
+use crate::repositories::{
   email_provider::EmailProvider, json_provider::JsonProvider, mongodb_provider::MongoProvider,
 };
 use nosql_orm::provider::DatabaseProvider;
@@ -12,15 +12,13 @@ use nosql_orm::repository::Repository;
 
 /* models */
 use crate::entities::{
-  password_reset::PasswordReset,
-  response_entity::{ResponseModel, ResponseStatus},
-  table_entity::TableModelType,
-  user_entity::UserEntity,
+  password_reset::PasswordReset, table_entity::TableModelType, user_entity::UserEntity,
 };
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::config::ConfigHelper;
-use crate::helpers::response_helper::{err_response, err_response_formatted};
+use crate::utils::config::ConfigHelper;
+use crate::utils::response_helper::{err_response, err_response_formatted};
 
 #[derive(Clone)]
 pub struct AuthPasswordService {

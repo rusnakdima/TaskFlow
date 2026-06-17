@@ -1,10 +1,10 @@
-use crate::entities::response_entity::ResponseModel;
-use crate::helpers::cascade::soft_delete_cascade_all;
-use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::visibility::get_visibility;
-use crate::providers::data_provider::DataProvider;
+use crate::models::response::ResponseModel;
+use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
+use crate::utils::cascade::soft_delete_cascade_all;
+use crate::utils::response_helper::{err_response, success_response};
+use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
 
 pub struct TodoService {

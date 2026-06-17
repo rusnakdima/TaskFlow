@@ -1,5 +1,5 @@
 use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
-use crate::helpers::percentage::calculate_percentage;
+use crate::utils::percentage::calculate_percentage;
 use chrono::DateTime;
 use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
 use serde_json::Value;

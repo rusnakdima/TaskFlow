@@ -7,13 +7,11 @@ use nosql_orm::prelude::{DatabaseProvider, Filter};
 use nosql_orm::providers::JsonProvider;
 
 /* models */
-use crate::entities::{
-  response_entity::{ResponseModel, ResponseStatus},
-  statistics_entity::StatisticsResponseModel,
-};
+use crate::entities::statistics_entity::StatisticsResponseModel;
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::response_helper::err_response;
+use crate::utils::response_helper::err_response;
 
 /* statistics modules */
 use crate::services::statistics::{

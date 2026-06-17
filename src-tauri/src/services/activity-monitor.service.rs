@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 /* helpers */
-use crate::helpers::activity_log::ActivityLogHelper;
+use crate::utils::activity_log::ActivityLogHelper;
 
 /* services */
 use crate::services::entity_resolution_service::EntityResolutionService;

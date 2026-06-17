@@ -14,16 +14,14 @@ use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
 use crate::entities::{
-  profile_entity::ProfileEntity,
-  response_entity::{ResponseModel, ResponseStatus},
-  signup_form_entity::SignupForm,
-  table_entity::TableModelType,
+  profile_entity::ProfileEntity, signup_form_entity::SignupForm, table_entity::TableModelType,
   user_entity::UserEntity,
 };
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::response_helper::err_response;
-use crate::helpers::timestamp::get_current_datetime;
+use crate::utils::response_helper::err_response;
+use crate::utils::timestamp::get_current_datetime;
 
 #[derive(Clone)]
 pub struct AuthRegisterService {
@@ -92,7 +90,7 @@ impl AuthRegisterService {
 
     let new_profile = ProfileEntity {
       id: Some(profile_id.clone()),
-      name: "".to_string(),
+      name: username.clone(),
       last_name: "".to_string(),
       bio: "".to_string(),
       image_url: "/assets/images/user.png".to_string(),

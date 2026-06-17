@@ -8,7 +8,7 @@ use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 
 /* models */
-use crate::entities::response_entity::{ResponseModel, ResponseStatus};
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /// ProfileService - Handles profile-specific sync operations
 /// Note: CRUD operations are handled by RepositoryService via manageData endpoint
@@ -155,8 +155,8 @@ impl ProfileService {
     profile_data: Value,
   ) -> Result<ResponseModel, ResponseModel> {
     use crate::entities::table_entity::validate_model;
-    use crate::helpers::response_helper::{err_response, err_response_formatted, success_response};
-    use crate::helpers::user_sync;
+    use crate::utils::response_helper::{err_response, err_response_formatted, success_response};
+    use crate::utils::user_sync;
 
     let validated_profile = validate_model("profiles", &profile_data, true, None)
       .map_err(|e| err_response_formatted("Profile validation failed", &e))?;

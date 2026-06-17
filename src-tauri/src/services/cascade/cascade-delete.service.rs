@@ -7,12 +7,12 @@ use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::relations::WithRelations;
 
 use crate::entities::comment_entity::CommentEntity;
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 use crate::entities::subtask_entity::SubtaskEntity;
 use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
 
-use crate::helpers::response_helper::err_response_formatted;
+use crate::utils::response_helper::err_response_formatted;
 use crate::services::activity_monitor_service::ActivityMonitorService;
 
 use super::{CascadeResult, CascadeService};

@@ -15,12 +15,12 @@ use super::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* models */
 use crate::entities::{
-  login_form_entity::LoginForm, password_reset::PasswordReset, response_entity::ResponseModel,
-  signup_form_entity::SignupForm,
+  login_form_entity::LoginForm, password_reset::PasswordReset, signup_form_entity::SignupForm,
 };
+use crate::models::response::ResponseModel;
 
 /* helpers */
-use crate::helpers::config::ConfigHelper;
+use crate::utils::config::ConfigHelper;
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -119,7 +119,7 @@ impl AuthService {
     jwt_secret: &str,
     new_password: String,
   ) -> Result<ResponseModel, ResponseModel> {
-    let user_id = crate::helpers::auth::extract_user_from_token(token, jwt_secret)?;
+    let user_id = crate::utils::auth::extract_user_from_token(token, jwt_secret)?;
     self
       .password_service
       .change_password(user_id, new_password)

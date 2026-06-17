@@ -7,9 +7,9 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::{json, Value};
 
-use crate::entities::response_entity::{ResponseModel, ResponseStatus};
-use crate::helpers::common::filter_deleted;
-use crate::helpers::response_helper::err_response;
+use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::utils::common::filter_deleted;
+use crate::utils::response_helper::err_response;
 
 pub struct DbBackupService {
   json_provider: JsonProvider,
@@ -117,7 +117,7 @@ impl DbBackupService {
     {
       Ok(mut items) => {
         if filter_deleted {
-          items = crate::helpers::common::filter_deleted(items);
+          items = crate::utils::common::filter_deleted(items);
         }
         let count = items.len();
         for item in items {
@@ -269,7 +269,7 @@ impl DbBackupService {
     {
       Ok(mut items) => {
         if filter_deleted {
-          items = crate::helpers::common::filter_deleted(items);
+          items = crate::utils::common::filter_deleted(items);
         }
         let count = items.len();
         for item in items {
@@ -489,8 +489,13 @@ impl DbBackupService {
       None => {
         let uri = self.mongo_db_uri.clone();
         let db_name = self.mongo_db_name.clone();
-        match MongoProvider::connect(&uri, &db_name).await {
-          Ok(new_provider) => {
+        match tokio::time::timeout(
+          Duration::from_secs(5),
+          MongoProvider::connect(&uri, &db_name),
+        )
+        .await
+        {
+          Ok(Ok(new_provider)) => {
             let new_provider = Arc::new(new_provider);
             if let Ok(mut guard) = self.mongodb_provider.lock() {
               *guard = Some(new_provider.clone());
@@ -502,7 +507,7 @@ impl DbBackupService {
             );
             result
           }
-          Err(_) => false,
+          _ => false,
         }
       }
     }

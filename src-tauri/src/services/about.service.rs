@@ -7,7 +7,7 @@ use tauri_plugin_http::reqwest;
 use open;
 
 /* models */
-use crate::entities::response_entity::{ResponseModel, ResponseStatus};
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 pub struct AboutService {
   pub name_app: String,

@@ -11,14 +11,11 @@ use nosql_orm::query::Filter;
 use nosql_orm::repository::Repository;
 
 /* models */
-use crate::entities::{
-  profile_entity::ProfileEntity,
-  response_entity::{ResponseModel, ResponseStatus},
-  user_entity::UserEntity,
-};
+use crate::entities::{profile_entity::ProfileEntity, user_entity::UserEntity};
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::{
+use crate::utils::{
   qr,
   response_helper::{err_response, err_response_formatted, success_response},
 };
@@ -292,7 +289,7 @@ impl AuthTotpService {
   }
 
   async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {
-    crate::helpers::auth::find_user_by_username(
+    crate::utils::auth::find_user_by_username(
       &self.json_provider,
       self.mongodb_provider.as_ref(),
       username,
