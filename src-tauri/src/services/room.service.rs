@@ -1,8 +1,8 @@
-use crate::entities::response_entity::ResponseModel;
-use crate::helpers::collection_metadata::add_collection_metadata;
-use crate::helpers::load_param::parse_load_param;
-use crate::helpers::response_helper::{err_response, success_response};
-use crate::providers::data_provider::DataProvider;
+use crate::models::response::ResponseModel;
+use crate::repositories::data_provider::DataProvider;
+use crate::utils::collection_metadata::add_collection_metadata;
+use crate::utils::load_param::parse_load_param;
+use crate::utils::response_helper::{err_response, success_response};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::relations::RelationLoader;
 use serde_json::{json, Value};

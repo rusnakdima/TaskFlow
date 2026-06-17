@@ -2,12 +2,12 @@ use serde_json::{json, Value};
 
 use nosql_orm::query::Filter;
 
-use crate::entities::response_entity::ResponseModel;
-use crate::helpers::{response_helper::err_response, security::security_projection};
-use crate::providers::data_provider::DataProvider;
-use crate::providers::json_provider::JsonProvider;
-use crate::providers::mongodb_provider::MongoProvider;
+use crate::models::response::ResponseModel;
+use crate::repositories::data_provider::DataProvider;
+use crate::repositories::json_provider::JsonProvider;
+use crate::repositories::mongodb_provider::MongoProvider;
 use crate::services::permission_service::PermissionService;
+use crate::utils::{response_helper::err_response, security::security_projection};
 
 #[derive(PartialEq)]
 pub enum DataSource {
@@ -136,7 +136,7 @@ pub fn merge_immutable_fields(existing: &Value, validated: &mut Value) {
 }
 
 pub fn filter_out_deleted(docs: Vec<Value>) -> Vec<Value> {
-  crate::helpers::common::filter_deleted(docs)
+  crate::utils::common::filter_deleted(docs)
 }
 
 pub fn extract_user_id_from_filter(filter: &Filter) -> Option<String> {

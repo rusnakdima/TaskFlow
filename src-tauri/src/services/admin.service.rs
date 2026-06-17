@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::{json_provider::JsonProvider, mongodb_provider::MongoProvider};
+use crate::repositories::{json_provider::JsonProvider, mongodb_provider::MongoProvider};
 use nosql_orm::provider::DatabaseProvider;
 
 /* models */
-use crate::entities::response_entity::{ResponseModel, ResponseStatus};
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* helpers */
-use crate::helpers::common::convert_data_to_object;
+use crate::utils::common::convert_data_to_object;
 
 /* services */
 use crate::services::cascade::CascadeService;

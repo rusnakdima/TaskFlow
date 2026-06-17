@@ -1,30 +1,32 @@
 /* imports */
+mod commands;
 mod entities;
 mod errors;
-mod helpers;
-mod logger;
 mod models;
-mod providers;
-mod routes;
+mod repositories;
 mod services;
+mod utils;
 
 /* sys lib */
 use std::sync::Arc;
 use tauri::{Manager, State};
 
-use crate::providers::data_provider::DataProvider;
+use crate::repositories::data_provider::DataProvider;
 
-/* helpers */
-use crate::helpers::{activity_log::ActivityLogHelper, config::ConfigHelper};
+/* utils */
+use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
 
-/* routes */
-use routes::{
-  archive_route::{get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete},
-  update_route::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
+/* commands */
+use commands::{
+  archive_command::{
+    get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete,
+  },
+  logger::log_message,
+  update_command::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
 
 /* commands */
-use routes::{
+use commands::{
   admin_command::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_restore_json,
     batch_soft_delete_cascade, batch_soft_delete_json, check_mongodb_connection,
@@ -53,6 +55,8 @@ use routes::{
     create_room, delete_room, delete_room_cmd, get_room, get_rooms, get_rooms_cmd, update_room,
   },
   stats_command::statistics_get,
+  subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
+  task_command::{create_task, delete_task, get_task, get_tasks, update_task},
   todo_command::{
     change_todo_visibility, create_todo, delete_todo, get_todo, get_todo_permissions, get_todos,
     transfer_todo_ownership, update_todo, update_todo_permissions,
@@ -84,7 +88,7 @@ use services::{
 };
 
 /* nosql_orm */
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
 #[tauri::command]
@@ -125,7 +129,7 @@ async fn search_data(
   load: Option<String>,
   _offline: Option<bool>,
 ) -> Result<ResponseModel, String> {
-  use crate::helpers::auth::extract_user_from_token;
+  use crate::utils::auth::extract_user_from_token;
 
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
@@ -296,7 +300,7 @@ pub struct SystemState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  logger::init_logger();
+  utils::logger::init_logger("taskflow", log::LevelFilter::Info).ok();
 
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
@@ -571,6 +575,16 @@ pub fn run() {
       create_todo,
       update_todo,
       delete_todo,
+      get_task,
+      get_tasks,
+      create_task,
+      update_task,
+      delete_task,
+      get_subtask,
+      get_subtasks,
+      create_subtask,
+      update_subtask,
+      delete_subtask,
       get_room,
       get_rooms,
       create_room,
@@ -615,6 +629,7 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
+      log_message,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {

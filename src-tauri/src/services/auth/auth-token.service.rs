@@ -8,19 +8,16 @@ use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 
 /* models */
-use crate::entities::{
-  response_entity::{ResponseModel, ResponseStatus},
-  table_entity::TableModelType,
-  user_entity::UserEntity,
-};
+use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
+use crate::models::response::{ResponseModel, ResponseStatus};
 
 /* services */
 use crate::services::auth::auth_data_sync::AuthDataSyncService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 
 /* helpers */
-use crate::helpers::auth::Claims;
-use crate::helpers::response_helper::err_response;
+use crate::utils::auth::Claims;
+use crate::utils::response_helper::err_response;
 
 #[derive(Clone)]
 pub struct AuthTokenService {

@@ -11,14 +11,14 @@ use serde_json::Value;
 use tokio::time::timeout;
 
 /* providers */
-use crate::providers::json_provider::JsonProvider;
-use crate::providers::mongodb_provider::MongoProvider;
+use crate::repositories::json_provider::JsonProvider;
+use crate::repositories::mongodb_provider::MongoProvider;
 
 /* entities */
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 
 /* helpers */
-use crate::helpers::response_helper::err_response;
+use crate::utils::response_helper::err_response;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum UserSyncStatus {

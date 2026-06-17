@@ -5,12 +5,9 @@ use serde_json::json;
 use std::sync::Arc;
 
 use super::auth_token::AuthTokenService;
-use crate::entities::{
-  response_entity::{ResponseModel, ResponseStatus},
-  table_entity::TableModelType,
-  user_entity::UserEntity,
-};
-use crate::helpers::{
+use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
+use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::utils::{
   profile::check_profile_exists,
   qr,
   response_helper::{err_response, success_response},

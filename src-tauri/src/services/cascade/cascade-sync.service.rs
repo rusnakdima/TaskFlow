@@ -4,9 +4,9 @@ use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 
-use crate::helpers::response_helper::err_response_formatted;
+use crate::utils::response_helper::err_response_formatted;
 
 use super::{CascadeResult, CascadeService};
 

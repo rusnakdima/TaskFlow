@@ -6,13 +6,13 @@ use nosql_orm::providers::{JsonProvider, MongoProvider};
 use std::sync::Arc;
 
 /* providers */
-use crate::providers::data_provider::DataProvider;
+use crate::repositories::data_provider::DataProvider;
 
 /* entities */
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 
 /* helpers */
-use crate::helpers::response_helper::{err_response, success_response};
+use crate::utils::response_helper::{err_response, success_response};
 
 pub struct NotificationService {
   json_provider: JsonProvider,

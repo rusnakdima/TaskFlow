@@ -7,26 +7,25 @@ use nosql_orm::cache::QueryCache;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
 
-use crate::entities::{
-  provider_type_entity::ProviderType, response_entity::ResponseModel, table_entity::validate_model,
-};
+use crate::entities::{provider_type_entity::ProviderType, table_entity::validate_model};
+use crate::models::response::ResponseModel;
 use tauri::Emitter;
 
-use crate::helpers::{
+use crate::repositories::data_provider::DataProvider;
+use crate::repositories::json_provider::JsonProvider;
+use crate::repositories::mongodb_provider::MongoProvider;
+use crate::services::activity_monitor_service::ActivityMonitorService;
+use crate::services::cascade::{CascadeService, CountService};
+use crate::services::entity_resolution_service::EntityResolutionService;
+use crate::services::permission_service::PermissionService;
+use crate::services::profile_service::ProfileService;
+use crate::utils::{
   load_param::parse_load_param,
   relation_stripper::strip_relation_fields,
   response_helper::{err_response, err_response_formatted, success_response},
   security::security_projection,
   user_sync,
 };
-use crate::providers::data_provider::DataProvider;
-use crate::providers::json_provider::JsonProvider;
-use crate::providers::mongodb_provider::MongoProvider;
-use crate::services::activity_monitor_service::ActivityMonitorService;
-use crate::services::cascade::{CascadeService, CountService};
-use crate::services::entity_resolution_service::EntityResolutionService;
-use crate::services::permission_service::PermissionService;
-use crate::services::profile_service::ProfileService;
 
 use super::cache::CacheService;
 use super::queries::{
@@ -2154,7 +2153,7 @@ async fn load_relations_unified<P: DatabaseProvider + Clone>(
   load_paths: &[String],
   provider: P,
 ) -> Result<Vec<Value>, ResponseModel> {
-  use crate::helpers::collection_metadata::add_collection_metadata;
+  use crate::utils::collection_metadata::add_collection_metadata;
   use nosql_orm::relations::RelationLoader;
 
   if load_paths.is_empty() || docs.is_empty() {

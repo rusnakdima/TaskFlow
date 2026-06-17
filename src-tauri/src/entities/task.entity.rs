@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
 
 /* helpers */
-use crate::helpers::common::format_date;
+use crate::utils::common::format_date;
 
 /* nosql_orm */
 use nosql_orm::Model;

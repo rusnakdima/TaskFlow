@@ -8,7 +8,7 @@ use nosql_orm::Model;
 use nosql_orm::Validate;
 
 /* helpers */
-use crate::helpers::common::format_date;
+use crate::utils::common::format_date;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("todos")]

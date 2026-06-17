@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 /* entities */
-use crate::entities::response_entity::ResponseModel;
+use crate::models::response::ResponseModel;
 use serde::{Deserialize, Serialize};
 
 /* services */

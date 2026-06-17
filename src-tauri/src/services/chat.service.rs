@@ -1,7 +1,7 @@
-use crate::entities::response_entity::ResponseModel;
-use crate::helpers::response_helper::{err_response, success_response};
-use crate::helpers::visibility::get_visibility;
-use crate::providers::data_provider::DataProvider;
+use crate::models::response::ResponseModel;
+use crate::repositories::data_provider::DataProvider;
+use crate::utils::response_helper::{err_response, success_response};
+use crate::utils::visibility::get_visibility;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};

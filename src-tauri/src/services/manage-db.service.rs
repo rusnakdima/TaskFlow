@@ -5,8 +5,8 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::Value;
 
-use crate::entities::response_entity::{ResponseModel, ResponseStatus};
-use crate::helpers::response_helper::err_response;
+use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::utils::response_helper::err_response;
 
 use crate::services::db_backup::DbBackupService;
 use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
@@ -95,7 +95,7 @@ impl ManageDbService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", docs.len(), data_type),
-      data: crate::helpers::common::convert_data_to_object(&docs),
+      data: crate::utils::common::convert_data_to_object(&docs),
     })
   }
 
@@ -323,7 +323,7 @@ impl ManageDbService {
         year,
         month
       ),
-      data: crate::helpers::common::convert_data_to_object(&result_map),
+      data: crate::utils::common::convert_data_to_object(&result_map),
     })
   }
 
@@ -528,7 +528,7 @@ impl ManageDbService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", items.len(), table),
-      data: crate::helpers::common::convert_data_to_object(&items),
+      data: crate::utils::common::convert_data_to_object(&items),
     })
   }
 
