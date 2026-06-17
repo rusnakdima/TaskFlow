@@ -6,7 +6,7 @@ import {
   DEFAULT_APPEARANCE_SETTINGS,
   getAccentShades,
 } from "@models/theme.model";
-import { getLoggingService } from "@tauri-apps/logger";
+import { logger } from "@services/logger.service";
 
 const STORAGE_KEY = "appearance_settings";
 
@@ -14,7 +14,7 @@ const STORAGE_KEY = "appearance_settings";
   providedIn: "root",
 })
 export class ThemeService {
-  private loggingService = getLoggingService();
+
   private settings = signal<AppearanceSettings>(this.loadSettings());
 
   mode = signal<"light" | "dark" | "system">(this.settings().mode);
@@ -67,7 +67,7 @@ export class ThemeService {
         return { ...parsed, preset };
       }
     } catch (error) {
-      this.loggingService.warn("Failed to load theme settings: " + error);
+      logger.warn("Failed to load theme settings: " + error);
     }
 
     const legacyTheme = localStorage.getItem("theme");

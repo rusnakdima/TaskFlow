@@ -18,7 +18,7 @@ import { UserAvatarComponent } from "@components/user-avatar/user-avatar.compone
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 import { TextField, TypeField } from "@models/form-field.model";
-import { getLoggingService } from "@tauri-apps/logger";
+import { logger } from "@services/logger.service";
 
 @Component({
   selector: "app-avatar-selector",
@@ -84,7 +84,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
   private cropDebounceTimer: any = null;
   private readonly MAX_IMAGE_SIZE = 2048;
   private readonly CROP_DEBOUNCE_MS = 500;
-  private loggingService = getLoggingService();
+
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
@@ -124,7 +124,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
     };
 
     img.onerror = () => {
-      this.loggingService.error("Failed to load image from URL", undefined, { url });
+      logger.error("Failed to load image from URL: " + url);
     };
 
     img.src = url;

@@ -4,7 +4,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { Visibility } from "@services/api.service";
-import { getLoggingService } from "@tauri-apps/logger";
+import { logger } from "@services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class TasksCommentsHelper {
@@ -12,7 +12,7 @@ export class TasksCommentsHelper {
   private notifyService = inject(NotifyService);
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
-  private loggingService = getLoggingService();
+
 
   private _highlightCommentId = signal<string | null>(null);
   private _todoVisibility: Visibility = "private";
@@ -65,7 +65,7 @@ export class TasksCommentsHelper {
           this.storageService.addCommentToSubtask(comment, event.subtask_id);
         },
         error: (err) => {
-          this.loggingService.error("Failed to add subtask comment", err);
+          logger.error("Failed to add subtask comment", err);
           this.notifyService.showError("Failed to add comment");
         },
       });
