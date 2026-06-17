@@ -13,7 +13,6 @@ export class TasksCommentsHelper {
   private authService = inject(AuthService);
   private storageService = inject(StorageService);
 
-
   private _highlightCommentId = signal<string | null>(null);
   private _todoVisibility: Visibility = "private";
 

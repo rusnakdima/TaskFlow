@@ -1,7 +1,7 @@
-import { Component, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Component, OnDestroy } from "@angular/core";
+import { Subject } from "rxjs";
 
-@Component({ template: '' })
+@Component({ template: "" })
 export abstract class BaseDestroyableComponent implements OnDestroy {
   protected destroy$ = new Subject<void>();
 
