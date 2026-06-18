@@ -38,14 +38,6 @@ export class TasksKanbanHelper extends BaseKanbanHelper<Task> {
     router.navigate([task.id, "subtasks"], { relativeTo: route });
   }
 
-  override onKanbanSelectionChange(
-    taskId: string,
-    isSelected: boolean,
-    toggleTaskSelectionFn: (event: { id: string; selected: boolean }) => void
-  ): void {
-    super.onKanbanSelectionChange(taskId, isSelected, toggleTaskSelectionFn);
-  }
-
   isKanbanTaskSelected(taskId: string, selectedTasks: Set<string>): boolean {
     return super.isKanbanItemSelected(taskId, selectedTasks);
   }

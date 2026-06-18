@@ -36,14 +36,6 @@ export class SubtasksKanbanHelper extends BaseKanbanHelper<Subtask> {
     this.onKanbanItemDrop(event as any, targetStatus, _todo, updateSubtaskFn);
   }
 
-  override onKanbanSelectionChange(
-    subtaskId: string,
-    isSelected: boolean,
-    toggleSubtaskSelectionFn: (event: { id: string; selected: boolean }) => void
-  ): void {
-    super.onKanbanSelectionChange(subtaskId, isSelected, toggleSubtaskSelectionFn);
-  }
-
   isKanbanSubtaskSelected(subtaskId: string, selectedSubtasks: Set<string>): boolean {
     return super.isKanbanItemSelected(subtaskId, selectedSubtasks);
   }
