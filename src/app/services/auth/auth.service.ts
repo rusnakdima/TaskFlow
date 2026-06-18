@@ -101,8 +101,8 @@ export class AuthService {
    */
   private performOnlineLogin(loginData: LoginForm): Observable<AuthResponse> {
     return this.requestService.invokeCommand<AuthResponse>("login", { loginForm: loginData }).pipe(
-      tap(() => {
-        this.loadUserData();
+      tap((response) => {
+        this.loadUserData(response);
       })
     );
   }
@@ -113,8 +113,8 @@ export class AuthService {
 
   signup<R>(signupData: SignupForm): Observable<R> {
     return this.requestService.invokeCommand<R>("register", { signupForm: signupData }).pipe(
-      tap(() => {
-        this.loadUserData();
+      tap((response) => {
+        this.loadUserData(response);
       })
     );
   }
@@ -229,6 +229,48 @@ export class AuthService {
 
   /**
    * Load current user data from backend or cache
+   * Stores profile/user from login/register response or fetches via check_token
    */
-  loadUserData(): void {}
+  loadUserData(response?: AuthResponse | any): void {
+    if (response?.profile) {
+      this.storageService.setCollection("profiles", [response.profile]);
+    }
+    if (response?.user) {
+      this.storageService.setCollection("user", response.user);
+    } else if (response?.id) {
+      const user = {
+        id: response.id,
+        email: response.email,
+        username: response.username,
+        role: response.role,
+        profile_id: response.profile_id,
+      };
+      this.storageService.setCollection("user", user);
+    }
+
+    if (!response) {
+      const token = this.getToken();
+      if (!token) return;
+      this.checkToken<any>(token).subscribe({
+        next: (res: any) => {
+          if (res?.profile) {
+            this.storageService.setCollection("profiles", [res.profile]);
+          }
+          if (res?.user) {
+            this.storageService.setCollection("user", res.user);
+          } else if (res?.id) {
+            const user = {
+              id: res.id,
+              email: res.email,
+              username: res.username,
+              role: res.role,
+              profile_id: res.profile_id,
+            };
+            this.storageService.setCollection("user", user);
+          }
+        },
+        error: () => {},
+      });
+    }
+  }
 }
