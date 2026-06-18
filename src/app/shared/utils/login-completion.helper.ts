@@ -13,7 +13,8 @@ export class LoginCompletionHelper {
     TokenStorageHelper.setToken(token, remember);
 
     if (router) {
-      router.navigate(["/"]);
+      history.pushState({}, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
     } else {
       window.location.href = "/";
     }
