@@ -52,6 +52,7 @@ use commands::{
     hard_delete_room_messages, mark_message_read, remove_group_members, remove_message_reaction,
     send_message, update_group_cmd,
   },
+  profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{
     create_room, delete_room, delete_room_cmd, get_room, get_rooms, get_rooms_cmd, update_room,
   },
@@ -634,6 +635,11 @@ pub fn run() {
       delete_notification,
       clear_all_notifications,
       log_message,
+      get_profiles,
+      get_profile,
+      create_profile,
+      update_profile,
+      delete_profile,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {
