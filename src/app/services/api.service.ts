@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, inject, signal, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 import { Response, ResponseStatus } from "@models/response.model";
@@ -47,9 +47,17 @@ export interface CascadeResult {
 @Injectable({ providedIn: "root" })
 export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
-  storageService = inject(StorageService);
+  private _injector = inject(Injector);
   jwtTokenService = inject(JwtTokenService);
   private tauriApi = inject(TauriApiService);
+
+  private _storageService: StorageService | null = null;
+  get storageService(): StorageService {
+    if (!this._storageService) {
+      this._storageService = this._injector.get(StorageService);
+    }
+    return this._storageService;
+  }
 
   readonly todos = new EntityApi<Todo>(this, {
     get: "get_todo",
