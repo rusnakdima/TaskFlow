@@ -1,25 +1,14 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-import { Observable, of, from } from "rxjs";
-import { tap, catchError, map } from "rxjs/operators";
+import { Observable, from } from "rxjs";
+import { tap, catchError } from "rxjs/operators";
 
 /* models */
-import {
-  Todo,
-  Task,
-  Subtask,
-  Comment,
-  Chat,
-  User,
-  Category,
-  Profile,
-  Room,
-} from "@models/generated/api.types";
-import { EntityType, ChildType, VisibilityFilter } from "@models/storage.model";
+import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@models/generated/api.types";
+import { EntityType, VisibilityFilter } from "@models/storage.model";
 
 /* services */
 import { ApiService } from "@services/api.service";
-import { LoggerService } from "@shared/services/logger.service";
 
 /* child services */
 import { BaseStorageService, DEFAULT_PAGINATION } from "./storage-entity.service";
@@ -27,7 +16,6 @@ import { StoragePaginationService } from "./storage-pagination.service";
 import { StorageChatService } from "./storage-chat.service";
 
 /* utils */
-import { upsertEntityBulk } from "@stores/utils/store-helpers";
 
 @Injectable({ providedIn: "root" })
 export class UnifiedStorageService {
@@ -35,7 +23,7 @@ export class UnifiedStorageService {
   private readonly _chatService = inject(StorageChatService);
   private readonly _baseService = inject(BaseStorageService);
   private readonly _apiService = inject(ApiService);
-  private loggingService = inject(LoggerService);
+  // private loggingService = inject(LoggerService);
 
   /* ════════════════════════════════════════════════════════════════════════
      PROXY ALL ENTITY SIGNALS FROM BASE
@@ -387,9 +375,9 @@ export class UnifiedStorageService {
     return this._baseService.getUsername(userId);
   }
 
-  private updatePagination(type: ChildType, skip: number, limit: number, receivedCount: number) {
-    this._baseService.updatePagination(type, skip, limit, receivedCount);
-  }
+  // private updatePagination(type: ChildType, skip: number, limit: number, receivedCount: number) {
+  //   this._baseService.updatePagination(type, skip, limit, receivedCount);
+  // }
 
   clear(): void {
     this.todos.set([]);

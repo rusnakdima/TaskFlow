@@ -1,18 +1,12 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
-import { Observable, from } from "rxjs";
-import { tap, catchError } from "rxjs/operators";
+import { Injectable } from "@angular/core";
 
 /* models */
 import { Todo, Task, Subtask, Comment, Chat, Category } from "@models/generated/api.types";
-import { EntityType, VisibilityFilter, ChildType } from "@models/storage.model";
-
-/* services */
-import { ApiService } from "@services/api.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { VisibilityFilter } from "@models/storage.model";
 
 /* base */
-import { BaseStorageService, DEFAULT_PAGINATION } from "./storage-entity.service";
+import { BaseStorageService } from "./storage-entity.service";
 
 /* utils */
 import { upsertEntityBulk } from "@stores/utils/store-helpers";
@@ -271,7 +265,6 @@ export class StoragePaginationService extends BaseStorageService {
       next: (result: any) => {
         const rooms = Array.isArray(result) ? result : result?.data || [];
         this.rooms.set(rooms);
-        this.loadConversationsFromChats();
       },
       error: () => this._roomsLoading.set(false),
       complete: () => this._roomsLoading.set(false),
