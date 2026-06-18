@@ -8,6 +8,7 @@ import { AdminService } from "@services/data/admin.service";
 import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
+import { ResponseStatus } from "@models/response.model";
 
 @Injectable({
   providedIn: "root",
@@ -23,7 +24,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     return new Observable((subscriber) => {
       this.adminService.getArchiveDataPaginated(type, 0, limit).subscribe({
         next: (response) => {
-          if (response.status === "Success" && response.data) {
+          if (response.status === ResponseStatus.SUCCESS && response.data) {
             subscriber.next(response);
             subscriber.complete();
           } else {
@@ -42,7 +43,7 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     return new Observable((subscriber) => {
       this.adminService.getArchiveDataPaginated(type, skip, limit).subscribe({
         next: (response) => {
-          if (response.status === "Success" && response.data) {
+          if (response.status === ResponseStatus.SUCCESS && response.data) {
             subscriber.next(response);
             subscriber.complete();
           } else {
