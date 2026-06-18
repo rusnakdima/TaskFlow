@@ -42,7 +42,6 @@ import {
   PageToolbarComponent,
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
-import { FilterField } from "@models/filter-config.model";
 import { ViewMode } from "@models/view-mode.model";
 import { BlueprintCreateDialogComponent } from "@components/blueprint-dialogs/blueprint-create-dialog.component";
 import { BlueprintSelectionDialogComponent } from "@components/blueprint-dialogs/blueprint-selection-dialog.component";
@@ -119,6 +118,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
   override loading = signal(false);
+
+  visibilityOptions = this.stateService.visibilityOptions;
+  filterFields = this.stateService.filterFields;
+  showStats = this.stateService.showStats;
+  selectedTodos = this.selectionState.selectedTodos;
+  highlightTodoId = this.stateService.highlightTodoId;
+  todoPagination = this.paginationState.todoPagination;
+  loadMore = () => this.paginationState.loadMore();
 
   protected getItems(): { id: string }[] {
     return this.stateService.listTodos();
