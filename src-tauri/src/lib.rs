@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tauri::{Manager, State};
 
 use crate::repositories::data_provider::DataProvider;
+use crate::utils::logger::log_error;
 
 /* utils */
 use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
@@ -352,7 +353,10 @@ pub fn run() {
         let db_name = config_helper.mongo_db_name.clone();
         match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &db_name)) {
           Ok(p) => Some(Arc::new(p)),
-          Err(_e) => None,
+          Err(e) => {
+            log_error(&format!("Failed to connect to MongoDB at {}: {}", uri, e));
+            None
+          }
         }
       };
 
