@@ -24,7 +24,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 /* utils */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/utils/store-helpers";
 
-import { StorageEntityService } from "./storage-entity.service";
+import { BaseStorageService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
 import { LoggerService } from "@shared/services/logger.service";
 
@@ -34,7 +34,7 @@ const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true 
 @Injectable({ providedIn: "root" })
 export class StorageQueryService {
   private readonly _injector = inject(Injector);
-  private readonly _entityService = inject(StorageEntityService);
+  private readonly _entityService = inject(BaseStorageService);
   private _apiService: ApiService | null = null;
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
@@ -315,18 +315,22 @@ export class StorageQueryService {
       case "chats":
         return this.chats();
       default:
-        return this._entityService.getSignal(type)() || [];
+        return this._entityService.getSignal(type)?.() || [];
     }
   }
 
   find(type: EntityType, predicate: (item: any) => boolean): any | undefined {
-    const items = this._entityService.getSignal(type)();
+    const signal = this._entityService.getSignal(type);
+    if (!signal) return undefined;
+    const items = signal();
     return items.find(predicate);
   }
 
   findById(type: EntityType, id: string): any | undefined {
     if (type === "users" || type === "profiles") return undefined;
-    const items = this._entityService.getSignal(type)();
+    const signal = this._entityService.getSignal(type);
+    if (!signal) return undefined;
+    const items = signal();
     return items.find((e: any) => e.id === id);
   }
 

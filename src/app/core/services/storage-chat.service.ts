@@ -1,18 +1,11 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
 
 /* models */
-import { Chat, Room } from "@models/generated/api.types";
+import { Chat } from "@models/generated/api.types";
 import { ConversationItem, ChatMessage } from "@models/chat.model";
-
-/* services */
-import { ApiService } from "@services/api.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { NotifyService } from "@services/notifications/notify.service";
-import { MongoConnectionService } from "@core/services/mongo-connection.service";
-import { LoggerService } from "@shared/services/logger.service";
 
 /* base */
 import { BaseStorageService } from "./storage-entity.service";
@@ -234,7 +227,7 @@ export class StorageChatService extends BaseStorageService {
      CHAT HELPERS
      ════════════════════════════════════════════════════════════════════════ */
 
-  updateChatByTempId(
+  override updateChatByTempId(
     tempId: string,
     cloudId: string,
     syncStatus: "pending" | "synced" | "failed"
@@ -248,7 +241,7 @@ export class StorageChatService extends BaseStorageService {
     );
   }
 
-  updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed"): void {
+  override updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed"): void {
     this.chats.update((chats) =>
       chats.map((c) =>
         c.temp_id === tempId || c.id === tempId ? { ...c, sync_status: syncStatus } : c

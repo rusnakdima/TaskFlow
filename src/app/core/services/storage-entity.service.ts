@@ -1,7 +1,5 @@
 /* sys lib */
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
-import { Observable, of, from } from "rxjs";
-import { tap, catchError, map } from "rxjs/operators";
 
 /* models */
 import {
@@ -15,7 +13,7 @@ import {
   Profile,
   Room,
 } from "@models/generated/api.types";
-import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
+import { EntityType, ChildType, PaginationState } from "@models/storage.model";
 import { ConversationItem, ChatMessage } from "@models/chat.model";
 
 /* services */
@@ -27,7 +25,6 @@ import { LoggerService } from "@shared/services/logger.service";
 
 /* utils */
 import {
-  upsertEntityBulk,
   updateEntityInSignal,
   removeEntityFromSignal,
   addEntityToSignal,
@@ -39,7 +36,7 @@ export const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore
 export class BaseStorageService {
   protected readonly _apiService = inject(ApiService);
   protected readonly _jwtTokenService = inject(JwtTokenService);
-  protected readonly _notifyService = inject(NotifyService);
+  readonly _notifyService = inject(NotifyService);
   protected readonly _mongoConnectionService = inject(MongoConnectionService);
   protected loggingService = inject(LoggerService);
 
@@ -53,6 +50,8 @@ export class BaseStorageService {
   readonly comments = signal<Comment[]>([]);
   readonly chats = signal<Chat[]>([]);
   readonly categories = signal<Category[]>([]);
+  readonly localCategories = signal<Category[]>([]);
+  readonly cloudCategories = signal<Category[]>([]);
   readonly profiles = signal<Profile[]>([]);
   readonly publicProfiles = signal<Profile[]>([]);
   readonly users = signal<User[]>([]);
@@ -65,20 +64,20 @@ export class BaseStorageService {
   readonly activeConversationId = signal<string | null>(null);
 
   // Loading states
-  private readonly _todosLoading = signal(false);
-  private readonly _tasksLoading = signal(false);
-  private readonly _subtasksLoading = signal(false);
-  private readonly _categoriesLoading = signal(false);
-  private readonly _chatsLoading = signal(false);
-  private readonly _commentsLoading = signal(false);
-  private readonly _userLoading = signal(false);
-  private readonly _profileLoading = signal(false);
-  private readonly _roomsLoading = signal(false);
+  protected readonly _todosLoading = signal(false);
+  protected readonly _tasksLoading = signal(false);
+  protected readonly _subtasksLoading = signal(false);
+  protected readonly _categoriesLoading = signal(false);
+  protected readonly _chatsLoading = signal(false);
+  protected readonly _commentsLoading = signal(false);
+  protected readonly _userLoading = signal(false);
+  protected readonly _profileLoading = signal(false);
+  protected readonly _roomsLoading = signal(false);
 
-  protected readonly _loaded = signal(false);
-  protected readonly _lastLoaded = signal<Date | null>(null);
+  readonly _loaded = signal(false);
+  readonly _lastLoaded = signal<Date | null>(null);
 
-  protected readonly _pagination = signal<Record<ChildType, PaginationState>>({
+  readonly _pagination = signal<Record<ChildType, PaginationState>>({
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
     subtasks: { ...DEFAULT_PAGINATION },
@@ -92,15 +91,9 @@ export class BaseStorageService {
      ════════════════════════════════════════════════════════════════════════ */
 
   // Todo filters by visibility
-  readonly privateTodos = computed(() =>
-    this.todos().filter((t) => t.visibility === "private" && !t.deleted_at)
-  );
-  readonly sharedTodos = computed(() =>
-    this.todos().filter((t) => t.visibility === "shared" && !t.deleted_at)
-  );
-  readonly publicTodos = computed(() =>
-    this.todos().filter((t) => t.visibility === "public" && !t.deleted_at)
-  );
+  readonly privateTodos = signal<Todo[]>([]);
+  readonly sharedTodos = signal<Todo[]>([]);
+  readonly publicTodos = signal<Todo[]>([]);
   readonly allTodos = computed(() => this.todos().filter((t) => !t.deleted_at));
   readonly archivedTodos = computed(() => this.todos().filter((t) => !!t.deleted_at));
 
@@ -301,6 +294,119 @@ export class BaseStorageService {
     return this._jwtTokenService.getCurrentUserId() || "";
   }
 
+  getCurrentUser(): User | null {
+    return this.currentUser();
+  }
+
+  updateEntity(type: EntityType, data: any): void {
+    if (!data?.id) return;
+    this.updateEntitySignal(type, data.id, data);
+  }
+
+  addCommentToTask(comment: Comment, _taskId?: string): void {
+    if (!comment?.id) return;
+    this.comments.update((comments) => [...comments, comment]);
+  }
+
+  addCommentToSubtask(comment: Comment, _subtaskId?: string): void {
+    if (!comment?.id) return;
+    this.comments.update((comments) => [...comments, comment]);
+  }
+
+  removeCommentFromAll(commentId: string): void {
+    this.comments.update((comments) => comments.filter((c) => c.id !== commentId));
+  }
+
+  clearEntitySignals(): void {
+    this.todos.set([]);
+    this.tasks.set([]);
+    this.subtasks.set([]);
+    this.comments.set([]);
+    this.chats.set([]);
+    this.categories.set([]);
+    this.profiles.set([]);
+    this.publicProfiles.set([]);
+    this.users.set([]);
+    this.rooms.set([]);
+    this.conversations.set([]);
+    this.messages.set([]);
+    this.currentUser.set(null);
+  }
+
+  updateChat(
+    _tempId: string,
+    action: "add" | "update" | "delete" | "clear",
+    chat: Partial<Chat> & { id?: string } = {}
+  ): void {
+    switch (action) {
+      case "add":
+        this.chats.update((chats) => [...chats, chat as Chat]);
+        break;
+      case "update":
+        this.chats.update((chats) => chats.map((c) => (c.id === chat.id ? { ...c, ...chat } : c)));
+        break;
+      case "delete":
+        this.chats.update((chats) => chats.filter((c) => c.id !== chat.id));
+        break;
+      case "clear":
+        this.chats.set([]);
+        break;
+    }
+  }
+
+  updateChatByTempId(tempId: string, cloudId: string, syncStatus: string): void {
+    this.chats.update((chats) =>
+      chats.map((c) =>
+        c.temp_id === tempId ? { ...c, id: cloudId, syncStatus: syncStatus as any } : c
+      )
+    );
+  }
+
+  updateChatSyncStatus(_tempId: string, syncStatus: string): void {
+    this.chats.update((chats) =>
+      chats.map((c) => (c.temp_id === _tempId ? { ...c, syncStatus: syncStatus as any } : c))
+    );
+  }
+
+  bulkUpsertSubtasks(subtasks: Subtask[]): void {
+    subtasks.forEach((subtask) => {
+      this.subtasks.update((subs) => {
+        const exists = subs.find((s) => s.id === subtask.id);
+        if (exists) {
+          return subs.map((s) => (s.id === subtask.id ? subtask : s));
+        }
+        return [...subs, subtask];
+      });
+    });
+  }
+
+  getSignal(entityType: EntityType): WritableSignal<any> | null {
+    switch (entityType) {
+      case "todos":
+        return this.todos;
+      case "tasks":
+        return this.tasks;
+      case "subtasks":
+        return this.subtasks;
+      case "comments":
+        return this.comments;
+      case "chats":
+        return this.chats;
+      case "categories":
+        return this.categories;
+      case "profiles":
+        return this.profiles;
+      case "users":
+        return this.users;
+      default:
+        return null;
+    }
+  }
+
+  setCurrentUser(user: User): void {
+    this.currentUser.set(user);
+  }
+
   getUsername(userId: string): string {
     const user = this.users().find((u) => u.id === userId);
     const profile = this.profiles().find((p) => p.user_id === userId);
@@ -308,3 +414,6 @@ export class BaseStorageService {
     return user?.username || "Unknown";
   }
 }
+
+// Alias for backwards compatibility
+export { BaseStorageService as StorageEntityService };

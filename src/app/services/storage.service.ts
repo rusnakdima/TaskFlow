@@ -26,7 +26,7 @@ import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { CascadeService } from "@core/services/cascade.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { StorageSignalMap } from "@models/storage-signal-map.model";
-import { StorageEntityService } from "@core/services/storage-entity.service";
+import { BaseStorageService } from "@core/services/storage-entity.service";
 import { StorageCacheService } from "@core/services/storage-cache.service";
 import { StorageQueryService } from "@core/services/storage-query.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
@@ -40,7 +40,7 @@ const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true 
 @Injectable({ providedIn: "root" })
 export class StorageService {
   private readonly _injector = inject(Injector);
-  private readonly _entityService = inject(StorageEntityService);
+  private readonly _entityService = inject(BaseStorageService);
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
   private readonly mongoConnectionService = inject(MongoConnectionService);
@@ -107,7 +107,7 @@ export class StorageService {
   readonly categories = this._entityService.categories.asReadonly();
   readonly localCategories = this._entityService.localCategories.asReadonly();
   readonly cloudCategories = this._entityService.cloudCategories.asReadonly();
-  readonly profile = this._entityService.profiles.asReadonly();
+  readonly profile = computed(() => this._entityService.profiles()[0] ?? null);
   readonly profiles = this._entityService.profiles.asReadonly();
   readonly publicProfiles = this._entityService.publicProfiles.asReadonly();
   readonly allProfiles = this._queryService.allProfiles;
