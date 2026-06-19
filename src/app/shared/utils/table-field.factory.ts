@@ -1,5 +1,5 @@
-import { AdminFieldConfig } from "@models/admin-table.model";
-import { TableFieldType, TableField } from "@models/table-field.model";
+import { AdminFieldConfig } from "@entities/admin-table.model";
+import { TableFieldType, TableField } from "@entities/table-field.model";
 import { TABLE_COLUMNS } from "@shared/utils/constants";
 
 export class TableFieldFactory {

@@ -6,15 +6,13 @@ import {
   ChangeDetectionStrategy,
   signal,
   OnInit,
-  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
-import { ChatMessage } from "../../models/chat.model";
-import { MessageReactionsComponent } from "../../views/chat/components/message-reactions/message-reactions.component";
+import { ChatMessage } from "@entities/chat.model";
+import { MessageReactionsComponent } from "@pages/chat/components/message-reactions/message-reactions.component";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
-import { LoggerService } from "@shared/services/logger.service";
 
 @Component({
   selector: "app-chat-message",
@@ -30,8 +28,6 @@ import { LoggerService } from "@shared/services/logger.service";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatMessageComponent implements OnInit {
-  private loggingService = inject(LoggerService);
-
   @Input() message!: ChatMessage;
   @Input() isGroupStart = false;
   @Input() isGroupChat = false;
@@ -76,7 +72,7 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onContextMenu(event: MouseEvent): void {
-    this.loggingService.debug("onContextMenu", {
+    console.debug("onContextMenu", {
       event,
       message: this.message,
       isOwn: this.isOwn,
@@ -95,35 +91,35 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onReply(message: ChatMessage): void {
-    this.loggingService.debug("onReply", { message });
+    console.debug("onReply", { message });
     this.reply.emit(message);
   }
 
   onReact(payload: { message: ChatMessage; emoji: string }): void {
-    this.loggingService.debug("onReact", payload);
+    console.debug("onReact", payload);
     this.react.emit(payload);
     this.showReactionPicker.set(false);
     this.showEmojiGrid.set(false);
   }
 
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
-    this.loggingService.debug("onRemoveReaction", payload);
+    console.debug("onRemoveReaction", payload);
     this.removeReaction.emit(payload);
     this.showEmojiGrid.set(false);
   }
 
   onCancelReply(message: ChatMessage): void {
-    this.loggingService.debug("onCancelReply", { message });
+    console.debug("onCancelReply", { message });
     this.cancelReply.emit(message);
   }
 
   onToggleReactionPicker(): void {
-    this.loggingService.debug("onToggleReactionPicker");
+    console.debug("onToggleReactionPicker");
     this.showReactionPicker.update((v) => !v);
   }
 
   onToggleEmojiGrid(): void {
-    this.loggingService.debug("onToggleEmojiGrid");
+    console.debug("onToggleEmojiGrid");
     this.showEmojiGrid.update((v) => !v);
   }
 
@@ -137,28 +133,28 @@ export class ChatMessageComponent implements OnInit {
   }
 
   onQuickReaction(emoji: string): void {
-    this.loggingService.debug("onQuickReaction", { emoji });
+    console.debug("onQuickReaction", { emoji });
     this.react.emit({ message: this.message, emoji });
     this.showEmojiGrid.set(false);
   }
 
   onPickerClosed(): void {
-    this.loggingService.debug("onPickerClosed");
+    console.debug("onPickerClosed");
     this.showReactionPicker.set(false);
   }
 
   onRetrySend(): void {
-    this.loggingService.debug("onRetrySend");
+    console.debug("onRetrySend");
     this.retrySend.emit(this.message);
   }
 
   onDeleteMessage(): void {
-    this.loggingService.debug("onDeleteMessage", { message: this.message });
+    console.debug("onDeleteMessage", { message: this.message });
     this.deleteMessage.emit(this.message);
   }
 
   startEditMessageInline(): void {
-    this.loggingService.debug("startEditMessageInline", { message: this.message });
+    console.debug("startEditMessageInline", { message: this.message });
     this.startEditMessage.emit(this.message);
   }
 

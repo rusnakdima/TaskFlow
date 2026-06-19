@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
-import { Task, Subtask } from "@models/generated/api.types";
-import { CascadeResult, CascadeUpdate } from "@models/cascade.model";
+import { Task, Subtask } from "@entities/generated/api.types";
+import { CascadeResult, CascadeUpdate } from "@entities/cascade.model";
 
 // ARCHITECTURAL NOTE: CascadeService handles cascade operations for task/subtask deletion.
 // This is a focused utility service, not a god service - kept minimal.

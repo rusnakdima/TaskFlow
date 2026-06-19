@@ -2,10 +2,10 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { AdminService } from "@services/data/admin.service";
-import { ResponseStatus } from "@models/response.model";
-import { AdminDataWithRelations, LoadDataOptions } from "@models/admin.model";
+import { ResponseStatus } from "@entities/response.model";
+import { AdminDataWithRelations, LoadDataOptions } from "@entities/admin.model";
 
-export { AdminDataWithRelations } from "@models/admin.model";
+export { AdminDataWithRelations } from "@entities/admin.model";
 
 @Injectable({
   providedIn: "root",

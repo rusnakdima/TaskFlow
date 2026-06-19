@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from "@angular/common";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 
-import { FormField } from "@models/form-field.model";
+import { FormField } from "@entities/form-field.model";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 
 export interface FormSection {

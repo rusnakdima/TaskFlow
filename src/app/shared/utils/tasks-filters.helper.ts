@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from "@angular/core";
-import { Task } from "@models/generated/api.types";
+import { Task } from "@entities/generated/api.types";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
-import { FilterField } from "@models/filter-config.model";
+import { FilterField } from "@entities/filter-config.model";
 
 @Injectable({ providedIn: "root" })
 export class TasksFiltersHelper {

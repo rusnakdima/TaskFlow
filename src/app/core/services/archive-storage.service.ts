@@ -8,7 +8,7 @@ import { AdminService } from "@services/data/admin.service";
 import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
-import { ResponseStatus } from "@models/response.model";
+import { ResponseStatus } from "@entities/response.model";
 
 @Injectable({
   providedIn: "root",

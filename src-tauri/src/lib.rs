@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tauri::{Manager, State};
 
 use crate::repositories::data_provider::DataProvider;
-use crate::utils::logger::log_error;
 
 /* utils */
 use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
@@ -22,7 +21,6 @@ use commands::{
   archive_command::{
     get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete,
   },
-  logger::log_message,
   update_command::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
 
@@ -302,8 +300,6 @@ pub struct SystemState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  utils::logger::init_logger("taskflow", log::LevelFilter::Info).ok();
-
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
   std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
@@ -355,7 +351,7 @@ pub fn run() {
         match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &db_name)) {
           Ok(p) => Some(Arc::new(p)),
           Err(e) => {
-            log_error(&format!("Failed to connect to MongoDB at {}: {}", uri, e));
+            eprintln!("Failed to connect to MongoDB at {}: {}", uri, e);
             None
           }
         }
@@ -634,7 +630,6 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
-      log_message,
       get_profiles,
       get_profile,
       create_profile,

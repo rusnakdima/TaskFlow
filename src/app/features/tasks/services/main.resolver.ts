@@ -5,7 +5,7 @@ import { firstValueFrom, take } from "rxjs";
 
 /* services */
 import { ApiService } from "@services/api.service";
-import { CrudOptions } from "@models/api.model";
+import { CrudOptions } from "@entities/api.model";
 import { StorageService } from "@services/storage.service";
 
 /**

@@ -5,7 +5,7 @@ import { switchMap, catchError } from "rxjs/operators";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { ResponseStatus } from "@models/response.model";
+import { ResponseStatus } from "@entities/response.model";
 import { TauriApiService } from "@app/api/tauri-api.service";
 
 export interface ConnectionState {

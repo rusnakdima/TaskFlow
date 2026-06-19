@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
-import { Subtask, TaskStatus, Todo } from "@models/generated/api.types";
+import { Subtask, TaskStatus, Todo } from "@entities/generated/api.types";
 import { BaseKanbanHelper, KanbanColumn, KANBAN_COLUMNS } from "@helpers/base-kanban.helper";
 
 export interface SubtaskKanbanColumn extends KanbanColumn {}

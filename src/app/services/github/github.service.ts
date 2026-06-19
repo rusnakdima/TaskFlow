@@ -2,11 +2,11 @@ import { Injectable, inject, signal, computed } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { catchError, map, tap } from "rxjs/operators";
 
-import { GithubRepo, GithubConnection } from "@models/github.model";
+import { GithubRepo, GithubConnection } from "@entities/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
-import { Response } from "@models/response.model";
+import { Response } from "@entities/response.model";
 
 interface GithubOAuthResult {
   username: string;

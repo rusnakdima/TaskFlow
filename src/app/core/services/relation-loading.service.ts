@@ -4,7 +4,7 @@ import { tap, catchError } from "rxjs/operators";
 
 /* services */
 import { ApiService, HasId } from "@services/api.service";
-import { RelationLoadingStats } from "@models/relation.model";
+import { RelationLoadingStats } from "@entities/relation.model";
 
 @Injectable({
   providedIn: "root",

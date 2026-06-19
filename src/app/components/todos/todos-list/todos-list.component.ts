@@ -13,8 +13,8 @@ import { CdkDragDrop, CdkDragEnter, DragDropModule } from "@angular/cdk/drag-dro
 
 import { MatIconModule } from "@angular/material/icon";
 
-import { Todo, TaskStatus, Comment } from "@models/generated/api.types";
-import { TableFieldActionButton, TableField } from "@models/table-field.model";
+import { Todo, TaskStatus, Comment } from "@entities/generated/api.types";
+import { TableFieldActionButton, TableField } from "@entities/table-field.model";
 import { TableViewComponent } from "@components/table-view/table-view.component";
 
 import { EmptyStateComponent } from "@components/empty-state/empty-state.component";

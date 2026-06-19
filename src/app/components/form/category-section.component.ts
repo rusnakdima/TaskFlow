@@ -12,7 +12,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatIconModule } from "@angular/material/icon";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
-import { Category } from "@models/generated/api.types";
+import { Category } from "@entities/generated/api.types";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 
 export interface CategorySectionValue {

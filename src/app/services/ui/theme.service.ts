@@ -5,8 +5,7 @@ import {
   THEME_PRESETS,
   DEFAULT_APPEARANCE_SETTINGS,
   getAccentShades,
-} from "@models/theme.model";
-import { logger } from "@services/logger.service";
+} from "@entities/theme.model";
 
 const STORAGE_KEY = "appearance_settings";
 
@@ -66,7 +65,7 @@ export class ThemeService {
         return { ...parsed, preset };
       }
     } catch (error) {
-      logger.warn("Failed to load theme settings: " + error);
+      console.warn("Failed to load theme settings: " + error);
     }
 
     const legacyTheme = localStorage.getItem("theme");

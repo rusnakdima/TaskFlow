@@ -18,7 +18,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { FormSectionComponent } from "../form-section/form-section.component";
 import { AvatarSelectorComponent } from "@components/avatar-selector/avatar-selector.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
-import { TextField, TextareaField, TypeField } from "@models/form-field.model";
+import { TextField, TextareaField, TypeField } from "@entities/form-field.model";
 
 export interface ProfileFormValue {
   name: string;

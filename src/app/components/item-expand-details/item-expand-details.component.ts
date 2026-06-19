@@ -2,8 +2,8 @@ import { Component, Input, ChangeDetectionStrategy, signal, OnInit, inject } fro
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatChipsModule } from "@angular/material/chips";
-import { ItemType } from "@models/base.model";
-import { TableField } from "@models/table-field.model";
+import { ItemType } from "@entities/base.model";
+import { TableField } from "@entities/table-field.model";
 import { Observable } from "rxjs";
 
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";

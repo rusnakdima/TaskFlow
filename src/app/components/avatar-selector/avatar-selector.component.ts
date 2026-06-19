@@ -17,8 +17,7 @@ import Cropper from "cropperjs";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
-import { TextField, TypeField } from "@models/form-field.model";
-import { logger } from "@services/logger.service";
+import { TextField, TypeField } from "@entities/form-field.model";
 
 @Component({
   selector: "app-avatar-selector",
@@ -123,7 +122,7 @@ export class AvatarSelectorComponent implements AfterViewInit, OnDestroy {
     };
 
     img.onerror = () => {
-      logger.error("Failed to load image from URL: " + url);
+      console.error("Failed to load image from URL: " + url);
     };
 
     img.src = url;

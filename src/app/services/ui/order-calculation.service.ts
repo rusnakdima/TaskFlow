@@ -1,8 +1,8 @@
 import { Injectable } from "@angular/core";
 import { moveItemInArray } from "@angular/cdk/drag-drop";
-import { Orderable, ReorderResult } from "@models/drag-drop.model";
+import { Orderable, ReorderResult } from "@entities/drag-drop.model";
 
-export { Orderable, ReorderResult } from "@models/drag-drop.model";
+export { Orderable, ReorderResult } from "@entities/drag-drop.model";
 
 @Injectable({
   providedIn: "root",

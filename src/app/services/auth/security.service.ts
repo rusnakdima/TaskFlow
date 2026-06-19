@@ -3,11 +3,11 @@ import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* models */
-import { TotpSetupResult } from "@models/security.model";
-export { TotpSetupResult, UserSecurityStatus } from "@models/security.model";
+import { TotpSetupResult } from "@entities/security.model";
+export { TotpSetupResult, UserSecurityStatus } from "@entities/security.model";
 
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { AuthResponse } from "@models/auth-forms.model";
+import { AuthResponse } from "@entities/auth-forms.model";
 import { ApiService } from "@services/api.service";
 
 @Injectable({

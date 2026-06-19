@@ -1,10 +1,9 @@
-import { Component, Input, ChangeDetectionStrategy, inject } from "@angular/core";
+import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormGroup, ReactiveFormsModule, AbstractControl } from "@angular/forms";
 import { FormSectionComponent } from "./form-section/form-section.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
-import { TextField, TextareaField, TypeField } from "@models/form-field.model";
-import { LoggerService } from "@shared/services/logger.service";
+import { TextField, TextareaField, TypeField } from "@entities/form-field.model";
 
 @Component({
   selector: "app-basic-info-section",
@@ -14,8 +13,6 @@ import { LoggerService } from "@shared/services/logger.service";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BasicInfoSectionComponent {
-  private loggingService = inject(LoggerService);
-
   @Input() itemType = "";
   @Input() formGroup!: FormGroup | AbstractControl;
 
@@ -36,7 +33,7 @@ export class BasicInfoSectionComponent {
 
   onTitleChange(value: string): void {
     const control = this.formGroup.get("title");
-    this.loggingService.debug("title changed", {
+    console.debug("title changed", {
       value,
       valid: !control?.invalid,
       errors: control?.errors,
@@ -45,7 +42,7 @@ export class BasicInfoSectionComponent {
   }
 
   onDescriptionChange(value: string): void {
-    this.loggingService.debug("description changed", { value });
+    console.debug("description changed", { value });
     this.formGroup.get("description")?.setValue(value);
   }
 }

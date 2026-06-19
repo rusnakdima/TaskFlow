@@ -2,7 +2,7 @@ import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormGroup } from "@angular/forms";
 
-import { FormField, TypeField } from "@models/form-field.model";
+import { FormField, TypeField } from "@entities/form-field.model";
 
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 

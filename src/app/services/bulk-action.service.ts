@@ -1,7 +1,7 @@
 /* sys lib */
 import { Injectable, signal, computed } from "@angular/core";
 
-import { BulkActionMode, BulkActionState } from "@models/bulk-action.model";
+import { BulkActionMode, BulkActionState } from "@entities/bulk-action.model";
 
 @Injectable({
   providedIn: "root",

@@ -21,11 +21,11 @@ import { CommentsToggleComponent } from "@components/comments-toggle/comments-to
 import { CommentsComponent } from "@components/comments/comments.component";
 import { StatusToggleComponent } from "@components/status-toggle/status-toggle.component";
 import { ProgressBarComponent } from "@components/progress-bar/progress-bar.component";
-import { ItemDisplayConfig, ItemDisplayAction } from "@models/item-display.model";
-import { DisplayMode } from "@models/item-display.types";
-import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@models/generated/api.types";
-import { ItemType } from "@models/base.model";
-import { TableField } from "@models/table-field.model";
+import { ItemDisplayConfig, ItemDisplayAction } from "@entities/item-display.model";
+import { DisplayMode } from "@entities/item-display.types";
+import { Todo, Task, TaskStatus, Subtask, Category, Comment } from "@entities/generated/api.types";
+import { ItemType } from "@entities/base.model";
+import { TableField } from "@entities/table-field.model";
 import { ActionColors } from "@shared/utils/constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";

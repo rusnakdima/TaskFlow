@@ -6,8 +6,8 @@ import { firstValueFrom } from "rxjs";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 /* models */
-import { Response, ResponseStatus } from "@models/response.model";
-import { QueuedOperation, SyncProgress } from "@models/sync.model";
+import { Response, ResponseStatus } from "@entities/response.model";
+import { QueuedOperation, SyncProgress } from "@entities/sync.model";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";

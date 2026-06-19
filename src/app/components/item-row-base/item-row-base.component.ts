@@ -11,10 +11,10 @@ import {
 
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
-import { Task, Subtask, Comment, Todo } from "@models/generated/api.types";
-import { ItemType } from "@models/base.model";
+import { Task, Subtask, Comment, Todo } from "@entities/generated/api.types";
+import { ItemType } from "@entities/base.model";
 
-export { ItemType } from "@models/base.model";
+export { ItemType } from "@entities/base.model";
 
 @Component({
   selector: "app-item-row-base",

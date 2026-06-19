@@ -10,7 +10,7 @@ import {
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
-import { Profile } from "@models/generated/api.types";
+import { Profile } from "@entities/generated/api.types";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 

@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { TaskStatus, Task } from "@models/generated/api.types";
+import { TaskStatus, Task } from "@entities/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 

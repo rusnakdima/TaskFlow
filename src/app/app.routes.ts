@@ -9,29 +9,29 @@ import { InitialDataResolver } from "@resolvers/initial-data.resolver";
 import { canActivateAuth } from "@guards/auth.guard";
 
 /* components */
-import { LoginView } from "@views/login/login.view";
-import { QrLoginView } from "@views/qr-login/qr-login.view";
-import { SignupView } from "@views/signup/signup.view";
-import { ChangePasswordView } from "@views/change-password/change-password.view";
-import { ResetPasswordView } from "@views/reset-password/reset-password.view";
+import { LoginView } from "@pages/login/login.page";
+import { QrLoginView } from "@pages/qr-login/qr-login.page";
+import { SignupView } from "@pages/signup/signup.page";
+import { ChangePasswordView } from "@pages/change-password/change-password.page";
+import { ResetPasswordView } from "@pages/reset-password/reset-password.page";
 
-import { DashboardView } from "@views/dashboard/dashboard.view";
+import { DashboardView } from "@pages/dashboard/dashboard.page";
 
-import { SyncView } from "@views/sync/sync.view";
-import { CategoriesView } from "@views/categories/categories.view";
+import { SyncView } from "@pages/sync/sync.page";
+import { CategoriesView } from "@pages/categories/categories.page";
 
-import { TodosView } from "@views/todos/todos.view";
-import { TasksView } from "@views/tasks/tasks.view";
-import { SubtasksViewComponent as SubtasksView } from "@views/subtasks/subtasks.view";
-import { ManageTodoPage } from "@views/manage-todo/manage-todo.view";
-import { ManageTaskPage } from "@views/manage-task/manage-task.view";
-import { ManageSubtaskPage } from "@views/manage-subtask/manage-subtask.view";
+import { TodosView } from "@pages/todos/todos.page";
+import { TasksView } from "@pages/tasks/tasks.page";
+import { SubtasksViewComponent as SubtasksView } from "@pages/subtasks/subtasks.page";
+import { ManageTodoPage } from "@pages/manage-todo/manage-todo.page";
+import { ManageTaskPage } from "@pages/manage-task/manage-task.page";
+import { ManageSubtaskPage } from "@pages/manage-subtask/manage-subtask.page";
 
-import { ProfileView } from "@views/profile/profile.view";
-import { ManageProfileView } from "@views/manage-profile/manage-profile.view";
-import { SettingsView } from "@views/settings/settings.view";
+import { ProfileView } from "@pages/profile/profile.page";
+import { ManageProfileView } from "@pages/manage-profile/manage-profile.page";
+import { SettingsView } from "@pages/settings/settings.page";
 
-import { NotFoundView } from "@views/not-found/not-found.view";
+import { NotFoundView } from "@pages/not-found/not-found.page";
 
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard" },
@@ -50,26 +50,26 @@ export const routes: Routes = [
       },
       {
         path: "stats",
-        loadComponent: () => import("@views/stats/stats.view").then((m) => m.StatsView),
+        loadComponent: () => import("@pages/stats/stats.page").then((m) => m.StatsView),
         title: "Statistic",
         data: { breadcrumb: "Statistic" },
       },
       {
         path: "calendar",
-        loadComponent: () => import("@views/calendar/calendar.view").then((m) => m.CalendarView),
+        loadComponent: () => import("@pages/calendar/calendar.page").then((m) => m.CalendarView),
         title: "Calendar",
         data: { breadcrumb: "Calendar" },
       },
       {
         path: "chat",
-        loadComponent: () => import("@views/chat/chat.view").then((m) => m.ChatView),
+        loadComponent: () => import("@pages/chat/chat.page").then((m) => m.ChatView),
         title: "Chat",
         data: { breadcrumb: "Chat" },
       },
 
       {
         path: "about",
-        loadComponent: () => import("@views/about/about.view").then((m) => m.AboutView),
+        loadComponent: () => import("@pages/about/about.page").then((m) => m.AboutView),
         title: "About",
         data: { breadcrumb: "About" },
       },
@@ -89,14 +89,14 @@ export const routes: Routes = [
         path: "admin",
         canActivate: [canActivateAuth],
         loadComponent: () =>
-          import("@views/data-management/data-management.view").then((m) => m.DataManagementView),
+          import("@pages/data-management/data-management.page").then((m) => m.DataManagementView),
         title: "Admin",
         data: { breadcrumb: "Admin", mode: "admin", expectedRoles: ["admin"] },
       },
       {
         path: "archive",
         loadComponent: () =>
-          import("@views/data-management/data-management.view").then((m) => m.DataManagementView),
+          import("@pages/data-management/data-management.page").then((m) => m.DataManagementView),
         title: "Archive",
         data: { breadcrumb: "Archive", mode: "archive" },
       },

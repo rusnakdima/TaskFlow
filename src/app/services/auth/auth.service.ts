@@ -4,8 +4,8 @@ import { Observable } from "rxjs";
 import { tap, take } from "rxjs/operators";
 
 /* models */
-import { LoginForm, SignupForm, AuthResponse } from "@models/auth-forms.model";
-import { PasswordReset } from "@models/password-reset.model";
+import { LoginForm, SignupForm, AuthResponse } from "@entities/auth-forms.model";
+import { PasswordReset } from "@entities/password-reset.model";
 
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";

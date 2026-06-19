@@ -7,7 +7,7 @@ import { Observable, firstValueFrom } from "rxjs";
 import { environment } from "@env/environment";
 
 /* models */
-import { ResponseModel } from "@models/response.model";
+import { ResponseModel } from "@entities/response.model";
 import { TauriApiService } from "@app/api/tauri-api.service";
 
 interface GitHubRelease {

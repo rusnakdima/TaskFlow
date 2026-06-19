@@ -33,5 +33,3 @@ pub mod visibility;
 
 #[path = "cascade.helper.rs"]
 pub mod cascade;
-
-pub mod logger;

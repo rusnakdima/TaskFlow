@@ -2,7 +2,7 @@
 import { Injectable, inject } from "@angular/core";
 
 /* models */
-import { Todo, Task, Subtask, Comment, Chat } from "@models/generated/api.types";
+import { Todo, Task, Subtask, Comment, Chat } from "@entities/generated/api.types";
 
 /* services */
 import { StorageService } from "@services/storage.service";

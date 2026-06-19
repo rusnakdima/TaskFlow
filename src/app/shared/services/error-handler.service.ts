@@ -6,7 +6,6 @@ import {
   AppError,
   isTauriApiError,
 } from "@shared/models/error.model";
-import { logger } from "@services/logger.service";
 
 export interface ToastMessage {
   id: string;
@@ -54,7 +53,6 @@ function generateLogId(): string {
   providedIn: "root",
 })
 export class ErrorHandlerService {
-  private logger = logger;
   private destroyRef = inject(DestroyRef);
   private toastCounter = 0;
 
@@ -80,7 +78,7 @@ export class ErrorHandlerService {
   }
 
   handleError(error: unknown, context?: string): AppError {
-    this.logger.debug("[ERROR_HANDLER] handleError started", { context });
+    console.debug("[ERROR_HANDLER] handleError started", { context });
     const appError = this.normalizeError(error, context);
     this.logError(appError, context);
 
@@ -88,7 +86,7 @@ export class ErrorHandlerService {
       this.showToast(appError);
     }
 
-    this.logger.debug("[ERROR_HANDLER] handleError completed", {
+    console.debug("[ERROR_HANDLER] handleError completed", {
       code: appError.code,
       retryable: appError.retryable,
     });
@@ -96,7 +94,7 @@ export class ErrorHandlerService {
   }
 
   handleHttpError(error: HttpErrorResponse, context?: string): AppError {
-    this.logger.debug("[ERROR_HANDLER] handleHttpError started", {
+    console.debug("[ERROR_HANDLER] handleHttpError started", {
       status: error.status,
       context,
     });
@@ -105,7 +103,7 @@ export class ErrorHandlerService {
 
     this.showToast(appError);
 
-    this.logger.debug("[ERROR_HANDLER] handleHttpError completed", { code: appError.code });
+    console.debug("[ERROR_HANDLER] handleHttpError completed", { code: appError.code });
     return appError;
   }
 
@@ -301,7 +299,7 @@ export class ErrorHandlerService {
     config: Partial<RetryConfig> = {},
     context?: string
   ): Promise<T> {
-    this.logger.debug("[ERROR_HANDLER] retry started", {
+    console.debug("[ERROR_HANDLER] retry started", {
       maxAttempts: config.maxAttempts,
       context,
     });
@@ -312,12 +310,12 @@ export class ErrorHandlerService {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const result = await operation();
-        this.logger.debug("[ERROR_HANDLER] retry completed", { attempt });
+        console.debug("[ERROR_HANDLER] retry completed", { attempt });
         return result;
       } catch (error) {
         lastError = this.handleError(error, context);
         if (!lastError.retryable || attempt === maxAttempts) {
-          this.logger.error("[ERROR_HANDLER] retry failed", lastError, { attempt });
+          console.error("[ERROR_HANDLER] retry failed", lastError, { attempt });
           throw lastError;
         }
 
@@ -343,6 +341,6 @@ export class ErrorHandlerService {
     this.logsSignal.update((logs) => [entry, ...logs].slice(0, 100));
     this.errorsSignal.update((errors) => [error, ...errors].slice(0, 100));
 
-    this.logger.error("[ERROR_HANDLER] Error logged", error, { code: error.code, context });
+    console.error("[ERROR_HANDLER] Error logged", error, { code: error.code, context });
   }
 }

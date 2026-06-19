@@ -1,4 +1,4 @@
-import { Profile } from "@models/generated/api.types";
+import { Profile } from "@entities/generated/api.types";
 
 export function getProfileDisplayName(profile: Profile): string {
   const name = profile.name?.trim() || "";

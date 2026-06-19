@@ -12,22 +12,21 @@ import {
   User,
   Profile,
   Category,
-} from "@models/generated/api.types";
-import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
+} from "@entities/generated/api.types";
+import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
 
 /* services */
 import { AdminService } from "@services/data/admin.service";
-import { AdminDataWithRelations } from "@models/admin.model";
+import { AdminDataWithRelations } from "@entities/admin.model";
 import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* utils */
-import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@stores/utils/store-helpers";
+import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
 
 import { BaseStorageService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
-import { LoggerService } from "@shared/services/logger.service";
-import { ResponseStatus } from "@models/response.model";
+import { ResponseStatus } from "@entities/response.model";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -40,7 +39,6 @@ export class StorageQueryService {
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _profileRequiredService: ProfileRequiredService | null = null;
-  private loggingService = inject(LoggerService);
 
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
@@ -642,7 +640,7 @@ export class StorageQueryService {
           ? this._entityService.publicTodos
           : this._entityService.sharedTodos;
 
-    this.loggingService.debug("ensureTodosLoaded", {
+    console.debug("ensureTodosLoaded", {
       visibility,
       currentLength: targetSignal().length,
       targetSignal:
@@ -654,7 +652,7 @@ export class StorageQueryService {
     });
 
     if (targetSignal().length > 0 && visibility !== "all") {
-      this.loggingService.debug("ensureTodosLoaded SKIP", {
+      console.debug("ensureTodosLoaded SKIP", {
         visibility,
         currentLength: targetSignal().length,
       });
@@ -662,10 +660,10 @@ export class StorageQueryService {
     }
 
     this._todosLoading.set(true);
-    this.loggingService.debug("ensureTodosLoaded FETCHING", { visibility, limit });
+    console.debug("ensureTodosLoaded FETCHING", { visibility, limit });
     this.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
-        this.loggingService.debug("ensureTodosLoaded RECEIVED", {
+        console.debug("ensureTodosLoaded RECEIVED", {
           count: todos.length,
           visibility,
           todos: todos.map((t: any) => ({
@@ -680,7 +678,7 @@ export class StorageQueryService {
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: (err) => {
-        this.loggingService.error("ensureTodosLoaded ERROR", err, { visibility });
+        console.error("ensureTodosLoaded ERROR", err, { visibility });
       },
       complete: () => {
         this._todosLoading.set(false);
@@ -810,21 +808,21 @@ export class StorageQueryService {
   loadMoreTodos(todoId?: string): void {
     if (this._todosLoading()) return;
     const currentPage = Math.floor(this._pagination().todos.skip / 10);
-    this.loggingService.debug("loadMoreTodos", {
+    console.debug("loadMoreTodos", {
       page: currentPage + 1,
       todoId,
     });
     this._todosLoading.set(true);
     this.apiService.todos.getAll({ page: currentPage + 1, limit: 10, todoId }).subscribe({
       next: (todos) => {
-        this.loggingService.debug("loadMoreTodos RECEIVED", {
+        console.debug("loadMoreTodos RECEIVED", {
           count: todos.length,
           todos: todos.map((t: any) => ({ id: t.id, title: t.title, visibility: t.visibility })),
         });
         this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
-      error: (err) => this.loggingService.error("loadMoreTodos ERROR", err),
+      error: (err) => console.error("loadMoreTodos ERROR", err),
       complete: () => {
         this._todosLoading.set(false);
       },

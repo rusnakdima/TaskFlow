@@ -1,7 +1,7 @@
 /* sys lib */
 
 /* models */
-import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
+import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
 
 /* helpers */
 import { calculatePercentage } from "@shared/utils/percentage.util";
