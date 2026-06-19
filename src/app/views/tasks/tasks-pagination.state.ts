@@ -1,7 +1,6 @@
 import { signal, inject, computed } from "@angular/core";
 import { ApiService } from "@services/api.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
-import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Visibility } from "@services/api.service";
 import { Task } from "@models/generated/api.types";
@@ -18,7 +17,6 @@ export interface TaskPaginationState {
 export class TasksPaginationState {
   private apiService = inject(ApiService);
   private entityStore = inject(EntityStoreService);
-  private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
 
   taskPagination = signal<TaskPaginationState>({

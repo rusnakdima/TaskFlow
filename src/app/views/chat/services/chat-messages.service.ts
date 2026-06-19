@@ -5,7 +5,7 @@ import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { Chat, Profile } from "@models/generated/api.types";
+import { Chat } from "@models/generated/api.types";
 import { ChatMessage } from "@models/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
 import { LoggerService } from "@shared/services/logger.service";

@@ -14,7 +14,6 @@ import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.
   templateUrl: "./block-fields.component.html",
 })
 export class BlockFieldsComponent {
-  @Input() parentForm!: FormGroup;
   @Input() formG!: FormGroup;
   @Input() field!: FormField;
 

@@ -54,7 +54,7 @@ function generateLogId(): string {
   providedIn: "root",
 })
 export class ErrorHandlerService {
-  private loggerRef = logger;
+  private logger = logger;
   private destroyRef = inject(DestroyRef);
   private toastCounter = 0;
 
