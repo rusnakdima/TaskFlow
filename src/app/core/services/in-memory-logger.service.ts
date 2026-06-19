@@ -120,4 +120,4 @@ export class InMemoryLoggerService {
   }
 }
 
-export const loggerService = LoggerService.getInstance();
+export const loggerService = InMemoryLoggerService.getInstance();

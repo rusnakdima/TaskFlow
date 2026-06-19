@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from "@angular/common";
 import { FormGroup, ReactiveFormsModule } from "@angular/forms";
 
-import { FormField, TypeField } from "@models/form-field.model";
+import { FormField } from "@models/form-field.model";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 
 export interface FormSection {
@@ -58,11 +58,11 @@ export class UnifiedFormComponent {
     return sections;
   }
 
-  trackByFieldName(index: number, field: FormField): string {
+  trackByFieldName(_index: number, field: FormField): string {
     return field.name;
   }
 
-  trackBySectionTitle(index: number, section: FormSection): string {
+  trackBySectionTitle(_index: number, section: FormSection): string {
     return section.title || "__default__";
   }
 

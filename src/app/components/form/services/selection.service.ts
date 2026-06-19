@@ -50,7 +50,7 @@ export class SelectionService<T = string> implements ControlValueAccessor {
     this.disabled.set(isDisabled);
   }
 
-  setItems(items: T[], getId: (item: T) => string): void {
+  setItems(items: T[], _getId: (item: T) => string): void {
     this.items.set(items);
   }
 

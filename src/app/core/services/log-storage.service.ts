@@ -2,7 +2,6 @@ import { Injectable, inject, OnDestroy } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
 import { LoggerService } from "@shared/services/logger.service";
-import { logger } from "@services/logger.service";
 import { environment } from "@env/environment";
 
 interface LogEntry {

@@ -17,8 +17,7 @@ export class ChatRoomsService {
   state = inject(ChatState);
 
   loadRooms(): void {
-    const userId = this.state.currentUserId();
-    if (!userId) {
+    if (!this.state.currentUserId()) {
       this.loadConversations();
       this.loadGroups();
       return;
@@ -323,8 +322,7 @@ export class ChatRoomsService {
   }
 
   private loadGroups(): void {
-    const userId = this.state.currentUserId();
-    if (!userId) return;
+    if (!this.state.currentUserId()) return;
 
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       this.loadGroupsFromLocal();

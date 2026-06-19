@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { ChatMessageComponent } from "./chat-message.component";
 import { ChatMessage } from "../../models/chat.model";
+import { spyOn } from "jest-mock";
 
 describe("ChatMessageComponent", () => {
   let component: ChatMessageComponent;
