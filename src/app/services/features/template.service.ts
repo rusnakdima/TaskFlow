@@ -1,10 +1,9 @@
 import { Injectable, signal, inject } from "@angular/core";
-import { Todo } from "@models/generated/api.types";
+import { Todo } from "@entities/generated/api.types";
 import { StorageService } from "@services/storage.service";
-import { ProjectTemplate, TemplateTask } from "@models/template.model";
-import { logger } from "@services/logger.service";
+import { ProjectTemplate, TemplateTask } from "@entities/template.model";
 
-export { ProjectTemplate, TemplateTask } from "@models/template.model";
+export { ProjectTemplate, TemplateTask } from "@entities/template.model";
 
 @Injectable({
   providedIn: "root",
@@ -25,7 +24,7 @@ export class TemplateService {
       try {
         this.templates.set(JSON.parse(stored));
       } catch (error) {
-        logger.error("Failed to load templates: " + String(error));
+        console.error("Failed to load templates: " + String(error));
       }
     }
   }

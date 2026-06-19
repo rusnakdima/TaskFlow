@@ -15,7 +15,7 @@ import { Router, RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
+import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";

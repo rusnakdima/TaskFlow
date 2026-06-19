@@ -23,9 +23,9 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 
 /* models */
-import { Category } from "@models/generated/api.types";
-import { TextField, TypeField } from "@models/form-field.model";
-import { StorageTarget, CATEGORY_VISIBILITY_OPTIONS } from "@models/entity-config.model";
+import { Category } from "@entities/generated/api.types";
+import { TextField, TypeField } from "@entities/form-field.model";
+import { StorageTarget, CATEGORY_VISIBILITY_OPTIONS } from "@entities/entity-config.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
@@ -33,7 +33,6 @@ import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { EntityStoreService } from "@core/services/entity-store.service";
-import { TauriApiService } from "@app/api/tauri-api.service";
 
 @Component({
   selector: "app-category-form",
@@ -55,7 +54,6 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   private notifyService = inject(NotifyService);
   private requestService = inject(ApiService);
   private entityStore = inject(EntityStoreService);
-  private tauriApi = inject(TauriApiService);
 
   @Input() isVisible: boolean = false;
   @Input() editingCategory: Category | null = null;
@@ -175,18 +173,13 @@ export class CategoryFormComponent implements OnInit, OnChanges {
       deleted_at: undefined,
     } as Category;
 
-    this.entityStore.addEntity("categories", fullCategory as any);
-
-    this.tauriApi
-      .invoke("upsert_to_json", { table: "categories", data: fullCategory, id })
+    this.entityStore
+      .createEntity("categories", fullCategory as any, { targetDb: "local" })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category created successfully");
           this.closeModal();
           this.saved.emit();
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to create category");
         },
       })
       .add(() => {
@@ -230,22 +223,13 @@ export class CategoryFormComponent implements OnInit, OnChanges {
   }
 
   private updateCategoryLocal(updatedCategory: Category) {
-    this.entityStore.updateEntitySignal("categories", updatedCategory.id, updatedCategory as any);
-
-    this.tauriApi
-      .invoke("upsert_to_json", {
-        table: "categories",
-        data: updatedCategory,
-        id: updatedCategory.id,
-      })
+    this.entityStore
+      .updateEntity("categories", updatedCategory.id, updatedCategory as any, { targetDb: "local" })
       .subscribe({
         next: () => {
           this.notifyService.showSuccess("Category updated successfully");
           this.closeModal();
           this.saved.emit();
-        },
-        error: (err: any) => {
-          this.notifyService.showError(err.message || "Failed to update category");
         },
       })
       .add(() => {

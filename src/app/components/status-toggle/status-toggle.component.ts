@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-import { TaskStatus } from "@models/generated/api.types";
+import { TaskStatus } from "@entities/generated/api.types";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 
 @Component({

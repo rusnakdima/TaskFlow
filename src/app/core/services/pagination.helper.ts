@@ -1,4 +1,4 @@
-import { PaginationState } from "@models/storage.model";
+import { PaginationState } from "@entities/storage.model";
 
 export const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 

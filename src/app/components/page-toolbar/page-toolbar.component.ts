@@ -11,11 +11,11 @@ import {
 } from "@components/segment-selector/segment-selector.component";
 import { FilterSidebarComponent } from "@components/filter-sidebar/filter-sidebar.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-import { FilterField, FilterConfig, FilterOption } from "@models/filter-config.model";
-import { PageToolbarConfig } from "@models/ui.model";
-import { ViewMode } from "@models/view-mode.model";
+import { FilterField, FilterConfig, FilterOption } from "@entities/filter-config.model";
+import { PageToolbarConfig } from "@entities/ui.model";
+import { ViewMode } from "@entities/view-mode.model";
 
-export { PageToolbarConfig } from "@models/ui.model";
+export { PageToolbarConfig } from "@entities/ui.model";
 
 @Component({
   selector: "app-page-toolbar",

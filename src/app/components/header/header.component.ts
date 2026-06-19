@@ -24,9 +24,9 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
 
 /* models */
-import { Todo, Task } from "@models/generated/api.types";
-import { ResponseStatus } from "@models/response.model";
-import { NotificationAction } from "@models/notification.model";
+import { Todo, Task } from "@entities/generated/api.types";
+import { ResponseStatus } from "@entities/response.model";
+import { NotificationAction } from "@entities/notification.model";
 
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";

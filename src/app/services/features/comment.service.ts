@@ -2,8 +2,8 @@ import { Injectable, inject } from "@angular/core";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { Observable, map } from "rxjs";
-import { Comment } from "@models/generated/api.types";
-import { CommentPayload, MarkCommentsResult } from "@models/comment-ext.model";
+import { Comment } from "@entities/generated/api.types";
+import { CommentPayload, MarkCommentsResult } from "@entities/comment-ext.model";
 import { ApiService, Visibility } from "@services/api.service";
 
 @Injectable({ providedIn: "root" })

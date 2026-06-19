@@ -12,9 +12,9 @@ import {
   Category,
   Profile,
   Room,
-} from "@models/generated/api.types";
-import { ConversationItem, ChatMessage } from "@models/chat.model";
-import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@models/storage.model";
+} from "@entities/generated/api.types";
+import { ConversationItem, ChatMessage } from "@entities/chat.model";
+import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
 import { ApiService, Visibility } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -25,7 +25,7 @@ import {
   updateEntityInSignal,
   removeEntityFromSignal,
   addEntityToSignal,
-} from "@stores/utils/store-helpers";
+} from "@store/utils/store-helpers";
 
 export type StorageTarget = "local" | "cloud";
 

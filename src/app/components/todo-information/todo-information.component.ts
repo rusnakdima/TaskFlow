@@ -7,7 +7,7 @@ import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Todo } from "@models/generated/api.types";
+import { Todo } from "@entities/generated/api.types";
 
 /* components */
 import {

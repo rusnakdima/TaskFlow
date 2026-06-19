@@ -4,7 +4,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { StorageService } from "@services/storage.service";
-import { Profile } from "@models/generated/api.types";
+import { Profile } from "@entities/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 
 export interface ProfileOption {

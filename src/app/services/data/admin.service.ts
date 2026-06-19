@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom } from "rxjs";
 
 /* models */
-import { Response, ResponseModel } from "@models/response.model";
+import { Response, ResponseModel } from "@entities/response.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
 import { TauriApiService } from "@app/api/tauri-api.service";

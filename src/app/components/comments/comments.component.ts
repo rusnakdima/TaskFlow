@@ -24,8 +24,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/subtask-comments-list.component";
 
 /* models */
-import { SubtaskCommentGroup } from "@models/comment-ext.model";
-import { Comment, Todo } from "@models/generated/api.types";
+import { SubtaskCommentGroup } from "@entities/comment-ext.model";
+import { Comment, Todo } from "@entities/generated/api.types";
 import { UnifiedStorageService } from "@core/services/unified-storage.service";
 
 /* helpers */

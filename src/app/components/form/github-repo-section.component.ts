@@ -11,7 +11,7 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatRadioModule } from "@angular/material/radio";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
-import { GithubRepo as GithubRepoModel } from "@models/github.model";
+import { GithubRepo as GithubRepoModel } from "@entities/github.model";
 
 export { GithubRepoModel as GithubRepo };
 

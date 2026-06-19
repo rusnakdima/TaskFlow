@@ -1,5 +1,5 @@
 import { Subscriber } from "rxjs";
-import { ApiError } from "@models/api.model";
+import { ApiError } from "@entities/api.model";
 
 export class ErrorHelper {
   static extractErrorMessage(err: any): string {

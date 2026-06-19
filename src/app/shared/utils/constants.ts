@@ -179,7 +179,7 @@ export const RECENT_EMOJIS_DEFAULT = [
   "🙏",
 ];
 
-import { FilterConfig } from "@models/filter-config.model";
+import { FilterConfig } from "@entities/filter-config.model";
 
 export const FILTER_CONFIGS: FilterConfig[] = [
   {
@@ -305,7 +305,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
   },
 ];
 
-import { TaskStatus } from "@models/generated/api.types";
+import { TaskStatus } from "@entities/generated/api.types";
 import { TodoPermission } from "@core/services/permission.service";
 
 export const TableFieldColors = {
@@ -622,8 +622,8 @@ export const TABLE_BUTTON_COLORS = {
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
 } as const;
 
-import { ItemDisplayConfig } from "@models/item-display.model";
-import { Todo, Task, Subtask } from "@models/generated/api.types";
+import { ItemDisplayConfig } from "@entities/item-display.model";
+import { Todo, Task, Subtask } from "@entities/generated/api.types";
 
 export const DEFAULT_ACTIONS = [
   TABLE_ACTIONS.EDIT,

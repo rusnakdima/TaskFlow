@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
-import { Profile } from "@models/generated/api.types";
+import { Profile } from "@entities/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 

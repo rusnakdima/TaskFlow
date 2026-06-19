@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
-import { Task, TaskStatus, Todo } from "@models/generated/api.types";
-import { ResponseStatus } from "@models/response.model";
+import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
+import { ResponseStatus } from "@entities/response.model";
 import { ApiService, Visibility } from "@services/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
@@ -11,7 +11,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { GithubService } from "@services/github/github.service";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { TABLE_ACTIONS } from "@shared/utils/constants";
-import { TableFieldActionButton } from "@models/table-field.model";
+import { TableFieldActionButton } from "@entities/table-field.model";
 
 @Injectable({ providedIn: "root" })
 export class TasksActionsHelper {

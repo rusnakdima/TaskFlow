@@ -7,7 +7,7 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
-import { ViewMode } from "@models/view-mode.model";
+import { ViewMode } from "@entities/view-mode.model";
 
 export interface ViewModeTab {
   id: ViewMode;

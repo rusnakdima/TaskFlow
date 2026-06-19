@@ -12,23 +12,22 @@ import {
   Category,
   Profile,
   Room,
-} from "@models/generated/api.types";
-import { EntityType, ChildType, PaginationState } from "@models/storage.model";
-import { ConversationItem, ChatMessage } from "@models/chat.model";
+} from "@entities/generated/api.types";
+import { EntityType, ChildType, PaginationState } from "@entities/storage.model";
+import { ConversationItem, ChatMessage } from "@entities/chat.model";
 
 /* services */
 import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
-import { LoggerService } from "@shared/services/logger.service";
 
 /* utils */
 import {
   updateEntityInSignal,
   removeEntityFromSignal,
   addEntityToSignal,
-} from "@stores/utils/store-helpers";
+} from "@store/utils/store-helpers";
 
 export const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 
@@ -38,7 +37,6 @@ export class BaseStorageService {
   protected readonly _jwtTokenService = inject(JwtTokenService);
   readonly _notifyService = inject(NotifyService);
   protected readonly _mongoConnectionService = inject(MongoConnectionService);
-  protected loggingService = inject(LoggerService);
 
   /* ════════════════════════════════════════════════════════════════════════
      SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type

@@ -15,7 +15,7 @@ import {
   INotify,
   ResponseStatus,
   ResponseStatusIcon,
-} from "@models/response.model";
+} from "@entities/response.model";
 
 @Component({
   selector: "app-window-notify",

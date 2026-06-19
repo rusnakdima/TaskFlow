@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { EntityType, VisibilityFilter } from "@models/storage.model";
+import { EntityType, VisibilityFilter } from "@entities/storage.model";
 
 export interface FilterOptions {
   visibility?: VisibilityFilter | string;

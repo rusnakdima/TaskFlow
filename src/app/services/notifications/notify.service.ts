@@ -6,11 +6,10 @@ import { firstValueFrom } from "rxjs";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
-import { logger } from "@services/logger.service";
 
 /* models */
-import { INotify, ResponseStatus } from "@models/response.model";
-import { NotificationAction, NotificationSettings } from "@models/notification.model";
+import { INotify, ResponseStatus } from "@entities/response.model";
+import { NotificationAction, NotificationSettings } from "@entities/notification.model";
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   chatVolume: 50,
@@ -96,7 +95,7 @@ export class NotifyService implements OnDestroy {
         JSON.stringify(this.notificationsSignal())
       );
     } catch (error) {
-      logger.error("Failed to save notifications: " + String(error));
+      console.error("Failed to save notifications: " + String(error));
     }
   }
 
@@ -126,7 +125,7 @@ export class NotifyService implements OnDestroy {
         return (result as any).title;
       }
     } catch (error) {
-      logger.warn("Failed to fetch entity title: " + error);
+      console.warn("Failed to fetch entity title: " + error);
     }
     return "";
   }

@@ -2,14 +2,14 @@
 import { Injectable } from "@angular/core";
 
 /* models */
-import { Todo, Task, Subtask, Comment, Chat, Category } from "@models/generated/api.types";
-import { VisibilityFilter } from "@models/storage.model";
+import { Todo, Task, Subtask, Comment, Chat, Category } from "@entities/generated/api.types";
+import { VisibilityFilter } from "@entities/storage.model";
 
 /* base */
 import { BaseStorageService } from "./storage-entity.service";
 
 /* utils */
-import { upsertEntityBulk } from "@stores/utils/store-helpers";
+import { upsertEntityBulk } from "@store/utils/store-helpers";
 
 @Injectable({ providedIn: "root" })
 export class StoragePaginationService extends BaseStorageService {
@@ -248,7 +248,7 @@ export class StoragePaginationService extends BaseStorageService {
     return this.activeChats();
   }
 
-  getRooms(): import("@models/generated/api.types").Room[] {
+  getRooms(): import("@entities/generated/api.types").Room[] {
     if (this.rooms().length === 0 && !this._roomsLoading()) {
       this.ensureRoomsLoaded();
     }

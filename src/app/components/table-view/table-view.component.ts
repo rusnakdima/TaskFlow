@@ -20,7 +20,7 @@ import { MatButtonModule } from "@angular/material/button";
 /* components */
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { CommentsComponent } from "@components/comments/comments.component";
-import { SubtaskCommentGroup } from "@models/comment-ext.model";
+import { SubtaskCommentGroup } from "@entities/comment-ext.model";
 import { ItemRowBaseComponent, ItemType } from "@components/item-row-base/item-row-base.component";
 
 /* helpers */
@@ -31,7 +31,6 @@ import { DateHelper } from "@helpers/date.helper";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { PermissionService, TodoPermission } from "@core/services/permission.service";
-import { LoggerService } from "@shared/services/logger.service";
 
 /* components */
 
@@ -40,9 +39,9 @@ import { ProgressBarComponent } from "@components/progress-bar/progress-bar.comp
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
 
 /* models */
-import { TableFieldActionButton, TableField } from "@models/table-field.model";
-import { ItemDisplayAction, ItemDisplayConfig } from "@models/item-display.model";
-import { Comment, TaskStatus } from "@models/generated/api.types";
+import { TableFieldActionButton, TableField } from "@entities/table-field.model";
+import { ItemDisplayAction, ItemDisplayConfig } from "@entities/item-display.model";
+import { Comment, TaskStatus } from "@entities/generated/api.types";
 
 /* constants */
 import { TableFieldColors, TableFieldIcons, ActionColors } from "@shared/utils/constants";
@@ -69,7 +68,6 @@ export class TableViewComponent extends ItemRowBaseComponent {
   private storageService = inject(StorageService);
   private authServiceLocal = inject(AuthService);
   private permissionService = inject(PermissionService);
-  private loggingService = inject(LoggerService);
 
   @Input() data: any[] = [];
   @Input() fields: (TableField | ItemDisplayConfig)[] = [];
@@ -454,7 +452,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
 
   isActionDisabledForItem(item: any): boolean {
     const currentUserId = this.authServiceLocal.getValueByKey("id");
-    this.loggingService.debug("isActionDisabledForItem", {
+    console.debug("isActionDisabledForItem", {
       itemType: this.itemType,
       userId: currentUserId,
       userPermission: this.userPermission,
@@ -469,7 +467,7 @@ export class TableViewComponent extends ItemRowBaseComponent {
       ? this.itemPermissionResolver(item)
       : this.userPermission;
 
-    this.loggingService.debug("isActionDisabledForItem computed", {
+    console.debug("isActionDisabledForItem computed", {
       permission,
       isViewer: permission === TodoPermission.VIEWER,
     });

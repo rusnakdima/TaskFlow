@@ -3,7 +3,7 @@ import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 
 /* models */
-import { User } from "@models/generated/api.types";
+import { User } from "@entities/generated/api.types";
 
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";

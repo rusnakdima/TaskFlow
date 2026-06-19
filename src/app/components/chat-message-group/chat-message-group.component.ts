@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { ChatMessage } from "../../models/chat.model";
+import { ChatMessage } from "@entities/chat.model";
 import { ChatMessageComponent } from "../chat-message/chat-message.component";
 
 @Component({

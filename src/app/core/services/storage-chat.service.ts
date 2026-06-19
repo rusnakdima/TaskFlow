@@ -4,8 +4,8 @@ import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
 
 /* models */
-import { Chat } from "@models/generated/api.types";
-import { ConversationItem, ChatMessage } from "@models/chat.model";
+import { Chat } from "@entities/generated/api.types";
+import { ConversationItem, ChatMessage } from "@entities/chat.model";
 
 /* base */
 import { BaseStorageService } from "./storage-entity.service";
@@ -491,7 +491,7 @@ export class StorageChatService extends BaseStorageService {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
     } catch (error) {
-      this.loggingService.error("Failed to save chat queue", error);
+      console.error("Failed to save chat queue", error);
     }
   }
 

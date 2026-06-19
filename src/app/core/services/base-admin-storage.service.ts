@@ -11,11 +11,11 @@ import {
   User,
   Category,
   Profile,
-} from "@models/generated/api.types";
+} from "@entities/generated/api.types";
 
 /* services */
 import { BaseStorageService } from "./base-storage.service";
-import { StorageSignalMap } from "@models/storage-signal-map.model";
+import { StorageSignalMap } from "@entities/storage-signal-map.model";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 
 export abstract class BaseAdminStorageService extends BaseStorageService {

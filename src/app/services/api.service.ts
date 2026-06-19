@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
-import { Response, ResponseStatus } from "@models/response.model";
+import { Response, ResponseStatus } from "@entities/response.model";
 import {
   Todo,
   Task,
@@ -12,7 +12,7 @@ import {
   Profile,
   User,
   Group,
-} from "@models/generated/api.types";
+} from "@entities/generated/api.types";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
@@ -24,9 +24,9 @@ import {
   HasVisibility,
   ApiError,
   PaginationState,
-} from "@models/api.model";
+} from "@entities/api.model";
 
-export { ApiError, Visibility, HasId } from "@models/api.model";
+export { ApiError, Visibility, HasId } from "@entities/api.model";
 
 export interface EntityRoutes {
   get: string;

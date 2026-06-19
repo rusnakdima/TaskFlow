@@ -12,7 +12,7 @@ import { MatNativeDateModule } from "@angular/material/core";
 import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatSliderModule } from "@angular/material/slider";
 
-import { FormField, OptionData, TypeField } from "@models/form-field.model";
+import { FormField, OptionData, TypeField } from "@entities/form-field.model";
 
 @Component({
   selector: "app-unified-field",

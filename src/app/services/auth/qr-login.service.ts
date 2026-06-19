@@ -2,7 +2,7 @@ import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { interval, Subscription, Observable, Subject } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
-import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@models/security.model";
+import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@entities/security.model";
 
 @Injectable({
   providedIn: "root",

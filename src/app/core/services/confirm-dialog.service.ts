@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from "@angular/core";
-import { ConfirmDialogConfig } from "@models/dialog.model";
+import { ConfirmDialogConfig } from "@entities/dialog.model";
 
 @Injectable({
   providedIn: "root",

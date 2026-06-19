@@ -5,7 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatSelectModule } from "@angular/material/select";
-import { FilterConfig, FilterOption } from "@models/filter-config.model";
+import { FilterConfig, FilterOption } from "@entities/filter-config.model";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 
 @Component({

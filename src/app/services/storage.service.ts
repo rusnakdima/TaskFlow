@@ -3,14 +3,13 @@ import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 
 /* services */
-import { LoggerService } from "@shared/services/logger.service";
 
 /* models */
-import { Todo, User, Profile, Room } from "@models/generated/api.types";
-import { Task, TaskStatus } from "@models/generated/api.types";
-import { Subtask } from "@models/generated/api.types";
-import { Comment } from "@models/generated/api.types";
-import { Chat } from "@models/generated/api.types";
+import { Todo, User, Profile, Room } from "@entities/generated/api.types";
+import { Task, TaskStatus } from "@entities/generated/api.types";
+import { Subtask } from "@entities/generated/api.types";
+import { Comment } from "@entities/generated/api.types";
+import { Chat } from "@entities/generated/api.types";
 import {
   EntityType,
   VisibilityFilter,
@@ -19,20 +18,20 @@ import {
   ParentType,
   ChildType,
   PaginationState,
-} from "@models/storage.model";
+} from "@entities/storage.model";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 
 /* services */
 import { CascadeService } from "@core/services/cascade.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { StorageSignalMap } from "@models/storage-signal-map.model";
+import { StorageSignalMap } from "@entities/storage-signal-map.model";
 import { BaseStorageService } from "@core/services/storage-entity.service";
 import { StorageCacheService } from "@core/services/storage-cache.service";
 import { StorageQueryService } from "@core/services/storage-query.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 
 /* utils */
-import { deduplicateById, groupByKey, createGroupedMap } from "@stores/utils/store-helpers";
+import { deduplicateById, groupByKey, createGroupedMap } from "@store/utils/store-helpers";
 import { TimestampHelper, VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
@@ -44,7 +43,6 @@ export class StorageService {
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
   private readonly mongoConnectionService = inject(MongoConnectionService);
-  private readonly loggingService = inject(LoggerService);
 
   private _notifyService: NotifyService | null = null;
   private _cascadeService: CascadeService | null = null;
@@ -399,10 +397,7 @@ export class StorageService {
             : sharedTodos;
 
       if (newList().some((t) => t.id === id)) {
-        this.loggingService.warn(
-          "updateEntityVisibility: Entity already in target list, skipping",
-          { id }
-        );
+        console.warn("updateEntityVisibility: Entity already in target list, skipping", { id });
         return;
       }
 
@@ -926,7 +921,7 @@ export class StorageService {
   }
 
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
-    this.loggingService.debug("ensureTodosLoaded", {
+    console.debug("ensureTodosLoaded", {
       visibility,
       private: this.privateTodos().length,
       shared: this.sharedTodos().length,
@@ -938,13 +933,13 @@ export class StorageService {
         this.sharedTodos().length > 0 &&
         this.publicTodos().length > 0
       ) {
-        this.loggingService.debug("ensureTodosLoaded ALL loaded, skipping");
+        console.debug("ensureTodosLoaded ALL loaded, skipping");
         return;
       }
       const loadPrivate = this.privateTodos().length === 0;
       const loadShared = this.sharedTodos().length === 0;
       const loadPublic = this.publicTodos().length === 0;
-      this.loggingService.debug("ensureTodosLoaded need to load", {
+      console.debug("ensureTodosLoaded need to load", {
         loadPrivate,
         loadShared,
         loadPublic,
@@ -953,7 +948,7 @@ export class StorageService {
       if (loadShared) this._queryService.ensureTodosLoaded("shared", limit);
       if (loadPublic) {
         this.mongoConnectionService.checkConnection().subscribe((isConnected) => {
-          this.loggingService.debug("ensureTodosLoaded connected", {
+          console.debug("ensureTodosLoaded connected", {
             isConnected,
             publicTodos: this.publicTodos().length,
           });
@@ -971,7 +966,7 @@ export class StorageService {
           ? this.publicTodos()
           : this.sharedTodos();
     if (targetTodos.length > 0) {
-      this.loggingService.debug("ensureTodosLoaded skipping", {
+      console.debug("ensureTodosLoaded skipping", {
         visibility,
         count: targetTodos.length,
       });

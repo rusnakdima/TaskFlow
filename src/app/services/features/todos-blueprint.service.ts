@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { ProjectTemplate, TemplateService, TemplateTask } from "./template.service";
 import { StorageService } from "@services/storage.service";
-import { Todo } from "@models/generated/api.types";
+import { Todo } from "@entities/generated/api.types";
 import { Observable, of } from "rxjs";
 import { ApiService, Visibility } from "@services/api.service";
 

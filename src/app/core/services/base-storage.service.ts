@@ -1,6 +1,6 @@
 import { Injectable, WritableSignal } from "@angular/core";
 import { Observable } from "rxjs";
-import { EntityType, PaginationState } from "@models/storage.model";
+import { EntityType, PaginationState } from "@entities/storage.model";
 import { ErrorHelper } from "./error.helper";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;

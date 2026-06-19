@@ -31,8 +31,5 @@ pub mod archive_command;
 #[path = "update.command.rs"]
 pub mod update_command;
 
-#[path = "logger.command.rs"]
-pub mod logger;
-
 #[path = "profile.command.rs"]
 pub mod profile_command;

@@ -1,11 +1,11 @@
 import { Injectable, signal, computed, inject } from "@angular/core";
-import { Todo } from "@models/generated/api.types";
+import { Todo } from "@entities/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { SearchService } from "@core/services/search.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
-import { FilterField } from "@models/filter-config.model";
+import { FilterField } from "@entities/filter-config.model";
 
 @Injectable({ providedIn: "root" })
 export class TodosStateService {

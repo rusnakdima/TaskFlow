@@ -2,7 +2,7 @@
 import { Component, EventEmitter, Output } from "@angular/core";
 
 /* models */
-import { TaskStatus } from "@models/generated/api.types";
+import { TaskStatus } from "@entities/generated/api.types";
 
 /* helpers */
 import { PRIORITY_COLORS, STATUS_ICONS } from "@shared/utils/constants";

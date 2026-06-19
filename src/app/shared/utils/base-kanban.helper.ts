@@ -1,6 +1,6 @@
 import { signal, inject } from "@angular/core";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
-import { TaskStatus, Todo } from "@models/generated/api.types";
+import { TaskStatus, Todo } from "@entities/generated/api.types";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";

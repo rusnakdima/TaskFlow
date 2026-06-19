@@ -8,7 +8,6 @@ import { provideAnimations } from "@angular/platform-browser/animations";
 /* app */
 import { routes } from "@app/app.routes";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-import { logger } from "@services/logger.service";
 
 function initializeDataSync(dataSyncService: UnifiedSyncService) {
   return async () => {
@@ -18,7 +17,7 @@ function initializeDataSync(dataSyncService: UnifiedSyncService) {
     });
     const initPromise = dataSyncService.initTauriListeners();
     return Promise.race([initPromise, timeoutPromise]).catch((err) => {
-      logger.warn("Tauri listeners init skipped: " + err.message);
+      console.warn("Tauri listeners init skipped: " + err.message);
     });
   };
 }

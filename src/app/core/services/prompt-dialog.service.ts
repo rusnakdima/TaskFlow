@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from "@angular/core";
-import { PromptDialogConfig } from "@models/dialog.model";
+import { PromptDialogConfig } from "@entities/dialog.model";
 
 @Injectable({
   providedIn: "root",

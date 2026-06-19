@@ -4,7 +4,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
 import { Visibility } from "@services/api.service";
-import { logger } from "@services/logger.service";
 
 @Injectable({ providedIn: "root" })
 export class TasksCommentsHelper {
@@ -64,7 +63,7 @@ export class TasksCommentsHelper {
           this.storageService.addCommentToSubtask(comment, event.subtask_id);
         },
         error: (err) => {
-          logger.error("Failed to add subtask comment", err);
+          console.error("Failed to add subtask comment", err);
           this.notifyService.showError("Failed to add comment");
         },
       });

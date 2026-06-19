@@ -4,7 +4,7 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 
 /* models */
-import { Task, TaskStatus, Subtask } from "@models/generated/api.types";
+import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
 import { TodoPermission } from "@core/services/permission.service";
 
 /* helpers */

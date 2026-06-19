@@ -8,7 +8,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 
 /* models */
-import { CheckboxField } from "@models/form-field.model";
+import { CheckboxField } from "@entities/form-field.model";
 
 @Component({
   selector: "app-checkbox",

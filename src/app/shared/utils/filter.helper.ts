@@ -1,6 +1,6 @@
 /* sys lib */
-import { TaskStatus } from "@models/generated/api.types";
-import { AdminFilterState } from "@models/admin-table.model";
+import { TaskStatus } from "@entities/generated/api.types";
+import { AdminFilterState } from "@entities/admin-table.model";
 
 /* helpers */
 import { ObjectHelper } from "@helpers/object.helper";

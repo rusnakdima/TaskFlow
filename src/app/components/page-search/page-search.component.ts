@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { PageSearchConfig, DEFAULT_EXCLUDE_FIELDS } from "@models/page-search.model";
+import { PageSearchConfig, DEFAULT_EXCLUDE_FIELDS } from "@entities/page-search.model";
 
 @Component({
   selector: "app-page-search",

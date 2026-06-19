@@ -4,8 +4,8 @@ import { Observable, from } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
 /* models */
-import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@models/generated/api.types";
-import { EntityType, VisibilityFilter } from "@models/storage.model";
+import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
+import { EntityType, VisibilityFilter } from "@entities/storage.model";
 
 /* services */
 import { ApiService } from "@services/api.service";
@@ -23,7 +23,7 @@ export class UnifiedStorageService {
   private readonly _chatService = inject(StorageChatService);
   private readonly _baseService = inject(BaseStorageService);
   private readonly _apiService = inject(ApiService);
-  // private loggingService = inject(LoggerService);
+  //
 
   /* ════════════════════════════════════════════════════════════════════════
      PROXY ALL ENTITY SIGNALS FROM BASE
