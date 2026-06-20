@@ -80,14 +80,16 @@ pub struct TaskCreateModel {
   #[validate(not_empty)]
   #[validate(pattern("^(low|medium|high|urgent)$"))]
   pub priority: String,
-  pub start_date: String,
-  pub end_date: String,
+  #[serde(default)]
+  pub start_date: Option<String>,
+  #[serde(default)]
+  pub end_date: Option<String>,
   pub order: i32,
 }
 impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
-    let formatted_start_date = format_date(&value.start_date);
-    let formatted_end_date = format_date(&value.end_date);
+    let formatted_start_date = value.start_date.as_deref().and_then(format_date);
+    let formatted_end_date = value.end_date.as_deref().and_then(format_date);
     TaskEntity {
       id: None,
       todo_id: value.todo_id,
