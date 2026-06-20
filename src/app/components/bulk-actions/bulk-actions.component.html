@@ -56,9 +56,12 @@
         @if (mode === "todos") {
           <div class="flex items-center gap-1.5">
             <button
-              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0"
+              [disabled]="!canArchive"
+              class="flex min-h-8! items-center gap-1 rounded-lg border-b-2 border-b-orange-900 bg-orange-600 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors hover:bg-orange-700 active:mt-0.5 active:border-b-0 disabled:cursor-not-allowed disabled:opacity-50"
               (click)="onSoftDelete()"
-              matTooltip="Move to Archive"
+              [matTooltip]="
+                canArchive ? 'Move to Archive' : 'No permission to archive selected items'
+              "
             >
               <mat-icon class="h-5! w-5! min-w-5 text-xl! leading-none!" fontIcon="archive" />
               <span class="hidden sm:inline">Archive</span>

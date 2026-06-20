@@ -24,6 +24,7 @@ export class BulkActionsComponent {
   @Input() isAllSelected: boolean = false;
   @Input() mode: string = "";
   @Input() allSelectedArchived: boolean = false;
+  @Input() canArchive: boolean = true;
   @Output() selectAllEvent = new EventEmitter<void>();
   @Output() setStatusEvent = new EventEmitter<string>();
   @Output() softDeleteEvent = new EventEmitter<void>();

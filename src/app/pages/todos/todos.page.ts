@@ -524,6 +524,17 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.stateService.listTodos());
   }
+  canArchiveSelected(): boolean {
+    const selected = this.selectionState.selectedTodos();
+    if (selected.size === 0) return false;
+    const allTodos = this.stateService.listTodos();
+    const selectedIdsArr = Array.from(selected);
+    const selectedTodosList = allTodos.filter((t: Todo) => selectedIdsArr.includes(t.id));
+    return selectedTodosList.some((t: Todo) => {
+      const perm = this.getUserTodoPermission(t);
+      return this.permissionService.canArchiveTodo(perm);
+    });
+  }
   async bulkArchive(): Promise<void> {
     const selected = this.selectionState.selectedTodos();
     if (selected.size === 0) return;
