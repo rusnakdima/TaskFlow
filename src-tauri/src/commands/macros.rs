@@ -27,6 +27,16 @@ macro_rules! crud_route {
         &state.config.config_helper.jwt_secret,
       )
       .ok();
+      let data = data.map(|mut d| {
+        if let Some(ref uid) = user_id {
+          if let serde_json::Value::Object(ref mut obj) = d {
+            if !obj.contains_key("user_id") {
+              obj.insert("user_id".to_string(), serde_json::json!(uid));
+            }
+          }
+        }
+        d
+      });
       state
         .data
         .repository_service
