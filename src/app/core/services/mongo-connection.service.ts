@@ -1,10 +1,9 @@
 /* sys lib */
-import { Injectable, signal, inject } from "@angular/core";
+import { Injectable, signal, inject, computed } from "@angular/core";
 import { Observable, of, throwError } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { ResponseStatus } from "@entities/response.model";
 import { TauriApiService } from "@app/api/tauri-api.service";
 export interface ConnectionState {
   isConnected: boolean;
@@ -26,20 +25,19 @@ export class MongoConnectionService {
   readonly isConnected = () => this.connectionState().isConnected;
   readonly isChecking = () => this.connectionState().checking;
   readonly wasEverConnected = signal<boolean>(false);
-  readonly connectionStatus = (): "offline" | "connecting" | "connected" => {
+  readonly connectionStatus = computed((): "offline" | "connecting" | "connected" => {
     if (this.connectionState().checking) return "connecting";
     if (this.connectionState().isConnected) return "connected";
     return "offline";
-  };
+  });
   checkConnection(): Observable<boolean> {
     if (this.connectionState().checking) {
       return of(this.connectionState().isConnected);
     }
     this.connectionState.update((s) => ({ ...s, checking: true }));
     return new Observable<boolean>((subscriber) => {
-      this.tauriApi.invoke<any>("check_mongodb_connection").subscribe({
-        next: (response: any) => {
-          const isConnected = response.status === ResponseStatus.SUCCESS && response.data === true;
+      this.tauriApi.invoke<boolean>("check_mongodb_connection").subscribe({
+        next: (isConnected: boolean) => {
           this.connectionState.set({
             isConnected,
             lastChecked: new Date(),
