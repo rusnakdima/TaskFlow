@@ -189,7 +189,10 @@ impl PermissionService {
         })
       }
       "public" => {
-        json!({ "visibility": "public" })
+        json!({
+            "visibility": "public",
+            "user_id": user_id
+        })
       }
       "all" => {
         let shared_assignee_filter = if let Some(pid) = profile_id {
@@ -201,7 +204,7 @@ impl PermissionService {
             "$or": [
                 { "visibility": "private", "user_id": user_id },
                 { "visibility": "shared", "$or": [{ "user_id": user_id }, shared_assignee_filter] },
-                { "visibility": "public" }
+                { "visibility": "public", "user_id": user_id }
             ]
         })
       }
