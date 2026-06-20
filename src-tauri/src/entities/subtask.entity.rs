@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
+/* helpers */
+use crate::utils::common::format_date;
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("subtasks")]
 #[soft_delete]
@@ -53,6 +55,10 @@ pub struct SubtaskCreateModel {
   pub priority: String,
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,
+  #[serde(default)]
+  pub start_date: Option<String>,
+  #[serde(default)]
+  pub end_date: Option<String>,
 }
 impl From<SubtaskCreateModel> for SubtaskEntity {
   fn from(value: SubtaskCreateModel) -> Self {
@@ -69,8 +75,8 @@ impl From<SubtaskCreateModel> for SubtaskEntity {
       deleted_at: None,
       created_at: None,
       updated_at: None,
-      start_date: None,
-      end_date: None,
+      start_date: value.start_date.as_deref().and_then(format_date),
+      end_date: value.end_date.as_deref().and_then(format_date),
     }
   }
 }

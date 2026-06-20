@@ -53,8 +53,10 @@ pub struct TodoCreateModel {
   #[validate(not_empty)]
   pub title: String,
   pub description: String,
-  pub start_date: String,
-  pub end_date: String,
+  #[serde(default)]
+  pub start_date: Option<String>,
+  #[serde(default)]
+  pub end_date: Option<String>,
   pub categories: Vec<String>,
   pub assignees: Vec<String>,
   #[serde(default)]
@@ -69,8 +71,8 @@ pub struct TodoCreateModel {
 }
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
-    let formatted_start_date = format_date(&value.start_date);
-    let formatted_end_date = format_date(&value.end_date);
+    let formatted_start_date = value.start_date.as_deref().and_then(format_date);
+    let formatted_end_date = value.end_date.as_deref().and_then(format_date);
     TodoEntity {
       id: None,
       user_id: value.user_id,
