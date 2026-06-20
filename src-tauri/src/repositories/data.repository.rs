@@ -1,20 +1,16 @@
-use serde_json::Value;
-use std::sync::Arc;
-
+use crate::models::response::ResponseModel;
+use crate::utils::response_helper::err_response_formatted;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
-
-use crate::models::response::ResponseModel;
-use crate::utils::response_helper::err_response_formatted;
-
+use serde_json::Value;
+use std::sync::Arc;
 #[derive(Clone)]
 pub enum DataProvider {
   Json(Arc<JsonProvider>),
   Mongo(Arc<MongoProvider>),
   Both(Arc<JsonProvider>, Arc<MongoProvider>),
 }
-
 impl DataProvider {
   pub async fn find_many(
     &self,
@@ -54,7 +50,6 @@ impl DataProvider {
       }
     }
   }
-
   pub async fn find_by_id(&self, table: &str, id: &str) -> Result<Option<Value>, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::find_by_id(p.as_ref(), table, id)
@@ -75,7 +70,6 @@ impl DataProvider {
       }
     }
   }
-
   pub async fn insert(&self, table: &str, data: Value) -> Result<Value, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::insert(p.as_ref(), table, data)
@@ -99,7 +93,6 @@ impl DataProvider {
       }
     }
   }
-
   pub async fn update(&self, table: &str, id: &str, data: Value) -> Result<Value, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::update(p.as_ref(), table, id, data)
@@ -115,7 +108,6 @@ impl DataProvider {
       }
     }
   }
-
   pub async fn patch(&self, table: &str, id: &str, data: Value) -> Result<Value, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::patch(p.as_ref(), table, id, data)
@@ -131,7 +123,6 @@ impl DataProvider {
       }
     }
   }
-
   pub async fn delete(&self, table: &str, id: &str) -> Result<bool, ResponseModel> {
     match self {
       DataProvider::Json(p) => DatabaseProvider::delete(p.as_ref(), table, id)

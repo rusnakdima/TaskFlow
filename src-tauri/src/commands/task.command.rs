@@ -1,5 +1,4 @@
 use crate::crud_route;
-
 crud_route!(get_task, "tasks", "get");
 crud_route!(get_tasks, "tasks", "getAll");
 crud_route!(create_task, "tasks", "create");

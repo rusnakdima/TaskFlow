@@ -5,9 +5,7 @@ use chrono::{Datelike, NaiveDate, Weekday};
 use nosql_orm::aggregation::AggregationPipeline;
 use serde_json::Value;
 use std::collections::HashMap;
-
 pub struct ChartGenerator;
-
 impl ChartGenerator {
   pub async fn compute_chart_data(
     tasks: &[Value],
@@ -20,25 +18,20 @@ impl ChartGenerator {
     let completion_trend = Self::compute_completion_trend(tasks).await;
     let daily_activity = Self::compute_daily_activity(daily_activities).await;
     let category_items = Self::compute_category_items(categories, todos, tasks).await;
-
     ChartDataModel {
       completion_trend,
       categories: category_items,
       daily_activity,
     }
   }
-
   async fn compute_completion_trend(tasks: &[Value]) -> Vec<CompletionTrendItem> {
     let pipeline = AggregationPipeline::new()
       .match_stage(serde_json::json!({ "status": { "$in": ["completed", "skipped"] } }));
-
     let matched_tasks = pipeline
       .execute_docs(tasks.to_vec())
       .await
       .unwrap_or_default();
-
     let mut completion_by_weekday: HashMap<Weekday, (i32, i32)> = HashMap::new();
-
     for task in matched_tasks {
       if let Some(updated_at) = task.get("updated_at").and_then(|v| v.as_str()) {
         if let Ok(dt_updated) = chrono::DateTime::parse_from_rfc3339(updated_at) {
@@ -49,13 +42,11 @@ impl ChartGenerator {
         }
       }
     }
-
     let all_tasks_pipeline = AggregationPipeline::new();
     let all_tasks = all_tasks_pipeline
       .execute_docs(tasks.to_vec())
       .await
       .unwrap_or_default();
-
     for task in all_tasks {
       if let Some(updated_at) = task.get("updated_at").and_then(|v| v.as_str()) {
         if let Ok(dt_updated) = chrono::DateTime::parse_from_rfc3339(updated_at) {
@@ -65,7 +56,6 @@ impl ChartGenerator {
         }
       }
     }
-
     let weekdays = [
       Weekday::Mon,
       Weekday::Tue,
@@ -75,7 +65,6 @@ impl ChartGenerator {
       Weekday::Sat,
       Weekday::Sun,
     ];
-
     let result: Vec<CompletionTrendItem> = weekdays
       .iter()
       .map(|&weekday| {
@@ -89,7 +78,6 @@ impl ChartGenerator {
           Weekday::Sun => "Sunday",
         }
         .to_string();
-
         let (completed, total) = completion_by_weekday
           .get(&weekday)
           .copied()
@@ -99,24 +87,20 @@ impl ChartGenerator {
         } else {
           0
         };
-
         CompletionTrendItem {
           label: day_name,
           value: percentage,
         }
       })
       .collect();
-
     result
   }
-
   async fn compute_daily_activity(daily_activities: &[Value]) -> Vec<DailyActivityItem> {
     let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     let mut activity_by_day: HashMap<String, i32> = HashMap::new();
     for day in &day_names {
       activity_by_day.insert(day.to_string(), 0);
     }
-
     for activity in daily_activities {
       if let Some(date_str) = activity.get("date").and_then(|v| v.as_str()) {
         if let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
@@ -137,7 +121,6 @@ impl ChartGenerator {
         }
       }
     }
-
     day_names
       .iter()
       .map(|day| DailyActivityItem {
@@ -146,7 +129,6 @@ impl ChartGenerator {
       })
       .collect()
   }
-
   async fn compute_category_items(
     categories: &[Value],
     _todos: &[Value],
@@ -155,7 +137,6 @@ impl ChartGenerator {
     let category_colors = [
       "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4",
     ];
-
     let result: Vec<CategoryItem> = categories
       .iter()
       .enumerate()
@@ -163,11 +144,9 @@ impl ChartGenerator {
         let category_title = category.get("title").and_then(|v| v.as_str());
         let category_name = category.get("name").and_then(|v| v.as_str());
         let title = category_title.or(category_name);
-
         if title.is_none() {
           return None;
         }
-
         let total_tasks = category
           .get("task_count")
           .and_then(|v| v.as_i64())
@@ -181,7 +160,6 @@ impl ChartGenerator {
         } else {
           total_tasks
         };
-
         let completed_tasks = category
           .get("completed_task_count")
           .and_then(|v| v.as_i64())
@@ -195,13 +173,11 @@ impl ChartGenerator {
         } else {
           completed_tasks
         };
-
         let percentage = if tasks_count > 0 {
           ((completed_count as f32 / tasks_count as f32) * 100.0) as i32
         } else {
           0
         };
-
         Some(CategoryItem {
           name: title.unwrap().to_string(),
           count: tasks_count,
@@ -210,7 +186,6 @@ impl ChartGenerator {
         })
       })
       .collect();
-
     result
   }
 }

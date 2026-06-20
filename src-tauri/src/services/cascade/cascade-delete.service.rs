@@ -1,22 +1,17 @@
 use std::collections::HashSet;
 use std::sync::Arc;
-
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::relations::WithRelations;
-
 use crate::entities::comment_entity::CommentEntity;
 use crate::models::response::ResponseModel;
 use crate::entities::subtask_entity::SubtaskEntity;
 use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
-
 use crate::utils::response_helper::err_response_formatted;
 use crate::services::activity_monitor_service::ActivityMonitorService;
-
 use super::{CascadeResult, CascadeService};
-
 impl CascadeService {
   pub async fn soft_delete_cascade_json(
     &self,
@@ -27,7 +22,6 @@ impl CascadeService {
       .soft_delete_cascade(&self.json_provider, table, id)
       .await
   }
-
   pub async fn soft_delete_cascade_mongo(
     &self,
     table: &str,
@@ -39,7 +33,6 @@ impl CascadeService {
       .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
     self.soft_delete_cascade(mongo.as_ref(), table, id).await
   }
-
   pub async fn soft_delete_cascade<P>(
     &self,
     provider: &P,
@@ -51,7 +44,6 @@ impl CascadeService {
   {
     let mut deleted = HashSet::new();
     deleted.insert(format!("{}_{}", table, id));
-
     match table {
       "todos" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -96,7 +88,6 @@ impl CascadeService {
         ));
       }
     }
-
     if let Some(ref activity_monitor) = self.activity_monitor {
       let empty_value = serde_json::json!({});
       for deleted_id in &deleted {
@@ -107,10 +98,8 @@ impl CascadeService {
         }
       }
     }
-
     Ok(CascadeResult::from_deleted_ids(&deleted))
   }
-
   pub async fn restore_cascade_json(
     &self,
     table: &str,
@@ -118,7 +107,6 @@ impl CascadeService {
   ) -> Result<CascadeResult, ResponseModel> {
     self.restore_cascade(&self.json_provider, table, id).await
   }
-
   pub async fn restore_cascade_mongo(
     &self,
     table: &str,
@@ -130,7 +118,6 @@ impl CascadeService {
       .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
     self.restore_cascade(mongo.as_ref(), table, id).await
   }
-
   pub async fn restore_cascade<P>(
     &self,
     provider: &P,
@@ -143,7 +130,6 @@ impl CascadeService {
     let mut restored = HashSet::new();
     restored.insert(format!("{}_{}", table, id));
     let mut affected_todo_ids: Vec<String> = Vec::new();
-
     match table {
       "todos" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -158,7 +144,6 @@ impl CascadeService {
           .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-
         if let Some(task) = provider.find_by_id("tasks", id).await? {
           if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
             affected_todo_ids.push(todo_id.to_string());
@@ -171,7 +156,6 @@ impl CascadeService {
           .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-
         if let Some(subtask) = provider.find_by_id("subtasks", id).await? {
           if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
             if let Some(task) = provider.find_by_id("tasks", task_id).await? {
@@ -207,11 +191,9 @@ impl CascadeService {
         ));
       }
     }
-
     let mut result = CascadeResult::from_deleted_ids(&restored);
     result.affected_todo_ids = affected_todo_ids;
     result.restored_ids = restored.into_iter().collect();
-
     Ok(result)
   }
 }

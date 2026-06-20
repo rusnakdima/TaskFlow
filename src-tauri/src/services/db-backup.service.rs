@@ -1,16 +1,13 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::time::Duration;
-
+use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::utils::common::filter_deleted;
+use crate::utils::response_helper::err_response;
 use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::{json, Value};
-
-use crate::models::response::{ResponseModel, ResponseStatus};
-use crate::utils::common::filter_deleted;
-use crate::utils::response_helper::err_response;
-
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
 pub struct DbBackupService {
   json_provider: JsonProvider,
   #[allow(dead_code)]
@@ -18,7 +15,6 @@ pub struct DbBackupService {
   mongo_db_uri: String,
   mongo_db_name: String,
 }
-
 impl DbBackupService {
   pub fn new(
     json_provider: JsonProvider,
@@ -33,7 +29,6 @@ impl DbBackupService {
       mongo_db_name,
     }
   }
-
   pub async fn upsert_to_json(&self, collection: &str, item: Value) -> bool {
     let id = match item.get("id").and_then(|v| v.as_str().map(String::from)) {
       Some(id) => id,
@@ -52,7 +47,6 @@ impl DbBackupService {
     };
     result.is_ok()
   }
-
   pub async fn upsert_to_mongo(
     &self,
     mongo: &MongoProvider,
@@ -71,7 +65,6 @@ impl DbBackupService {
     };
     result.is_ok()
   }
-
   pub async fn import_table(
     &self,
     mongo: &MongoProvider,
@@ -83,7 +76,6 @@ impl DbBackupService {
       .import_table_by_field(mongo, table, "user_id", user_id, filter_deleted)
       .await
   }
-
   pub async fn import_table_by_id(
     &self,
     mongo: &MongoProvider,
@@ -95,7 +87,6 @@ impl DbBackupService {
       .import_table_by_field(mongo, table, "id", user_id, filter_deleted)
       .await
   }
-
   pub async fn import_table_by_field(
     &self,
     mongo: &MongoProvider,
@@ -130,7 +121,6 @@ impl DbBackupService {
       Err(_) => 0,
     }
   }
-
   pub async fn import_children_cascade(
     &self,
     mongo: &MongoProvider,
@@ -148,7 +138,6 @@ impl DbBackupService {
         }
       };
     let mut count = 0;
-
     if let Ok(parents) = mongo
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
       .await
@@ -158,7 +147,6 @@ impl DbBackupService {
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
-
       for parent_id in parent_ids {
         let filter = match nosql_orm::query::Filter::from_json(
           &serde_json::json!({ parent_field: parent_id }),
@@ -184,7 +172,6 @@ impl DbBackupService {
     }
     count
   }
-
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .mongodb_provider
@@ -192,7 +179,6 @@ impl DbBackupService {
       .unwrap()
       .clone()
       .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
-
     let mut imported_count = 0;
     imported_count += self
       .import_table_by_id(&mongo, "users", &user_id, false)
@@ -215,14 +201,12 @@ impl DbBackupService {
       .import_comments_cascade(&mongo, "tasks", "subtasks", &user_id)
       .await;
     imported_count += self.import_table(&mongo, "chats", &user_id, true).await;
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Imported {} records", imported_count),
       data: serde_json::json!(imported_count),
     })
   }
-
   pub async fn export_table(
     &self,
     mongo: &MongoProvider,
@@ -234,7 +218,6 @@ impl DbBackupService {
       .export_table_by_field(mongo, table, "user_id", user_id, filter_deleted)
       .await
   }
-
   pub async fn export_table_by_id(
     &self,
     mongo: &MongoProvider,
@@ -246,7 +229,6 @@ impl DbBackupService {
       .export_table_by_field(mongo, table, "id", user_id, filter_deleted)
       .await
   }
-
   pub async fn export_table_by_field(
     &self,
     mongo: &MongoProvider,
@@ -282,7 +264,6 @@ impl DbBackupService {
       Err(_) => 0,
     }
   }
-
   pub async fn export_children_cascade(
     &self,
     mongo: &MongoProvider,
@@ -300,7 +281,6 @@ impl DbBackupService {
         }
       };
     let mut count = 0;
-
     if let Ok(parents) = self
       .json_provider
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
@@ -311,7 +291,6 @@ impl DbBackupService {
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
-
       for parent_id in parent_ids {
         let filter = match nosql_orm::query::Filter::from_json(
           &serde_json::json!({ parent_field: parent_id }),
@@ -338,7 +317,6 @@ impl DbBackupService {
     }
     count
   }
-
   pub async fn import_comments_cascade(
     &self,
     mongo: &MongoProvider,
@@ -355,7 +333,6 @@ impl DbBackupService {
         }
       };
     let mut count = 0;
-
     if let Ok(parents) = mongo
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
       .await
@@ -365,7 +342,6 @@ impl DbBackupService {
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
-
       let filter = Filter::In(
         "task_id".to_string(),
         parent_ids.iter().map(|id| json!(id)).collect(),
@@ -383,7 +359,6 @@ impl DbBackupService {
     }
     count
   }
-
   pub async fn export_comments_cascade(
     &self,
     mongo: &MongoProvider,
@@ -399,7 +374,6 @@ impl DbBackupService {
         }
       };
     let mut count = 0;
-
     if let Ok(parents) = self
       .json_provider
       .find_many(parent_table, Some(&user_filter), None, None, None, true)
@@ -410,7 +384,6 @@ impl DbBackupService {
         .iter()
         .filter_map(|p| p.get("id").and_then(|v| v.as_str().map(String::from)))
         .collect();
-
       let filter = Filter::In(
         "task_id".to_string(),
         parent_ids.iter().map(|id| json!(id)).collect(),
@@ -429,7 +402,6 @@ impl DbBackupService {
     }
     count
   }
-
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     let mongo = {
       let guard = self
@@ -440,7 +412,6 @@ impl DbBackupService {
         .clone()
         .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?
     };
-
     let mut exported_count = 0;
     exported_count += self
       .export_table_by_id(&mongo, "users", &user_id, false)
@@ -463,14 +434,12 @@ impl DbBackupService {
       .export_comments_cascade(&mongo, "tasks", &user_id)
       .await;
     exported_count += self.export_table(&mongo, "chats", &user_id, true).await;
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Exported {} records", exported_count),
       data: serde_json::json!(exported_count),
     })
   }
-
   pub async fn check_mongodb_connection_async(&self) -> bool {
     let provider = match self.mongodb_provider.lock() {
       Ok(guard) => guard.clone(),

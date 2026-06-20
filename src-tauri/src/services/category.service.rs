@@ -6,22 +6,18 @@ use crate::utils::cascade::soft_delete_cascade_all;
 use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
-
 pub struct CategoryService {
   base: BaseCrudService,
 }
-
 impl CategoryService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
       base: BaseCrudService::new(json_provider, mongo_provider),
     }
   }
-
   fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
     self.base.get_provider(visibility)
   }
-
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
       .base
@@ -29,16 +25,13 @@ impl CategoryService {
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
-
     if !PermissionService::can_view_category(&doc, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to view this category",
       ));
     }
-
     Ok(success_response(doc))
   }
-
   pub async fn get_all(
     &self,
     user_id: &str,
@@ -50,7 +43,6 @@ impl CategoryService {
     let provider = self.get_provider(visibility)?;
     let permission_filter =
       PermissionService::get_category_filter_for_user(user_id, Some(visibility));
-
     let final_filter = if let Some(f) = filter {
       let combined = serde_json::json!({
           "$and": [permission_filter, f]
@@ -65,14 +57,11 @@ impl CategoryService {
           .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
       )
     };
-
     let docs = provider
       .find_many("categories", final_filter.as_ref(), skip, limit, None, true)
       .await?;
-
     Ok(success_response(docs))
   }
-
   pub async fn create(
     &self,
     data: Value,
@@ -82,7 +71,6 @@ impl CategoryService {
     let doc = provider.insert("categories", data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn update(
     &self,
     id: &str,
@@ -95,20 +83,16 @@ impl CategoryService {
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
-
     if !PermissionService::can_edit_category(&existing, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to edit this category",
       ));
     }
-
     let stored_visibility = get_visibility(&existing);
     let provider = self.get_provider(stored_visibility)?;
-
     let doc = provider.patch("categories", id, data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
       .base
@@ -116,16 +100,13 @@ impl CategoryService {
       .find_by_id("categories", id)
       .await?
       .ok_or_else(|| err_response("Category not found"))?;
-
     if !PermissionService::can_delete_category(&existing, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to delete this category",
       ));
     }
-
     let stored_visibility = get_visibility(&existing);
     let provider = self.get_provider(stored_visibility)?;
-
     let _ = soft_delete_cascade_all(&provider, "categories", id).await;
     Ok(success_response(json!({})))
   }

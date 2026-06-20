@@ -1,13 +1,10 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* crate */
 use crate::entities::profile_entity::ProfileEntity;
-
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("users")]
 #[soft_delete]
@@ -60,13 +57,11 @@ pub struct UserEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 impl UserEntity {
   pub fn id(&self) -> &str {
     self.id.as_deref().unwrap_or("")
   }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, nosql_orm::Validate)]
 pub struct UserCreateModel {
   #[validate(email)]
@@ -103,7 +98,6 @@ pub struct UserCreateModel {
   #[serde(default)]
   pub recovery_codes: Vec<String>,
 }
-
 impl From<UserCreateModel> for UserEntity {
   fn from(value: UserCreateModel) -> Self {
     UserEntity {

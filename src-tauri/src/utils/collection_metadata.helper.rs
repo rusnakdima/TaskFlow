@@ -1,5 +1,4 @@
 use serde_json::Value;
-
 pub fn add_collection_metadata(mut docs: Vec<Value>, collection: &str) -> Vec<Value> {
   for doc in &mut docs {
     if let Some(obj) = doc.as_object_mut() {

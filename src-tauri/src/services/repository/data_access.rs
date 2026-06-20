@@ -1,16 +1,10 @@
-use serde_json::{json, Value};
-use std::sync::Arc;
-use std::sync::RwLock;
-use std::time::Instant;
-
-use nosql_orm::cache::QueryCache;
-use nosql_orm::provider::DatabaseProvider;
-use nosql_orm::query::Filter;
-
+use super::cache::CacheService;
+use super::queries::{
+  apply_projection_recursive, filter_out_deleted, get_provider_for_table, merge_documents,
+  merge_immutable_fields, resolve_visibility_for_offline, DataSource,
+};
 use crate::entities::{provider_type_entity::ProviderType, table_entity::validate_model};
 use crate::models::response::ResponseModel;
-use tauri::Emitter;
-
 use crate::repositories::data_provider::DataProvider;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;
@@ -26,13 +20,14 @@ use crate::utils::{
   security::security_projection,
   user_sync,
 };
-
-use super::cache::CacheService;
-use super::queries::{
-  apply_projection_recursive, filter_out_deleted, get_provider_for_table, merge_documents,
-  merge_immutable_fields, resolve_visibility_for_offline, DataSource,
-};
-
+use nosql_orm::cache::QueryCache;
+use nosql_orm::provider::DatabaseProvider;
+use nosql_orm::query::Filter;
+use serde_json::{json, Value};
+use std::sync::Arc;
+use std::sync::RwLock;
+use std::time::Instant;
+use tauri::Emitter;
 pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -45,7 +40,6 @@ pub struct RepositoryService {
   app_handle: tauri::AppHandle,
   spawned_handles: RwLock<Vec<tokio::task::JoinHandle<()>>>,
 }
-
 impl Drop for RepositoryService {
   fn drop(&mut self) {
     if let Ok(handles) = self.spawned_handles.write() {
@@ -55,7 +49,6 @@ impl Drop for RepositoryService {
     }
   }
 }
-
 impl RepositoryService {
   pub fn new(
     json_provider: JsonProvider,
@@ -80,24 +73,19 @@ impl RepositoryService {
       spawned_handles: RwLock::new(Vec::new()),
     }
   }
-
   pub fn with_cache(mut self, cache: QueryCache) -> Self {
     let new_cache_service = CacheService::new().with_cache(cache);
     self.cache_service = new_cache_service;
     self
   }
-
   fn emit_db_change_event(&self, operation: &str, table: &str, data: &serde_json::Value) {
     let event_name = format!("db-change-{}", table);
     let payload = serde_json::json!({
       "operationType": operation,
       "data": data,
     });
-    if let Err(e) = self.app_handle.emit(&event_name, payload) {
-      log::warn!("Failed to emit db-change event for {}: {}", table, e);
-    }
+    if let Err(_e) = self.app_handle.emit(&event_name, payload) {}
   }
-
   pub async fn execute(
     &self,
     operation: String,
@@ -114,7 +102,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let _source =
       DataSource::determine_source(visibility.as_deref(), self.mongodb_provider.is_some());
-
     match operation.as_str() {
       "getAll" => {
         self
@@ -159,7 +146,6 @@ impl RepositoryService {
       _ => Err(err_response(&format!("Unknown operation: {}", operation))),
     }
   }
-
   async fn handle_get_all(
     &self,
     table: String,
@@ -173,7 +159,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let _request_id = "unknown".to_string();
-
     let filter_val = filter.unwrap_or(json!({}));
     let filter_opt =
       if filter_val.is_object() && filter_val.as_object().is_none_or(|obj| obj.is_empty()) {
@@ -181,24 +166,19 @@ impl RepositoryService {
       } else {
         Filter::from_json(&filter_val).ok()
       };
-
     let visibility_str = resolve_visibility_for_offline(visibility);
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
       &table,
       Some(&visibility_str),
     )?;
-
     let load_paths = parse_load_param(load);
-
     let load_paths = if table == "chats" && load_paths.is_empty() {
       vec!["sender".to_string()]
     } else {
       load_paths
     };
-
     let final_filter = self
       .build_filter_for_table(
         &table,
@@ -208,26 +188,22 @@ impl RepositoryService {
         profile_id.as_deref(),
       )
       .await;
-
     let (docs, used_json_fallback) = match &provider {
       DataProvider::Both(json, mongo) => {
         let mut local_docs = Vec::new();
         let mut cloud_docs = Vec::new();
-
         if let Ok(docs) = json
           .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
           .await
         {
           local_docs = docs;
         }
-
         if let Ok(docs) = mongo
           .find_many(&table, final_filter.as_ref(), skip, limit, None, true)
           .await
         {
           cloud_docs = docs;
         }
-
         (merge_documents(local_docs, cloud_docs), false)
       }
       _ => {
@@ -246,9 +222,7 @@ impl RepositoryService {
         }
       }
     };
-
     let use_json_only = matches!(&provider, DataProvider::Json(_)) || used_json_fallback;
-
     let docs = if !load_paths.is_empty() {
       match &provider {
         DataProvider::Json(p) => {
@@ -297,7 +271,6 @@ impl RepositoryService {
     } else {
       strip_relation_fields(docs, &table)
     };
-
     let docs = if table == "todos" {
       fix_todo_counts_if_needed(
         &self.json_provider,
@@ -310,18 +283,14 @@ impl RepositoryService {
     } else {
       docs
     };
-
     let docs = if use_json_only {
       docs
     } else {
       filter_out_deleted(docs)
     };
-
     let _ = start.elapsed();
-
     Ok(success_response(apply_projection_recursive(docs)))
   }
-
   async fn handle_search(
     &self,
     table: String,
@@ -334,13 +303,11 @@ impl RepositoryService {
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-
     let search_query = filter
       .as_ref()
       .and_then(|f| f.get("query"))
       .and_then(|q| q.as_str())
       .unwrap_or("");
-
     let visibility_str = resolve_visibility_for_offline(visibility);
     let provider = get_provider_for_table(
       &self.json_provider,
@@ -348,15 +315,12 @@ impl RepositoryService {
       &table,
       Some(&visibility_str),
     )?;
-
     let load_paths = parse_load_param(load);
-
     let search_filter = if !search_query.is_empty() {
       let search_regex = serde_json::json!({
         "$regex": search_query,
         "$options": "i"
       });
-
       let filter_json = match table.as_str() {
         "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories" => {
           if table == "todos" {
@@ -379,7 +343,6 @@ impl RepositoryService {
           } else if table == "tasks" || table == "subtasks" || table == "comments" {
             let uid = user_id.as_deref().unwrap_or("");
             let visibility_is_private = visibility_str == "private";
-
             if visibility_is_private {
               if let Some(f) = filter.as_ref() {
                 if let Some(fuid) = f.get("user_id").and_then(|v| v.as_str()) {
@@ -389,7 +352,6 @@ impl RepositoryService {
                 }
               }
             }
-
             let todos_filter_json = PermissionService::get_todo_filter_for_user(
               user_id.as_deref().unwrap_or(""),
               profile_id.as_deref(),
@@ -410,7 +372,6 @@ impl RepositoryService {
             } else {
               vec![]
             };
-
             if todo_ids.is_empty() {
               serde_json::json!({
                 "$and": [
@@ -423,7 +384,6 @@ impl RepositoryService {
                 "todo_id": { "$in": todo_ids }
               });
               let title_filter = json!({ "title": search_regex });
-
               if visibility_is_private {
                 let user_id_check = json!({ "user_id": uid });
                 serde_json::json!({
@@ -473,12 +433,10 @@ impl RepositoryService {
           })
         }
       };
-
       Filter::from_json(&filter_json).ok()
     } else {
       None
     };
-
     let (docs, used_json_fallback) = match &provider {
       DataProvider::Both(json, mongo) => {
         let local_docs = json
@@ -518,12 +476,10 @@ impl RepositoryService {
         }
       },
     };
-
     let use_json_only = match &provider {
       DataProvider::Json(_) | DataProvider::Both(_, _) => true,
       DataProvider::Mongo(_) => used_json_fallback,
     };
-
     let docs = if !load_paths.is_empty() {
       match &provider {
         DataProvider::Json(p) => {
@@ -573,18 +529,14 @@ impl RepositoryService {
     } else {
       strip_relation_fields(docs, &table)
     };
-
     let docs = if use_json_only || visibility_str == "private" {
       docs
     } else {
       filter_out_deleted(docs)
     };
-
     let _ = start.elapsed();
-
     Ok(success_response(apply_projection_recursive(docs)))
   }
-
   async fn handle_get(
     &self,
     table: String,
@@ -595,9 +547,7 @@ impl RepositoryService {
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-
     let visibility_str = resolve_visibility_for_offline(visibility.clone());
-
     let use_both_providers = visibility.is_none();
     let provider = if use_both_providers {
       get_provider_for_table(
@@ -614,7 +564,6 @@ impl RepositoryService {
         Some(&visibility_str),
       )?
     };
-
     let docs: Vec<Value> = if let Some(ref id_val) = id {
       match &provider {
         DataProvider::Both(json, mongo) => {
@@ -679,7 +628,6 @@ impl RepositoryService {
       let filter_docs = provider
         .find_many(&table, Some(&filter_obj), None, None, None, true)
         .await?;
-
       if filter_docs.len() == 1 {
         filter_docs
       } else if filter_docs.is_empty() {
@@ -690,9 +638,7 @@ impl RepositoryService {
     } else {
       return Err(err_response("ID or filter is required for get operation"));
     };
-
     let load_paths = parse_load_param(load);
-
     let docs = if !load_paths.is_empty() {
       match &provider {
         DataProvider::Json(p) => {
@@ -732,7 +678,6 @@ impl RepositoryService {
     } else {
       strip_relation_fields(docs, &table)
     };
-
     let docs = if table == "todos" {
       fix_todo_counts_if_needed(
         &self.json_provider,
@@ -745,9 +690,7 @@ impl RepositoryService {
     } else {
       docs
     };
-
     let projected = apply_projection_recursive(docs);
-
     if table == "todos" {
       if let Some(user) = &user_id {
         for doc in &projected {
@@ -759,9 +702,7 @@ impl RepositoryService {
         }
       }
     }
-
     let _ = start.elapsed();
-
     if id.is_some() {
       if !projected.is_empty() {
         Ok(success_response(projected.into_iter().next().ok_or_else(
@@ -774,7 +715,6 @@ impl RepositoryService {
       Ok(success_response(serde_json::json!(projected)))
     }
   }
-
   async fn handle_create(
     &self,
     table: String,
@@ -783,9 +723,7 @@ impl RepositoryService {
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
-
     let visibility_str = if visibility.is_some() {
       resolve_visibility_for_offline(visibility)
     } else if let Some(serde_json::Value::String(vis_from_data)) = data_val.get("visibility") {
@@ -793,14 +731,12 @@ impl RepositoryService {
     } else {
       resolve_visibility_for_offline(visibility)
     };
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
       &table,
       Some(&visibility_str),
     )?;
-
     if table == "todos" || table == "categories" {
       if let serde_json::Value::Object(ref mut obj) = data_val {
         obj.insert(
@@ -809,7 +745,6 @@ impl RepositoryService {
         );
       }
     }
-
     let parent_todo_visibility: Option<String> = if table == "tasks" {
       let todo_id = data_val.get("todo_id").and_then(|v| v.as_str());
       if let Some(tid) = todo_id {
@@ -878,7 +813,6 @@ impl RepositoryService {
         None
       }
     };
-
     if let Some(todo_vis) = parent_todo_visibility {
       if let serde_json::Value::Object(ref mut obj) = data_val {
         obj.insert(
@@ -887,7 +821,6 @@ impl RepositoryService {
         );
       }
     }
-
     if table == "tasks" || table == "subtasks" || table == "comments" {
       if let Some(uid) = user_id.as_ref() {
         if table == "tasks" || table == "subtasks" {
@@ -904,7 +837,6 @@ impl RepositoryService {
               None
             }
           };
-
           if let Some(todo_id) = todo_id_opt {
             let todo = provider.find_by_id("todos", &todo_id).await.ok().flatten();
             if let Some(todo) = todo {
@@ -936,14 +868,10 @@ impl RepositoryService {
         }
       }
     }
-
     let validated_data = validate_model(&table, &data_val, true, Some(visibility_str.clone()))
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
-
     let created_record = provider.insert(&table, validated_data).await?;
-
     self.cache_service.invalidate_collection(&table).await;
-
     if table == "profiles" {
       if let Some(profile_id) = created_record.get("id").and_then(|v| v.as_str()) {
         if let Some(user_id) = created_record.get("user_id").and_then(|v| v.as_str()) {
@@ -1007,7 +935,6 @@ impl RepositoryService {
       let task_id_clone = task_id.map(|s| s.to_string());
       let subtask_id_clone = subtask_id.map(|s| s.to_string());
       let visibility_clone = visibility_str.clone();
-
       let handle = tokio::spawn(async move {
         let _ = count_service
           .on_comment_created(
@@ -1021,20 +948,16 @@ impl RepositoryService {
         handles.push(handle);
       }
     }
-
     let _ = self
       .activity_monitor
       .log_action(&table, "create", &created_record, None)
       .await;
-
     let should_publish_to_github = table == "tasks"
       && created_record
         .get("publish_to_github")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-
     let mut final_record = created_record.clone();
-
     if should_publish_to_github {
       if let Ok(updated) = self
         .handle_github_publish_for_task(created_record.clone(), visibility_str.clone())
@@ -1043,7 +966,6 @@ impl RepositoryService {
         final_record = updated;
       }
     }
-
     if table == "comments" {
       if let Ok(updated) = self
         .handle_github_sync_comment(created_record, visibility_str)
@@ -1052,16 +974,12 @@ impl RepositoryService {
         final_record = updated;
       }
     }
-
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&final_record);
     let _ = start.elapsed();
-
     self.emit_db_change_event("created", &table, &response_doc);
-
     Ok(success_response(serde_json::json!(response_doc)))
   }
-
   async fn handle_github_sync_comment(
     &self,
     comment_record: Value,
@@ -1071,7 +989,6 @@ impl RepositoryService {
       Some(id) => id,
       None => return Ok(comment_record),
     };
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
@@ -1082,21 +999,17 @@ impl RepositoryService {
       Some(t) => t,
       None => return Ok(comment_record),
     };
-
     let github_issue_id = match task.get("github_issue_id").and_then(|v| v.as_i64()) {
       Some(id) => id,
       _ => return Ok(comment_record),
     };
-
     let github_issue_url = task
       .get("github_issue_url")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     if github_issue_url.is_empty() {
       return Ok(comment_record);
     }
-
     let repo_url = github_issue_url;
     let parts: Vec<&str> = repo_url.trim_end_matches('/').split('/').collect();
     if parts.len() < 2 {
@@ -1104,12 +1017,10 @@ impl RepositoryService {
     }
     let repo_owner = parts[parts.len() - 4];
     let repo_name = parts[parts.len() - 3];
-
     let comment_content = comment_record
       .get("content")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     let user_id = comment_record
       .get("user_id")
       .and_then(|v| v.as_str())
@@ -1118,14 +1029,11 @@ impl RepositoryService {
       .get_user_github_token(user_id)
       .await
       .unwrap_or_default();
-
     if access_token.is_empty() {
       return Ok(comment_record);
     }
-
     use crate::services::github_service::GithubService;
     let github_service = GithubService::new();
-
     let gh_comment = github_service
       .create_comment(
         &access_token,
@@ -1135,7 +1043,6 @@ impl RepositoryService {
         comment_content,
       )
       .await?;
-
     let mut updated_record = comment_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert(
@@ -1147,7 +1054,6 @@ impl RepositoryService {
         serde_json::json!(github_issue_id),
       );
     }
-
     let comment_id = comment_record
       .get("id")
       .and_then(|v| v.as_str())
@@ -1155,10 +1061,8 @@ impl RepositoryService {
     let _ = provider
       .update("comments", comment_id, updated_record.clone())
       .await;
-
     Ok(updated_record)
   }
-
   async fn handle_github_publish_for_task(
     &self,
     task_record: Value,
@@ -1168,7 +1072,6 @@ impl RepositoryService {
       Some(id) => id,
       None => return Ok(task_record),
     };
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
@@ -1179,24 +1082,20 @@ impl RepositoryService {
       Some(t) => t,
       None => return Ok(task_record),
     };
-
     let _github_repo_id = match todo.get("github_repo_id").and_then(|v| v.as_str()) {
       Some(id) if !id.is_empty() => id,
       _ => return Ok(task_record),
     };
-
     let github_repo_name = todo
       .get("github_repo_name")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     let parts: Vec<&str> = github_repo_name.split('/').collect();
     if parts.len() != 2 {
       return Ok(task_record);
     }
     let repo_owner = parts[0];
     let repo_name = parts[1];
-
     let task_title = task_record
       .get("title")
       .and_then(|v| v.as_str())
@@ -1213,7 +1112,6 @@ impl RepositoryService {
       .get("end_date")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     let issue_body = format!(
       "**Task Details**\n\n**Description:** {}\n\n**Priority:** {}\n**Due Date:** {}\n**Created in:** TaskFlow\n\n---\n[View in TaskFlow](taskflow://tasks/{})",
       task_description,
@@ -1221,10 +1119,8 @@ impl RepositoryService {
       task_end_date,
       task_record.get("id").and_then(|v| v.as_str()).unwrap_or("")
     );
-
     use crate::services::github_service::GithubService;
     let github_service = GithubService::new();
-
     let user_id = task_record
       .get("user_id")
       .and_then(|v| v.as_str())
@@ -1233,11 +1129,9 @@ impl RepositoryService {
       .get_user_github_token(user_id)
       .await
       .unwrap_or_default();
-
     if access_token.is_empty() {
       return Ok(task_record);
     }
-
     let issue = github_service
       .create_issue(
         &access_token,
@@ -1247,7 +1141,6 @@ impl RepositoryService {
         &issue_body,
       )
       .await?;
-
     let mut updated_record = task_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert("github_issue_id".to_string(), serde_json::json!(issue.id));
@@ -1256,12 +1149,10 @@ impl RepositoryService {
         serde_json::json!(issue.html_url),
       );
     }
-
     let task_id = task_record.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let _ = provider
       .update("tasks", task_id, updated_record.clone())
       .await;
-
     if let Ok(subtasks) = self.get_subtasks_for_task(task_id, &visibility).await {
       for (index, subtask) in subtasks.into_iter().enumerate() {
         let subtask_title = subtask
@@ -1280,14 +1171,11 @@ impl RepositoryService {
           .await;
       }
     }
-
     Ok(updated_record)
   }
-
   async fn get_user_github_token(&self, user_id: &str) -> Result<String, ResponseModel> {
     let table_name = "users";
     let filter = nosql_orm::query::Filter::Eq("id".to_string(), serde_json::json!(user_id));
-
     let user_val = self
       .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
@@ -1296,13 +1184,10 @@ impl RepositoryService {
       .into_iter()
       .next()
       .ok_or_else(|| err_response("User not found"))?;
-
     let user: crate::entities::user_entity::UserEntity =
       serde_json::from_value(user_val).map_err(|e| err_response(&format!("Parse error: {}", e)))?;
-
     Ok(user.github_access_token)
   }
-
   async fn get_subtasks_for_task(
     &self,
     task_id: &str,
@@ -1319,7 +1204,6 @@ impl RepositoryService {
       .find_many("subtasks", Some(&filter), None, None, None, true)
       .await
   }
-
   async fn handle_update_all(
     &self,
     table: String,
@@ -1327,14 +1211,11 @@ impl RepositoryService {
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-
     let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
-
     let raw_records = data_val
       .as_array()
       .ok_or_else(|| err_response("Data must be an array for updateAll"))?
       .clone();
-
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
     let visibility_str = resolve_visibility_for_offline(visibility.clone());
     let provider = get_provider_for_table(
@@ -1343,11 +1224,9 @@ impl RepositoryService {
       &table,
       Some(&visibility_str),
     )?;
-
     for record in raw_records {
       let validated = validate_model(&table, &record, false, visibility.clone())
         .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
-
       if let Some(id) = validated.get("id").and_then(|v| v.as_str()) {
         if let Ok(Some(existing)) = provider.find_by_id(&table, id).await {
           let mut validated_with_immutable = validated;
@@ -1360,19 +1239,15 @@ impl RepositoryService {
         validated_records.push(validated);
       }
     }
-
     for record in &validated_records {
       if let Some(id) = record.get("id").and_then(|v| v.as_str()) {
         if let Err(_e) = provider.update(&table, id, record.clone()).await {}
       }
     }
-
     let projected_records = apply_projection_recursive(validated_records);
     let _ = start.elapsed();
-
     Ok(success_response(serde_json::json!(projected_records)))
   }
-
   async fn handle_update(
     &self,
     table: String,
@@ -1382,65 +1257,51 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let _start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
-
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
-
     let validated_data = validate_model(&table, &data_val, false, visibility.clone())
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
-
     let new_visibility = validated_data
       .get("visibility")
       .and_then(|v| v.as_str())
       .map(|s| s.to_string());
-
     let visibility_str = resolve_visibility_for_offline(visibility);
-
     let effective_visibility = new_visibility.as_deref().or(Some(visibility_str.as_str()));
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
       &table,
       effective_visibility,
     )?;
-
     let (existing_record, record_provider): (_, DataProvider) =
       match provider.find_by_id(&table, &id_str).await {
         Ok(Some(record)) => (record, provider),
         _ => {
           let mut found_record = None;
           let mut found_provider = None;
-
           if let Some(ref mongo) = self.mongodb_provider {
             if let Ok(Some(record)) = mongo.find_by_id(&table, &id_str).await {
               found_record = Some(record);
               found_provider = Some(DataProvider::Mongo(mongo.clone()));
             }
           }
-
           if found_record.is_none() {
             if let Ok(Some(record)) = self.json_provider.find_by_id(&table, &id_str).await {
               found_record = Some(record);
               found_provider = Some(DataProvider::Json(Arc::new(self.json_provider.clone())));
             }
           }
-
           (
             found_record.ok_or_else(|| err_response("Document not found"))?,
             found_provider.unwrap_or(DataProvider::Json(Arc::new(self.json_provider.clone()))),
           )
         }
       };
-
     let old_visibility = existing_record.get("visibility").and_then(|v| v.as_str());
     let old_status = existing_record.get("status").and_then(|v| v.as_str());
     let visibility_changed = old_visibility != new_visibility.as_deref();
-
     let current_provider = record_provider;
-
     let mut validated_data = validated_data;
     merge_immutable_fields(&existing_record, &mut validated_data);
-
     let mut merged_data = if let (Some(existing_obj), Some(update_obj)) =
       (existing_record.as_object(), validated_data.as_object())
     {
@@ -1453,11 +1314,9 @@ impl RepositoryService {
     } else {
       validated_data.clone()
     };
-
     if table == "todos" {
       let is_sharing =
         new_visibility.as_deref() == Some("shared") || new_visibility.as_deref() == Some("public");
-
       if is_sharing && visibility_changed {
         if let Some(owner_id) = merged_data.get("user_id").and_then(|v| v.as_str()) {
           let assignees = merged_data
@@ -1465,7 +1324,6 @@ impl RepositoryService {
             .and_then(|v| v.as_array())
             .map(|arr| arr.to_vec())
             .unwrap_or_default();
-
           if !assignees.iter().any(|a| a.as_str() == Some(owner_id)) {
             let mut new_assignees = assignees;
             new_assignees.push(serde_json::Value::String(owner_id.to_string()));
@@ -1478,23 +1336,19 @@ impl RepositoryService {
           }
         }
       }
-
       let new_assignees = merged_data
         .get("assignees")
         .and_then(|v| v.as_array())
         .map(|arr| arr.to_vec())
         .unwrap_or_default();
-
       if !new_assignees.is_empty() {
         let current_roles = merged_data
           .get("assignee_roles")
           .and_then(|v| v.as_object())
           .map(|obj| obj.clone())
           .unwrap_or_default();
-
         let mut roles_changed = false;
         let mut new_roles = current_roles;
-
         for assignee in &new_assignees {
           if let Some(assignee_str) = assignee.as_str() {
             if !new_roles.contains_key(assignee_str) {
@@ -1506,7 +1360,6 @@ impl RepositoryService {
             }
           }
         }
-
         if roles_changed {
           if let Some(obj) = merged_data.as_object_mut() {
             obj.insert(
@@ -1517,11 +1370,9 @@ impl RepositoryService {
         }
       }
     }
-
     let updated_record = current_provider
       .update(&table, &id_str, merged_data)
       .await?;
-
     if table == "todos" && visibility_changed {
       let source_provider = if matches!(current_provider, DataProvider::Json(_)) {
         "Json"
@@ -1544,7 +1395,6 @@ impl RepositoryService {
         )
         .await?;
     }
-
     if table == "profiles" {
       if let Some(profile_id) = updated_record.get("id").and_then(|v| v.as_str()) {
         let profile_id_clone = profile_id.to_string();
@@ -1559,9 +1409,7 @@ impl RepositoryService {
         }
       }
     }
-
     let new_status = updated_record.get("status").and_then(|v| v.as_str());
-
     let todo_id = if table == "tasks" {
       updated_record
         .get("todo_id")
@@ -1572,7 +1420,6 @@ impl RepositoryService {
     } else {
       None
     };
-
     if (table == "tasks" || table == "subtasks") && old_status != new_status {
       if let Some(tid) = todo_id {
         if table == "tasks" {
@@ -1595,16 +1442,13 @@ impl RepositoryService {
         }
       }
     }
-
     let new_visibility = validated_data.get("visibility").and_then(|v| v.as_str());
     let old_visibility = updated_record.get("visibility").and_then(|v| v.as_str());
-
     if let (Some(new_vis), Some(old_vis)) = (new_visibility, old_visibility) {
       if new_vis != old_vis {
         let mongodb_available = self.mongodb_provider.is_some();
         let source = DataSource::determine_source(Some(old_vis), mongodb_available);
         let target = DataSource::determine_source(Some(new_vis), mongodb_available);
-
         if target == DataSource::Local {
           self.cascade_service.move_todo_to_json(&id_str).await?;
         } else if source == DataSource::Local && target == DataSource::Cloud {
@@ -1615,31 +1459,24 @@ impl RepositoryService {
         }
       }
     }
-
     if table == "todos" && old_visibility != Some("private") && old_status != new_status {
       self.cascade_service.backup_todo_to_json(&id_str).await?;
     }
-
     if table == "todos" && old_visibility == Some("private") && old_status != new_status {
       self
         .cascade_service
         .sync_entity_to_mongo(&table, &id_str)
         .await?;
     }
-
     self.cache_service.invalidate_collection(&table).await;
-
     let _ = self
       .activity_monitor
       .log_action(&table, "update", &updated_record, None)
       .await;
-
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
-
     Ok(success_response(serde_json::json!(response_doc)))
   }
-
   async fn handle_delete(
     &self,
     table: String,
@@ -1649,7 +1486,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
-
     let visibility_str = resolve_visibility_for_offline(visibility);
     let provider = get_provider_for_table(
       &self.json_provider,
@@ -1657,7 +1493,6 @@ impl RepositoryService {
       &table,
       Some(&visibility_str),
     )?;
-
     if table == "tasks" || table == "subtasks" || table == "comments" {
       let provider = get_provider_for_table(
         &self.json_provider,
@@ -1725,7 +1560,6 @@ impl RepositoryService {
         }
       }
     }
-
     if is_permanent {
       match &provider {
         DataProvider::Json(_) => {
@@ -1785,21 +1619,15 @@ impl RepositoryService {
         }
       }
     }
-
     self.cache_service.invalidate_collection(&table).await;
-
     let _ = self
       .activity_monitor
       .log_action(&table, "delete", &json!({"id": id_str.clone()}), None)
       .await;
-
     let _ = start.elapsed();
-
     self.emit_db_change_event("deleted", &table, &serde_json::json!({"id": id_str}));
-
     Ok(success_response(serde_json::json!(id_str.clone())))
   }
-
   async fn handle_soft_delete_cascade(
     &self,
     table: String,
@@ -1808,7 +1636,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     self.handle_delete(table, id, visibility, false).await
   }
-
   async fn handle_permanent_delete_cascade(
     &self,
     table: String,
@@ -1817,7 +1644,6 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     self.handle_delete(table, id, visibility, true).await
   }
-
   async fn handle_sync_to_provider(
     &self,
     table: String,
@@ -1838,7 +1664,6 @@ impl RepositoryService {
     }
     Ok(success_response(serde_json::json!(id)))
   }
-
   async fn build_filter_for_table(
     &self,
     table: &str,
@@ -1852,7 +1677,6 @@ impl RepositoryService {
       build_profiles_users_filter, build_todos_filter, extract_task_id_from_filter,
       extract_user_id_from_filter, filter_contains_field,
     };
-
     let provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
@@ -1860,7 +1684,6 @@ impl RepositoryService {
       Some(visibility_str),
     )
     .ok()?;
-
     match table {
       "todos" => {
         let permission_filter = build_todos_filter(visibility_str, user_id, profile_id);
@@ -1873,7 +1696,6 @@ impl RepositoryService {
       "tasks" => {
         let uid = user_id.unwrap_or("");
         let visibility_is_private = visibility_str == "private";
-
         let todos_filter = build_todos_filter(visibility_str, user_id, profile_id);
         let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
           match provider
@@ -1889,7 +1711,6 @@ impl RepositoryService {
         } else {
           vec![]
         };
-
         if visibility_is_private {
           let filter_user_id = filter_opt
             .as_ref()
@@ -1916,15 +1737,12 @@ impl RepositoryService {
             "todo_id".to_string(),
             todo_ids.into_iter().map(Value::String).collect(),
           );
-
           let should_override_filter = matches!(visibility_str, "public" | "shared" | "cloud");
-
           if should_override_filter {
             let has_conflicting_filter = filter_opt
               .as_ref()
               .map(|f| filter_contains_field(f, "todo_id") || filter_contains_field(f, "$or"))
               .unwrap_or(false);
-
             if has_conflicting_filter {
               Some(todo_in_filter)
             } else {
@@ -1955,10 +1773,8 @@ impl RepositoryService {
         let specific_task_id = filter_opt
           .as_ref()
           .and_then(|f| extract_task_id_from_filter(f));
-
         if let Some(task_id) = specific_task_id {
           let task_filter = Filter::Eq("id".to_string(), Value::String(task_id.clone()));
-
           let task_opt = match provider
             .find_many("tasks", Some(&task_filter), None, None, None, true)
             .await
@@ -1966,7 +1782,6 @@ impl RepositoryService {
             Ok(tasks) => tasks.first().cloned(),
             Err(_) => None,
           };
-
           if let Some(task) = task_opt {
             let todo_id = task.get("todo_id").and_then(|v| v.as_str());
             if let Some(tid) = todo_id {
@@ -1978,7 +1793,6 @@ impl RepositoryService {
                 Ok(todos) => todos.first().cloned(),
                 Err(_) => None,
               };
-
               if let Some(todo) = todo_opt {
                 let can_view = PermissionService::can_view_todo(&todo, uid);
                 if !can_view {
@@ -1992,14 +1806,12 @@ impl RepositoryService {
             }
           } else {
             let mut found_todo_id: Option<String> = None;
-
             if let Ok(Some(task)) = self.json_provider.find_by_id("tasks", &task_id).await {
               found_todo_id = task
                 .get("todo_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             }
-
             if found_todo_id.is_none() {
               if let Some(mongo_provider) = &self.mongodb_provider {
                 if let Ok(Some(task)) = mongo_provider.find_by_id("tasks", &task_id).await {
@@ -2010,7 +1822,6 @@ impl RepositoryService {
                 }
               }
             }
-
             if let Some(todo_id) = found_todo_id {
               let can_view = if visibility_str == "private" || visibility_str == "local" {
                 if let Ok(Some(todo)) = self.json_provider.find_by_id("todos", &todo_id).await {
@@ -2029,7 +1840,6 @@ impl RepositoryService {
                   false
                 }
               };
-
               if !can_view {
                 return None;
               }
@@ -2038,7 +1848,6 @@ impl RepositoryService {
             }
           }
         }
-
         if visibility_is_private {
           let filter_user_id = filter_opt
             .as_ref()
@@ -2049,7 +1858,6 @@ impl RepositoryService {
             }
           }
         }
-
         let todos_filter = build_todos_filter(visibility_str, user_id, profile_id);
         let todo_ids: Vec<String> = if let Some(filter) = todos_filter {
           match provider
@@ -2065,7 +1873,6 @@ impl RepositoryService {
         } else {
           vec![]
         };
-
         if todo_ids.is_empty() {
           filter_opt.cloned()
         } else {
@@ -2125,7 +1932,6 @@ impl RepositoryService {
     }
   }
 }
-
 async fn get_todo_id_from_task(
   json_provider: &JsonProvider,
   mongodb_provider: &Option<Arc<MongoProvider>>,
@@ -2144,7 +1950,6 @@ async fn get_todo_id_from_task(
         .map(|s| s.to_string())
     })
 }
-
 async fn load_relations_unified<P: DatabaseProvider + Clone>(
   _json_provider: &JsonProvider,
   _mongodb_provider: &Option<Arc<MongoProvider>>,
@@ -2155,16 +1960,12 @@ async fn load_relations_unified<P: DatabaseProvider + Clone>(
 ) -> Result<Vec<Value>, ResponseModel> {
   use crate::utils::collection_metadata::add_collection_metadata;
   use nosql_orm::relations::RelationLoader;
-
   if load_paths.is_empty() || docs.is_empty() {
     return Ok(docs);
   }
-
   let segments: Vec<&str> = load_paths.iter().map(|s| s.as_str()).collect();
-
   let docs_with_meta = add_collection_metadata(docs.clone(), table);
   let loader = RelationLoader::new(provider);
-
   match loader
     .load_relations_on_docs(docs_with_meta, table, &segments, true)
     .await
@@ -2179,7 +1980,6 @@ async fn load_relations_unified<P: DatabaseProvider + Clone>(
     }
   }
 }
-
 async fn fix_todo_counts_if_needed(
   _json_provider: &JsonProvider,
   _mongodb_provider: &Option<Arc<MongoProvider>>,
@@ -2196,17 +1996,14 @@ async fn fix_todo_counts_if_needed(
         .map(|s| s.to_string())
     })
     .collect();
-
   if todo_ids.is_empty() {
     return Ok(docs);
   }
-
   let ids_value: Vec<Value> = todo_ids
     .iter()
     .map(|s| serde_json::Value::String(s.clone()))
     .collect();
   let filter = Filter::In("id".to_string(), ids_value);
-
   for todo_id in &todo_ids {
     let cs = count_service.as_ref();
     let _ = match provider {
@@ -2219,7 +2016,6 @@ async fn fix_todo_counts_if_needed(
       }
     };
   }
-
   let refreshed = match provider {
     DataProvider::Json(p) => {
       p.find_many("todos", Some(&filter), None, None, None, true)
@@ -2239,7 +2035,6 @@ async fn fix_todo_counts_if_needed(
       merge_documents(local, cloud)
     }
   };
-
   let refreshed_map: std::collections::HashMap<String, Value> = refreshed
     .into_iter()
     .filter_map(|d| {
@@ -2247,7 +2042,6 @@ async fn fix_todo_counts_if_needed(
       Some((id, d))
     })
     .collect();
-
   for doc in docs.iter_mut() {
     if let Some(id) = doc.get("id").and_then(|v| v.as_str()).to_owned() {
       if let Some(new_doc) = refreshed_map.get(&id.to_string()) {
@@ -2255,6 +2049,5 @@ async fn fix_todo_counts_if_needed(
       }
     }
   }
-
   Ok(docs)
 }

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum AppError {
@@ -16,7 +15,6 @@ pub enum AppError {
   PermissionDenied(String),
   InvalidPath(String),
 }
-
 impl fmt::Display for AppError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -34,9 +32,7 @@ impl fmt::Display for AppError {
     }
   }
 }
-
 impl std::error::Error for AppError {}
-
 impl From<std::io::Error> for AppError {
   fn from(err: std::io::Error) -> Self {
     match err.kind() {
@@ -46,13 +42,11 @@ impl From<std::io::Error> for AppError {
     }
   }
 }
-
 impl From<serde_json::Error> for AppError {
   fn from(err: serde_json::Error) -> Self {
     Self::ValidationError(err.to_string())
   }
 }
-
 impl From<nosql_orm::prelude::OrmError> for AppError {
   fn from(err: nosql_orm::prelude::OrmError) -> Self {
     match err {

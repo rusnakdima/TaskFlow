@@ -3,6 +3,8 @@ pub mod activity;
 pub mod activity_log;
 #[path = "auth.helper.rs"]
 pub mod auth;
+#[path = "cascade.helper.rs"]
+pub mod cascade;
 #[path = "collection_metadata.helper.rs"]
 pub mod collection_metadata;
 #[path = "common.helper.rs"]
@@ -19,6 +21,8 @@ pub mod profile;
 pub mod qr;
 #[path = "relation-stripper.helper.rs"]
 pub mod relation_stripper;
+#[path = "response.utils.rs"]
+pub mod response;
 #[path = "response.helper.rs"]
 pub mod response_helper;
 #[path = "security.helper.rs"]
@@ -27,9 +31,5 @@ pub mod security;
 pub mod timestamp;
 #[path = "user-sync.helper.rs"]
 pub mod user_sync;
-
 #[path = "visibility.helper.rs"]
 pub mod visibility;
-
-#[path = "cascade.helper.rs"]
-pub mod cascade;

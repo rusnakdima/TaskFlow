@@ -1,11 +1,9 @@
 use crate::entities::email_config::EmailConfig;
 use crate::utils::config::ConfigHelper;
-
 #[derive(Clone)]
 pub struct EmailProvider {
   config: EmailConfig,
 }
-
 impl EmailProvider {
   pub fn from_config(config: &ConfigHelper) -> Result<Self, String> {
     let email_config = EmailConfig {
@@ -19,15 +17,7 @@ impl EmailProvider {
       config: email_config,
     })
   }
-
-  pub async fn send_password_reset_code(&self, email: &str, code: &str) -> Result<(), String> {
-    log::info!(
-      "Sending password reset code {} to {} via SMTP {}:{}",
-      code,
-      email,
-      self.config.smtp_server,
-      self.config.smtp_port
-    );
+  pub async fn send_password_reset_code(&self, _email: &str, _code: &str) -> Result<(), String> {
     Ok(())
   }
 }

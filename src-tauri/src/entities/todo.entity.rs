@@ -2,14 +2,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-
 /* helpers */
 use crate::utils::common::format_date;
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("todos")]
 #[soft_delete]
@@ -49,7 +46,6 @@ pub struct TodoEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TodoCreateModel {
   #[validate(not_empty)]
@@ -71,12 +67,10 @@ pub struct TodoCreateModel {
   pub github_repo_id: Option<String>,
   pub github_repo_name: Option<String>,
 }
-
 impl From<TodoCreateModel> for TodoEntity {
   fn from(value: TodoCreateModel) -> Self {
     let formatted_start_date = format_date(&value.start_date);
     let formatted_end_date = format_date(&value.end_date);
-
     TodoEntity {
       id: None,
       user_id: value.user_id,

@@ -1,11 +1,9 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("subtasks")]
 #[soft_delete]
@@ -38,7 +36,6 @@ pub struct SubtaskEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct SubtaskCreateModel {
   #[validate(required)]
@@ -57,7 +54,6 @@ pub struct SubtaskCreateModel {
   #[validate(range(min = 0, max = 9999))]
   pub order: i32,
 }
-
 impl From<SubtaskCreateModel> for SubtaskEntity {
   fn from(value: SubtaskCreateModel) -> Self {
     SubtaskEntity {

@@ -2,33 +2,26 @@
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
 use serde_json::{to_value, Value};
-
 /* helpers */
 use crate::utils::common::convert_data_to_array;
 use crate::utils::response_helper::err_response;
-
 /* providers */
 use nosql_orm::providers::JsonProvider;
-
 /* entities */
 use crate::entities::daily_activity_entity::{
   DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel,
 };
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 #[derive(Clone)]
 pub struct ActivityStorage {
   pub json_provider: JsonProvider,
 }
-
 impl ActivityStorage {
   pub fn new(json_provider: JsonProvider) -> Self {
     Self { json_provider }
   }
-
   pub async fn get_all(&self, filter: Value) -> Result<ResponseModel, ResponseModel> {
     let orm_filter = Filter::from_json(&filter).ok();
-
     let list_daily_activities = self
       .json_provider
       .find_many(
@@ -40,7 +33,6 @@ impl ActivityStorage {
         true,
       )
       .await;
-
     match list_daily_activities {
       Ok(daily_activities) => Ok(ResponseModel {
         status: ResponseStatus::Success,
@@ -54,7 +46,6 @@ impl ActivityStorage {
       }),
     }
   }
-
   pub async fn get_or_create_daily_activity(
     &self,
     user_id: String,
@@ -65,12 +56,10 @@ impl ActivityStorage {
         "date": date
     }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-
     let existing = self
       .json_provider
       .find_many("daily_activities", Some(&filter), None, None, None, false)
       .await;
-
     if let Ok(activities) = existing {
       if let Some(activity_value) = activities.first() {
         if let Ok(activity) = serde_json::from_value::<DailyActivityModel>(activity_value.clone()) {
@@ -78,7 +67,6 @@ impl ActivityStorage {
         }
       }
     }
-
     let create_model = DailyActivityCreateModel {
       user_id: user_id.clone(),
       date: date.clone(),
@@ -86,7 +74,6 @@ impl ActivityStorage {
     let model: DailyActivityModel = create_model.into();
     let record: Value =
       to_value(&model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
-
     match self.json_provider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
       Err(error) => Err(ResponseModel {
@@ -96,14 +83,12 @@ impl ActivityStorage {
       }),
     }
   }
-
   pub async fn update_daily_activity(
     &self,
     activity: DailyActivityModel,
   ) -> Result<(), ResponseModel> {
     let activity_id = activity.id.clone().unwrap_or_default();
     let now = chrono::Utc::now();
-
     let update_model = DailyActivityUpdateModel {
       id: activity.id.unwrap_or_default(),
       user_id: activity.user_id,
@@ -135,10 +120,8 @@ impl ActivityStorage {
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_else(|| now.to_rfc3339()),
     };
-
     let record: Value =
       to_value(&update_model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
-
     match self
       .json_provider
       .update("daily_activities", &activity_id, record)

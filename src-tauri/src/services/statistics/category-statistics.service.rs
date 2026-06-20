@@ -1,9 +1,7 @@
 use chrono::{DateTime, NaiveDate};
 use serde_json::Value;
 use std::collections::HashMap;
-
 pub struct CategoryStatistics;
-
 impl CategoryStatistics {
   pub async fn calculate_category_tasks(
     categories: &[Value],
@@ -13,7 +11,6 @@ impl CategoryStatistics {
     end_date: &NaiveDate,
   ) -> Vec<Value> {
     let mut categories_with_counts = Vec::new();
-
     let mut tasks_by_todo: HashMap<String, Vec<Value>> = HashMap::new();
     for task in tasks {
       if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
@@ -23,17 +20,13 @@ impl CategoryStatistics {
           .push(task.clone());
       }
     }
-
     let tasks_in_range = Self::filter_tasks_by_date(tasks, start_date, end_date).await;
-
     for category in categories {
       let mut category_clone = category.clone();
       let mut category_todos = Vec::new();
       let mut category_task_count = 0;
       let mut category_completed_task_count = 0;
-
       let category_id = category.get("id").and_then(|v| v.as_str()).unwrap_or("");
-
       for todo in todos {
         let mut has_category = false;
         if let Some(todo_categories) = todo.get("categories").and_then(|v| v.as_array()) {
@@ -56,11 +49,9 @@ impl CategoryStatistics {
             false
           });
         }
-
         if has_category {
           let mut todo_has_relevant_tasks = false;
           let todo_id = todo.get("id").and_then(|v| v.as_str()).unwrap_or("");
-
           if let Some(todo_tasks) = tasks_by_todo.get(todo_id) {
             for task in todo_tasks {
               let task_id = task.get("id").and_then(|v| v.as_str());
@@ -71,7 +62,6 @@ impl CategoryStatistics {
                     .any(|t| t.get("id").and_then(|v| v.as_str()) == Some(id))
                 })
                 .unwrap_or(false);
-
               if is_task_in_range {
                 category_task_count += 1;
                 todo_has_relevant_tasks = true;
@@ -83,13 +73,11 @@ impl CategoryStatistics {
               }
             }
           }
-
           if todo_has_relevant_tasks {
             category_todos.push(todo.clone());
           }
         }
       }
-
       if let Some(obj) = category_clone.as_object_mut() {
         obj.insert(
           "todos".to_string(),
@@ -106,10 +94,8 @@ impl CategoryStatistics {
       }
       categories_with_counts.push(category_clone);
     }
-
     categories_with_counts
   }
-
   async fn filter_tasks_by_date(
     tasks: &[Value],
     start_date: &NaiveDate,
@@ -118,7 +104,6 @@ impl CategoryStatistics {
     let mut in_range = Vec::new();
     for task in tasks {
       let mut is_in_range = false;
-
       if let Some(created_at_str) = task.get("created_at").and_then(|v| v.as_str()) {
         if let Ok(dt) = DateTime::parse_from_rfc3339(created_at_str) {
           let date = dt.date_naive();
@@ -127,7 +112,6 @@ impl CategoryStatistics {
           }
         }
       }
-
       if !is_in_range {
         if let Some(updated_at_str) = task.get("updated_at").and_then(|v| v.as_str()) {
           if let Ok(dt) = DateTime::parse_from_rfc3339(updated_at_str) {
@@ -138,12 +122,10 @@ impl CategoryStatistics {
           }
         }
       }
-
       if is_in_range {
         in_range.push(task.clone());
       }
     }
-
     in_range
   }
 }

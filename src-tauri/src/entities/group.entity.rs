@@ -1,10 +1,8 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("groups")]
 #[soft_delete]
@@ -26,7 +24,6 @@ pub struct GroupEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct GroupCreateModel {
   #[validate(required)]
@@ -39,7 +36,6 @@ pub struct GroupCreateModel {
   #[serde(default)]
   pub member_ids: Vec<String>,
 }
-
 impl From<GroupCreateModel> for GroupEntity {
   fn from(create: GroupCreateModel) -> Self {
     GroupEntity {

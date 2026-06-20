@@ -1,15 +1,10 @@
 use std::collections::HashSet;
 use std::sync::Arc;
-
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-
 use crate::models::response::ResponseModel;
-
 use crate::utils::response_helper::err_response_formatted;
-
 use super::{CascadeResult, CascadeService};
-
 fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
   if let serde_json::Value::Object(obj) = value {
     let mut filtered = serde_json::Map::new();
@@ -23,7 +18,6 @@ fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value
     value
   }
 }
-
 impl CascadeService {
   pub async fn permanent_delete_cascade_json(
     &self,
@@ -34,7 +28,6 @@ impl CascadeService {
       .permanent_delete_cascade(&self.json_provider, table, id)
       .await
   }
-
   pub async fn permanent_delete_cascade_mongo(
     &self,
     table: &str,
@@ -48,19 +41,15 @@ impl CascadeService {
       .permanent_delete_cascade(mongo.as_ref(), table, id)
       .await
   }
-
   pub async fn cleanup_non_private_from_json(&self) -> Result<CascadeResult, ResponseModel> {
     let mut result = CascadeResult::new();
-
     let filter =
       nosql_orm::query::Filter::Ne("visibility".to_string(), serde_json::json!("private"));
-
     let non_private_todos = self
       .json_provider
       .find_many("todos", Some(&filter), None, None, None, true)
       .await
       .unwrap_or_default();
-
     for todo in &non_private_todos {
       if let Some(todo_id) = todo.get("id").and_then(|v| v.as_str()) {
         let delete_result = self.permanent_delete_cascade_json("todos", todo_id).await;
@@ -69,10 +58,8 @@ impl CascadeService {
         }
       }
     }
-
     Ok(result)
   }
-
   pub async fn permanent_delete_cascade<P>(
     &self,
     provider: &P,
@@ -84,7 +71,6 @@ impl CascadeService {
   {
     let mut deleted = HashSet::new();
     deleted.insert(format!("{}_{}", table, id));
-
     match table {
       "todos" => {
         let cascade = nosql_orm::cascade::CascadeManager::new(provider.clone());
@@ -137,7 +123,6 @@ impl CascadeService {
         ));
       }
     }
-
     if let Some(ref activity_monitor) = self.activity_monitor {
       let empty_value = serde_json::json!({});
       for deleted_id in &deleted {
@@ -148,24 +133,20 @@ impl CascadeService {
         }
       }
     }
-
     Ok(CascadeResult::from_deleted_ids(&deleted))
   }
-
   pub async fn import_todo_cascade_to_json(
     &self,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json("todos", id).await
   }
-
   pub async fn export_todo_cascade_to_mongo(
     &self,
     id: &str,
   ) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_mongo("todos", id).await
   }
-
   pub async fn sync_entity_to_json(
     &self,
     table: &str,
@@ -198,9 +179,7 @@ impl CascadeService {
             &format!("Entity {} not found in Mongo", id),
           )
         })?;
-
       let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
-
       match self.json_provider.find_by_id(table, id).await {
         Ok(Some(_)) => {
           self
@@ -236,7 +215,6 @@ impl CascadeService {
     }
     Ok(CascadeResult::new())
   }
-
   pub async fn sync_entity_to_mongo(
     &self,
     table: &str,
@@ -259,9 +237,7 @@ impl CascadeService {
             &format!("Entity {} not found in JSON", id),
           )
         })?;
-
       let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
-
       match mongo.find_by_id(table, id).await {
         Ok(Some(_)) => {
           mongo
@@ -292,19 +268,15 @@ impl CascadeService {
     }
     Ok(CascadeResult::new())
   }
-
   pub async fn backup_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json("todos", id).await
   }
-
   pub async fn migrate_todo_to_mongo(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_mongo("todos", id).await
   }
-
   pub async fn move_todo_to_json(&self, id: &str) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json("todos", id).await
   }
-
   pub async fn sync_entity_to_mongo_and_delete_from_source(
     &self,
     table: &str,
@@ -313,7 +285,6 @@ impl CascadeService {
     self.sync_entity_to_mongo(table, id).await?;
     self.soft_delete_cascade_json(table, id).await
   }
-
   pub async fn sync_entity_to_json_keep_source(
     &self,
     table: &str,
@@ -321,7 +292,6 @@ impl CascadeService {
   ) -> Result<CascadeResult, ResponseModel> {
     self.sync_entity_to_json(table, id).await
   }
-
   pub async fn sync_entity_to_json_and_delete_from_source(
     &self,
     table: &str,

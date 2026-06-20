@@ -1,20 +1,16 @@
 /* sys lib */
 use serde_json::Value;
 use std::sync::Arc;
-
 /* nosql_orm */
 use nosql_orm::error::{OrmError, OrmResult};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-
 /* helpers */
-
 #[derive(Clone)]
 pub struct EntityResolutionService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
 }
-
 impl EntityResolutionService {
   pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
     Self {
@@ -22,7 +18,6 @@ impl EntityResolutionService {
       mongodb_provider,
     }
   }
-
   fn get_relation_path(table: &str) -> Option<Vec<&'static str>> {
     match table {
       "tasks" => Some(vec!["todo"]),
@@ -30,7 +25,6 @@ impl EntityResolutionService {
       _ => None,
     }
   }
-
   #[allow(clippy::multiple_bound_locations)]
   async fn get_user_id_via_entity_relations<P>(
     provider: &P,
@@ -42,14 +36,12 @@ impl EntityResolutionService {
   {
     let relation_path = Self::get_relation_path(table)
       .ok_or_else(|| OrmError::InvalidQuery(format!("No relation path for {}", table)))?;
-
     let mut current_id: String = data
       .get("id")
       .and_then(|v| v.as_str())
       .ok_or_else(|| OrmError::InvalidInput("No id in data".to_string()))?
       .to_string();
     let mut current_table = table;
-
     for relation in relation_path {
       let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": &current_id }))?;
       let docs: Vec<Value> = provider
@@ -59,7 +51,6 @@ impl EntityResolutionService {
         .into_iter()
         .next()
         .ok_or_else(|| OrmError::NotFound(format!("{} not found", current_table)))?;
-
       current_id = match current_table {
         "tasks" => doc
           .get("todo_id")
@@ -75,19 +66,16 @@ impl EntityResolutionService {
       };
       current_table = relation;
     }
-
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": &current_id }))?;
     let todos: Vec<Value> = provider
       .find_many(current_table, Some(&filter), None, None, None, false)
       .await?;
     Ok(todos.into_iter().next())
   }
-
   pub async fn get_user_id_for_entity(&self, table: &str, data: &Value) -> Option<String> {
     if let Some(user_id) = data.get("user_id").and_then(|v| v.as_str()) {
       return Some(user_id.to_string());
     }
-
     if let Ok(Some(todo)) =
       Self::get_user_id_via_entity_relations(&self.json_provider, table, data).await
     {
@@ -95,7 +83,6 @@ impl EntityResolutionService {
         return Some(user_id.to_string());
       }
     }
-
     if let Some(ref mongo) = self.mongodb_provider {
       if let Ok(Some(todo)) =
         Self::get_user_id_via_entity_relations(mongo.as_ref(), table, data).await
@@ -105,10 +92,8 @@ impl EntityResolutionService {
         }
       }
     }
-
     None
   }
-
   pub async fn get_task_id_for_subtask(&self, subtask_id: &str) -> OrmResult<Option<String>> {
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": subtask_id }))?;

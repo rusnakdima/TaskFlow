@@ -1,17 +1,14 @@
 /* sys lib */
 use std::sync::Arc;
-
 /* nosql_orm */
 use nosql_orm::error::OrmResult;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
 use serde_json::{json, Value};
-
 pub struct CountService {
   json_provider: JsonProvider,
   mongodb_provider: Option<Arc<MongoProvider>>,
 }
-
 impl Clone for CountService {
   fn clone(&self) -> Self {
     CountService {
@@ -20,7 +17,6 @@ impl Clone for CountService {
     }
   }
 }
-
 impl CountService {
   pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
     Self {
@@ -28,7 +24,6 @@ impl CountService {
       mongodb_provider,
     }
   }
-
   async fn increment_count<P>(
     &self,
     provider: &P,
@@ -54,7 +49,6 @@ impl CountService {
     }
     Ok(())
   }
-
   async fn decrement_count<P>(
     &self,
     provider: &P,
@@ -71,7 +65,6 @@ impl CountService {
       .increment_count(provider, collection, id, field, -delta, is_json)
       .await
   }
-
   async fn increment_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
     let _ = self
       .increment_count(&self.json_provider, collection, id, field, delta, true)
@@ -82,7 +75,6 @@ impl CountService {
         .await;
     }
   }
-
   async fn decrement_count_both(&self, collection: &str, id: &str, field: &str, delta: i32) {
     let _ = self
       .decrement_count(&self.json_provider, collection, id, field, delta, true)
@@ -93,19 +85,16 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_task_created(&self, todo_id: &str) {
     self
       .increment_count_both("todos", todo_id, "tasks_count", 1)
       .await;
   }
-
   pub async fn on_task_completed(&self, todo_id: &str) {
     self
       .increment_count_both("todos", todo_id, "completed_tasks_count", 1)
       .await;
   }
-
   pub async fn on_task_deleted(&self, todo_id: &str, was_completed: bool) {
     self
       .decrement_count_both("todos", todo_id, "tasks_count", 1)
@@ -116,7 +105,6 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_task_restored(&self, todo_id: &str, is_completed: bool) {
     self
       .increment_count_both("todos", todo_id, "tasks_count", 1)
@@ -127,25 +115,21 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_task_uncompleted(&self, todo_id: &str) {
     self
       .decrement_count_both("todos", todo_id, "completed_tasks_count", 1)
       .await;
   }
-
   pub async fn on_subtask_created(&self, task_id: &str, _todo_id: &str) {
     self
       .increment_count_both("tasks", task_id, "subtasks_count", 1)
       .await;
   }
-
   pub async fn on_subtask_completed(&self, task_id: &str, _todo_id: &str) {
     self
       .increment_count_both("tasks", task_id, "completed_subtasks_count", 1)
       .await;
   }
-
   pub async fn on_subtask_deleted(&self, task_id: &str, _todo_id: &str, was_completed: bool) {
     self
       .decrement_count_both("tasks", task_id, "subtasks_count", 1)
@@ -156,7 +140,6 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_subtask_restored(&self, task_id: &str, _todo_id: &str, is_completed: bool) {
     self
       .increment_count_both("tasks", task_id, "subtasks_count", 1)
@@ -167,13 +150,11 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_subtask_uncompleted(&self, task_id: &str, _todo_id: &str) {
     self
       .decrement_count_both("tasks", task_id, "completed_subtasks_count", 1)
       .await;
   }
-
   pub async fn on_comment_created(
     &self,
     task_id: Option<&str>,
@@ -195,7 +176,6 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn on_comment_deleted(
     &self,
     task_id: Option<&str>,
@@ -217,7 +197,6 @@ impl CountService {
         .await;
     }
   }
-
   pub async fn refresh_todo_counts<P>(
     &self,
     todo_id: &str,
@@ -228,18 +207,14 @@ impl CountService {
     P: Clone + nosql_orm::provider::DatabaseProvider,
   {
     let task_filter = Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
-
     let all_tasks = provider
       .find_many("tasks", Some(&task_filter), None, None, None, true)
       .await?;
-
     let non_deleted_tasks: Vec<&Value> = all_tasks
       .iter()
       .filter(|t| t.get("deleted_at").is_none())
       .collect();
-
     let tasks_count = non_deleted_tasks.len() as i32;
-
     let completed_count = non_deleted_tasks
       .iter()
       .filter(|t| {
@@ -248,7 +223,6 @@ impl CountService {
           .unwrap_or(false)
       })
       .count() as i32;
-
     if is_json {
       if let Some(mut todo) = provider.find_by_id("todos", todo_id).await? {
         if let Some(obj) = todo.as_object_mut() {
@@ -267,10 +241,8 @@ impl CountService {
       });
       provider.patch("todos", todo_id, update).await?;
     }
-
     Ok(())
   }
-
   pub async fn refresh_task_counts<P>(
     &self,
     task_id: &str,
@@ -281,18 +253,14 @@ impl CountService {
     P: Clone + nosql_orm::provider::DatabaseProvider,
   {
     let subtask_filter = Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-
     let all_subtasks = provider
       .find_many("subtasks", Some(&subtask_filter), None, None, None, true)
       .await?;
-
     let non_deleted_subtasks: Vec<&Value> = all_subtasks
       .iter()
       .filter(|t| t.get("deleted_at").is_none())
       .collect();
-
     let subtasks_count = non_deleted_subtasks.len() as i32;
-
     let completed_count = non_deleted_subtasks
       .iter()
       .filter(|t| {
@@ -301,7 +269,6 @@ impl CountService {
           .unwrap_or(false)
       })
       .count() as i32;
-
     if is_json {
       if let Some(mut task) = provider.find_by_id("tasks", task_id).await? {
         if let Some(obj) = task.as_object_mut() {
@@ -323,7 +290,6 @@ impl CountService {
       });
       provider.patch("tasks", task_id, update).await?;
     }
-
     Ok(())
   }
 }

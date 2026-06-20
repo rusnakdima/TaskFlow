@@ -1,35 +1,36 @@
-#[path = "macros.rs"]
-pub mod macros;
-
-#[path = "todo.command.rs"]
-pub mod todo_command;
-
-#[path = "task.command.rs"]
-pub mod task_command;
-
-#[path = "subtask.command.rs"]
-pub mod subtask_command;
-
-#[path = "room.command.rs"]
-pub mod room_command;
-
-#[path = "group.command.rs"]
-pub mod group_command;
-
-#[path = "auth.command.rs"]
-pub mod auth_command;
-
-#[path = "stats.command.rs"]
-pub mod stats_command;
-
 #[path = "admin.command.rs"]
 pub mod admin_command;
-
 #[path = "archive.command.rs"]
 pub mod archive_command;
-
-#[path = "update.command.rs"]
-pub mod update_command;
-
+#[path = "auth.command.rs"]
+pub mod auth_command;
+#[path = "category.command.rs"]
+pub mod category_command;
+#[path = "chat.command.rs"]
+pub mod chat_command;
+#[path = "comment.command.rs"]
+pub mod comment_command;
+#[path = "crud_command.rs"]
+pub mod crud_command;
+#[path = "daily_activity.command.rs"]
+pub mod daily_activity_command;
+#[path = "group.command.rs"]
+pub mod group_command;
+#[path = "macros.rs"]
+pub mod macros;
 #[path = "profile.command.rs"]
 pub mod profile_command;
+#[path = "room.command.rs"]
+pub mod room_command;
+#[path = "stats.command.rs"]
+pub mod stats_command;
+#[path = "subtask.command.rs"]
+pub mod subtask_command;
+#[path = "task.command.rs"]
+pub mod task_command;
+#[path = "todo.command.rs"]
+pub mod todo_command;
+#[path = "update.command.rs"]
+pub mod update_command;
+#[path = "user.command.rs"]
+pub mod user_command;

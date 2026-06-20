@@ -1,28 +1,22 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
-use log::error;
 use std::sync::Arc;
-
 /* providers */
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
-
 /* services */
 use super::auth_token::AuthTokenService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
-
 /* models */
 use crate::entities::{
   profile_entity::ProfileEntity, signup_form_entity::SignupForm, table_entity::TableModelType,
   user_entity::UserEntity,
 };
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 /* helpers */
 use crate::utils::response_helper::err_response;
 use crate::utils::timestamp::get_current_datetime;
-
 #[derive(Clone)]
 pub struct AuthRegisterService {
   pub json_provider: JsonProvider,
@@ -30,7 +24,6 @@ pub struct AuthRegisterService {
   pub token_service: Arc<AuthTokenService>,
   pub profile_sync_service: ProfileSyncUnifiedService,
 }
-
 impl AuthRegisterService {
   pub fn new(
     json_provider: JsonProvider,
@@ -45,12 +38,10 @@ impl AuthRegisterService {
       profile_sync_service,
     }
   }
-
   pub async fn register(&self, signup_data: SignupForm) -> Result<ResponseModel, ResponseModel> {
     let email = signup_data.email;
     let username = signup_data.username;
     let password = signup_data.password;
-
     let table_name = TableModelType::User.table_name();
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({
         "$or": [
@@ -59,17 +50,14 @@ impl AuthRegisterService {
         ]
     }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-
     let existing = self
       .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("Error checking user: {}", e)))?;
-
     if !existing.is_empty() {
       return Err(err_response("User already exists"));
     }
-
     // Check MongoDB for existing user (required check when MongoDB is available)
     if let Some(mongo) = &self.mongodb_provider {
       let existing_mongo = mongo
@@ -80,14 +68,11 @@ impl AuthRegisterService {
         return Err(err_response("User already exists in cloud"));
       }
     }
-
     let hashed_password = hash(password, DEFAULT_COST)
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
-
     let now = get_current_datetime();
     let user_id = nosql_orm::utils::generate_id();
     let profile_id = nosql_orm::utils::generate_id();
-
     let new_profile = ProfileEntity {
       id: Some(profile_id.clone()),
       name: username.clone(),
@@ -99,9 +84,7 @@ impl AuthRegisterService {
       created_at: Some(now),
       updated_at: Some(now),
     };
-
     let profile_sync_service = self.profile_sync_service.clone();
-
     let create_result = profile_sync_service
       .create_profile_in_json(&new_profile)
       .await;
@@ -111,14 +94,12 @@ impl AuthRegisterService {
         return Err(e);
       }
     }
-
     if self.mongodb_provider.is_some() {
       let sync_status = profile_sync_service.ensure_profile_in_both(&user_id).await;
       if sync_status.is_err() {
         return Err(sync_status.unwrap_err());
       }
     }
-
     let new_user = UserEntity {
       id: Some(user_id.clone()),
       email,
@@ -142,28 +123,23 @@ impl AuthRegisterService {
       github_user_id: String::new(),
       github_username: String::new(),
     };
-
     let user_val = serde_json::to_value(&new_user)
       .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
-
     self
       .json_provider
       .insert(table_name, user_val.clone())
       .await
       .map_err(|e| err_response(&format!("Error creating user in JSON: {}", e)))?;
-
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       if let Err(e) = mongo.insert(table_name, user_val.clone()).await {
-        error!("Failed to sync user to MongoDB: {:?}", e);
+        eprintln!("Failed to sync user to MongoDB: {:?}", e);
         return Err(err_response("Failed to complete registration"));
       }
     }
-
     let token =
       self
         .token_service
         .generate_token(&user_id, Some(&profile_id), "", "user", false)?;
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "User registered successfully".to_string(),

@@ -1,7 +1,6 @@
 /* sys lib */
 use nosql_orm::Validate;
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct LoginForm {

@@ -1,7 +1,6 @@
 /* sys lib */
 use serde::{Deserialize, Serialize};
 use tauri_plugin_http::reqwest;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubRepo {
   pub id: i64,
@@ -13,7 +12,6 @@ pub struct GithubRepo {
   pub default_branch: String,
   pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubIssue {
   pub id: i64,
@@ -25,7 +23,6 @@ pub struct GithubIssue {
   pub created_at: String,
   pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubComment {
   pub id: i64,
@@ -33,7 +30,6 @@ pub struct GithubComment {
   pub html_url: String,
   pub created_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubUser {
   pub id: i64,
@@ -41,7 +37,6 @@ pub struct GithubUser {
   pub avatar_url: String,
   pub html_url: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubOAuthTokens {
   pub access_token: String,
@@ -49,11 +44,9 @@ pub struct GithubOAuthTokens {
   pub expires_in: i64,
   pub token_type: String,
 }
-
 pub struct GithubService {
   http_client: reqwest::Client,
 }
-
 impl GithubService {
   pub fn new() -> Self {
     let http_client = reqwest::Client::builder()
@@ -62,7 +55,6 @@ impl GithubService {
       .expect("Failed to create HTTP client");
     Self { http_client }
   }
-
   pub async fn get_authorization_url(&self, client_id: &str, redirect_uri: &str) -> String {
     let scope = "repo";
     format!(
@@ -70,13 +62,11 @@ impl GithubService {
       client_id, redirect_uri, scope
     )
   }
-
   pub async fn start_device_code_flow(
     &self,
     client_id: &str,
   ) -> Result<(String, String, String), String> {
     let params = [("client_id", client_id), ("scope", "repo")];
-
     let response = self
       .http_client
       .post("https://github.com/login/device/code")
@@ -86,27 +76,22 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let body_str = String::from_utf8_lossy(&body_bytes);
-
     #[derive(Deserialize)]
     struct DeviceCodeResponse {
       device_code: String,
       user_code: String,
       verification_uri: String,
     }
-
     let code_resp: DeviceCodeResponse = serde_json::from_slice(&body_bytes)
       .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
-
     Ok((
       code_resp.device_code,
       code_resp.user_code,
       code_resp.verification_uri,
     ))
   }
-
   pub async fn check_device_code(
     &self,
     client_id: &str,
@@ -117,7 +102,6 @@ impl GithubService {
       ("device_code", device_code),
       ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
     ];
-
     let response = self
       .http_client
       .post("https://github.com/login/oauth/access_token")
@@ -126,10 +110,8 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let body_str = String::from_utf8_lossy(&body_bytes);
-
     #[derive(Deserialize)]
     struct TokenResponse {
       access_token: Option<String>,
@@ -139,10 +121,8 @@ impl GithubService {
       error: Option<String>,
       error_description: Option<String>,
     }
-
     let token_resp: TokenResponse = serde_json::from_slice(&body_bytes)
       .map_err(|e| format!("JSON parse error: {}, body: {}", e, body_str))?;
-
     if let Some(err) = &token_resp.error {
       let err_desc = token_resp.error_description.clone().unwrap_or_default();
       if err == "authorization_pending" {
@@ -153,7 +133,6 @@ impl GithubService {
       }
       return Err(err_desc);
     }
-
     match (token_resp.access_token, token_resp.expires_in) {
       (Some(access_token), expires_in) => Ok(Some(GithubOAuthTokens {
         access_token,
@@ -164,7 +143,6 @@ impl GithubService {
       _ => Err("Missing tokens in response".to_string()),
     }
   }
-
   pub async fn exchange_code_for_token(
     &self,
     client_id: &str,
@@ -176,7 +154,6 @@ impl GithubService {
       ("client_secret", client_secret),
       ("code", code),
     ];
-
     let response = self
       .http_client
       .post("https://github.com/login/oauth/access_token")
@@ -185,12 +162,9 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     let tokens: GithubOAuthTokens = response.json().await.map_err(|e| e.to_string())?;
-
     Ok(tokens)
   }
-
   pub async fn get_user(&self, access_token: &str) -> Result<GithubUser, String> {
     let response = self
       .http_client
@@ -200,17 +174,13 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     let user: GithubUser = response.json().await.map_err(|e| e.to_string())?;
-
     Ok(user)
   }
-
   pub async fn get_repos(&self, access_token: &str) -> Result<Vec<GithubRepo>, String> {
     let mut all_repos = Vec::new();
     let mut page = 1;
     let per_page = 100;
-
     loop {
       let response = self
         .http_client
@@ -223,17 +193,13 @@ impl GithubService {
         .send()
         .await
         .map_err(|e| e.to_string())?;
-
       let status = response.status();
-
       if !status.is_success() {
         let error_text = response.text().await.unwrap_or_default();
         return Err(format!("GitHub API error: {} - {}", status, error_text));
       }
-
       let body_bytes = response.bytes().await.map_err(|e| e.to_string())?;
       let body_str = String::from_utf8_lossy(&body_bytes);
-
       let repos: Vec<GithubRepo> = match serde_json::from_slice(&body_bytes) {
         Ok(r) => r,
         Err(e) => {
@@ -243,28 +209,21 @@ impl GithubService {
           ));
         }
       };
-
       if repos.is_empty() {
         break;
       }
-
       let repos_count = repos.len();
       all_repos.extend(repos);
-
       if repos_count < per_page {
         break;
       }
-
       page += 1;
-
       if page > 10 {
         break;
       }
     }
-
     Ok(all_repos)
   }
-
   pub async fn create_issue(
     &self,
     access_token: &str,
@@ -277,7 +236,6 @@ impl GithubService {
       "title": title,
       "body": body
     });
-
     let response = self
       .http_client
       .post(format!(
@@ -291,18 +249,14 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     if !response.status().is_success() {
       let status = response.status();
       let error_text = response.text().await.unwrap_or_default();
       return Err(format!("Status: {}, Response: {}", status, error_text));
     }
-
     let issue: GithubIssue = response.json().await.map_err(|e| e.to_string())?;
-
     Ok(issue)
   }
-
   pub async fn create_comment(
     &self,
     access_token: &str,
@@ -314,7 +268,6 @@ impl GithubService {
     let payload = serde_json::json!({
       "body": body
     });
-
     let response = self
       .http_client
       .post(format!(
@@ -328,18 +281,14 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     if !response.status().is_success() {
       let status = response.status();
       let error_text = response.text().await.unwrap_or_default();
       return Err(format!("Status: {}, Response: {}", status, error_text));
     }
-
     let comment: GithubComment = response.json().await.map_err(|e| e.to_string())?;
-
     Ok(comment)
   }
-
   pub async fn update_issue(
     &self,
     access_token: &str,
@@ -353,7 +302,6 @@ impl GithubService {
       "title": title,
       "body": body
     });
-
     let response = self
       .http_client
       .patch(format!(
@@ -367,19 +315,15 @@ impl GithubService {
       .send()
       .await
       .map_err(|e| e.to_string())?;
-
     if !response.status().is_success() {
       let status = response.status();
       let error_text = response.text().await.unwrap_or_default();
       return Err(format!("Status: {}, Response: {}", status, error_text));
     }
-
     let issue: GithubIssue = response.json().await.map_err(|e| e.to_string())?;
-
     Ok(issue)
   }
 }
-
 impl Default for GithubService {
   fn default() -> Self {
     Self::new()

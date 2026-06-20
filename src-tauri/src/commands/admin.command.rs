@@ -4,7 +4,6 @@ use crate::utils::auth::{extract_user_from_token, validate_admin_role, validate_
 use crate::utils::response_helper::{err_response, err_response_formatted, success_response};
 use crate::AppState;
 use tauri::State;
-
 #[tauri::command]
 pub async fn get_all_admin_data(
   state: State<'_, AppState>,
@@ -27,7 +26,6 @@ pub async fn get_all_admin_data(
     .get_all_data_for_admin()
     .await
 }
-
 #[tauri::command]
 pub async fn get_all_admin_paginated(
   state: State<'_, AppState>,
@@ -53,7 +51,6 @@ pub async fn get_all_admin_paginated(
     .get_admin_data_paginated(data_type, skip, limit)
     .await
 }
-
 #[tauri::command]
 pub async fn soft_remove_data(
   state: State<'_, AppState>,
@@ -64,9 +61,7 @@ pub async fn soft_remove_data(
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
     extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
-
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
   let result = if use_json {
     state
       .data
@@ -80,10 +75,8 @@ pub async fn soft_remove_data(
       .soft_delete_cascade_mongo(&table, &id)
       .await?
   };
-
   Ok(success_response(result))
 }
-
 #[tauri::command]
 pub async fn hard_remove_data(
   state: State<'_, AppState>,
@@ -94,9 +87,7 @@ pub async fn hard_remove_data(
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
     extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
-
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
   let result = if use_json {
     state
       .data
@@ -110,10 +101,8 @@ pub async fn hard_remove_data(
       .permanent_delete_cascade_mongo(&table, &id)
       .await?
   };
-
   Ok(success_response(result))
 }
-
 #[tauri::command]
 pub async fn batch_soft_delete_cascade(
   state: State<'_, AppState>,
@@ -126,9 +115,7 @@ pub async fn batch_soft_delete_cascade(
     extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
-
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
   for id in &ids {
     let result = if use_json {
       state
@@ -143,20 +130,17 @@ pub async fn batch_soft_delete_cascade(
         .soft_delete_cascade_mongo(&table, id)
         .await
     };
-
     if let Ok(result) = result {
       all_failed = false;
       results.push(result);
     }
   }
-
   if results.is_empty() || all_failed {
     return Err(err_response_formatted(
       "All batch soft delete operations failed",
       "",
     ));
   }
-
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
@@ -166,7 +150,6 @@ pub async fn batch_soft_delete_cascade(
       .collect::<Vec<_>>()),
   })
 }
-
 #[tauri::command]
 pub async fn batch_hard_delete_cascade(
   state: State<'_, AppState>,
@@ -179,9 +162,7 @@ pub async fn batch_hard_delete_cascade(
     extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
-
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
   for id in &ids {
     let result = if use_json {
       state
@@ -196,20 +177,17 @@ pub async fn batch_hard_delete_cascade(
         .permanent_delete_cascade_mongo(&table, id)
         .await
     };
-
     if let Ok(result) = result {
       all_failed = false;
       results.push(result);
     }
   }
-
   if results.is_empty() || all_failed {
     return Err(err_response_formatted(
       "All batch hard delete operations failed",
       "",
     ));
   }
-
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
@@ -219,7 +197,6 @@ pub async fn batch_hard_delete_cascade(
       .collect::<Vec<_>>()),
   })
 }
-
 #[tauri::command]
 pub async fn batch_restore_cascade(
   state: State<'_, AppState>,
@@ -233,9 +210,7 @@ pub async fn batch_restore_cascade(
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
   let mut all_affected_todo_ids: Vec<String> = Vec::new();
-
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
   for id in &ids {
     let result = if use_json {
       state
@@ -250,30 +225,25 @@ pub async fn batch_restore_cascade(
         .restore_cascade_mongo(&table, id)
         .await
     };
-
     if let Ok(result) = result {
       all_failed = false;
       results.push(result.clone());
       all_affected_todo_ids.extend(result.affected_todo_ids);
     }
   }
-
   if results.is_empty() || all_failed {
     return Err(err_response_formatted(
       "All batch restore operations failed",
       "",
     ));
   }
-
   if !all_affected_todo_ids.is_empty() {
     let unique_todo_ids: Vec<String> = all_affected_todo_ids
       .into_iter()
       .collect::<std::collections::HashSet<_>>()
       .into_iter()
       .collect();
-
     let is_json = use_json;
-
     for todo_id in &unique_todo_ids {
       if use_json {
         let _ = state
@@ -292,7 +262,6 @@ pub async fn batch_restore_cascade(
       }
     }
   }
-
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records restored", results.len()),
@@ -302,7 +271,6 @@ pub async fn batch_restore_cascade(
       .collect::<Vec<_>>()),
   })
 }
-
 #[tauri::command]
 pub async fn import_to_local(
   state: State<'_, AppState>,
@@ -316,7 +284,6 @@ pub async fn import_to_local(
     .import_to_local(user_id)
     .await
 }
-
 #[tauri::command]
 pub async fn export_to_cloud(
   state: State<'_, AppState>,
@@ -333,7 +300,6 @@ pub async fn export_to_cloud(
     .export_to_cloud(user_id)
     .await
 }
-
 #[tauri::command]
 pub async fn check_mongodb_connection(
   state: State<'_, AppState>,
@@ -353,7 +319,6 @@ pub async fn check_mongodb_connection(
     data: serde_json::Value::Bool(is_connected),
   })
 }
-
 #[tauri::command(rename_all = "snake_case")]
 pub async fn sync_visibility_to_provider(
   state: State<'_, AppState>,
@@ -370,11 +335,9 @@ pub async fn sync_visibility_to_provider(
     &state.config.config_helper.jwt_secret,
   );
   let cascade_service = state.data.cascade_service.clone();
-
   if source_provider == target_provider {
     return Err(err_response("Visibility is already set to this value"));
   }
-
   let delete_from_src =
     delete_from_source.unwrap_or_else(|| source_provider == "Json" && target_provider == "Mongo");
   let table = match entity_type.as_str() {
@@ -387,7 +350,6 @@ pub async fn sync_visibility_to_provider(
       )))
     }
   };
-
   if source_provider == "Json" && target_provider == "Mongo" {
     if delete_from_src {
       cascade_service
@@ -435,28 +397,24 @@ pub async fn sync_visibility_to_provider(
       cascade_service.sync_entity_to_json(table, &todo_id).await?;
     }
   }
-
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Visibility synced".to_string(),
     data: serde_json::Value::String("".to_string()),
   })
 }
-
 #[tauri::command]
 pub async fn cleanup_non_private_from_json(
   state: State<'_, AppState>,
 ) -> Result<ResponseModel, ResponseModel> {
   let cascade_service = state.data.cascade_service.clone();
   cascade_service.cleanup_non_private_from_json().await?;
-
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Cleanup completed".to_string(),
     data: serde_json::Value::String("".to_string()),
   })
 }
-
 #[tauri::command]
 pub async fn get_tasks_by_month(
   state: State<'_, AppState>,
@@ -467,20 +425,17 @@ pub async fn get_tasks_by_month(
 ) -> Result<ResponseModel, ResponseModel> {
   let is_offline = offline.unwrap_or(false);
   let effective_visibility = visibility.as_deref().unwrap_or("private");
-
   if is_offline && effective_visibility != "private" {
     return Err(err_response(
       "Operation not available while offline. Please connect to the internet and try again.",
     ));
   }
-
   state
     .system
     .manage_db_service
     .get_tasks_by_month(year, month, is_offline, effective_visibility)
     .await
 }
-
 #[tauri::command]
 pub async fn upsert_to_json(
   state: State<'_, AppState>,
@@ -494,7 +449,6 @@ pub async fn upsert_to_json(
     .upsert_to_json(table, data, id)
     .await
 }
-
 #[tauri::command]
 pub async fn upsert_to_mongo(
   state: State<'_, AppState>,
@@ -508,7 +462,6 @@ pub async fn upsert_to_mongo(
     .upsert_to_mongo(table, data, id)
     .await
 }
-
 #[tauri::command]
 pub async fn delete_from_json(
   state: State<'_, AppState>,
@@ -521,7 +474,6 @@ pub async fn delete_from_json(
     .delete_from_json(table, id)
     .await
 }
-
 #[tauri::command]
 pub async fn batch_soft_delete_json(
   state: State<'_, AppState>,
@@ -534,7 +486,6 @@ pub async fn batch_soft_delete_json(
     .batch_soft_delete_json(table, ids)
     .await
 }
-
 #[tauri::command]
 pub async fn batch_restore_json(
   state: State<'_, AppState>,
@@ -547,7 +498,6 @@ pub async fn batch_restore_json(
     .batch_restore_json(table, ids)
     .await
 }
-
 #[tauri::command]
 pub async fn get_all_from_json(
   state: State<'_, AppState>,
@@ -561,7 +511,6 @@ pub async fn get_all_from_json(
     .get_all_from_json(table, effective_limit)
     .await
 }
-
 #[tauri::command]
 pub async fn import_private_to_local(
   state: State<'_, AppState>,
