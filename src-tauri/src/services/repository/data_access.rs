@@ -116,15 +116,27 @@ impl RepositoryService {
           .await
       }
       "create" => self.handle_create(table, data, visibility, user_id).await,
-      "update" => self.handle_update(table, id, data, visibility).await,
-      "updateAll" => self.handle_update_all(table, data, visibility).await,
-      "delete" => self.handle_delete(table, id, visibility, false).await,
-      "permanent-delete" => {
+      "update" => {
         self
-          .handle_permanent_delete_cascade(table, id, visibility)
+          .handle_update(table, id, data, visibility, user_id)
           .await
       }
-      "soft-delete-cascade" => self.handle_soft_delete_cascade(table, id, visibility).await,
+      "updateAll" => self.handle_update_all(table, data, visibility).await,
+      "delete" => {
+        self
+          .handle_delete(table, id, visibility, user_id, false)
+          .await
+      }
+      "permanent-delete" => {
+        self
+          .handle_permanent_delete_cascade(table, id, visibility, user_id)
+          .await
+      }
+      "soft-delete-cascade" => {
+        self
+          .handle_soft_delete_cascade(table, id, visibility, user_id)
+          .await
+      }
       "sync-to-provider" => {
         let mongodb_available = self.mongodb_provider.is_some();
         let target = match DataSource::determine_source(visibility.as_deref(), mongodb_available) {
@@ -724,14 +736,14 @@ impl RepositoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
     let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
-    let visibility_str = if visibility.is_some() {
+    let mut visibility_str = if visibility.is_some() {
       resolve_visibility_for_offline(visibility)
     } else if let Some(serde_json::Value::String(vis_from_data)) = data_val.get("visibility") {
       vis_from_data.clone()
     } else {
       resolve_visibility_for_offline(visibility)
     };
-    let provider = get_provider_for_table(
+    let mut provider = get_provider_for_table(
       &self.json_provider,
       &self.mongodb_provider,
       &table,
@@ -819,6 +831,21 @@ impl RepositoryService {
           "visibility".to_string(),
           serde_json::Value::String(todo_vis),
         );
+      }
+      let actual_vis = data_val
+        .get("visibility")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&visibility_str);
+      if actual_vis != visibility_str {
+        visibility_str = actual_vis.to_string();
+        if let Ok(new_provider) = get_provider_for_table(
+          &self.json_provider,
+          &self.mongodb_provider,
+          &table,
+          Some(&visibility_str),
+        ) {
+          provider = new_provider;
+        }
       }
     }
     if table == "tasks" || table == "subtasks" || table == "comments" {
@@ -1254,9 +1281,10 @@ impl RepositoryService {
     id: Option<String>,
     data: Option<Value>,
     visibility: Option<String>,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let _start = Instant::now();
-    let id_str = id.ok_or_else(|| err_response("Data required for update"))?;
+    let id_str = id.ok_or_else(|| err_response("ID required for update"))?;
     let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
     let validated_data = validate_model(&table, &data_val, false, visibility.clone())
       .map_err(|e| err_response_formatted("Validation failed", &e))?;
@@ -1296,9 +1324,78 @@ impl RepositoryService {
           )
         }
       };
+    let uid = user_id.as_deref().unwrap_or("");
+    let permission_denied = || {
+      Err(err_response(
+        "Unauthorized: You do not have permission to update this record",
+      ))
+    };
+    let permission_denied_todo = || {
+      Err(err_response(
+        "Unauthorized: You do not have permission to update this todo",
+      ))
+    };
+    match table.as_str() {
+      "todos" => {
+        if !uid.is_empty() && !PermissionService::can_edit_todo(&existing_record, uid) {
+          return permission_denied_todo();
+        }
+      }
+      "tasks" => {
+        if !uid.is_empty() {
+          if let Some(todo_id) = existing_record.get("todo_id").and_then(|v| v.as_str()) {
+            let todo_provider = get_provider_for_table(
+              &self.json_provider,
+              &self.mongodb_provider,
+              "todos",
+              Some(&visibility_str),
+            )
+            .ok();
+            let found_todo = match todo_provider {
+              Some(ref p) => p.find_by_id("todos", todo_id).await.ok().flatten(),
+              None => None,
+            };
+            if let Some(todo) = found_todo {
+              if !PermissionService::can_edit_task(&existing_record, &todo, uid) {
+                return permission_denied();
+              }
+            }
+          }
+        }
+      }
+      "subtasks" => {
+        if !uid.is_empty() {
+          if let Some(task_id) = existing_record.get("task_id").and_then(|v| v.as_str()) {
+            if let Some(todo) = find_todo_for_task(
+              &self.json_provider,
+              &self.mongodb_provider,
+              task_id,
+              &visibility_str,
+            )
+            .await
+            {
+              if !PermissionService::can_edit_subtask(&existing_record, &todo.0, &todo.1, uid) {
+                return permission_denied();
+              }
+            }
+          }
+        }
+      }
+      "categories" => {
+        if !uid.is_empty() && !PermissionService::can_edit_category(&existing_record, uid) {
+          return Err(err_response(
+            "Unauthorized: You do not have permission to update this category",
+          ));
+        }
+      }
+      _ => {}
+    }
     let old_visibility = existing_record.get("visibility").and_then(|v| v.as_str());
     let old_status = existing_record.get("status").and_then(|v| v.as_str());
-    let visibility_changed = old_visibility != new_visibility.as_deref();
+    let visibility_changed = match (old_visibility, new_visibility.as_deref()) {
+      (Some(old), Some(new)) => old != new,
+      _ => false,
+    };
     let current_provider = record_provider;
     let mut validated_data = validated_data;
     merge_immutable_fields(&existing_record, &mut validated_data);
@@ -1482,6 +1579,7 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
+    user_id: Option<String>,
     is_permanent: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
@@ -1493,6 +1591,68 @@ impl RepositoryService {
       &table,
       Some(&visibility_str),
     )?;
+    let uid = user_id.as_deref().unwrap_or("");
+    if !uid.is_empty() {
+      if let Ok(Some(existing)) = provider.find_by_id(&table, &id_str).await {
+        match table.as_str() {
+          "todos" => {
+            if !PermissionService::can_delete_todo(&existing, uid) {
+              return Err(err_response(
+                "Unauthorized: You do not have permission to delete this todo",
+              ));
+            }
+          }
+          "tasks" => {
+            if let Some(todo_id) = existing.get("todo_id").and_then(|v| v.as_str()) {
+              let todo_provider = get_provider_for_table(
+                &self.json_provider,
+                &self.mongodb_provider,
+                "todos",
+                Some(&visibility_str),
+              )
+              .ok();
+              let found_todo = match todo_provider {
+                Some(ref p) => p.find_by_id("todos", todo_id).await.ok().flatten(),
+                None => None,
+              };
+              if let Some(todo) = found_todo {
+                if !PermissionService::can_delete_task(&existing, &todo, uid) {
+                  return Err(err_response(
+                    "Unauthorized: You do not have permission to delete this task",
+                  ));
+                }
+              }
+            }
+          }
+          "subtasks" => {
+            if let Some(task_id) = existing.get("task_id").and_then(|v| v.as_str()) {
+              if let Some(todo) = find_todo_for_task(
+                &self.json_provider,
+                &self.mongodb_provider,
+                task_id,
+                &visibility_str,
+              )
+              .await
+              {
+                if !PermissionService::can_delete_subtask(&existing, &todo.0, &todo.1, uid) {
+                  return Err(err_response(
+                    "Unauthorized: You do not have permission to delete this subtask",
+                  ));
+                }
+              }
+            }
+          }
+          "categories" => {
+            if !PermissionService::can_delete_category(&existing, uid) {
+              return Err(err_response(
+                "Unauthorized: You do not have permission to delete this category",
+              ));
+            }
+          }
+          _ => {}
+        }
+      }
+    }
     if table == "tasks" || table == "subtasks" || table == "comments" {
       let provider = get_provider_for_table(
         &self.json_provider,
@@ -1633,16 +1793,22 @@ impl RepositoryService {
     table: String,
     id: Option<String>,
     visibility: Option<String>,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, visibility, false).await
+    self
+      .handle_delete(table, id, visibility, user_id, false)
+      .await
   }
   async fn handle_permanent_delete_cascade(
     &self,
     table: String,
     id: Option<String>,
     visibility: Option<String>,
+    user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
-    self.handle_delete(table, id, visibility, true).await
+    self
+      .handle_delete(table, id, visibility, user_id, true)
+      .await
   }
   async fn handle_sync_to_provider(
     &self,
@@ -1920,7 +2086,14 @@ impl RepositoryService {
           None => Some(sender_filter),
         }
       }
-      "profiles" | "users" => build_profiles_users_filter(table, visibility_str, user_id),
+      "profiles" | "users" => {
+        let permission_filter = build_profiles_users_filter(table, visibility_str, user_id);
+        match (permission_filter, filter_opt) {
+          (Some(perm), Some(existing)) => Some(Filter::And(vec![perm, existing.clone()])),
+          (Some(perm), None) => Some(perm),
+          (None, existing) => existing.cloned(),
+        }
+      }
       "daily_activities" => {
         let user_filter = build_daily_activities_filter(user_id).unwrap();
         match filter_opt {
@@ -1949,6 +2122,39 @@ async fn get_todo_id_from_task(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
     })
+}
+async fn find_todo_for_task(
+  json_provider: &JsonProvider,
+  mongodb_provider: &Option<Arc<MongoProvider>>,
+  task_id: &str,
+  visibility_str: &str,
+) -> Option<(Value, Value)> {
+  let task_provider = get_provider_for_table(
+    json_provider,
+    mongodb_provider,
+    "tasks",
+    Some(visibility_str),
+  )
+  .ok()?;
+  let task = task_provider
+    .find_by_id("tasks", task_id)
+    .await
+    .ok()
+    .flatten()?;
+  let todo_id = task.get("todo_id").and_then(|v| v.as_str())?;
+  let todo_provider = get_provider_for_table(
+    json_provider,
+    mongodb_provider,
+    "todos",
+    Some(visibility_str),
+  )
+  .ok()?;
+  let todo = todo_provider
+    .find_by_id("todos", todo_id)
+    .await
+    .ok()
+    .flatten()?;
+  Some((task, todo))
 }
 async fn load_relations_unified<P: DatabaseProvider + Clone>(
   _json_provider: &JsonProvider,
