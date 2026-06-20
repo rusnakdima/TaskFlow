@@ -13,13 +13,10 @@ import { RouterModule, ActivatedRoute, NavigationEnd, Router } from "@angular/ro
 import { FormsModule } from "@angular/forms";
 import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
 import { filter } from "rxjs/operators";
-
 import { MatIconModule } from "@angular/material/icon";
 import { MatSelectModule } from "@angular/material/select";
 import { MatMenuModule } from "@angular/material/menu";
-
 import { Todo } from "@entities/generated/api.types";
-
 import { TemplateService } from "@services/features/template.service";
 import { TodosBlueprintService } from "@services/features/todos-blueprint.service";
 import { DragDropOrderService } from "@services/ui/drag-drop-order.service";
@@ -31,11 +28,8 @@ import { ResponseStatus } from "@entities/response.model";
 import { DragDropHandlerService } from "@services/ui/drag-drop-handler.service";
 import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
-
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
-
 import { BaseListView } from "@pages/base-list.page";
-
 import { StatsCardComponent } from "@components/stats-card/stats-card.component";
 import { SegmentSelectorComponent } from "@components/segment-selector/segment-selector.component";
 import {
@@ -46,7 +40,6 @@ import { ViewMode } from "@entities/view-mode.model";
 import { BlueprintCreateDialogComponent } from "@components/blueprint-dialogs/blueprint-create-dialog.component";
 import { BlueprintSelectionDialogComponent } from "@components/blueprint-dialogs/blueprint-selection-dialog.component";
 import { BlueprintApplyDialogComponent } from "@components/blueprint-dialogs/blueprint-apply-dialog.component";
-
 import { TodosListComponent } from "@components/todos/todos-list/todos-list.component";
 import { TodosStateService } from "@components/todos/todos-filters/todos-state.service";
 import { TodosPaginationStateService } from "./todos-pagination.state";
@@ -57,7 +50,6 @@ import {
 } from "@components/pull-to-refresh";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { VisibilityFilter } from "@entities/storage.model";
-
 @Component({
   selector: "app-todos",
   standalone: true,
@@ -83,7 +75,6 @@ import { VisibilityFilter } from "@entities/storage.model";
 })
 export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   @ViewChild("todoPlaceholder", { read: CdkDropList }) protected todoPlaceholder!: CdkDropList;
-
   private keydownHandler = (event: KeyboardEvent): void => {
     if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
       event.preventDefault();
@@ -94,7 +85,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       }, 100);
     }
   };
-
   public templateService = inject(TemplateService);
   public blueprintService = inject(TodosBlueprintService);
   public bulkService = inject(BulkActionService);
@@ -102,7 +92,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   private dragDropHandlerService = inject(DragDropHandlerService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-
   private apiService = inject(ApiService);
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
@@ -114,11 +103,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   protected stateService = inject(TodosStateService);
   private paginationState = inject(TodosPaginationStateService);
   private selectionState = inject(TodosSelectionStateService);
-
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
   override loading = signal(false);
-
   visibilityOptions = this.stateService.visibilityOptions;
   filterFields = this.stateService.filterFields;
   showStats = this.stateService.showStats;
@@ -126,26 +113,20 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
   highlightTodoId = this.stateService.highlightTodoId;
   todoPagination = this.paginationState.todoPagination;
   loadMore = () => this.paginationState.loadMore();
-
   protected getItems(): { id: string }[] {
     return this.stateService.listTodos();
   }
-
   override onSearchChange(query: string): void {
     super.onSearchChange(query);
     this.stateService.onSearchChange(query);
   }
-
   userId = signal("");
-
   get visibility() {
     return this.stateService.activeVisibility();
   }
-
   isSharedMode = computed(() => {
     return this.route.snapshot.url[0]?.path === "shared-tasks";
   });
-
   getToolbarConfig(): PageToolbarConfig {
     return {
       selectAll:
@@ -202,7 +183,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.onFiltersChange(filters),
     };
   }
-
   onFiltersChange(filters: Record<string, string | string[] | any>): void {
     this._activeFilters.set(filters);
     if (filters["status"]) {
@@ -212,47 +192,36 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.stateService.priorityFilter.set(filters["priority"] as string);
     }
   }
-
   private _activeFilters = signal<Record<string, string | string[] | any>>({});
-
   onVisibilityChange(visibility: string): void {
     this.stateService.activeVisibility.set(visibility as any);
     this.entityStore.ensureTodosLoaded(visibility as VisibilityFilter);
   }
-
   onPullToRefresh(): Promise<void> {
     return this.syncService.syncAll() as unknown as Promise<void>;
   }
-
   override ngOnInit(): void {
     super.ngOnInit();
-
     this.pageKey = this.isSharedMode() ? "shared-tasks" : "todos";
-
     this.viewMode.set(this.loadViewModePreference());
-
     this.bulkService.setMode(this.isSharedMode() ? "shared" : "todos");
     this.bulkService.updateTotalCount(
       this.isSharedMode()
         ? this.entityStore.sharedTodos().length
         : this.entityStore.privateTodos().length
     );
-
     this.subscriptions.add(
       this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
         this.clearSelection();
       })
     );
-
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
         super.handleHighlightQueryParams(queryParams, "highlightTodoId", "todo-");
       })
     );
-
     document.addEventListener("keydown", this.keydownHandler);
     this.userId.set(this.authService.getValueByKey("id"));
-
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       if (!this.authService.isLoggedIn()) {
         this.router.navigate(["/login"]);
@@ -267,24 +236,19 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       }
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
-
     const filterSub = this.shortcutService.filter$.subscribe(() => {
       this.toggleFilter();
     });
     this.destroyRef.onDestroy(() => filterSub.unsubscribe());
-
     this.paginationState.loadInitialTodos();
   }
-
   override ngOnDestroy(): void {
     document.removeEventListener("keydown", this.keydownHandler);
     super.ngOnDestroy();
   }
-
   getFilteredCount(filter: string): number {
     return this.stateService.getFilteredCount(filter);
   }
-
   async deleteTodoById(
     todoId?: string,
     visibility?: string,
@@ -297,9 +261,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       confirmClass: "bg-red-600 hover:bg-red-700",
     });
     if (!confirmed) return;
-
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .deleteEntity("todos", todoId!, { targetDb: targetDb as any, visibility: visibility as any })
       .subscribe({
@@ -312,7 +274,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         },
       });
   }
-
   async archiveTodoById(todoId?: string): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Project",
@@ -333,15 +294,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }
         return;
       }
-
       const todo = this.entityStore.todos().find((t: Todo) => t.id === todoId);
       if (!todo) {
         this.notifyService.showError("Todo not found");
         return;
       }
-
       const targetDb = todo.visibility === "private" ? "local" : "cloud";
-
       this.entityStore
         .archiveEntity("todos", todoId!, {
           targetDb: targetDb as any,
@@ -360,7 +318,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         });
     }
   }
-
   async restoreTodoById(todoId?: string): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Restore Project",
@@ -375,7 +332,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.notifyService.showError("Todo not found");
         return;
       }
-
       if (this.isOffline()) {
         const response = await this.adminService.toggleDeleteStatusLocal("todos", todoId!);
         if (response.status === ResponseStatus.SUCCESS) {
@@ -386,9 +342,7 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         }
         return;
       }
-
       const targetDb = todo.visibility === "private" ? "local" : "cloud";
-
       this.entityStore
         .restoreEntity("todos", todoId!, {
           targetDb: targetDb as any,
@@ -405,11 +359,9 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         });
     }
   }
-
   onUpdateTodo(todo: Todo, event: { field: string; value: any }): void {
     const { field, value } = event;
     const targetDb = todo.visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .updateEntity(
         "todos",
@@ -430,20 +382,16 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         },
       });
   }
-
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
     this.selectRange(event.anchorId, event.targetId, this.stateService.listTodos());
   }
-
   onAdditiveSelect(id: string): void {
     this.toggleItemSelection(id);
     this.lastSelectedId.set(id);
   }
-
   onRowClick(event: { event: MouseEvent; item: any } | any): void {
     const item = event.item || event;
     const mouseEvent = event.event;
-
     if (mouseEvent?.shiftKey) {
       const anchorId = this.lastSelectedId();
       if (anchorId) {
@@ -455,13 +403,11 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.lastSelectedId.set(item.id);
       return;
     }
-
     this.lastSelectedId.set(item.id);
     this.router.navigate(["/todos", item.id, "tasks"], {
       queryParams: { visibility: item.visibility || "private" },
     });
   }
-
   async onTableAction(event: { action: string; item: Todo }): Promise<void> {
     const { action, item } = event;
     const perm = this.getUserTodoPermission(item);
@@ -502,47 +448,37 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         break;
     }
   }
-
   private getUserTodoPermission(todo: Todo): TodoPermission {
     return this.permissionService.getTodoPermission(todo, this.currentUserId);
   }
-
   ngAfterViewInit(): void {
     if (!this.todoPlaceholder?.element?.nativeElement) return;
     const el = this.todoPlaceholder.element.nativeElement as HTMLElement;
     el.style.display = "none";
     el.parentNode?.removeChild(el);
   }
-
   saveAsBlueprint(todo: Todo) {
     this.blueprintService.saveAsBlueprint(todo);
   }
-
   confirmSaveAsBlueprint() {
     this.blueprintService.confirmSaveAsBlueprint();
   }
-
   closeCreateBlueprintDialog() {
     this.blueprintService.closeCreateBlueprintDialog();
   }
-
   confirmCreateFromBlueprint() {
     this.blueprintService.confirmCreateFromBlueprint(this.currentUserId).subscribe();
   }
-
   openApplyBlueprint(template: any) {
     this.blueprintService.openApplyBlueprint(template);
   }
-
   removeBlueprint(templateId: string) {
     this.blueprintService.removeBlueprint(templateId);
   }
-
   override clearSelection(): void {
     super.clearSelection();
     this.selectionState.selectedTodos.set(new Set());
   }
-
   override toggleItemSelection(id: string): void {
     super.toggleItemSelection(id);
     this.selectionState.selectedTodos.set(new Set(this.selectedItems()));
@@ -551,7 +487,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.isAllSelected()
     );
   }
-
   protected override selectRange(fromId: string, toId: string, items: { id: string }[]): void {
     super.selectRange(fromId, toId, items);
     this.selectionState.selectedTodos.set(new Set(this.selectedItems()));
@@ -560,7 +495,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.isAllSelected()
     );
   }
-
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     if (selected) {
@@ -573,14 +507,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.isAllSelected()
     );
   }
-
   override toggleSelectAll(): void {
     super.toggleSelectAll(
       () => this.stateService.listTodos(),
       () => this.isAllSelected()
     );
   }
-
   onTableSelectAll(event: { selectAll: boolean; section?: "private" | "shared" | "public" }): void {
     this.selectionState.onTableSelectAll(event);
     this.selectedItems.set(new Set(this.selectionState.selectedTodos()));
@@ -589,15 +521,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.isAllSelected()
     );
   }
-
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.stateService.listTodos());
   }
-
   async bulkArchive(): Promise<void> {
     const selected = this.selectionState.selectedTodos();
     if (selected.size === 0) return;
-
     const allTodos = this.stateService.listTodos();
     const selectedIdsArr = Array.from(selected);
     const selectedTodosList = allTodos.filter((t: Todo) => selectedIdsArr.includes(t.id));
@@ -606,14 +535,12 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       return this.permissionService.canArchiveTodo(perm);
     });
     const skippedCount = selected.size - allowedTodos.length;
-
     if (allowedTodos.length === 0) {
       this.notifyService.showError(
         "You don't have permission to archive any of the selected projects"
       );
       return;
     }
-
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Projects",
       message: `Are you sure you want to archive ${selected.size} project(s)?${skippedCount > 0 ? ` (${skippedCount} skipped due to permissions)` : ""}`,
@@ -653,7 +580,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         this.clearSelection();
         return;
       }
-
       const selectedArray = Array.from(allowedIds).map((id) => ({ id }));
       const sub = this.bulkActionHelper
         .bulkDelete(selectedArray, (id) => this.apiService.todos.delete(id))
@@ -682,7 +608,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
-
   onTodoDrop(event: CdkDragDrop<Todo[]>): void {
     this.dragDropService
       .handleDrop(event, this.stateService.listTodos(), "todos", "todos")
@@ -695,17 +620,14 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
         },
       });
   }
-
   onTodoListEntered(event: CdkDragEnter): void {
     this.dragDropHandlerService.onListEntered(event, this.todoPlaceholder);
   }
-
   onTodoListDropped(_event: CdkDragDrop<Todo[]>): void {
     this.dragDropHandlerService.onListDropped(
       this.todoPlaceholder,
       (prev: number, curr: number) => {
         if (prev === curr) return;
-
         const todos = this.stateService.listTodos();
         const syntheticEvent = {
           previousIndex: prev,
@@ -715,7 +637,6 @@ export class TodosView extends BaseListView implements OnInit, AfterViewInit {
           previousContainer: null,
           distance: { x: 0, y: 0 },
         } as unknown as CdkDragDrop<Todo[]>;
-
         this.dragDropService.handleDrop(syntheticEvent, todos, "todos", "todos").subscribe({
           next: () => {
             this.notifyService.showSuccess("Project reordered successfully");

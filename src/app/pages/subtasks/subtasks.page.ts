@@ -4,11 +4,9 @@ import { ActivatedRoute, Router, RouterModule, NavigationEnd } from "@angular/ro
 import { CdkDragDrop, CdkDragEnter, CdkDropList, DragDropModule } from "@angular/cdk/drag-drop";
 import { firstValueFrom } from "rxjs";
 import { filter, map } from "rxjs/operators";
-
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-
 import { BaseListView } from "@pages/base-list.page";
 import { AppStateService } from "@core/services/app-state.service";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
@@ -30,11 +28,9 @@ import { SubtasksKanbanHelper } from "@helpers/subtasks-kanban.helper";
 import { PermissionService, TodoPermission } from "@core/services/permission.service";
 import { SearchService } from "@core/services/search.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
-
 import { FilterField } from "@entities/filter-config.model";
 import { TableField, TableFieldActionButton } from "@entities/table-field.model";
 import { TABLE_ACTIONS } from "@shared/utils/constants";
-
 import { TaskInformationComponent } from "@components/task-information/task-information.component";
 import {
   PageToolbarComponent,
@@ -46,20 +42,17 @@ import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.comp
 import { ItemCardComponent } from "@components/item-card/item-card.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { TableViewComponent } from "@components/table-view/table-view.component";
-
 import { KanbanSubtaskCardComponent } from "@components/kanban-subtask-card/kanban-subtask-card.component";
 import { SUBTASK_CARD_CONFIG, SUBTASK_TABLE_CONFIG } from "@shared/utils/constants";
 import {
   PullToRefreshDirective,
   PullToRefreshIndicatorComponent,
 } from "@components/pull-to-refresh";
-
 interface QueryParams {
   highlightSubtask?: string;
   openComments?: string;
   highlightComment?: string;
 }
-
 @Component({
   selector: "app-subtasks",
   standalone: true,
@@ -77,7 +70,6 @@ interface QueryParams {
     ItemCardComponent,
     ItemExpandDetailsComponent,
     TableViewComponent,
-
     KanbanSubtaskCardComponent,
     PullToRefreshDirective,
     PullToRefreshIndicatorComponent,
@@ -87,11 +79,9 @@ interface QueryParams {
 export class SubtasksViewComponent extends BaseListView {
   @ViewChild("subtaskPlaceholder", { read: CdkDropList })
   protected subtaskPlaceholder!: CdkDropList;
-
   protected getItems(): { id: string }[] {
     return this.listSubtasks();
   }
-
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private requestService = inject(ApiService);
@@ -106,37 +96,28 @@ export class SubtasksViewComponent extends BaseListView {
   private permissionService = inject(PermissionService);
   private searchService = inject(SearchService);
   private entityStore = inject(EntityStoreService);
-
   kanbanHelper = inject(SubtasksKanbanHelper);
   private syncService = inject(UnifiedSyncService);
-
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
-
   showMobileInfo = signal(false);
   showInfoBlock = computed(() => this.appStateService.showInfoBlock());
   todoId = signal("");
   projectTitle = signal("");
   chats = signal<Chat[]>([]);
-
   private readonly routeTaskId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get("taskId") ?? null)),
     { initialValue: this.route.snapshot.paramMap.get("taskId") ?? null }
   );
-
   task = signal<Task | null>(null);
   todo = signal<Todo | null>(null);
   visibilityParam = signal<Visibility>("private");
-
   private lastTaskIdForEffect: string | null = null;
-
   fromKanban = signal(false);
   highlightSubtask = signal<string | null>(null);
   highlightComment = signal<string | null>(null);
   openCommentsForSubtaskId = signal<string | null>(null);
-
   commentExpandedSubtasks = signal<Set<string>>(new Set());
-
   subtaskPagination = signal<{
     skip: number;
     limit: number;
@@ -144,36 +125,27 @@ export class SubtasksViewComponent extends BaseListView {
     hasMore: boolean;
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
-
   taskSubtasks = signal<Subtask[]>([]);
-
   private isLoadingSubtasks = false;
   private lastLoadedTaskId: string | null = null;
-
   userId: string = "";
   userPermission = signal<TodoPermission>(TodoPermission.VIEWER);
-
   isOwner = computed(() => this.todo()?.user_id === this.userId);
   isPrivate = computed(() => this.todo()?.visibility === "private");
-
   canCreateSubtask = computed(() =>
     [TodoPermission.EDITOR, TodoPermission.MODERATOR, TodoPermission.OWNER].includes(
       this.userPermission()
     )
   );
-
   canEditSubtask(subtask: Subtask): boolean {
     return this.permissionService.canEditSubtask(subtask, this.userPermission(), this.userId);
   }
-
   canDeleteSubtask(subtask: Subtask): boolean {
     return this.permissionService.canDeleteSubtask(subtask, this.userPermission(), this.userId);
   }
-
   canArchiveSubtask(subtask: Subtask): boolean {
     return this.permissionService.canArchiveSubtask(subtask, this.userPermission(), this.userId);
   }
-
   listSubtasks = computed(() => {
     const query = this.searchQuery();
     if (query.trim()) {
@@ -192,32 +164,25 @@ export class SubtasksViewComponent extends BaseListView {
       filterType: "status",
     });
   });
-
   override onSearchChange(query: string): void {
     super.onSearchChange(query);
     this.searchService.search("subtasks", query);
   }
-
   selectedSubtasks = () => this.selectedItems();
-
   subtaskCardConfig = SUBTASK_CARD_CONFIG;
   subtaskTableConfig = SUBTASK_TABLE_CONFIG;
   subtaskActions: TableFieldActionButton[] = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
-
   getFilteredSubtaskActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
-
   subtaskTableFields: TableField[] = [
     { key: "title", label: "Subtask", type: "text", sortable: true },
     { key: "priority", label: "Priority", type: "priority", sortable: true },
     { key: "status", label: "Status", type: "status" },
   ];
-
   override isAllSelected(): boolean {
     return super.isAllSelected(() => this.listSubtasks());
   }
-
   private loadTask(taskId: string): void {
     const reactiveTask = this.entityStore.taskMap().get(taskId);
     if (reactiveTask) {
@@ -246,7 +211,6 @@ export class SubtasksViewComponent extends BaseListView {
       });
     }
   }
-
   private loadTodo(todoId: string): void {
     const reactiveTodo = this.entityStore.todoMap().get(todoId);
     if (reactiveTodo) {
@@ -258,24 +222,18 @@ export class SubtasksViewComponent extends BaseListView {
       this.notifyService.showError("Todo not found.");
     }
   }
-
   private setUserPermission(todo: Todo): void {
     const userId = this.userId;
     this.userPermission.set(this.permissionService.getTodoPermission(todo, userId));
   }
-
   loadInitialSubtasks(forceRefresh = false) {
     const taskId = this.task()?.id;
     const visibility = this.todo()?.visibility || "private";
     if (!taskId) return;
-
     if (!forceRefresh && this.isLoadingSubtasks && this.lastLoadedTaskId === taskId) return;
-
     this.isLoadingSubtasks = true;
     this.lastLoadedTaskId = taskId;
-
     this.subtaskPagination.update((p) => ({ ...p, loading: true }));
-
     this.requestService
       .loadPage<Subtask>("subtasks", {
         filter: { task_id: taskId },
@@ -301,14 +259,12 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   loadMoreSubtasks() {
     if (this.subtaskPagination().loading || !this.subtaskPagination().hasMore) return;
     const taskId = this.task()?.id;
     if (!taskId) return;
     this.entityStore.loadMoreSubtasks(taskId);
   }
-
   constructor() {
     super();
     effect(() => {
@@ -319,24 +275,18 @@ export class SubtasksViewComponent extends BaseListView {
       }
     });
   }
-
   override ngOnInit(): void {
     super.ngOnInit();
-
     this.userId = this.authService.getValueByKey("id");
     this.pageKey = "subtasks";
-
     this.viewMode.set(this.loadViewModePreference());
-
     this.bulkService.setMode("subtasks");
     this.bulkService.updateTotalCount(0);
-
     this.subscriptions.add(
       this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
         this.clearSelection();
       })
     );
-
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: QueryParams) => {
         if ((queryParams as any).visibility) {
@@ -365,7 +315,6 @@ export class SubtasksViewComponent extends BaseListView {
         }
       })
     );
-
     const routeData = this.route.snapshot.data;
     if (routeData?.["task"]) {
       const resolvedData = routeData["task"];
@@ -398,13 +347,11 @@ export class SubtasksViewComponent extends BaseListView {
         this.loading.set(false);
       }
     }
-
     this.subscriptions.add(
       this.shortcutService.filter$.subscribe(() => {
         this.toggleFilter();
       })
     );
-
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       if (!this.authService.isLoggedIn()) {
         this.router.navigate(["/login"]);
@@ -417,11 +364,9 @@ export class SubtasksViewComponent extends BaseListView {
     });
     this.subscriptions.add(refreshSub);
   }
-
   onPullToRefresh(): Promise<void> {
     return this.syncService.syncAll() as unknown as Promise<void>;
   }
-
   getToolbarConfig(): PageToolbarConfig {
     return {
       infoToggle: {
@@ -471,7 +416,6 @@ export class SubtasksViewComponent extends BaseListView {
       onFiltersChange: (filters) => this.onFiltersChange(filters),
     };
   }
-
   filterFields: FilterField[] = [
     {
       key: "status",
@@ -497,13 +441,10 @@ export class SubtasksViewComponent extends BaseListView {
       ],
     },
   ];
-
   onFiltersChange(filters: Record<string, string | string[] | any>): void {
     this._activeFilters.set(filters);
   }
-
   private _activeFilters = signal<Record<string, string | string[] | any>>({});
-
   getUnreadCountForSubtask(subtaskId: string): number {
     const userId = this.authService.getValueByKey("id");
     if (!userId) return 0;
@@ -512,15 +453,12 @@ export class SubtasksViewComponent extends BaseListView {
       (c) => c.user_id !== userId && !(c.read_by && c.read_by.includes(userId))
     ).length;
   }
-
   toggleInfoBlock() {
     this.appStateService.toggleInfoBlock();
   }
-
   onRowClick(event: { event: MouseEvent; item: Subtask }): void {
     const subtask = event.item;
     const mouseEvent = event.event;
-
     if (mouseEvent?.shiftKey) {
       const anchorId = this.lastSelectedId();
       if (anchorId) {
@@ -532,10 +470,8 @@ export class SubtasksViewComponent extends BaseListView {
       this.lastSelectedId.set(subtask.id);
       return;
     }
-
     this.lastSelectedId.set(subtask.id);
   }
-
   onCardClick(event: { event: MouseEvent; id: string }): void {
     if (event.event.shiftKey) {
       const anchorId = this.lastSelectedId();
@@ -548,19 +484,15 @@ export class SubtasksViewComponent extends BaseListView {
       this.lastSelectedId.set(event.id);
       return;
     }
-
     this.lastSelectedId.set(event.id);
   }
-
   onRangeSelect(event: { anchorId: string; targetId: string }): void {
     this.selectRange(event.anchorId, event.targetId, this.listSubtasks());
   }
-
   onAdditiveSelect(id: string): void {
     this.toggleItemSelection(id);
     this.lastSelectedId.set(id);
   }
-
   toggleSubtaskCompletion(subtask: Subtask) {
     if (!this.canEditSubtask(subtask)) {
       this.notifyService.showError("You don't have permission to change subtask status");
@@ -569,9 +501,7 @@ export class SubtasksViewComponent extends BaseListView {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     const newStatus = BaseItemHelper.getNextStatus(subtask.status);
-
     this.entityStore
       .updateEntity(
         "subtasks",
@@ -591,12 +521,10 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   updateSubtaskInline(event: { subtask: Subtask; field: string; value: unknown }) {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .updateEntity(
         "subtasks",
@@ -612,7 +540,6 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   async deleteSubtask(id: string, visibility?: string) {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Delete Subtask",
@@ -621,9 +548,7 @@ export class SubtasksViewComponent extends BaseListView {
       confirmClass: "bg-red-600 hover:bg-red-700",
     });
     if (!confirmed) return;
-
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .deleteEntity("subtasks", id, { targetDb: targetDb as any, visibility: visibility as any })
       .subscribe({
@@ -636,11 +561,9 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   onSubtaskDrop(event: CdkDragDrop<Subtask[]>): void {
     const taskId = this.task()?.id;
     if (!taskId) return;
-
     this.dragDropService
       .handleDrop(event, this.listSubtasks(), "subtasks", "subtasks", taskId, this.isPrivate())
       .subscribe({
@@ -657,20 +580,16 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   onSubtaskListEntered(event: CdkDragEnter): void {
     this.dragDropHandlerService.onListEntered(event, this.subtaskPlaceholder);
   }
-
   onSubtaskListDropped(_event: CdkDragDrop<Subtask[]>): void {
     this.dragDropHandlerService.onListDropped(
       this.subtaskPlaceholder,
       (prev: number, curr: number) => {
         if (prev === curr) return;
-
         const taskId = this.task()?.id;
         if (!taskId) return;
-
         const syntheticEvent = {
           previousIndex: prev,
           currentIndex: curr,
@@ -679,7 +598,6 @@ export class SubtasksViewComponent extends BaseListView {
           previousContainer: null,
           distance: { x: 0, y: 0 },
         } as unknown as CdkDragDrop<Subtask[]>;
-
         this.dragDropService
           .handleDrop(
             syntheticEvent,
@@ -705,7 +623,6 @@ export class SubtasksViewComponent extends BaseListView {
       }
     );
   }
-
   toggleSubtaskSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     if (selected) {
@@ -722,7 +639,6 @@ export class SubtasksViewComponent extends BaseListView {
       return newSelected;
     });
   }
-
   onTableSelectAll(selectAll: boolean): void {
     this.selectedItems.update((subtaskIds) => {
       const newSelected = new Set(subtaskIds);
@@ -735,14 +651,11 @@ export class SubtasksViewComponent extends BaseListView {
       return newSelected;
     });
   }
-
   bulkUpdateStatus(status: string): void {
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
-
     const visibility = this.isPrivate() ? "private" : "shared";
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     const updatePromises = Array.from(selected).map((subtaskId) => {
       return firstValueFrom(
         this.entityStore.updateEntity(
@@ -753,7 +666,6 @@ export class SubtasksViewComponent extends BaseListView {
         )
       );
     });
-
     Promise.all(updatePromises)
       .then((_results) => {
         this.notifyService.showSuccess(`${selected.size} subtask(s) updated`);
@@ -763,7 +675,6 @@ export class SubtasksViewComponent extends BaseListView {
         this.notifyService.showError(String(err) || "Failed to update subtasks");
       });
   }
-
   async bulkArchive(): Promise<void> {
     const permission = this.userPermission();
     if (permission === TodoPermission.VIEWER) {
@@ -784,17 +695,14 @@ export class SubtasksViewComponent extends BaseListView {
     }
     const selected = this.selectedSubtasks();
     if (selected.size === 0) return;
-
     const allSubtasks = this.listSubtasks();
     const selectedIds = Array.from(selected);
     const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
     const allArchived = allSelected.every((s) => s.deleted_at);
-
     if (allArchived) {
       await this.bulkRestoreSubtasks(selectedIds);
       return;
     }
-
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Subtasks",
       message: `Are you sure you want to archive ${selected.size} subtask(s)?`,
@@ -802,10 +710,8 @@ export class SubtasksViewComponent extends BaseListView {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (!confirmed) return;
-
     let successCount = 0;
     let errorCount = 0;
-
     for (const id of selected) {
       const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
       if (response.status === ResponseStatus.SUCCESS) {
@@ -814,7 +720,6 @@ export class SubtasksViewComponent extends BaseListView {
         errorCount++;
       }
     }
-
     if (errorCount > 0) {
       this.notifyService.showWarning(`Archived ${successCount} subtask(s), ${errorCount} failed.`);
     } else {
@@ -823,7 +728,6 @@ export class SubtasksViewComponent extends BaseListView {
     this.clearSelection();
     this.loadInitialSubtasks(true);
   }
-
   async bulkRestoreSubtasks(selectedIds: string[]): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Restore Subtasks",
@@ -832,10 +736,8 @@ export class SubtasksViewComponent extends BaseListView {
       confirmClass: "bg-green-600 hover:bg-green-700",
     });
     if (!confirmed) return;
-
     let successCount = 0;
     let errorCount = 0;
-
     for (const id of selectedIds) {
       const response = await this.adminService.toggleDeleteStatusLocal("subtasks", id);
       if (response.status === ResponseStatus.SUCCESS) {
@@ -844,7 +746,6 @@ export class SubtasksViewComponent extends BaseListView {
         errorCount++;
       }
     }
-
     if (errorCount > 0) {
       this.notifyService.showWarning(`Restored ${successCount} subtask(s), ${errorCount} failed.`);
     } else {
@@ -853,7 +754,6 @@ export class SubtasksViewComponent extends BaseListView {
     this.clearSelection();
     this.loadInitialSubtasks(true);
   }
-
   isAllSelectedArchivedSubtasks(): boolean {
     const selectedIds = Array.from(this.selectedSubtasks());
     if (selectedIds.length === 0) return false;
@@ -861,7 +761,6 @@ export class SubtasksViewComponent extends BaseListView {
     const allSelected = allSubtasks.filter((s) => selectedIds.includes(s.id));
     return allSelected.length > 0 && allSelected.every((s) => s.deleted_at);
   }
-
   onSubtaskTableAction(event: { action: string; item: Subtask }): void {
     switch (event.action) {
       case "edit":
@@ -889,7 +788,6 @@ export class SubtasksViewComponent extends BaseListView {
         break;
     }
   }
-
   onSubtaskCommentAdd(event: { content: string; itemId: string }): void {
     if (!event.content.trim()) return;
     if (this.userPermission() === TodoPermission.VIEWER) {
@@ -906,19 +804,16 @@ export class SubtasksViewComponent extends BaseListView {
       },
     });
   }
-
   onSubtaskCommentDelete(commentId: string): void {
     this.entityStore.removeEntity("comments", commentId);
     this.apiService.comments.delete(commentId).subscribe();
   }
-
   onSubtaskCommentMarkAsRead(commentIds: string[]): void {
     const userId = this.authService.getValueByKey("id");
     if (userId) {
       this.commentService.markCommentsAsRead(commentIds, userId);
     }
   }
-
   onSubtaskItemAction(event: { action: string; item: Subtask }): void {
     switch (event.action) {
       case "toggle":
@@ -947,7 +842,6 @@ export class SubtasksViewComponent extends BaseListView {
         break;
     }
   }
-
   onSubtaskStatusToggle(payload: { item: Subtask; status: TaskStatus }): void {
     if (!this.canEditSubtask(payload.item)) {
       this.notifyService.showError("You don't have permission to change subtask status");
@@ -956,7 +850,6 @@ export class SubtasksViewComponent extends BaseListView {
     const todo = this.todo();
     const visibility = todo?.visibility || "private";
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .updateEntity(
         "subtasks",
@@ -978,7 +871,6 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   onSubtaskCommentToggle(subtaskId: string): void {
     this.entityStore.ensureCommentsLoaded(undefined, this.todo()?.visibility || "private");
     this.commentExpandedSubtasks.update((set) => {
@@ -991,11 +883,9 @@ export class SubtasksViewComponent extends BaseListView {
       return newSet;
     });
   }
-
   getSubtaskTableActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
-
   async archiveSubtask(subtaskId: string, visibility?: string): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Subtask",
@@ -1004,7 +894,6 @@ export class SubtasksViewComponent extends BaseListView {
       confirmClass: "bg-orange-600 hover:bg-orange-700",
     });
     if (!confirmed) return;
-
     if (this.isOffline()) {
       const response = await this.adminService.toggleDeleteStatusLocal("subtasks", subtaskId);
       if (response.status === ResponseStatus.SUCCESS) {
@@ -1015,9 +904,7 @@ export class SubtasksViewComponent extends BaseListView {
       }
       return;
     }
-
     const targetDb = visibility === "private" ? "local" : "cloud";
-
     this.entityStore
       .archiveEntity("subtasks", subtaskId, {
         targetDb: targetDb as any,
@@ -1034,30 +921,23 @@ export class SubtasksViewComponent extends BaseListView {
         },
       });
   }
-
   override clearSelection(): void {
     super.clearSelection();
   }
-
   resolveTaskTitle(taskId: string): string {
     const task = this.entityStore.taskMap().get(taskId);
     return task?.title || "-";
   }
-
   getKanbanColumns() {
     return this.kanbanHelper.getKanbanColumns();
   }
-
   getColumnColorClass = this.kanbanHelper.getColumnColorClass;
-
   getSubtasksByStatus(status: TaskStatus): Subtask[] {
     return this.kanbanHelper.getSubtasksByStatus(this.listSubtasks(), status);
   }
-
   getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
     return this.kanbanHelper.getConnectedKanbanDropLists(currentStatus);
   }
-
   onKanbanSubtaskDrop(event: CdkDragDrop<Subtask[]>, targetStatus: TaskStatus): void {
     this.kanbanHelper.onKanbanSubtaskDrop(
       event,
@@ -1066,13 +946,11 @@ export class SubtasksViewComponent extends BaseListView {
       (subtaskId, newStatus) => this.updateSubtaskStatus(subtaskId, newStatus)
     );
   }
-
   private updateSubtaskStatus(subtaskId: string, newStatus: TaskStatus): void {
     this.kanbanHelper.updateSubtaskStatus(subtaskId, newStatus, this.todo(), (fn) =>
       this.taskSubtasks.update(fn)
     );
   }
-
   onKanbanStatusCycle(subtask: Subtask): void {
     if (!this.canEditSubtask(subtask)) {
       this.notifyService.showError("You don't have permission to change subtask status");
@@ -1082,18 +960,14 @@ export class SubtasksViewComponent extends BaseListView {
       this.updateSubtaskStatus(subtaskId, newStatus)
     );
   }
-
   onKanbanSubtaskClick(_subtask: Subtask): void {}
-
   onKanbanSelectionChange(subtaskId: string, isSelected: boolean): void {
     this.kanbanHelper.onKanbanSelectionChange(subtaskId, isSelected, (event) =>
       this.toggleSubtaskSelection(event)
     );
   }
-
   isKanbanSubtaskSelected(subtaskId: string): boolean {
     return this.kanbanHelper.isKanbanSubtaskSelected(subtaskId, this.selectedSubtasks());
   }
 }
-
 export { SubtasksViewComponent as SubtasksView };

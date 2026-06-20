@@ -5,7 +5,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { ChatService } from "./services/chat.service";
 import { ChatState } from "./state/chat.state";
-
 @Component({
   selector: "app-create-group",
   standalone: true,
@@ -17,7 +16,6 @@ export class CreateGroupView {
   chatService = inject(ChatService);
   state = inject(ChatState);
   private router = inject(Router);
-
   onCreateGroup(): void {
     const name = this.state.newGroupName().trim();
     if (name) {
@@ -25,7 +23,6 @@ export class CreateGroupView {
       this.router.navigate(["/chat"]);
     }
   }
-
   onCancel(): void {
     this.state.newGroupName.set("");
     this.state.showCreateGroupModal.set(false);

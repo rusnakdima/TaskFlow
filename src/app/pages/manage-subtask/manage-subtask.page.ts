@@ -3,21 +3,17 @@ import { Component, OnInit, signal, inject, computed, DestroyRef } from "@angula
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { Subscription, firstValueFrom } from "rxjs";
-
 import { MatIconModule } from "@angular/material/icon";
-
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { PrioritySectionComponent } from "@components/form/priority-section.component";
 import { TimelineSectionComponent } from "@components/form/timeline-section.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-manage-subtask",
   standalone: true,
@@ -41,17 +37,13 @@ export class ManageSubtaskPage implements OnInit {
   private shortcutService = inject(ShortcutService);
   private destroyRef = inject(DestroyRef);
   private apiService = inject(ApiService);
-
   form!: FormGroup;
   timelineGroup!: FormGroup;
-
   isEdit = signal(false);
   isSubmitting = signal(false);
-
   pageTitle = computed(() => {
     return this.isEdit() ? "Edit Subtask" : "Create Subtask";
   });
-
   ngOnInit(): void {
     this.initForm();
     this.subscribeToRoute();
@@ -59,14 +51,12 @@ export class ManageSubtaskPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
   }
-
   private initForm(): void {
     this.timelineGroup = this.fb.group({
       startDate: [null as Date | null],
       endDate: [null as Date | null],
       repeat: ["none"],
     });
-
     this.form = this.fb.group({
       _id: [""],
       id: [""],
@@ -82,7 +72,6 @@ export class ManageSubtaskPage implements OnInit {
       task_id: ["", Validators.required],
     });
   }
-
   private subscribeToRoute(): void {
     this.subscriptions.add(
       this.route.params.subscribe(async (params) => {
@@ -90,24 +79,19 @@ export class ManageSubtaskPage implements OnInit {
       })
     );
   }
-
   private async loadData(params: any): Promise<void> {
     const taskId = params.taskId;
     const subtaskId = params.subtaskId;
-
     if (taskId) {
       this.form.patchValue({ task_id: taskId });
     }
-
     if (subtaskId) {
       this.isEdit.set(true);
       await this.loadExistingSubtask(subtaskId);
     }
   }
-
   private async loadExistingSubtask(subtaskId: string): Promise<void> {
     const visibility = this.route.snapshot.queryParamMap.get("visibility") || undefined;
-
     try {
       const item = await firstValueFrom(this.apiService.subtasks.get(subtaskId, visibility));
       if (item) {
@@ -117,13 +101,11 @@ export class ManageSubtaskPage implements OnInit {
       this.notifyService.showError("Failed to load subtask");
     }
   }
-
   private applyItemToForm(item: any): void {
     this.form.get("basicInfo")?.patchValue({
       title: item.title || "",
       description: item.description || "",
     });
-
     this.form.patchValue({
       _id: item._id || "",
       id: item.id || "",
@@ -132,41 +114,33 @@ export class ManageSubtaskPage implements OnInit {
       task_id: item.task_id || "",
       order: item.order ?? 0,
     });
-
     this.timelineGroup.patchValue({
       startDate: item.start_date || null,
       endDate: item.end_date || null,
       repeat: item.repeat || "none",
     });
   }
-
   back(): void {
     this.location.back();
   }
-
   async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.notifyService.showError("Please fill in required fields");
       return;
     }
-
     this.isSubmitting.set(true);
-
     try {
       const formValue = this.form.value;
       const basicInfo = formValue.basicInfo;
       const timeline = this.timelineGroup.value;
       const payload = this.buildPayload(formValue, basicInfo, timeline);
-
       const visibility = this.route.snapshot.queryParamMap.get("visibility") || "private";
-
       if (this.isEdit()) {
         const id = formValue._id || formValue.id;
         await firstValueFrom(this.apiService.subtasks.update(id, payload, visibility));
       } else {
         await firstValueFrom(this.apiService.subtasks.create(payload, visibility));
       }
-
       this.notifyService.showSuccess(
         `Subtask ${this.isEdit() ? "updated" : "created"} successfully`
       );
@@ -177,11 +151,9 @@ export class ManageSubtaskPage implements OnInit {
       this.isSubmitting.set(false);
     }
   }
-
   private buildPayload(formValue: any, basicInfo: any, timeline: any): any {
     const token = this.jwtTokenService.getToken();
     const userId = this.jwtTokenService.getUserId(token);
-
     return {
       id: formValue.id || undefined,
       title: basicInfo.title,
@@ -196,6 +168,5 @@ export class ManageSubtaskPage implements OnInit {
       task_id: formValue.task_id,
     };
   }
-
   private subscriptions = new Subscription();
 }

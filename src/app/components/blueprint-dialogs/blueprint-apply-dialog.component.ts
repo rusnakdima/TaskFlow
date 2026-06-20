@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-blueprint-apply-dialog",
   standalone: true,

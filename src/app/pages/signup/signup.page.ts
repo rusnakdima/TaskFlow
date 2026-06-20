@@ -9,10 +9,8 @@ import {
   FormBuilder,
 } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 import {
@@ -20,15 +18,12 @@ import {
   passwordMismatchValidator,
   emailValidator,
 } from "@validators/auth.validators";
-
 /* models */
 import { SignupForm, AuthResponse } from "@entities/auth-forms.model";
-
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-signup",
   standalone: true,
@@ -45,10 +40,8 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 })
 export class SignupView implements OnDestroy {
   regForm: FormGroup<any>;
-
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private router = inject(Router);
-
   constructor(
     private authService: AuthService,
     private notifyService: NotifyService
@@ -63,11 +56,9 @@ export class SignupView implements OnDestroy {
       ],
     });
   }
-
   isShowPassword = signal(false);
   isShowConfirmPassword = signal(false);
   submitted = signal(false);
-
   ngOnInit() {
     this.keydownHandler = (e) => {
       if (e.key == "Enter") {
@@ -76,24 +67,19 @@ export class SignupView implements OnDestroy {
     };
     document.addEventListener("keydown", this.keydownHandler);
   }
-
   ngOnDestroy() {
     if (this.keydownHandler) {
       document.removeEventListener("keydown", this.keydownHandler);
     }
   }
-
   get f() {
     return this.regForm.controls;
   }
-
   isInvalid(attr: string) {
     return (this.submitted() || this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
-
   async send() {
     this.submitted.set(true);
-
     if (this.regForm.invalid) {
       Object.values(this.regForm.controls).forEach((control) => {
         control.markAsTouched();
@@ -101,7 +87,6 @@ export class SignupView implements OnDestroy {
       this.submitted.set(false);
       return;
     }
-
     const authData: SignupForm = {
       email: this.f["email"].value,
       username: this.f["username"].value,
@@ -111,7 +96,6 @@ export class SignupView implements OnDestroy {
       next: (authResponse) => {
         const token = authResponse.token;
         TokenStorageHelper.setToken(token, true);
-
         if (authResponse.needsProfile) {
           this.notifyService.showInfo("Please complete your profile setup");
           this.router.navigate(["/profile/manage"]);

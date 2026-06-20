@@ -12,17 +12,13 @@ import {
 } from "@angular/core";
 import { NavigationEnd, Router, RouterModule } from "@angular/router";
 import { filter, Subscription } from "rxjs";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* models */
 import { FloatingNavItem, NavRouteConfig } from "./floating-bottom-nav.model";
-
 /* services */
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
-
 @Component({
   selector: "app-floating-bottom-nav",
   standalone: true,
@@ -34,20 +30,16 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private router = inject(Router);
-
   url = signal("");
   isVisible = signal(true);
   isHidden = signal(false);
   isShowing = signal(false);
   isHiding = signal(false);
   profile = this.storageService.profile;
-
   visibilityChange = output<boolean>();
-
   private lastScrollY = 0;
   private scrollThreshold = 50;
   private routerSub?: Subscription;
-
   get listNavs(): Array<FloatingNavItem> {
     return [
       { url: "/dashboard", icon: "home", label: "Home", query: {} },
@@ -104,21 +96,17 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
       },
     ];
   }
-
   isAdmin(): boolean {
     const role = this.authService.getValueByKey("role");
     return role === "admin";
   }
-
   getProfileImage(): string {
     return this.profile()?.image_url || "";
   }
-
   hasProfileImage(): boolean {
     const img = this.profile()?.image_url;
     return !!img && img.length > 0;
   }
-
   getLabel(nav: FloatingNavItem): string {
     if (nav.childRoutes) {
       const match = this.findRouteMatch(nav.childRoutes);
@@ -126,7 +114,6 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
     }
     return nav.label;
   }
-
   getIcon(nav: FloatingNavItem): string {
     if (nav.childRoutes) {
       const match = this.findRouteMatch(nav.childRoutes);
@@ -134,20 +121,16 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
     }
     return nav.icon;
   }
-
   private findRouteMatch(routes: NavRouteConfig[]): NavRouteConfig | undefined {
     return routes.find((r) => r.pattern.test(this.url()));
   }
-
   isProfileRoute(url: string): boolean {
     return url === "/profile";
   }
-
   isProfileImageRoute(): boolean {
     const currentUrl = this.url();
     return currentUrl === "/profile" || currentUrl === "/profile/manage";
   }
-
   isChildProfileRoute(): boolean {
     const currentUrl = this.url();
     return (
@@ -161,7 +144,6 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
       /^\/about$/.test(currentUrl)
     );
   }
-
   isActiveRoute(nav: FloatingNavItem): boolean {
     if (this.url() === nav.url) return true;
     if (nav.childRoutes) {
@@ -169,14 +151,11 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
     }
     return false;
   }
-
   @HostListener("window:scroll")
   onScroll(): void {
     const currentScrollY = window.scrollY;
     const scrollDelta = currentScrollY - this.lastScrollY;
-
     if (Math.abs(scrollDelta) < 10) return;
-
     if (scrollDelta > this.scrollThreshold && this.isVisible() && !this.isHidden()) {
       this.isHiding.set(true);
       this.isShowing.set(false);
@@ -193,17 +172,13 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
         this.visibilityChange.emit(true);
       }, 400);
     }
-
     this.lastScrollY = currentScrollY;
   }
-
   get isNavVisible(): boolean {
     return this.isVisible();
   }
-
   ngOnInit(): void {
     this.visibilityChange.emit(true);
-
     this.routerSub = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((_val) => {
@@ -214,7 +189,6 @@ export class FloatingBottomNavComponent implements OnInit, OnDestroy {
         this.url.set(this.router.url.slice(0, lastIndex));
       });
   }
-
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
   }

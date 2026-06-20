@@ -2,7 +2,6 @@ import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-confirm-dialog",
   standalone: true,
@@ -11,7 +10,6 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 })
 export class ConfirmDialogComponent {
   confirmService = inject(ConfirmDialogService);
-
   onBackdropClick(): void {
     this.confirmService.resolve(false);
   }

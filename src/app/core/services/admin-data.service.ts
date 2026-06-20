@@ -4,19 +4,15 @@ import { Observable, of } from "rxjs";
 import { AdminService } from "@services/data/admin.service";
 import { ResponseStatus } from "@entities/response.model";
 import { AdminDataWithRelations, LoadDataOptions } from "@entities/admin.model";
-
 export { AdminDataWithRelations } from "@entities/admin.model";
-
 @Injectable({
   providedIn: "root",
 })
 export class AdminDataService {
   private adminService = inject(AdminService);
-
   loadAllData(_options: LoadDataOptions = {}): Observable<AdminDataWithRelations> {
     return of({} as AdminDataWithRelations);
   }
-
   loadAllAdminData(): Observable<AdminDataWithRelations> {
     return new Observable<AdminDataWithRelations>((subscriber) => {
       this.adminService.getAllAdminData<AdminDataWithRelations>().subscribe({
@@ -32,7 +28,6 @@ export class AdminDataService {
       });
     });
   }
-
   loadAllArchiveData(): Observable<AdminDataWithRelations> {
     return this.loadAllData({ showDeleted: true });
   }

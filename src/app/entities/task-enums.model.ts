@@ -4,7 +4,6 @@ export enum PriorityTask {
   HIGH = "high",
   URGENT = "urgent",
 }
-
 export enum RepeatInterval {
   NONE = "none",
   DAILY = "daily",

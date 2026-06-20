@@ -1,36 +1,28 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
-
 /* models */
 import { Todo, Task, Subtask, Comment, Chat } from "@entities/generated/api.types";
-
 /* services */
 import { StorageService } from "@services/storage.service";
 import { ApiService, CascadeResult } from "@services/api.service";
-
 @Injectable({
   providedIn: "root",
 })
 export class AdminCascadeService {
   private dataStore = inject(StorageService);
   private requestService = inject(ApiService);
-
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
     const todos = this.dataStore.todos();
     const todo = todos.find((t) => t.id === todo_id);
     if (!todo) return;
-
     const taskIds = (todo as Todo).tasks?.map((t: Task) => t.id) || [];
     const subtaskIds =
       (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) || [];
-
     this.dataStore.updateSignal("subtasks", (items) =>
       items.filter((s) => !subtaskIds.includes(s.id))
     );
-
     this.dataStore.updateSignal("tasks", (items) => items.filter((t) => t.todo_id !== todo_id));
-
     this.dataStore.updateSignal("comments", (items) =>
       items.filter((c) => {
         const isTodoComment = (c as any).todo_id === todo_id;
@@ -39,12 +31,9 @@ export class AdminCascadeService {
         return !isTodoComment && !isTaskComment && !isSubtaskComment;
       })
     );
-
     this.dataStore.updateSignal("chats", (items) => items.filter((c) => c.todo_id !== todo_id));
-
     this.dataStore.updateSignal("todos", (items) => items.filter((t) => t.id !== todo_id));
   }
-
   restoreTodoWithCascade(data: {
     todo: Todo;
     tasks: Task[];
@@ -53,7 +42,6 @@ export class AdminCascadeService {
     chats: Chat[];
   }): void {
     this.dataStore.setSignal("todos", [data.todo, ...this.dataStore.todos()]);
-
     if (data.tasks?.length) {
       this.dataStore.setSignal("tasks", [...this.dataStore.tasks(), ...data.tasks]);
     }
@@ -67,7 +55,6 @@ export class AdminCascadeService {
       this.dataStore.setSignal("chats", [...this.dataStore.chats(), ...data.chats]);
     }
   }
-
   removeRecordWithCascade(table: string, id: string): void {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
@@ -102,7 +89,6 @@ export class AdminCascadeService {
       this.dataStore.removeRecord(table, id);
     }
   }
-
   async softDeleteBatch(
     table: string,
     ids: string[],
@@ -112,7 +98,6 @@ export class AdminCascadeService {
     this.updateSignalsFromCascadeResults();
     return results;
   }
-
   async hardDeleteBatch(
     table: string,
     ids: string[],
@@ -122,28 +107,22 @@ export class AdminCascadeService {
     this.updateSignalsFromCascadeResults();
     return results;
   }
-
   async restoreBatch(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
     const results = await this.requestService.batchRestore(table, ids, visibility);
     this.updateSignalsFromCascadeResults();
     return results;
   }
-
   private updateSignalsFromCascadeResults(): void {
     this.dataStore.loadAdminData(true).subscribe();
   }
-
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
     const timestamp = new Date().toISOString();
-
     if (table === "todos") {
       this.dataStore.updateRecordDeleteStatus(table, id, deletedAt);
-
       const todos = this.dataStore.todos();
       const todo = todos.find((t) => t.id === id);
       if (todo) {
         const taskIds = (todo as Todo).tasks?.map((t: Task) => t.id) || [];
-
         this.dataStore.updateSignal("tasks", (tasks) =>
           tasks.map((task) =>
             task.todo_id === id
@@ -151,7 +130,6 @@ export class AdminCascadeService {
               : task
           )
         );
-
         const subtaskIds =
           (todo as Todo).tasks?.flatMap((t: Task) => t.subtasks?.map((s: Subtask) => s.id) || []) ||
           [];
@@ -162,7 +140,6 @@ export class AdminCascadeService {
               : subtask
           )
         );
-
         this.dataStore.updateSignal("comments", (comments) =>
           comments.map((comment) => {
             const isRelated =
@@ -173,7 +150,6 @@ export class AdminCascadeService {
               : comment;
           })
         );
-
         this.dataStore.updateSignal("chats", (chats) =>
           chats.map((chat) =>
             chat.todo_id === id
@@ -184,12 +160,10 @@ export class AdminCascadeService {
       }
     } else if (table === "tasks") {
       this.dataStore.updateRecordDeleteStatus(table, id, deletedAt);
-
       const tasks = this.dataStore.tasks();
       const task = tasks.find((t) => t.id === id);
       if (task) {
         const subtaskIds = task.subtasks?.map((s) => s.id) || [];
-
         this.dataStore.updateSignal("subtasks", (subtasks) =>
           subtasks.map((subtask) =>
             subtaskIds.includes(subtask.id)
@@ -197,7 +171,6 @@ export class AdminCascadeService {
               : subtask
           )
         );
-
         this.dataStore.updateSignal("comments", (comments) =>
           comments.map((comment) => {
             const isRelated =
@@ -211,7 +184,6 @@ export class AdminCascadeService {
       }
     } else if (table === "subtasks") {
       this.dataStore.updateRecordDeleteStatus(table, id, deletedAt);
-
       this.dataStore.updateSignal("comments", (comments) =>
         comments.map((comment) =>
           comment.subtask_id === id

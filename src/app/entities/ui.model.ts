@@ -1,31 +1,26 @@
 import { ViewMode } from "./view-mode.model";
 import { FilterField } from "./filter-config.model";
-
 export interface SelectAllConfig {
   onToggle: () => void;
   isAllSelected: boolean;
   count: number;
   highlight: boolean;
 }
-
 export interface StatsConfig {
   onToggle: () => void;
   isActive: boolean;
 }
-
 export interface ToolbarFilterConfig {
   filters?: Array<{ key: string; label: string; value: unknown }>;
   activeFilter?: string;
   isActive?: boolean;
   onToggle?: () => void;
 }
-
 export interface NewButtonConfig {
   onClick: () => void;
   label?: string;
   icon?: string;
 }
-
 export interface NewButtonWithMenuConfig {
   label: string;
   icon?: string;
@@ -35,18 +30,15 @@ export interface NewButtonWithMenuConfig {
     action: () => void;
   }[];
 }
-
 export interface InfoToggleConfig {
   onToggle: () => void;
   isActive: boolean;
   label?: string;
 }
-
 export interface RefreshConfig {
   onClick: () => void;
   loading: boolean;
 }
-
 export interface SortMenuConfig {
   sortBy: string;
   sortOrder: "asc" | "desc";
@@ -57,18 +49,15 @@ export interface SortMenuConfig {
   }[];
   onSort: (key: string) => void;
 }
-
 export interface SortOrderConfig {
   onToggle: () => void;
   currentOrder: "asc" | "desc";
 }
-
 export interface SearchConfig {
   query: string;
   placeholder?: string;
   onSearch: (query: string) => void;
 }
-
 export interface PageToolbarConfig {
   selectAll?: SelectAllConfig;
   stats?: StatsConfig;

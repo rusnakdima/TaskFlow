@@ -1,18 +1,14 @@
 import { inject } from "@angular/core";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Observable, Subscriber } from "rxjs";
-
 export type ErrorHandlerFn = (err: unknown) => void;
-
 export interface ErrorHandlerOptions {
   notifyOnError?: boolean;
   errorMessage?: string;
   context?: string;
 }
-
 export class ErrorHandlerUtil {
   private notifyService = inject(NotifyService);
-
   private extractMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
     if (typeof err === "object" && err !== null) {
@@ -22,20 +18,17 @@ export class ErrorHandlerUtil {
     }
     return String(err);
   }
-
   handleError(err: unknown, context?: string): void {
     const message = this.extractMessage(err);
     const prefix = context ? `${context}: ` : "";
     this.notifyService.showError(prefix + message);
   }
-
   subscribeError<T>(observer: Subscriber<T>, errorMessage?: string): (err: unknown) => void {
     return (err: unknown) => {
       this.notifyService.showError(errorMessage || this.extractMessage(err));
       observer.error(err);
     };
   }
-
   wrapObservable<T>(observable: Observable<T>, errorMessage?: string): Observable<T> {
     return new Observable<T>((observer) => {
       return observable.subscribe({
@@ -45,7 +38,6 @@ export class ErrorHandlerUtil {
       });
     });
   }
-
   withErrorHandling<T extends unknown[], R>(
     fn: (...args: T) => R,
     context?: string
@@ -59,7 +51,6 @@ export class ErrorHandlerUtil {
       }
     };
   }
-
   createErrorHandler(options: ErrorHandlerOptions = {}): ErrorHandlerFn {
     return (err: unknown) => {
       const message = this.extractMessage(err);
@@ -70,7 +61,6 @@ export class ErrorHandlerUtil {
     };
   }
 }
-
 export function injectErrorHandler(): ErrorHandlerUtil {
   return new ErrorHandlerUtil();
 }

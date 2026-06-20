@@ -1,17 +1,13 @@
 /* sys lib */
-
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
-
 export type FilterType = "status" | "visibility";
-
 export interface FilteredListOptions {
   filter: string;
   query: string;
   filterType: FilterType;
 }
-
 export class FilteredListHelper {
   static filterAndSort<
     T extends {
@@ -27,7 +23,6 @@ export class FilteredListHelper {
     }
     let filtered: T[] = items.filter((item) => !item.deleted_at);
     const { filter, query, filterType } = options;
-
     if (filterType === "visibility") {
       if (filter !== "all") {
         filtered = filtered.filter((item) => (item as any).visibility === filter);
@@ -42,11 +37,9 @@ export class FilteredListHelper {
       }
       return SortHelper.sortByOrder(filtered, "desc");
     }
-
     if (filter !== "all") {
       filtered = FilteredListHelper.applyStatusPriorityFilter(filtered, filter);
     }
-
     if (query) {
       const lowerQuery = query.toLowerCase().trim();
       filtered = filtered.filter(
@@ -55,10 +48,8 @@ export class FilteredListHelper {
           (item.description && item.description.toLowerCase().includes(lowerQuery))
       );
     }
-
     return SortHelper.sortByOrder(filtered, "desc");
   }
-
   private static applyStatusPriorityFilter<T extends { order: number }>(
     items: T[],
     filter: string

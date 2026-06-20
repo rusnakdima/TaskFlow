@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "@entities/chat.model";
-
 @Component({
   selector: "app-reply-preview",
   standalone: true,

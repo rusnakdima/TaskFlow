@@ -1,7 +1,6 @@
 /**
  * Authentication form models
  */
-
 /**
  * Login form interface
  */
@@ -10,7 +9,6 @@ export interface LoginForm {
   password: string;
   remember: boolean;
 }
-
 /**
  * Signup form interface
  */
@@ -19,7 +17,6 @@ export interface SignupForm {
   username: string;
   password: string;
 }
-
 export interface AuthResponse {
   token: string;
   needsProfile: boolean;

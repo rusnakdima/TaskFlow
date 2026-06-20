@@ -1,9 +1,7 @@
 /* sys lib */
 import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
-
 /* services */
-
 /* models */
 import { Todo, User, Profile, Room } from "@entities/generated/api.types";
 import { Task, TaskStatus } from "@entities/generated/api.types";
@@ -20,7 +18,6 @@ import {
   PaginationState,
 } from "@entities/storage.model";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
-
 /* services */
 import { CascadeService } from "@core/services/cascade.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -29,13 +26,10 @@ import { BaseStorageService } from "@core/services/storage-entity.service";
 import { StorageCacheService } from "@core/services/storage-cache.service";
 import { StorageQueryService } from "@core/services/storage-query.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
-
 /* utils */
 import { deduplicateById, groupByKey, createGroupedMap } from "@store/utils/store-helpers";
 import { TimestampHelper, VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
-
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
-
 @Injectable({ providedIn: "root" })
 export class StorageService {
   private readonly _injector = inject(Injector);
@@ -43,10 +37,8 @@ export class StorageService {
   private readonly _cacheService = inject(StorageCacheService);
   private readonly _queryService = inject(StorageQueryService);
   private readonly mongoConnectionService = inject(MongoConnectionService);
-
   private _notifyService: NotifyService | null = null;
   private _cascadeService: CascadeService | null = null;
-
   private readonly _pagination = signal<Record<ChildType, PaginationState>>({
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
@@ -55,17 +47,14 @@ export class StorageService {
     comments: { ...DEFAULT_PAGINATION },
     chats: { ...DEFAULT_PAGINATION },
   });
-
   private get notifyService(): NotifyService {
     if (!this._notifyService) this._notifyService = this._injector.get(NotifyService);
     return this._notifyService;
   }
-
   private get cascadeService(): CascadeService {
     if (!this._cascadeService) this._cascadeService = this._injector.get(CascadeService);
     return this._cascadeService;
   }
-
   private readonly allActiveTodos = computed(() => {
     const allTodos = [
       ...this._entityService.privateTodos(),
@@ -74,7 +63,6 @@ export class StorageService {
     ];
     return deduplicateById(allTodos, { filterDeleted: true });
   });
-
   private readonly activeTasks = computed(() =>
     this._entityService.tasks().filter((t) => !t.deleted_at)
   );
@@ -87,7 +75,6 @@ export class StorageService {
   private readonly activeChats = computed(() =>
     this._entityService.chats().filter((c) => !c.deleted_at)
   );
-
   readonly privateTodos = computed(() =>
     this._entityService.privateTodos().filter((t) => !t.deleted_at)
   );
@@ -131,7 +118,6 @@ export class StorageService {
   readonly isLoading = this._queryService.loading;
   readonly loaded = this._queryService.loaded;
   readonly lastLoaded = this._queryService.lastLoaded;
-
   readonly todoMap = computed(() => new Map(this.allActiveTodos().map((t) => [t.id, t])));
   readonly taskMap = computed(() => new Map(this.activeTasks().map((t) => [t.id, t])));
   readonly subtaskMap = computed(() => new Map(this.activeSubtasks().map((s) => [s.id, s])));
@@ -154,7 +140,6 @@ export class StorageService {
       (c) => !!c.subtask_id
     )
   );
-
   get todosPagination() {
     return this._pagination().todos;
   }
@@ -191,7 +176,6 @@ export class StorageService {
   get pendingTasksCount(): number {
     return this._entityService.tasks().filter((t) => t.status === TaskStatus.PENDING).length;
   }
-
   get signalMap(): StorageSignalMap {
     return {
       todos: this._entityService.todos,
@@ -203,12 +187,10 @@ export class StorageService {
       daily_activities: signal([]),
     };
   }
-
   get(type: EntityType, id: string): any | undefined {
     if (type === "users" || type === "profiles") return undefined;
     return this._queryService.findById(type, id);
   }
-
   getChildren(parentType: ParentType, parentId: string): Task[] | Subtask[] | Chat[] {
     switch (parentType) {
       case "tasks":
@@ -219,7 +201,6 @@ export class StorageService {
         return this.chats();
     }
   }
-
   query(
     type: EntityType,
     filters?: {
@@ -231,7 +212,6 @@ export class StorageService {
   ): any[] {
     return this._queryService.query(type, filters);
   }
-
   watch(
     type: "todos" | "tasks" | "subtasks" | "comments" | "chats",
     id?: string
@@ -246,7 +226,6 @@ export class StorageService {
     this._cacheService.setReactiveCache(cacheKey, computedSignal);
     return computedSignal;
   }
-
   watchByTodo(
     todoId: string,
     type: "tasks" | "chats"
@@ -276,7 +255,6 @@ export class StorageService {
     this._cacheService.setCacheTimestamp(cacheKey, now);
     return computedSignal;
   }
-
   modify(type: EntityType, op: "create" | "update" | "delete", data: any): void {
     if (type === "users") return;
     switch (op) {
@@ -293,15 +271,12 @@ export class StorageService {
     if (type === "todos" || type === "tasks" || type === "subtasks") {
     }
   }
-
   updateEntity(type: EntityType, data: any): void {
     this._entityService.updateEntity(type, data);
   }
-
   updateChat(op: ChatOperation, data?: Chat): void {
     this._entityService.updateChat("", op as any, data);
   }
-
   setChats(chats: Chat[]) {
     this._entityService.chats.set(chats);
   }
@@ -326,11 +301,9 @@ export class StorageService {
   clearChats() {
     this._entityService.updateChat("", "clear");
   }
-
   bulkUpsertSubtasks(subtasks: Subtask[]): void {
     this._entityService.bulkUpsertSubtasks(subtasks);
   }
-
   moveTodoToShared(todo_id?: string): void {
     if (!todo_id) return;
     const todo = this.get("todos", todo_id);
@@ -343,7 +316,6 @@ export class StorageService {
       ]);
     }
   }
-
   /**
    * @deprecated Use updateEntityVisibility("todos", id, "private") instead
    */
@@ -359,7 +331,6 @@ export class StorageService {
       ]);
     }
   }
-
   updateEntityVisibility(table: EntityType, id: string, newVisibility: string): void {
     let entity: any;
     if (table === "todos") {
@@ -373,12 +344,10 @@ export class StorageService {
       entity = this.get(table, id);
     }
     if (!entity) return;
-
     if (table === "todos") {
       const privateTodos = this._entityService.privateTodos;
       const sharedTodos = this._entityService.sharedTodos;
       const publicTodos = this._entityService.publicTodos;
-
       const oldList = privateTodos().some((t) => t.id === id)
         ? privateTodos
         : sharedTodos().some((t) => t.id === id)
@@ -386,21 +355,16 @@ export class StorageService {
           : publicTodos().some((t) => t.id === id)
             ? publicTodos
             : null;
-
       if (!oldList) return;
-
       const newList =
         newVisibility === "private"
           ? privateTodos
           : newVisibility === "public"
             ? publicTodos
             : sharedTodos;
-
       if (newList().some((t) => t.id === id)) {
-        console.warn("updateEntityVisibility: Entity already in target list, skipping", { id });
         return;
       }
-
       const updatedEntity = { ...entity, visibility: newVisibility };
       oldList.update((todos) => todos.filter((t) => t.id !== id));
       newList.update((todos) => {
@@ -411,7 +375,6 @@ export class StorageService {
       this.updateRecord(table, id, { visibility: newVisibility });
     }
   }
-
   removeTodoWithCascade(todo_id?: string): void {
     if (!todo_id) return;
     const { taskIds = [], subtaskIds = [] } = this.cascadeService.computeCascadeForTodo(
@@ -436,7 +399,6 @@ export class StorageService {
     this._entityService.sharedTodos.update((items) => items.filter((t) => t.id !== todo_id));
     this._entityService.publicTodos.update((items) => items.filter((t) => t.id !== todo_id));
   }
-
   removeRecordWithCascade(table: string, id: string, deletedAt?: string): void {
     if (table === "todos") {
       this.removeTodoWithCascade(id);
@@ -457,7 +419,6 @@ export class StorageService {
       this._entityService.removeEntity(table as EntityType, id);
     }
   }
-
   private softDeleteWithCascade(
     table: "tasks" | "subtasks",
     id: string,
@@ -498,7 +459,6 @@ export class StorageService {
       );
     }
   }
-
   private softDelete(table: "tasks" | "subtasks", id: string): void {
     const timestamp = TimestampHelper.createTimestamp();
     if (table === "tasks") {
@@ -513,7 +473,6 @@ export class StorageService {
       );
     }
   }
-
   restoreTodoWithCascade(data: {
     todo: Todo;
     tasks: Task[];
@@ -534,7 +493,6 @@ export class StorageService {
     if (data.comments?.length) this._entityService.comments.update((c) => [...c, ...data.comments]);
     if (data.chats?.length) this._entityService.chats.update((c) => [...c, ...(data.chats || [])]);
   }
-
   restoreRecordWithCascade(table: string, id: string): void {
     const timestamp = TimestampHelper.createTimestamp();
     const updateData = { deleted_at: undefined, updated_at: timestamp };
@@ -566,7 +524,6 @@ export class StorageService {
       this._entityService.updateEntity(table as EntityType, { id, ...updateData });
     }
   }
-
   updateRecordDeleteStatusWithCascade(table: string, id: string, deletedAt: boolean): void {
     const timestamp = TimestampHelper.createTimestamp();
     const update = { deleted_at: deletedAt ? timestamp : undefined, updated_at: timestamp };
@@ -629,19 +586,15 @@ export class StorageService {
       );
     }
   }
-
   loadInitialData(type: string, limit: number): Observable<any> {
     return this._queryService.loadInitialData(type, limit);
   }
-
   loadMoreData(type: string, skip: number): Observable<any> {
     return this._queryService.loadMoreData(type, skip);
   }
-
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
     return this._queryService.loadAdminData(force);
   }
-
   updateRecord(table: string, id: string, updates: any): void {
     const sig = this.signalMap[table as keyof StorageSignalMap];
     if (sig)
@@ -649,7 +602,6 @@ export class StorageService {
         items.map((item) => (item.id === id ? { ...item, ...updates } : item))
       );
   }
-
   updateRelatedRecords(parentTable: string, parentId: string, updates: any): void {
     if (parentTable === "todos") {
       this._entityService.tasks.update((tasks) =>
@@ -661,7 +613,6 @@ export class StorageService {
       );
     }
   }
-
   removeRecord(table: string, id: string): void {
     const sig = this.signalMap[table as keyof StorageSignalMap];
     if (sig) sig.update((items: any[]) => items.filter((item: any) => item.id !== id));
@@ -670,7 +621,6 @@ export class StorageService {
     else if (table === "tasks")
       this._entityService.subtasks.update((subtasks) => subtasks.filter((s) => s.task_id !== id));
   }
-
   updateRecordDeleteStatus(table: string, id: string, deletedAt: boolean): void {
     const timestamp = TimestampHelper.createTimestamp();
     this.updateRecord(table, id, {
@@ -678,29 +628,23 @@ export class StorageService {
       updated_at: timestamp,
     });
   }
-
   updateSignal(table: string, updater: (items: any[]) => any[]): void {
     const sig = this.signalMap[table as keyof StorageSignalMap];
     if (sig) sig.update(updater);
   }
-
   setSignal(table: string, items: any[]): void {
     const sig = this.signalMap[table as keyof StorageSignalMap];
     if (sig) sig.set(items);
   }
-
   addCommentToTask(comment: Comment, task_id?: string): void {
     this._entityService.addCommentToTask(comment, task_id);
   }
-
   addCommentToSubtask(comment: Comment, subtask_id?: string): void {
     this._entityService.addCommentToSubtask(comment, subtask_id);
   }
-
   removeCommentFromAll(commentId: string): void {
     this._entityService.removeCommentFromAll(commentId);
   }
-
   setCollection(
     type: string,
     items: any,
@@ -708,22 +652,18 @@ export class StorageService {
   ): void {
     this._queryService.setCollection(type, items, options);
   }
-
   updatePagination(type: ChildType, skip: number, limit: number, receivedCount: number): void {
     this._pagination.update((p) => ({
       ...p,
       [type]: { skip: skip + receivedCount, limit, hasMore: receivedCount >= limit },
     }));
   }
-
   resetPagination(type: ChildType): void {
     this._pagination.update((p) => ({ ...p, [type]: { ...DEFAULT_PAGINATION } }));
   }
-
   setHasMoreTodos(hasMore: boolean): void {
     this._pagination.update((p) => ({ ...p, todos: { ...p.todos, hasMore } }));
   }
-
   updateAfterOperation(
     operation: Operation,
     table: string,
@@ -752,7 +692,6 @@ export class StorageService {
       }
     } catch (error) {}
   }
-
   private handleUpdate(table: string, result: any, _isShared: boolean): void {
     if (!result?.id) return;
     if (table === "tasks" || table === "subtasks") {
@@ -771,13 +710,11 @@ export class StorageService {
       this.modify(table as EntityType, "update", result);
     }
   }
-
   private handleDelete(table: string, id?: string, _parentTodoId?: string): void {
     if (table === "todos" && id) this.modify("todos", "delete", { id });
     else if (table === "chats" && id) this.updateChat("delete", { id } as Chat);
     else if (id) this.modify(table as EntityType, "delete", { id });
   }
-
   private handleUpdateAll(table: string, result: any, _parentTodoId?: string): void {
     if (table === "chats" && result?.length) {
       this.modify("chats", "update", result[0]);
@@ -787,7 +724,6 @@ export class StorageService {
       });
     }
   }
-
   private mergePreservingFields<T extends Record<string, any>>(
     incoming: T,
     existing: T,
@@ -802,17 +738,14 @@ export class StorageService {
     });
     return result as T;
   }
-
   invalidateCache(): void {
     this._queryService.setLoaded(false);
     this._queryService.setLastLoaded(null);
     this._cacheService.invalidateCache();
   }
-
   isCacheValid(cacheExpiryMs: number): boolean {
     return this._queryService.isCacheValid(cacheExpiryMs);
   }
-
   clear(): void {
     this._entityService.clearEntitySignals();
     this._queryService.setAllProfiles([]);
@@ -830,7 +763,6 @@ export class StorageService {
       chats: { ...DEFAULT_PAGINATION },
     });
   }
-
   getChats(): Chat[] {
     return this.chats();
   }
@@ -867,11 +799,9 @@ export class StorageService {
   getChatsByAll(): Chat[] {
     return this.chats();
   }
-
   getTodosByVisibility(visibility?: string): Todo[] {
     return this._queryService.getTodosByVisibility(visibility);
   }
-
   getTodosWithNestedTasks(): Todo[] {
     return this._queryService.getTodosWithNestedTasks();
   }
@@ -899,27 +829,21 @@ export class StorageService {
   canAccessOffline(visibility: VisibilityFilter): boolean {
     return this._queryService.canAccessOffline(visibility);
   }
-
   setCollectionByTable(table: string, data: any[], options?: { append?: boolean }): void {
     this._queryService.setCollectionByTable(table, data, options);
   }
-
   ensureUserLoaded(): void {
     this._queryService.ensureUserLoaded();
   }
-
   ensureProfileLoaded(): void {
     this._queryService.ensureProfileLoaded();
   }
-
   ensurePublicProfilesLoaded(): void {
     this._queryService.ensurePublicProfilesLoaded();
   }
-
   getCurrentUser() {
     return this._entityService.getCurrentUser();
   }
-
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
     console.debug("ensureTodosLoaded", {
       visibility,
@@ -933,7 +857,6 @@ export class StorageService {
         this.sharedTodos().length > 0 &&
         this.publicTodos().length > 0
       ) {
-        console.debug("ensureTodosLoaded ALL loaded, skipping");
         return;
       }
       const loadPrivate = this.privateTodos().length === 0;
@@ -974,7 +897,6 @@ export class StorageService {
     }
     this._queryService.ensureTodosLoaded(visibility, limit);
   }
-
   ensureTasksLoaded(
     visibility: string = "private",
     limit: number = 10,
@@ -986,21 +908,17 @@ export class StorageService {
     if (!todoId && this.tasks().length > 0) return;
     this._queryService.ensureTasksLoaded(visibility, limit, todoId, userId, assigneeId);
   }
-
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10): void {
     if (this.subtasks().length > 0) return;
     this._queryService.ensureSubtasksLoaded(visibility, limit);
   }
-
   ensureChatsLoaded(visibility: string = "private", limit: number = 50): void {
     if (this.chats().length > 0) return;
     this._queryService.ensureChatsLoaded(visibility, limit);
   }
-
   ensureCategoriesLoaded(visibility: string = "private", limit: number = 100): void {
     this._queryService.ensureCategoriesLoaded(visibility, limit);
   }
-
   ensureTaskCommentsLoaded(
     taskId: string,
     visibility: string = "private",
@@ -1010,7 +928,6 @@ export class StorageService {
     if (existing.length > 0) return;
     this._queryService.ensureTaskCommentsLoaded(taskId, visibility, limit);
   }
-
   ensureSubtaskCommentsLoaded(
     subtaskId: string,
     visibility: string = "private",
@@ -1020,7 +937,6 @@ export class StorageService {
     if (existing.length > 0) return;
     this._queryService.ensureSubtaskCommentsLoaded(subtaskId, visibility, limit);
   }
-
   getTodos(visibility: string = "private"): Todo[] {
     const todos =
       visibility === "private"
@@ -1035,26 +951,22 @@ export class StorageService {
     }
     return todos;
   }
-
   loadMoreTodos(): void {
     if (this._pagination().todos.hasMore && !this._queryService.isEntityLoading("todos")) {
       this._queryService.loadMoreTodos();
     }
   }
-
   getTasks(visibility: string = "private"): Task[] {
     if (this._entityService.tasks().length === 0 && !this._queryService.isEntityLoading("tasks")) {
       this._queryService.ensureTasksLoaded(visibility);
     }
     return this._entityService.tasks();
   }
-
   loadMoreTasks(todoId?: string): void {
     if (this._pagination().tasks.hasMore && !this._queryService.isEntityLoading("tasks")) {
       this._queryService.loadMoreTasks(todoId);
     }
   }
-
   getSubtasks(visibility: string = "private"): Subtask[] {
     if (
       this._entityService.subtasks().length === 0 &&
@@ -1064,13 +976,11 @@ export class StorageService {
     }
     return this._entityService.subtasks();
   }
-
   loadMoreSubtasks(taskId?: string): void {
     if (this._pagination().subtasks.hasMore && !this._queryService.isEntityLoading("subtasks")) {
       this._queryService.loadMoreSubtasks(taskId);
     }
   }
-
   getCategories(visibility: string = "private"): any[] {
     if (
       this._entityService.categories().length === 0 &&
@@ -1087,7 +997,6 @@ export class StorageService {
         return this._entityService.categories();
     }
   }
-
   loadMoreCategories(): void {
     if (
       this._pagination().categories.hasMore &&
@@ -1096,20 +1005,17 @@ export class StorageService {
       this._queryService.loadMoreCategories();
     }
   }
-
   getChatsForVisibility(visibility: string = "private"): Chat[] {
     if (this._entityService.chats().length === 0 && !this._queryService.isEntityLoading("chats")) {
       this._queryService.ensureChatsLoaded(visibility);
     }
     return this._entityService.chats();
   }
-
   loadMoreChats(): void {
     if (this._pagination().chats.hasMore && !this._queryService.isEntityLoading("chats")) {
       this._queryService.loadMoreChats();
     }
   }
-
   getComments(visibility: string = "private"): Comment[] {
     if (
       this._entityService.comments().length === 0 &&
@@ -1119,20 +1025,17 @@ export class StorageService {
     }
     return this._entityService.comments();
   }
-
   loadMoreComments(): void {
     if (this._pagination().comments.hasMore && !this._queryService.isEntityLoading("comments")) {
       this._queryService.loadMoreComments();
     }
   }
-
   getUser(): User | null {
     if (!this._queryService.user() && !this._queryService.isEntityLoading("user")) {
       this._queryService.ensureUserLoaded();
     }
     return this._queryService.user();
   }
-
   getProfile(): Profile | null {
     if (
       !this._queryService.allProfiles()?.length &&

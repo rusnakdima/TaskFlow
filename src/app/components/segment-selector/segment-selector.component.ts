@@ -3,14 +3,12 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
-
 export interface SegmentOption {
   id: string;
   label: string;
   icon?: string;
   count?: number;
 }
-
 @Component({
   selector: "app-segment-selector",
   standalone: true,
@@ -21,26 +19,20 @@ export class SegmentSelectorComponent {
   @Input() options: SegmentOption[] = [];
   @Input() active = "";
   @Output() select = new EventEmitter<string>();
-
   showMenu = signal(false);
   isHovering = signal(false);
-
   getActiveOption(): SegmentOption | undefined {
     return this.options.find((o) => o.id === this.active);
   }
-
   onSelect(id: string): void {
     this.select.emit(id);
   }
-
   onMouseEnter(): void {
     this.isHovering.set(true);
   }
-
   onMouseLeave(): void {
     this.isHovering.set(false);
   }
-
   onWheel(event: WheelEvent): void {
     if (!this.isHovering() || this.options.length === 0) return;
     event.preventDefault();

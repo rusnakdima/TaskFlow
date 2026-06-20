@@ -2,7 +2,6 @@ import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
-
 @Component({
   selector: "app-empty-state",
   standalone: true,
@@ -17,7 +16,6 @@ export class EmptyStateComponent {
   @Input() actionLabel?: string;
   @Input() actionLink?: string;
   @Input() actionCallback?: () => void;
-
   onAction(): void {
     this.actionCallback?.();
   }

@@ -14,9 +14,7 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 import { FilterField, FilterConfig, FilterOption } from "@entities/filter-config.model";
 import { PageToolbarConfig } from "@entities/ui.model";
 import { ViewMode } from "@entities/view-mode.model";
-
 export { PageToolbarConfig } from "@entities/ui.model";
-
 @Component({
   selector: "app-page-toolbar",
   standalone: true,
@@ -39,44 +37,35 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
   @Input() searchQuery: string = "";
   @Input() searchFields: string[] = [];
   @Input() excludeFields: string[] = [];
-
   showFilter = signal(false);
   isHovering = signal(false);
   isCompact = signal(false);
-
   ngOnInit(): void {
     this.updateCompact();
     if (typeof window !== "undefined") {
       window.addEventListener("resize", this.updateCompact.bind(this));
     }
   }
-
   ngOnDestroy(): void {
     if (typeof window !== "undefined") {
       window.removeEventListener("resize", this.updateCompact.bind(this));
     }
   }
-
   private updateCompact(): void {
     this.isCompact.set(window.innerWidth < 1024);
   }
-
   isDesktop(): boolean {
     return typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
   }
-
   onModeSelect(mode: string): void {
     this.config?.viewMode?.onModeChange(mode as ViewMode);
   }
-
   getActiveViewMode(): ViewMode {
     return this.config?.viewMode?.mode || "card";
   }
-
   getViewModes(): ViewMode[] {
     return this.config?.viewMode?.modes || ["grid", "table", "list"];
   }
-
   getViewModeTabs(): SegmentOption[] {
     const modes = this.getViewModes();
     return modes.map((mode) => ({
@@ -85,7 +74,6 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
       icon: this.getViewModeIcon(mode),
     }));
   }
-
   private getViewModeIcon(mode: ViewMode): string {
     switch (mode) {
       case "card":
@@ -102,26 +90,20 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
         return "view_agenda";
     }
   }
-
   @Output() filtersChange = new EventEmitter<Record<string, string | string[] | any>>();
   @Output() searchChange = new EventEmitter<string>();
-
   onToggleFilter(): void {
     this.showFilter.update((v) => !v);
     this.config?.filter?.onToggle?.();
     this.filterToggle.emit();
   }
-
   @Output() filterToggle = new EventEmitter<void>();
-
   onMouseEnter(): void {
     this.isHovering.set(true);
   }
-
   onMouseLeave(): void {
     this.isHovering.set(false);
   }
-
   onWheel(event: WheelEvent): void {
     if (!this.isHovering() || !this.config?.viewMode?.modes?.length) return;
     event.preventDefault();
@@ -131,9 +113,7 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     const nextIndex = (currentIndex + direction + modes.length) % modes.length;
     this.onModeSelect(modes[nextIndex]);
   }
-
   private activeFilters = signal<Record<string, string>>({});
-
   onFiltersChange(event: { key: string; value: string }): void {
     this.activeFilters.update((filters) => ({
       ...filters,
@@ -141,12 +121,10 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     }));
     this.filtersChange.emit(this.activeFilters());
   }
-
   onClearFilters(): void {
     this.activeFilters.set({});
     this.filtersChange.emit({});
   }
-
   getFilterConfigs(): FilterConfig[] {
     return this.filterFields
       .filter((field) => field.type !== "date-range")
@@ -169,7 +147,6 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
         };
       });
   }
-
   getFilterValues(): Record<string, string> {
     const values: Record<string, string> = {};
     for (const field of this.filterFields) {
@@ -183,7 +160,6 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     }
     return values;
   }
-
   getDynamicOptionsFn = (_key: string, _filter: any): FilterOption[] => {
     const field = this.filterFields.find((f) => f.key === _key);
     if (field?.options) {
@@ -194,15 +170,12 @@ export class PageToolbarComponent implements OnInit, OnDestroy {
     }
     return [];
   };
-
   onFiltersChangeEvent(filters: Record<string, string | string[] | any>): void {
     this.filtersChange.emit(filters);
   }
-
   onSearchChangeEvent(query: string): void {
     this.searchChange.emit(query);
   }
-
   onFilterChange(_filter: string): void {
     this.config?.filter?.onToggle?.();
   }

@@ -1,11 +1,9 @@
 /* sys lib */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, RouterStateSnapshot, CanActivateFn } from "@angular/router";
-
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
-
 @Injectable({
   providedIn: "root",
 })
@@ -14,7 +12,6 @@ class AuthGuard {
     private authService: AuthService,
     private userValidationService: UserValidationService
   ) {}
-
   canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): boolean {
     if (this.authService.isLoggedIn()) {
       const requiredRoles = route.data["expectedRoles"];
@@ -35,7 +32,6 @@ class AuthGuard {
     }
   }
 }
-
 export const canActivateAuth: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot

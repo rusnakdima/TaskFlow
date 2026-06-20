@@ -2,22 +2,18 @@
 import { Injectable, inject, signal, OnDestroy, DestroyRef, Injector } from "@angular/core";
 import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
-
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
-
 /* models */
 import { INotify, ResponseStatus } from "@entities/response.model";
 import { NotificationAction, NotificationSettings } from "@entities/notification.model";
-
 const DEFAULT_SETTINGS: NotificationSettings = {
   chatVolume: 50,
   commentVolume: 50,
   generalVolume: 50,
   enableSounds: true,
 };
-
 /**
  * NotifyService - Consolidated notification management
  * Merges: NotificationStorageService, NotificationSettingsService,
@@ -32,40 +28,30 @@ export class NotifyService implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private injector = inject(Injector);
   private destroy$ = new Subject<void>();
-
   // NotifyService subject for toast notifications
   private notify = new Subject<INotify>();
-
   // Notification state
   private notificationsSignal = signal<NotificationAction[]>([]);
   private unreadCountSignal = signal(0);
-
   // Settings state
   private settingsKey = "notification_settings";
   private notificationsStorageKey = "taskflow_notifications";
   private settingsSignal = signal<NotificationSettings>(DEFAULT_SETTINGS);
-
   // Track recent comment events to suppress duplicate task updates
   private recentCommentEventsSignal = signal<Map<string, number>>(new Map());
-
   // Cleanup interval subscription
   private cleanupSubscription: any = null;
-
   // Audio context for playing notification sounds
   private audioContext: AudioContext | null = null;
-
   get unreadCount() {
     return this.unreadCountSignal.asReadonly();
   }
-
   get notifications() {
     return this.notificationsSignal.asReadonly();
   }
-
   get settings() {
     return this.settingsSignal.asReadonly();
   }
-
   constructor() {
     this.destroyRef.onDestroy(() => this.destroy$.next());
     this.loadSettings();
@@ -74,7 +60,6 @@ export class NotifyService implements OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.cleanupOldEvents());
   }
-
   private loadNotifications(): void {
     try {
       const stored = localStorage.getItem(this.notificationsStorageKey);
@@ -87,7 +72,6 @@ export class NotifyService implements OnDestroy {
       this.notificationsSignal.set([]);
     }
   }
-
   private saveNotifications(): void {
     try {
       localStorage.setItem(
@@ -98,7 +82,6 @@ export class NotifyService implements OnDestroy {
       console.error("Failed to save notifications: " + String(error));
     }
   }
-
   private cleanupOldEvents(): void {
     const now = Date.now();
     this.recentCommentEventsSignal.update((events) => {
@@ -111,11 +94,9 @@ export class NotifyService implements OnDestroy {
       return filtered;
     });
   }
-
   private getRequestService(): ApiService {
     return this.injector.get(ApiService);
   }
-
   private async fetchEntityTitle(table: string, id: string): Promise<string> {
     try {
       const result = await firstValueFrom(
@@ -124,21 +105,16 @@ export class NotifyService implements OnDestroy {
       if (result && (result as any).title) {
         return (result as any).title;
       }
-    } catch (error) {
-      console.warn("Failed to fetch entity title: " + error);
-    }
+    } catch (error) {}
     return "";
   }
-
   // ==================== NOTIFY SERVICE METHODS (Toast Notifications) ====================
-
   /**
    * Get the notify subject for toast notifications
    */
   getNotifySubject(): Subject<INotify> {
     return this.notify;
   }
-
   /**
    * Show a toast notification
    */
@@ -149,28 +125,24 @@ export class NotifyService implements OnDestroy {
       // Error silently ignored
     }
   }
-
   /**
    * Show a success toast notification
    */
   showSuccess(message: string) {
     this.showNotify(ResponseStatus.SUCCESS, message);
   }
-
   /**
    * Show an info toast notification
    */
   showInfo(message: string) {
     this.showNotify(ResponseStatus.INFO, message);
   }
-
   /**
    * Show a warning toast notification
    */
   showWarning(message: string) {
     this.showNotify(ResponseStatus.WARNING, message);
   }
-
   /**
    * Show an error toast notification
    */
@@ -189,9 +161,7 @@ export class NotifyService implements OnDestroy {
     }
     this.showNotify(ResponseStatus.ERROR, message as string);
   }
-
   // ==================== SETTINGS METHODS ====================
-
   private loadSettings(): void {
     try {
       const saved = localStorage.getItem(this.settingsKey);
@@ -203,11 +173,9 @@ export class NotifyService implements OnDestroy {
       this.settingsSignal.set(DEFAULT_SETTINGS);
     }
   }
-
   getSettings(): NotificationSettings {
     return this.settingsSignal();
   }
-
   saveSettings(newSettings: NotificationSettings): void {
     this.settingsSignal.set(newSettings);
     try {
@@ -216,11 +184,9 @@ export class NotifyService implements OnDestroy {
       // Error silently ignored
     }
   }
-
   getVolumeForType(type: "chat" | "comment" | "general"): number {
     const settings = this.settingsSignal();
     if (!settings.enableSounds) return 0;
-
     switch (type) {
       case "chat":
         return (settings.chatVolume ?? 0) / 100;
@@ -230,18 +196,14 @@ export class NotifyService implements OnDestroy {
         return (settings.generalVolume ?? 0) / 100;
     }
   }
-
   // ==================== SOUND METHODS ====================
-
   playSound(type: "general" | "chat" | "comment", action?: NotificationAction["action"]) {
     const volume = this.getVolumeForType(type);
     this.playSoundInternal(type, volume, action);
   }
-
   playTestSound(type: "chat" | "comment" | "general", volume: number) {
     this.playSoundInternal(type, volume);
   }
-
   /**
    * Get or create the AudioContext instance
    */
@@ -251,7 +213,6 @@ export class NotifyService implements OnDestroy {
     }
     return this.audioContext;
   }
-
   /**
    * Resume the AudioContext if it's suspended
    */
@@ -261,7 +222,6 @@ export class NotifyService implements OnDestroy {
       await ctx.resume();
     }
   }
-
   private playSoundInternal(
     type: "chat" | "comment" | "general",
     volume: number,
@@ -270,9 +230,7 @@ export class NotifyService implements OnDestroy {
     if (volume <= 0) {
       return;
     }
-
     const audioContext = this.getAudioContext();
-
     // Resume the audio context if suspended (required for user interaction)
     this.resumeAudioContext()
       .then(() => {
@@ -283,7 +241,6 @@ export class NotifyService implements OnDestroy {
         this.playOscillatorSound(audioContext, type, volume, action);
       });
   }
-
   /**
    * Play the actual oscillator sound after audio context is ready
    */
@@ -295,10 +252,8 @@ export class NotifyService implements OnDestroy {
   ): void {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-
     // Different tones for different notification types
     switch (type) {
       case "chat":
@@ -328,21 +283,17 @@ export class NotifyService implements OnDestroy {
         }
         break;
     }
-
     // Volume is already normalized (0-1), use it directly for accurate volume control
     gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
   }
-
   private addNotification(notification: NotificationAction) {
     this.notificationsSignal.update((n) => [notification, ...n].slice(0, 50));
     this.updateUnreadCount();
     this.saveNotifications();
   }
-
   markAsRead(id: string) {
     this.notificationsSignal.update((notifications) =>
       notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -350,7 +301,6 @@ export class NotifyService implements OnDestroy {
     this.updateUnreadCount();
     this.saveNotifications();
   }
-
   markAllAsRead() {
     this.notificationsSignal.update((notifications) =>
       notifications.map((n) => ({ ...n, read: true }))
@@ -358,26 +308,21 @@ export class NotifyService implements OnDestroy {
     this.updateUnreadCount();
     this.saveNotifications();
   }
-
   clearAll() {
     this.notificationsSignal.set([]);
     this.unreadCountSignal.set(0);
     this.saveNotifications();
   }
-
   private updateUnreadCount() {
     this.unreadCountSignal.set(this.notificationsSignal().filter((n) => !n.read).length);
   }
-
   // ==================== NOTIFICATION EVENT HANDLING ====================
-
   /**
    * Handle notification events
    */
   handleNotificationEvent(event: string, data: any): void {
     this.addNotificationEvent(event, data);
   }
-
   /**
    * Handle local user actions (from ApiProvider)
    */
@@ -389,41 +334,33 @@ export class NotifyService implements OnDestroy {
       comments: "comment",
       chats: "chat",
     };
-
     const actionMapping: Record<string, NotificationAction["action"]> = {
       create: "created",
       update: "updated",
       delete: "deleted",
     };
-
     const type = typeMapping[table];
     const action = actionMapping[operation];
-
     if (type && action) {
       // For local actions, we always play sound and show notification in header
       // but we mark it as "own action" so buildAndAddNotification knows how to handle it
       this.addNotificationEvent(`${type}-${action}`, data, true);
     }
   }
-
   private addNotificationEvent(event: string, data: any, isLocalAction: boolean = false) {
     const token = this.jwtTokenService.getToken();
     const currentUserId = this.jwtTokenService.getUserId(token);
-
     // Check if this is own action
     const isOwnAction = isLocalAction || data.user_id === currentUserId;
-
     const [type, action] = event.split("-") as [
       NotificationAction["type"],
       NotificationAction["action"],
     ];
-
     // Handle comments and chat messages immediately (with sound)
     if (type === "comment" || type === "chat") {
       this.handleCommentOrChatNotification(type, action, data, !isOwnAction || isLocalAction);
       return;
     }
-
     // Skip task updates caused by comments
     if (action === "updated" && type === "task" && data.id) {
       const events = this.recentCommentEventsSignal();
@@ -434,13 +371,11 @@ export class NotifyService implements OnDestroy {
         }
       }
     }
-
     // Play sound for all actions, show notification for others' actions OR local actions
     if (type) {
       this.handleOtherNotification(type, action, data, !isOwnAction);
     }
   }
-
   private handleCommentOrChatNotification(
     type: "comment" | "chat",
     action: NotificationAction["action"],
@@ -455,15 +390,12 @@ export class NotifyService implements OnDestroy {
         return newEvents;
       });
     }
-
     const todoId = data.todo_id;
     const taskId = data.task_id;
     const commentId = data.id;
     const chatId = data.id;
-
     let todoTitle = "";
     let taskTitle = "";
-
     const fetchTitles = async () => {
       if (todoId) {
         todoTitle = await this.fetchEntityTitle("todos", todoId);
@@ -472,12 +404,10 @@ export class NotifyService implements OnDestroy {
         taskTitle = await this.fetchEntityTitle("tasks", taskId);
       }
     };
-
     setTimeout(async () => {
       await fetchTitles();
       let title = "";
       let message = "";
-
       // Build notification content based on type and action
       if (type === "chat") {
         if (action === "created") {
@@ -514,13 +444,10 @@ export class NotifyService implements OnDestroy {
           return;
         }
       }
-
       const notificationAction =
         action === "cleared" ? "updated" : (action as NotificationAction["action"]);
-
       // Always play sound for chat/comment actions
       this.playSound(type, notificationAction);
-
       // Only store notification if not own action and we have valid content
       if (shouldNotify && title && message) {
         const newNotification: NotificationAction = {
@@ -536,12 +463,10 @@ export class NotifyService implements OnDestroy {
           comment_id: type === "comment" ? commentId : undefined,
           chat_id: type === "chat" ? chatId : undefined,
         };
-
         this.addNotification(newNotification);
       }
     }, 0);
   }
-
   private handleOtherNotification(
     type: "todo" | "task" | "subtask",
     action: NotificationAction["action"],
@@ -552,24 +477,19 @@ export class NotifyService implements OnDestroy {
     let todoId = data.todo_id;
     let taskId = data.task_id;
     const subtaskId = data.subtask_id;
-
     const entityName = type.charAt(0).toUpperCase() + type.slice(1);
-
     // Always play sound for create/update/delete
     this.playSound("general", action);
-
     if (action === "created") {
       setTimeout(async () => {
         let todoTitle = "";
         let taskTitle = "";
-
         if (todoId) {
           todoTitle = await this.fetchEntityTitle("todos", todoId);
         }
         if (taskId) {
           taskTitle = await this.fetchEntityTitle("tasks", taskId);
         }
-
         this.buildAndAddNotification(
           type,
           title,
@@ -586,19 +506,16 @@ export class NotifyService implements OnDestroy {
       }, 0);
       return;
     }
-
     if (action === "deleted") {
       if (type === "task" && !todoId) {
         todoId = data.todo_id;
       } else if (type === "subtask" && !taskId) {
         taskId = data.task_id;
       }
-
       // Only store notification if not own action
       if (shouldNotify) {
         const message = `${entityName} "${title || "unnamed"}" was deleted`;
         title = `Deleted ${type}`;
-
         const newNotification: NotificationAction = {
           id: Math.random().toString(36).substring(7),
           type,
@@ -611,23 +528,19 @@ export class NotifyService implements OnDestroy {
           task_id: taskId,
           subtask_id: subtaskId,
         };
-
         this.addNotification(newNotification);
       }
       return;
     }
-
     setTimeout(async () => {
       let todoTitle = "";
       let taskTitle = "";
-
       if (todoId) {
         todoTitle = await this.fetchEntityTitle("todos", todoId);
       }
       if (taskId) {
         taskTitle = await this.fetchEntityTitle("tasks", taskId);
       }
-
       this.buildAndAddNotification(
         type,
         title,
@@ -643,7 +556,6 @@ export class NotifyService implements OnDestroy {
       );
     }, 0);
   }
-
   private buildAndAddNotification(
     type: NotificationAction["type"],
     originalTitle: string,
@@ -659,7 +571,6 @@ export class NotifyService implements OnDestroy {
   ): void {
     let title = originalTitle;
     let message = "";
-
     if (action === "created") {
       message = todoTitle
         ? `New ${type} "${originalTitle || "unnamed"}" in "${todoTitle}"`
@@ -673,7 +584,6 @@ export class NotifyService implements OnDestroy {
           return;
         }
       }
-
       if (type === "task" && data.status) {
         const statusText = this.formatStatus(data.status);
         message = todoTitle
@@ -691,7 +601,6 @@ export class NotifyService implements OnDestroy {
       }
       title = originalTitle || `${entityName} Updated`;
     }
-
     // Only store notification if shouldNotify is true
     if (shouldNotify) {
       const newNotification: NotificationAction = {
@@ -706,11 +615,9 @@ export class NotifyService implements OnDestroy {
         task_id,
         subtask_id,
       };
-
       this.addNotification(newNotification);
     }
   }
-
   private formatStatus(status: string): string {
     switch (status) {
       case "completed":
@@ -723,9 +630,7 @@ export class NotifyService implements OnDestroy {
         return "Pending";
     }
   }
-
   // ==================== CLEANUP ====================
-
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

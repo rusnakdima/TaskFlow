@@ -3,28 +3,22 @@ import { interval, Subscription, Observable, Subject } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
 import { QrStatus, QrCodeData, QrGenerationResult, QrStatusResult } from "@entities/security.model";
-
 @Injectable({
   providedIn: "root",
 })
 export class QrLoginService implements OnDestroy {
   private requestService = inject(ApiService);
   private jwtTokenService = inject(JwtTokenService);
-
   private pollSubscription: Subscription | null = null;
   private readonly qrApprovedSubject = new Subject<string>();
-
   readonly qrApproved$ = this.qrApprovedSubject.asObservable();
-
   readonly currentQrData = signal<QrCodeData | null>(null);
   readonly qrStatus = signal<QrStatus>("pending");
   readonly qrStatusData = signal<QrStatusResult | null>(null);
   readonly isPolling = signal(false);
-
   ngOnDestroy(): void {
     this.stopPolling();
   }
-
   generateQrCode(_username?: string): Observable<QrGenerationResult> {
     return new Observable((observer) => {
       this.requestService.invokeCommand<any>("qr_generate", {}).subscribe({
@@ -48,7 +42,6 @@ export class QrLoginService implements OnDestroy {
       });
     });
   }
-
   generateQrCodeForDesktopLogin(username: string): Observable<QrGenerationResult> {
     const userId = this.jwtTokenService.getCurrentUserId() || "";
     return new Observable((observer) => {
@@ -76,16 +69,13 @@ export class QrLoginService implements OnDestroy {
         });
     });
   }
-
   startPolling(token: string, intervalMs: number = 2000): void {
     this.stopPolling();
-
     this.isPolling.set(true);
     this.pollSubscription = interval(intervalMs).subscribe(() => {
       this.checkStatus(token);
     });
   }
-
   stopPolling(): void {
     if (this.pollSubscription) {
       this.pollSubscription.unsubscribe();
@@ -93,7 +83,6 @@ export class QrLoginService implements OnDestroy {
     }
     this.isPolling.set(false);
   }
-
   private checkStatus(token: string): void {
     this.requestService
       .invokeCommand<{
@@ -106,7 +95,6 @@ export class QrLoginService implements OnDestroy {
           const innerStatus = response?.status;
           this.qrStatus.set(innerStatus as QrStatus);
           this.qrStatusData.set(response as any);
-
           if (innerStatus === "approved") {
             this.stopPolling();
             this.qrApprovedSubject.next(token);
@@ -122,7 +110,6 @@ export class QrLoginService implements OnDestroy {
         },
       });
   }
-
   approveFromMobile(token: string): Observable<{ success: boolean }> {
     return new Observable((observer) => {
       this.requestService.invokeCommand<{ success: boolean }>("qr_approve", { token }).subscribe({
@@ -134,7 +121,6 @@ export class QrLoginService implements OnDestroy {
       });
     });
   }
-
   clearQrData(): void {
     this.stopPolling();
     this.currentQrData.set(null);

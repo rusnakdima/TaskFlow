@@ -1,7 +1,6 @@
 import { AdminFieldConfig } from "@entities/admin-table.model";
 import { TableFieldType, TableField } from "@entities/table-field.model";
 import { TABLE_COLUMNS } from "@shared/utils/constants";
-
 export class TableFieldFactory {
   static fromAdminConfig(config: AdminFieldConfig): TableField {
     return {
@@ -16,7 +15,6 @@ export class TableFieldFactory {
       getChipText: config.getChipText,
     };
   }
-
   static createAdminFields(): TableField[] {
     return [
       { key: "title", label: "Title", type: "text", sortable: true },
@@ -38,7 +36,6 @@ export class TableFieldFactory {
       { key: "expand", label: "", type: "expand" },
     ];
   }
-
   static createAdminExpandTemplate(item: any): Record<string, any> {
     return {
       title: item.title,
@@ -50,13 +47,11 @@ export class TableFieldFactory {
       updated_at: item.updated_at,
     };
   }
-
   static getColumns(dataType: string): TableField[] {
     const columns = TABLE_COLUMNS[dataType as keyof typeof TABLE_COLUMNS];
     if (!columns) return [];
     return columns.map((config) => this.fromAdminConfig(config));
   }
-
   static getArchiveColumns(dataType: string): TableField[] {
     return this.getColumns(dataType);
   }

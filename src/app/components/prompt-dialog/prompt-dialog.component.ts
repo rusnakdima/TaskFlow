@@ -3,7 +3,6 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { PromptDialogService } from "@core/services/prompt-dialog.service";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-prompt-dialog",
   standalone: true,
@@ -12,11 +11,9 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 })
 export class PromptDialogComponent {
   @ViewChild("inputField") inputField!: ElementRef<HTMLInputElement>;
-
   promptService = inject(PromptDialogService);
   inputValue = "";
   inputError = signal<string | null>(null);
-
   constructor() {
     effect(() => {
       if (this.promptService.isOpen()) {
@@ -26,24 +23,19 @@ export class PromptDialogComponent {
       }
     });
   }
-
   onBackdropClick(): void {
     this.promptService.resolve(null);
   }
-
   onCancel(): void {
     this.promptService.resolve(null);
   }
-
   onConfirm(): void {
     const config = this.promptService.config();
     const value = this.inputValue;
-
     if (config?.required && !value.trim()) {
       this.inputError.set("This field is required");
       return;
     }
-
     if (config?.validateFn) {
       const error = config.validateFn(value);
       if (error) {
@@ -51,12 +43,10 @@ export class PromptDialogComponent {
         return;
       }
     }
-
     this.promptService.resolve(value);
     this.inputValue = "";
     this.inputError.set(null);
   }
-
   clearError(): void {
     this.inputError.set(null);
   }

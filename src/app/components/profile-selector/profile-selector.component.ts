@@ -6,7 +6,6 @@ import { MatMenuModule } from "@angular/material/menu";
 import { StorageService } from "@services/storage.service";
 import { Profile } from "@entities/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
-
 export interface ProfileOption {
   id: string;
   user_id: string;
@@ -15,7 +14,6 @@ export interface ProfileOption {
   email: string;
   image_url?: string;
 }
-
 @Component({
   selector: "app-profile-selector",
   standalone: true,
@@ -24,20 +22,16 @@ export interface ProfileOption {
 })
 export class ProfileSelectorComponent {
   private storageService = inject(StorageService);
-
   @Input() active = "";
   @Input() excludeCurrentUser = true;
   @Input() profiles: Profile[] | null = null;
   @Output() select = new EventEmitter<ProfileOption>();
-
   get allProfiles(): Profile[] {
     return this.profiles ?? this.storageService.allProfiles();
   }
-
   getActiveProfile(): Profile | undefined {
     return this.allProfiles.find((p) => p.id === this.active);
   }
-
   getFilteredProfiles(): Profile[] {
     const currentUserId = this.storageService.profile()?.user_id;
     let filtered = this.allProfiles;
@@ -46,7 +40,6 @@ export class ProfileSelectorComponent {
     }
     return filtered;
   }
-
   onSelect(profile: Profile): void {
     this.select.emit({
       id: profile.id,
@@ -57,11 +50,9 @@ export class ProfileSelectorComponent {
       image_url: profile.image_url,
     });
   }
-
   getProfileInitials(profile: Profile): string {
     return `${profile.name[0] || ""}${profile.last_name[0] || ""}`.toUpperCase();
   }
-
   getProfileColor(profile: Profile): string {
     const colors = [
       "bg-red-500",

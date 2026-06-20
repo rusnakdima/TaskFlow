@@ -8,22 +8,18 @@ export function filterBySearch<T>(items: T[], query: string, fields: (keyof T)[]
     })
   );
 }
-
 export function countByStatus<T extends { status: string }>(items: T[], status: string): number {
   return items.filter((item) => item.status === status).length;
 }
-
 export function compareByTimestamp(a: { created_at?: string }, b: { created_at?: string }): number {
   return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
 }
-
 export function getLatestTimestamp(entity: { created_at?: string; updated_at?: string }): number {
   return Math.max(
     new Date(entity.created_at || 0).getTime(),
     new Date(entity.updated_at || 0).getTime()
   );
 }
-
 export function groupByField<T, K extends keyof T>(items: T[], field: K): Map<T[K], T[]> {
   const map = new Map<T[K], T[]>();
   for (const item of items) {

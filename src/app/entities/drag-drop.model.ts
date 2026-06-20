@@ -1,5 +1,4 @@
 import { Task, TaskStatus } from "./generated/api.types";
-
 export interface KanbanColumn {
   id: string;
   title: string;
@@ -7,13 +6,11 @@ export interface KanbanColumn {
   colorClass: string;
   tasks: Task[];
 }
-
 export interface Orderable {
   id: string;
   order: number;
   parentId?: string;
 }
-
 export interface ReorderResult<T> {
   items?: T[];
   updated?: T[];
@@ -23,7 +20,6 @@ export interface ReorderResult<T> {
   oldIndex?: number;
   newIndex?: number;
 }
-
 export interface DragDropHandlers<T> {
   onDragStart?: (item: T) => void;
   onDragEnd?: (item: T) => void;

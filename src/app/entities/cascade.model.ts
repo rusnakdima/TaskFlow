@@ -6,7 +6,6 @@ export interface CascadeResult {
   subtaskIds?: string[];
   timestamp?: string;
 }
-
 export interface CascadeUpdate {
   id?: string;
   updates?: Record<string, any>;
@@ -15,5 +14,4 @@ export interface CascadeUpdate {
   subtaskId?: string;
   cascade?: boolean;
 }
-
 export {};

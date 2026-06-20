@@ -6,7 +6,6 @@ export interface ProjectTemplate {
   createdAt?: string;
   tasks: TemplateTask[];
 }
-
 export interface TemplateTask {
   title: string;
   description?: string;

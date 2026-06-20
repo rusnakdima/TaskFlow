@@ -1,10 +1,8 @@
 /* sys lib */
 import { FormGroup } from "@angular/forms";
 import { MatCalendarCellCssClasses } from "@angular/material/datepicker";
-
 /* models */
 import { TaskStatus } from "@entities/generated/api.types";
-
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -16,7 +14,6 @@ export interface CalendarEvent {
   isPrivate: boolean;
   isOwner: boolean;
 }
-
 export interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
@@ -24,7 +21,6 @@ export interface CalendarDay {
   isSelected: boolean;
   events: CalendarEvent[];
 }
-
 export class DateHelper {
   static createDateClass(form: FormGroup): (date: Date) => MatCalendarCellCssClasses {
     return (date: Date): MatCalendarCellCssClasses => {
@@ -40,7 +36,6 @@ export class DateHelper {
       return "";
     };
   }
-
   private static parseDate(date: Date | string | null | undefined): Date | null {
     if (!date) return null;
     if (date instanceof Date) return isNaN(date.getTime()) ? null : date;
@@ -51,7 +46,6 @@ export class DateHelper {
     }
     return null;
   }
-
   static convertLocalToUtc(date: Date | string | null | undefined): string {
     const d = DateHelper.parseDate(date);
     if (!d) return "";
@@ -60,23 +54,19 @@ export class DateHelper {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}T00:00:00Z`;
   }
-
   static convertUtcToLocal(utcString: string): string {
     const date = DateHelper.parseDate(utcString);
     if (!date) return "";
     return date.toISOString().replace("Z", "").split(".")[0];
   }
-
   static utcToLocalDate(utcString: string): Date | null {
     return DateHelper.parseDate(utcString);
   }
-
   static normalizeDateFields<T extends Record<string, any>>(
     formValue: T,
     dateFieldNames: string[] = ["start_date", "end_date"]
   ): T {
     const normalizedValue = { ...formValue } as Record<string, any>;
-
     for (const fieldName of dateFieldNames) {
       if (fieldName in normalizedValue) {
         const fieldValue = normalizedValue[fieldName];
@@ -85,40 +75,32 @@ export class DateHelper {
         }
       }
     }
-
     return normalizedValue as T;
   }
-
   static convertDatesToUtc<T extends Record<string, any>>(
     formValue: T,
     dateFieldNames: string[] = ["start_date", "end_date"]
   ): T {
     const converted = { ...formValue } as Record<string, any>;
-
     for (const fieldName of dateFieldNames) {
       if (fieldName in converted) {
         converted[fieldName] = DateHelper.convertLocalToUtc(converted[fieldName]);
       }
     }
-
     return converted as T;
   }
-
   static convertDatesFromUtcToLocal<T extends Record<string, any>>(
     formValue: T,
     dateFieldNames: string[] = ["start_date", "end_date"]
   ): T {
     const converted = { ...formValue } as Record<string, any>;
-
     for (const fieldName of dateFieldNames) {
       if (fieldName in converted && converted[fieldName]) {
         converted[fieldName] = DateHelper.utcToLocalDate(converted[fieldName]);
       }
     }
-
     return converted as T;
   }
-
   static formatDateRelative(time: string): string {
     if (!time) return "";
     const dateRec = new Date(time);
@@ -129,11 +111,9 @@ export class DateHelper {
     const curYear = curDate.getFullYear();
     const curMonth = curDate.getMonth();
     const curDay = curDate.getDate();
-
     if (day === curDay && month === curMonth && year === curYear) {
       return DateHelper.formatTime(dateRec);
     }
-
     const yesterday = new Date(curDate);
     yesterday.setDate(curDate.getDate() - 1);
     if (
@@ -143,10 +123,8 @@ export class DateHelper {
     ) {
       return `Yesterday ${DateHelper.formatTime(dateRec)}`;
     }
-
     return DateHelper.formatLocaleDate(dateRec);
   }
-
   static formatTime(date: Date | string): string {
     if (typeof date === "string") {
       date = new Date(date);
@@ -155,7 +133,6 @@ export class DateHelper {
     const minutes = date.getMinutes().toString().padStart(2, "0");
     return `${hours}:${minutes}`;
   }
-
   static formatLocaleDate(date: Date | string): string {
     if (typeof date === "string" && date === "") {
       date = new Date();
@@ -169,7 +146,6 @@ export class DateHelper {
       day: "numeric",
     });
   }
-
   static formatDateShort(dateString: string): string {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -178,13 +154,11 @@ export class DateHelper {
       day: "numeric",
     });
   }
-
   static formatDateTime(dateString: string): string {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleString();
   }
-
   static generateCalendarDays(
     currentMonth: Date,
     selectedDate: Date,
@@ -192,19 +166,14 @@ export class DateHelper {
   ): CalendarDay[] {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-
     const newCalendarDays: CalendarDay[] = [];
-
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
-
       const dayEvents = events.filter((event) => DateHelper.isSameDay(event.date, date));
-
       newCalendarDays.push({
         date: new Date(date),
         isCurrentMonth: date.getMonth() === month,
@@ -213,10 +182,8 @@ export class DateHelper {
         events: dayEvents,
       });
     }
-
     return newCalendarDays;
   }
-
   static generateWeekDays(
     selectedDate: Date,
     currentMonth: Date,
@@ -224,15 +191,11 @@ export class DateHelper {
   ): CalendarDay[] {
     const startOfWeek = new Date(selectedDate);
     startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
-
     const newWeekDays: CalendarDay[] = [];
-
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
-
       const dayEvents = events.filter((event) => DateHelper.isSameDay(event.date, date));
-
       newWeekDays.push({
         date: new Date(date),
         isCurrentMonth: date.getMonth() === currentMonth.getMonth(),
@@ -241,10 +204,8 @@ export class DateHelper {
         events: dayEvents,
       });
     }
-
     return newWeekDays;
   }
-
   static getWeeksForMobile(calendarDays: CalendarDay[]): CalendarDay[][] {
     const weeks: CalendarDay[][] = [];
     for (let i = 0; i < calendarDays.length; i += 7) {
@@ -252,11 +213,9 @@ export class DateHelper {
     }
     return weeks;
   }
-
   static isSameDay(date1: Date, date2: Date): boolean {
     return date1.toDateString() === date2.toDateString();
   }
-
   static getEventColor(event: CalendarEvent): string {
     if (event.status === "due") return "bg-red-500";
     if (event.status === "completed") return "bg-green-500";
@@ -264,31 +223,26 @@ export class DateHelper {
     if (event.status === "failed") return "bg-gray-500";
     return "bg-blue-500";
   }
-
   static formatMonthYear(date: Date): string {
     return date.toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
   }
-
   static formatWeekRange(selectedDate: Date): string {
     const startOfWeek = new Date(selectedDate);
     startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
-
     const startMonth = startOfWeek.toLocaleDateString("en-US", { month: "short" });
     const endMonth = endOfWeek.toLocaleDateString("en-US", { month: "short" });
     const year = startOfWeek.getFullYear();
-
     if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
       return `${startMonth} ${startOfWeek.getDate()} - ${endOfWeek.getDate()}, ${year}`;
     } else {
       return `${startMonth} ${startOfWeek.getDate()} - ${endMonth} ${endOfWeek.getDate()}, ${year}`;
     }
   }
-
   static getCurrentTitle(
     viewMode: "month" | "week",
     currentMonth: Date,
@@ -301,7 +255,6 @@ export class DateHelper {
     }
     return "";
   }
-
   static getTaskStatusText(status: TaskStatus): string {
     switch (status) {
       case TaskStatus.COMPLETED:
@@ -314,50 +267,40 @@ export class DateHelper {
         return "due";
     }
   }
-
   static getTaskEventTitle(status: TaskStatus, taskTitle: string): string {
     const statusText = DateHelper.getTaskStatusText(status);
     return `${statusText.charAt(0).toUpperCase() + statusText.slice(1)}: ${taskTitle}`;
   }
-
   static validateDates(form: FormGroup, notifyService: any): boolean {
     const startDate = form.get("startDate")?.value;
     const endDate = form.get("endDate")?.value;
-
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-
       if (end < start) {
         notifyService.showError("End date cannot be earlier than start date");
         return false;
       }
     }
-
     if (!startDate && endDate) {
       form.get("endDate")?.setValue("");
     }
-
     return true;
   }
-
   static createEndDateFilter(startDateControl: string, form: FormGroup) {
     return (date: Date | null): boolean => {
       const startDateValue = form.get(startDateControl)?.value;
       if (!startDateValue) {
         return true;
       }
-
       if (!date) {
         return false;
       }
-
       const startDate = new Date(startDateValue);
       startDate.setHours(0, 0, 0, 0);
       return date >= startDate;
     };
   }
-
   static updateEndDateValidation(form: FormGroup, startDate: string): void {
     const endDateControl = form.get("endDate");
     if (!startDate) {
@@ -373,7 +316,6 @@ export class DateHelper {
       }
     }
   }
-
   static validateForm(form: FormGroup, notifyService: any, isSubmitting: boolean = false): boolean {
     if (form.invalid || isSubmitting) {
       Object.values(form.controls).forEach((control) => {
@@ -386,7 +328,6 @@ export class DateHelper {
     }
     return true;
   }
-
   static parseDateSafely(date: string | null | undefined): Date | null {
     if (!date) return null;
     const parsed = new Date(date);

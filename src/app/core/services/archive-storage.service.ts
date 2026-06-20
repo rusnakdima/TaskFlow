@@ -2,21 +2,18 @@
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-
 /* services */
 import { AdminService } from "@services/data/admin.service";
 import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
 import { ResponseStatus } from "@entities/response.model";
-
 @Injectable({
   providedIn: "root",
 })
 export class ArchiveStorageService extends BaseAdminStorageService {
   private adminService = inject(AdminService);
   private apiService = inject(ApiService);
-
   /**
    * Load initial paginated data for a specific type
    */
@@ -35,7 +32,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       });
     });
   }
-
   /**
    * Load more paginated data for a specific type
    */
@@ -54,7 +50,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       });
     });
   }
-
   /**
    * Get all archive data with relations
    */
@@ -72,7 +67,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     };
     return data as any;
   }
-
   /**
    * Load archive data for a specific type from backend
    * Uses per-type loading to avoid fetching all data at once
@@ -81,13 +75,10 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     if (!force && this.isTypeLoaded(type) && this.hasTypeData(type)) {
       return of(this.getTypeData(type));
     }
-
     if (this.loadingSignal()) {
       return of(this.getTypeData(type));
     }
-
     this.loadingSignal.set(true);
-
     return this.loadArchiveDataFromRoute().pipe(
       tap((response: any) => {
         const data = response?.data || response;
@@ -107,7 +98,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
       })
     );
   }
-
   private getTypeData(type: string): any[] {
     switch (type) {
       case "todos":
@@ -128,7 +118,6 @@ export class ArchiveStorageService extends BaseAdminStorageService {
         return [];
     }
   }
-
   private setTypeData(data: any): void {
     this.todosSignal.set(data["todos"] || []);
     this.tasksSignal.set(data["tasks"] || []);
@@ -138,12 +127,10 @@ export class ArchiveStorageService extends BaseAdminStorageService {
     this.categoriesSignal.set(data["categories"] || []);
     this.dailyActivitiesSignal.set(data["daily_activities"] || []);
   }
-
   private hasTypeData(type: string): boolean {
     const data = this.getTypeData(type);
     return data.length > 0;
   }
-
   /**
    * Load archive data from the get_all_data_for_archive route
    */

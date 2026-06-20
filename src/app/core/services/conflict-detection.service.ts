@@ -1,49 +1,38 @@
 /* sys lib */
 import { Injectable, inject, signal } from "@angular/core";
-
 /* services */
 import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
-
 /* models */
 import { Conflict, ConflictResolution } from "@entities/conflict.model";
-
 const CONFLICT_TTL_MS = 10 * 60 * 1000;
 const MAX_CONFLICTS_SIZE = 100;
-
 @Injectable({
   providedIn: "root",
 })
 export class ConflictDetectionService {
   private storageService = inject(StorageService);
   private notifyService = inject(NotifyService);
-
   private conflicts = new Map<string, Conflict>();
   private conflictTimestamps = new Map<string, number>();
   private readonly _conflictsSignal = signal<Conflict[]>([]);
-
   get conflictsSignal() {
     return this._conflictsSignal.asReadonly();
   }
-
   getConflicts(): Conflict[] {
     return Array.from(this.conflicts.values());
   }
-
   getConflictCount(): number {
     return this.conflicts.size;
   }
-
   checkConflict<T extends { id: string; version?: number; updatedAt?: string }>(
     entityType: "todos" | "tasks" | "subtasks" | "categories" | "comments",
     remoteData: T
   ): boolean {
     const entityId = remoteData.id;
     if (!entityId) return false;
-
     let localData: any;
     let localVersion: number = 0;
-
     switch (entityType) {
       case "todos":
         localData = this.storageService.todoMap().get(entityId);
@@ -60,16 +49,12 @@ export class ConflictDetectionService {
       default:
         return false;
     }
-
     if (!localData) return false;
-
     localVersion = localData.version || 0;
     const remoteVersion = (remoteData as any).version || 0;
-
     if (remoteVersion > localVersion) {
       return false;
     }
-
     if (remoteVersion < localVersion) {
       this.enforceConflictLimits();
       const entityTypeSingular = entityType.replace(/s$/, "") as Conflict["entityType"];
@@ -84,17 +69,14 @@ export class ConflictDetectionService {
         timestamp: new Date().toISOString(),
         resolved: false,
       };
-
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
       this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
       this._conflictsSignal.set(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
     }
-
     const localTime = localData.updatedAt ? new Date(localData.updatedAt).getTime() : 0;
     const remoteTime = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
-
     if (Math.abs(localTime - remoteTime) < 2000 && localTime !== remoteTime) {
       this.enforceConflictLimits();
       const entityTypeSingular = entityType.replace(/s$/, "") as Conflict["entityType"];
@@ -109,17 +91,14 @@ export class ConflictDetectionService {
         timestamp: new Date().toISOString(),
         resolved: false,
       };
-
       this.conflicts.set(`${entityType}:${entityId}`, conflict);
       this.conflictTimestamps.set(`${entityType}:${entityId}`, Date.now());
       this._conflictsSignal.set(this.getConflicts());
       this.notifyUserOfConflict(conflict);
       return true;
     }
-
     return false;
   }
-
   private enforceConflictLimits(): void {
     const now = Date.now();
     for (const [key, timestamp] of this.conflictTimestamps.entries()) {
@@ -139,7 +118,6 @@ export class ConflictDetectionService {
       }
     }
   }
-
   resolveConflict(
     entityType: string,
     entityId: string,
@@ -148,15 +126,12 @@ export class ConflictDetectionService {
   ): void {
     const conflict = this.conflicts.get(`${entityType}:${entityId}`);
     if (!conflict) return;
-
     switch (resolution) {
       case "remote":
         this.updateEntity(entityType, entityId, conflict.remoteData);
         break;
-
       case "local":
         break;
-
       case "merge":
         if (mergedData) {
           this.updateEntity(entityType, entityId, mergedData);
@@ -168,22 +143,18 @@ export class ConflictDetectionService {
         }
         break;
     }
-
     conflict.resolved = true;
     this.conflicts.delete(`${entityType}:${entityId}`);
     this.conflictTimestamps.delete(`${entityType}:${entityId}`);
     this._conflictsSignal.set(this.getConflicts());
-
     this.notifyService.showSuccess("Conflict resolved");
   }
-
   resolveAllConflicts(resolution: ConflictResolution): void {
     const conflicts = this.getConflicts();
     conflicts.forEach((conflict) => {
       this.resolveConflict(conflict.entityType, conflict.entityId, resolution);
     });
   }
-
   clearResolvedConflicts(): void {
     const conflicts = this.getConflicts();
     conflicts.forEach((conflict) => {
@@ -194,11 +165,9 @@ export class ConflictDetectionService {
     });
     this._conflictsSignal.set(this.getConflicts());
   }
-
   private updateEntity(entityType: string, entityId: string, data: any): void {
     this.storageService.modify(entityType as any, "update", { id: entityId, ...data });
   }
-
   private notifyUserOfConflict(conflict: Conflict): void {
     const entityNames: Record<string, string> = {
       todo: "project",
@@ -206,15 +175,11 @@ export class ConflictDetectionService {
       subtask: "subtask",
       category: "category",
     };
-
     const entityName = entityNames[conflict.entityType] || conflict.entityType;
-
     const isPrivateTodo =
       conflict.entityType === "todo" && conflict.localData?.visibility === "private";
-
     if (isPrivateTodo) {
       this.notifyService.showInfo(`Version conflict on ${entityName}. Your version will be kept.`);
-
       setTimeout(() => {
         const stillExists = this.conflicts.has(`${conflict.entityType}:${conflict.entityId}`);
         if (stillExists) {
@@ -228,11 +193,9 @@ export class ConflictDetectionService {
       );
     }
   }
-
   hasConflict(entityType: string, entityId: string): boolean {
     return this.conflicts.has(`${entityType}:${entityId}`);
   }
-
   getConflict(entityType: string, entityId: string): Conflict | undefined {
     return this.conflicts.get(`${entityType}:${entityId}`);
   }

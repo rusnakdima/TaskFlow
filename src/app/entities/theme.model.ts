@@ -3,12 +3,10 @@ export interface ThemePreset {
   name: string;
   accentColor: string;
 }
-
 export interface AppearanceSettings {
   mode: "light" | "dark" | "system";
   preset: ThemePreset;
 }
-
 export const THEME_PRESETS: ThemePreset[] = [
   { id: "pink-dream", name: "Pink Dream", accentColor: "#ec4899" },
   { id: "ocean-blue", name: "Ocean Blue", accentColor: "#3b82f6" },
@@ -17,17 +15,14 @@ export const THEME_PRESETS: ThemePreset[] = [
   { id: "sunset-orange", name: "Sunset Orange", accentColor: "#f97316" },
   { id: "cyan-wave", name: "Cyan Wave", accentColor: "#06b6d4" },
 ];
-
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   mode: "dark",
   preset: THEME_PRESETS[0],
 };
-
 export function getAccentShades(hexColor: string): Record<string, string> {
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
-
   return {
     "50": `rgba(${r}, ${g}, ${b}, 0.05)`,
     "100": `rgba(${r}, ${g}, ${b}, 0.1)`,

@@ -1,11 +1,9 @@
 export type FilterControlType = "text" | "select" | "date";
 export type FilterFieldType = FilterControlType | "radio" | "checkbox" | "date-range";
-
 export interface FilterOption {
   value: string;
   label: string;
 }
-
 export interface FilterConfig {
   key: string;
   label: string;
@@ -15,7 +13,6 @@ export interface FilterConfig {
   dynamicListKey?: string;
   dataType?: string[];
 }
-
 export interface FilterField {
   key: string;
   label: string;
@@ -24,7 +21,6 @@ export interface FilterField {
   options?: FilterFieldOption[];
   placeholder?: string;
 }
-
 export interface FilterFieldOption {
   key: string;
   label: string;

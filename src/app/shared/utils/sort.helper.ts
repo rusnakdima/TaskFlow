@@ -1,8 +1,6 @@
 /* sys lib */
-
 /* helpers */
 import { ObjectHelper } from "@helpers/object.helper";
-
 /**
  * Sort configuration interface
  */
@@ -10,7 +8,6 @@ export interface SortConfig {
   field: string;
   order: "asc" | "desc";
 }
-
 /**
  * SortHelper - Centralized sorting logic for all views
  *
@@ -25,35 +22,29 @@ export class SortHelper {
       return [];
     }
     const { field, order } = config;
-
     return [...data].sort((a: T, b: T) => {
       let aValue = ObjectHelper.getNestedValue(a, field);
       let bValue = ObjectHelper.getNestedValue(b, field);
-
       // Handle date fields
       if (SortHelper.isDateField(field)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
-
       // Handle null/undefined
       if (aValue == null && bValue == null) return 0;
       if (aValue == null) return order === "asc" ? -1 : 1;
       if (bValue == null) return order === "asc" ? 1 : -1;
-
       // Handle string comparison
       if (typeof aValue === "string") {
         aValue = aValue.toLowerCase();
         bValue = typeof bValue === "string" ? bValue.toLowerCase() : bValue;
       }
-
       // Compare values
       if (aValue < bValue) return order === "asc" ? -1 : 1;
       if (aValue > bValue) return order === "asc" ? 1 : -1;
       return 0;
     });
   }
-
   /**
    * Sort by order field (for drag-drop reordering)
    */
@@ -65,7 +56,6 @@ export class SortHelper {
       return order === "asc" ? a.order - b.order : b.order - a.order;
     });
   }
-
   /**
    * Check if field is a date field
    */

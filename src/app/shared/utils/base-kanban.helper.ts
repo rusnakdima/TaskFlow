@@ -5,7 +5,6 @@ import { BaseItemHelper } from "@helpers/base-item.helper";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
 import { ApiService, Visibility } from "@services/api.service";
-
 export interface KanbanColumn {
   id: TaskStatus;
   label: string;
@@ -13,7 +12,6 @@ export interface KanbanColumn {
   icon: string;
   iconBgClass: string;
 }
-
 export const KANBAN_COLUMNS: KanbanColumn[] = [
   {
     id: TaskStatus.PENDING,
@@ -44,16 +42,12 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
     iconBgClass: "bg-red-500/20 text-red-400",
   },
 ];
-
 export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatus }> {
   protected notifyService = inject(NotifyService);
   protected kanbanDragDropService = inject(KanbanDragDropService);
   protected requestService = inject(ApiService);
-
   protected _isUpdatingKanban = signal(false);
-
   getColumnColorClass = BaseItemHelper.getColumnColorClass;
-
   abstract getEntityName(): string;
   abstract getColumns(): KanbanColumn[];
   abstract getEntityNameForUpdate(): string;
@@ -63,7 +57,6 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
     todo: Todo | null,
     updateFn: (updateFn: (items: T[]) => T[]) => void
   ): void;
-
   protected updateStatusInternal(
     entityId: string,
     newStatus: TaskStatus,
@@ -75,16 +68,12 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
       this.notifyService.showError(`Invalid ${entityName} ID`);
       return;
     }
-
     if (this._isUpdatingKanban()) {
       this.notifyService.showWarning("Please wait for previous operation to complete");
       return;
     }
-
     this._isUpdatingKanban.set(true);
-
     const visibility = todo?.visibility || "private";
-
     this.requestService
       .update<T>(entityName, entityId, { status: newStatus } as Partial<T>, {
         visibility: visibility as Visibility,
@@ -107,18 +96,15 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
         },
       });
   }
-
   getItemsByStatus(items: T[], status: TaskStatus): T[] {
     return items.filter((item) => item.status === status);
   }
-
   getConnectedKanbanDropLists(currentStatus: TaskStatus): string[] {
     return this.kanbanDragDropService.getConnectedDropLists(
       currentStatus,
       this.getColumns() as any
     );
   }
-
   onKanbanItemDrop(
     event: CdkDragDrop<T[]>,
     targetStatus: TaskStatus,
@@ -136,7 +122,6 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
       }
     );
   }
-
   onKanbanStatusCycle(
     item: T,
     updateItemFn: (itemId: string, newStatus: TaskStatus) => void
@@ -144,7 +129,6 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
     const newStatus = BaseItemHelper.getNextStatus(item.status);
     updateItemFn(item.id, newStatus);
   }
-
   onKanbanSelectionChange(
     itemId: string,
     isSelected: boolean,
@@ -152,7 +136,6 @@ export abstract class BaseKanbanHelper<T extends { id: string; status: TaskStatu
   ): void {
     toggleSelectionFn({ id: itemId, selected: isSelected });
   }
-
   isKanbanItemSelected(itemId: string, selectedItems: Set<string>): boolean {
     return selectedItems.has(itemId);
   }

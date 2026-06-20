@@ -7,7 +7,6 @@ export interface QueuedOperation {
   retries: number;
   visibility?: string;
 }
-
 export interface SyncProgress {
   stage: "idle" | "queued" | "syncing" | "error" | "complete";
   processed: number;

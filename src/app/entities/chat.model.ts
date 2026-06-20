@@ -18,14 +18,12 @@ export interface ConversationItem {
   ownerId?: string;
   isLocal?: boolean;
 }
-
 export interface Reaction {
   emoji: string;
   count: number;
   isOwn: boolean;
   user_ids?: string[];
 }
-
 export interface ChatMessage {
   id: string;
   content: string;
@@ -60,11 +58,8 @@ export interface ChatMessage {
     };
   };
 }
-
 export type FilterType = "all" | "unread" | "groups";
-
 export type EmojiTab = "recent" | "smileys" | "gestures" | "objects";
-
 export interface MemberItem {
   id: string;
   name: string;

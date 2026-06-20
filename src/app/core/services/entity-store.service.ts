@@ -1,7 +1,6 @@
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
 import { Observable, from, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-
 import {
   Todo,
   Task,
@@ -19,16 +18,13 @@ import { ApiService, Visibility } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
-
 import {
   upsertEntityBulk,
   updateEntityInSignal,
   removeEntityFromSignal,
   addEntityToSignal,
 } from "@store/utils/store-helpers";
-
 export type StorageTarget = "local" | "cloud";
-
 export interface EntityStoreOptions {
   targetDb?: StorageTarget;
   visibility?: Visibility;
@@ -39,32 +35,26 @@ export interface EntityStoreOptions {
   filter?: Record<string, unknown>;
   load?: string[];
 }
-
 export interface CreateContext {
   targetDb: StorageTarget;
   visibility?: Visibility;
   todoId?: string;
   taskId?: string;
 }
-
 export interface UpdateContext {
   targetDb: StorageTarget;
   visibility?: Visibility;
 }
-
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
-
 @Injectable({ providedIn: "root" })
 export class EntityStoreService {
   private readonly _apiService = inject(ApiService);
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
   private readonly tauriApi = inject(TauriApiService);
-
   /* ════════════════════════════════════════════════════════════════════════
      SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type
      ════════════════════════════════════════════════════════════════════════ */
-
   readonly todos = signal<Todo[]>([]);
   readonly tasks = signal<Task[]>([]);
   readonly subtasks = signal<Subtask[]>([]);
@@ -76,11 +66,9 @@ export class EntityStoreService {
   readonly users = signal<User[]>([]);
   readonly currentUser = signal<User | null>(null);
   readonly rooms = signal<Room[]>([]);
-
   readonly conversations = signal<ConversationItem[]>([]);
   readonly messages = signal<ChatMessage[]>([]);
   readonly activeConversationId = signal<string | null>(null);
-
   private readonly _todosLoading = signal(false);
   private readonly _tasksLoading = signal(false);
   private readonly _subtasksLoading = signal(false);
@@ -89,10 +77,8 @@ export class EntityStoreService {
   private readonly _commentsLoading = signal(false);
   private readonly _userLoading = signal(false);
   private readonly _profileLoading = signal(false);
-
   private readonly _loaded = signal(false);
   private readonly _lastLoaded = signal<Date | null>(null);
-
   private readonly _pagination = signal<Record<ChildType, PaginationState>>({
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
@@ -101,11 +87,9 @@ export class EntityStoreService {
     comments: { ...DEFAULT_PAGINATION },
     chats: { ...DEFAULT_PAGINATION },
   });
-
   /* ════════════════════════════════════════════════════════════════════════
      FILTERED COMPUTED SIGNALS - Derived from single source signals
      ════════════════════════════════════════════════════════════════════════ */
-
   readonly privateTodos = computed(() =>
     this.todos().filter((t) => t.visibility === "private" && !t.deleted_at)
   );
@@ -117,7 +101,6 @@ export class EntityStoreService {
   );
   readonly allTodos = computed(() => this.todos().filter((t) => !t.deleted_at));
   readonly archivedTodos = computed(() => this.todos().filter((t) => !!t.deleted_at));
-
   readonly activeTasks = computed(() => this.tasks().filter((t) => !t.deleted_at));
   readonly archivedTasks = computed(() => this.tasks().filter((t) => !!t.deleted_at));
   readonly tasksByTodoId = computed(() => {
@@ -129,7 +112,6 @@ export class EntityStoreService {
     }
     return map;
   });
-
   readonly activeSubtasks = computed(() => this.subtasks().filter((s) => !s.deleted_at));
   readonly archivedSubtasks = computed(() => this.subtasks().filter((s) => !!s.deleted_at));
   readonly subtasksByTaskId = computed(() => {
@@ -141,7 +123,6 @@ export class EntityStoreService {
     }
     return map;
   });
-
   readonly activeComments = computed(() => this.comments().filter((c) => !c.deleted_at));
   readonly commentsByTaskId = computed(() => {
     const map = new Map<string, Comment[]>();
@@ -154,7 +135,6 @@ export class EntityStoreService {
     }
     return map;
   });
-
   readonly commentsBySubtaskId = computed(() => {
     const map = new Map<string, Comment[]>();
     for (const comment of this.activeComments()) {
@@ -166,18 +146,14 @@ export class EntityStoreService {
     }
     return map;
   });
-
   readonly activeChats = computed(() => this.chats().filter((c) => !c.deleted_at));
-
   readonly todoMap = computed(() => new Map(this.allTodos().map((t) => [t.id, t])));
   readonly taskMap = computed(() => new Map(this.activeTasks().map((t) => [t.id, t])));
   readonly subtaskMap = computed(() => new Map(this.activeSubtasks().map((s) => [s.id, s])));
   readonly commentMap = computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
-
   /* ════════════════════════════════════════════════════════════════════════
      STORAGE ROUTING - Determine correct storage based on context
      ════════════════════════════════════════════════════════════════════════ */
-
   determineStorageTarget(
     entityType: EntityType,
     context?: {
@@ -189,11 +165,9 @@ export class EntityStoreService {
     if (entityType === "categories") {
       return "local";
     }
-
     if (entityType === "todos") {
       return context?.visibility === "private" ? "local" : "cloud";
     }
-
     if (entityType === "tasks" || entityType === "subtasks" || entityType === "comments") {
       if (context?.todoVisibility) {
         return context.todoVisibility === "private" ? "local" : "cloud";
@@ -205,42 +179,34 @@ export class EntityStoreService {
         }
       }
     }
-
     return "cloud";
   }
-
   determineVisibilityForChild(todoId: string): Visibility {
     const todo = this.todoMap().get(todoId);
     return (todo?.visibility as Visibility) || "private";
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      CREATE OPERATIONS - With visibility-based routing
      ════════════════════════════════════════════════════════════════════════ */
-
   createEntity(
     type: EntityType,
     data: Record<string, unknown>,
     context: CreateContext
   ): Observable<unknown> {
     const targetDb = context.targetDb;
-
     if (targetDb === "local") {
       return this.createEntityLocal(type, data, context);
     } else {
       return this.createEntityCloud(type, data, context);
     }
   }
-
   private createEntityLocal(
     type: EntityType,
     data: Record<string, unknown>,
     _context: CreateContext
   ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
-
     this.addEntity(type, data);
-
     return from(
       this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
@@ -261,16 +227,13 @@ export class EntityStoreService {
       })
     );
   }
-
   private createEntityCloud(
     type: EntityType,
     data: Record<string, unknown>,
     _context: CreateContext
   ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
-
     this.addEntity(type, data);
-
     return this._apiService
       .crud<Record<string, unknown>>(this.getRoute(type, "create")!, { data })
       .pipe(
@@ -287,11 +250,9 @@ export class EntityStoreService {
         })
       );
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      UPDATE OPERATIONS - With visibility-based routing
  ════════════════════════════════════════════════════════════════════════ */
-
   updateEntity(
     type: EntityType,
     id: string,
@@ -299,27 +260,23 @@ export class EntityStoreService {
     context: UpdateContext
   ): Observable<unknown> {
     const targetDb = context.targetDb;
-
     if (targetDb === "local") {
       return this.updateEntityLocal(type, id, data);
     } else {
       return this.updateEntityCloud(type, id, data, context);
     }
   }
-
   private updateEntityLocal(
     type: EntityType,
     id: string,
     data: Partial<Record<string, unknown>>
   ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
-
     this.getEntitySignal(type).update((items: unknown[]) =>
       (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
         item["id"] === id ? { ...item, ...data } : item
       )
     );
-
     return from(
       this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
@@ -334,7 +291,6 @@ export class EntityStoreService {
       })
     );
   }
-
   private updateEntityCloud(
     type: EntityType,
     id: string,
@@ -342,13 +298,11 @@ export class EntityStoreService {
     _context: UpdateContext
   ): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
-
     this.getEntitySignal(type).update((items: unknown[]) =>
       (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
         item["id"] === id ? { ...item, ...data } : item
       )
     );
-
     return this._apiService
       .crud<Record<string, unknown>>(this.getRoute(type, "update")!, { id, data })
       .pipe(
@@ -359,30 +313,24 @@ export class EntityStoreService {
         })
       );
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      DELETE OPERATIONS - With visibility-based routing
      ════════════════════════════════════════════════════════════════════════ */
-
   deleteEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     const targetDb = context.targetDb;
-
     if (targetDb === "local") {
       return this.deleteEntityLocal(type, id);
     } else {
       return this.deleteEntityCloud(type, id);
     }
   }
-
   private deleteEntityLocal(type: EntityType, id: string): Observable<unknown> {
     const previousState = this.getEntitySignal(type)();
-
     this.getEntitySignal(type).update((items: unknown[]) =>
       (items as Record<string, unknown>[]).filter(
         (item: Record<string, unknown>) => item["id"] !== id
       )
     );
-
     return this.tauriApi
       .invoke<Record<string, unknown>>("delete_from_json", { table: type, id })
       .pipe(
@@ -396,16 +344,13 @@ export class EntityStoreService {
         })
       );
   }
-
   private deleteEntityCloud(type: EntityType, id: string): Observable<void> {
     const previousState = this.getEntitySignal(type)();
-
     this.getEntitySignal(type).update((items: unknown[]) =>
       (items as Record<string, unknown>[]).filter(
         (item: Record<string, unknown>) => item["id"] !== id
       )
     );
-
     return this._apiService.crud<void>(this.getRoute(type, "delete")!, { id }).pipe(
       tap(() => {
         this._notifyService.showSuccess("Deleted successfully");
@@ -417,27 +362,21 @@ export class EntityStoreService {
       })
     );
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      SOFT DELETE (ARCHIVE) OPERATIONS
      ════════════════════════════════════════════════════════════════════════ */
-
   archiveEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     return this.updateEntity(type, id, { deleted_at: new Date().toISOString() }, context);
   }
-
   restoreEntity(type: EntityType, id: string, context: UpdateContext): Observable<unknown> {
     return this.updateEntity(type, id, { deleted_at: null }, context);
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      BATCH OPERATIONS
      ════════════════════════════════════════════════════════════════════════ */
-
   batchArchive(type: EntityType, ids: string[], context: UpdateContext): Observable<unknown[]> {
     const targetDb = context.targetDb;
     const deletedAt = new Date().toISOString();
-
     ids.forEach((id) => {
       this.getEntitySignal(type).update((items: unknown[]) =>
         (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
@@ -445,7 +384,6 @@ export class EntityStoreService {
         )
       );
     });
-
     if (targetDb === "local") {
       return from(
         this.tauriApi.invoke<unknown[]>("batch_soft_delete_json", {
@@ -457,10 +395,8 @@ export class EntityStoreService {
       return from(this._apiService.batchSoftDelete(type, ids, context.visibility));
     }
   }
-
   batchRestore(type: EntityType, ids: string[], context: UpdateContext): Observable<unknown[]> {
     const targetDb = context.targetDb;
-
     ids.forEach((id) => {
       this.getEntitySignal(type).update((items: unknown[]) =>
         (items as Record<string, unknown>[]).map((item: Record<string, unknown>) =>
@@ -468,7 +404,6 @@ export class EntityStoreService {
         )
       );
     });
-
     if (targetDb === "local") {
       return from(
         this.tauriApi.invoke<unknown[]>("batch_restore_json", {
@@ -480,19 +415,15 @@ export class EntityStoreService {
       return from(this._apiService.batchRestore(type, ids, context.visibility));
     }
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      LOADING STATE GETTERS
      ════════════════════════════════════════════════════════════════════════ */
-
   get isLoading(): ReturnType<typeof this._loaded.asReadonly> {
     return this._loaded.asReadonly();
   }
-
   get lastLoaded(): ReturnType<typeof this._lastLoaded.asReadonly> {
     return this._lastLoaded.asReadonly();
   }
-
   isEntityLoading(type: EntityType): boolean {
     switch (type) {
       case "todos":
@@ -515,11 +446,9 @@ export class EntityStoreService {
         return false;
     }
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      PAGINATION GETTERS
      ════════════════════════════════════════════════════════════════════════ */
-
   hasMoreTodos(): boolean {
     return this._pagination().todos.hasMore;
   }
@@ -538,14 +467,11 @@ export class EntityStoreService {
   hasMoreCategories(): boolean {
     return this._pagination().categories.hasMore;
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      HYDRATION METHODS - Load data from appropriate storage
      ════════════════════════════════════════════════════════════════════════ */
-
   ensureTodosLoaded(visibility: VisibilityFilter = "all", limit = 10): void {
     if (this._todosLoading()) return;
-
     const existing = this.todos();
     if (existing.length > 0) {
       const hasPrivate =
@@ -562,13 +488,10 @@ export class EntityStoreService {
           : true;
       if (hasPrivate && hasShared && hasPublic) return;
     }
-
     this._todosLoading.set(true);
-
     if (visibility === "private" || visibility === "all") {
       this.loadTodosFromLocal(limit).subscribe();
     }
-
     if (visibility !== "private") {
       this._apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
         next: (todos) => {
@@ -582,7 +505,6 @@ export class EntityStoreService {
       this._todosLoading.set(false);
     }
   }
-
   private loadTodosFromLocal(limit: number): Observable<Todo[]> {
     return this.tauriApi.invoke<Todo[]>("get_all_from_json", { table: "todos", limit }).pipe(
       map((response: unknown) => {
@@ -600,16 +522,13 @@ export class EntityStoreService {
       })
     );
   }
-
   ensureTasksLoaded(todoId?: string, visibility = "private", limit = 10): void {
     if (!todoId && this.activeTasks().length > 0) return;
     if (todoId && (this.tasksByTodoId().get(todoId)?.length ?? 0) > 0) return;
     if (this._tasksLoading()) return;
-
     this._tasksLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (todoId) filter["todo_id"] = todoId;
-
     this._apiService.tasks.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
       next: (tasks) => {
         this.tasks.update((existing) => upsertEntityBulk(existing, tasks));
@@ -619,12 +538,10 @@ export class EntityStoreService {
       complete: () => this._tasksLoading.set(false),
     });
   }
-
   ensureSubtasksLoaded(taskId?: string, visibility = "private", limit = 10): void {
     if (!taskId && this.activeSubtasks().length > 0) return;
     if (taskId && (this.subtasksByTaskId().get(taskId)?.length ?? 0) > 0) return;
     if (this._subtasksLoading()) return;
-
     this._subtasksLoading.set(true);
     this._apiService.subtasks.getAll({ visibility, limit, taskId, load: ["user"] }).subscribe({
       next: (subtasks) => {
@@ -635,15 +552,11 @@ export class EntityStoreService {
       complete: () => this._subtasksLoading.set(false),
     });
   }
-
   ensureCategoriesLoaded(visibility: VisibilityFilter = "all", limit = 100): void {
     if (this._categoriesLoading()) return;
     if (this.categories().length > 0) return;
-
     this._categoriesLoading.set(true);
-
     this.loadCategoriesFromLocal(limit).subscribe();
-
     if (visibility !== "private") {
       this._apiService.categories.getAll({ visibility, limit }).subscribe({
         next: (categories) => {
@@ -657,7 +570,6 @@ export class EntityStoreService {
       this._categoriesLoading.set(false);
     }
   }
-
   private loadCategoriesFromLocal(limit: number): Observable<Category[]> {
     return this.tauriApi
       .invoke<Category[]>("get_all_from_json", { table: "categories", limit })
@@ -676,16 +588,13 @@ export class EntityStoreService {
         })
       );
   }
-
   ensureCommentsLoaded(taskId?: string, visibility = "private", limit = 10): void {
     if (taskId && (this.commentsByTaskId().get(taskId)?.length ?? 0) > 0) return;
     if (!taskId && this.activeComments().length > 0) return;
     if (this._commentsLoading()) return;
-
     this._commentsLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (taskId) filter["task_id"] = taskId;
-
     this._apiService.comments.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
       next: (comments) => {
         this.comments.update((existing) => upsertEntityBulk(existing, comments));
@@ -695,10 +604,8 @@ export class EntityStoreService {
       complete: () => this._commentsLoading.set(false),
     });
   }
-
   ensureChatsLoaded(visibility = "private", limit = 50): void {
     if (this._chatsLoading() || this.activeChats().length > 0) return;
-
     this._chatsLoading.set(true);
     this._apiService.chats.getAll({ visibility, limit }).subscribe({
       next: (chats) => {
@@ -709,11 +616,9 @@ export class EntityStoreService {
       complete: () => this._chatsLoading.set(false),
     });
   }
-
   ensureUserLoaded(): void {
     if (this._userLoading() || this.currentUser()) return;
     this._userLoading.set(true);
-
     const token = this._jwtTokenService.getToken();
     const user = this._jwtTokenService.getUserFromToken(token);
     if (user) {
@@ -721,18 +626,15 @@ export class EntityStoreService {
     }
     this._userLoading.set(false);
   }
-
   ensureProfileLoaded(): void {
     if (this._profileLoading() || this.profiles().length > 0) return;
     this._profileLoading.set(true);
-
     const token = this._jwtTokenService.getToken();
     const userId = this._jwtTokenService.getUserId(token);
     if (!userId) {
       this._profileLoading.set(false);
       return;
     }
-
     this._apiService.profiles
       .getAll({ visibility: "private", filter: { user_id: userId }, load: ["user"] })
       .subscribe({
@@ -745,7 +647,6 @@ export class EntityStoreService {
         complete: () => this._profileLoading.set(false),
       });
   }
-
   loadAllProfiles(): void {
     this._apiService.profiles.getAll({ visibility: "public", load: ["user"] }).subscribe({
       next: (profiles) => {
@@ -754,11 +655,9 @@ export class EntityStoreService {
       error: () => {},
     });
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      LAZY GETTERS
      ════════════════════════════════════════════════════════════════════════ */
-
   getTodos(visibility: VisibilityFilter = "all"): Todo[] {
     if (this.todos().length === 0 && !this._todosLoading()) {
       this.ensureTodosLoaded(visibility);
@@ -774,7 +673,6 @@ export class EntityStoreService {
         return this.allTodos();
     }
   }
-
   getTasks(todoId?: string): Task[] {
     if (todoId) {
       const tasks = this.tasksByTodoId().get(todoId) || [];
@@ -788,7 +686,6 @@ export class EntityStoreService {
     }
     return this.activeTasks();
   }
-
   getSubtasks(taskId?: string): Subtask[] {
     if (taskId) {
       const subtasks = this.subtasksByTaskId().get(taskId) || [];
@@ -802,36 +699,30 @@ export class EntityStoreService {
     }
     return this.activeSubtasks();
   }
-
   getComments(taskId?: string, subtaskId?: string): Comment[] {
     if (taskId) return this.commentsByTaskId().get(taskId) || [];
     if (subtaskId) return this.commentsBySubtaskId().get(subtaskId) || [];
     return this.activeComments();
   }
-
   getCategories(): Category[] {
     if (this.categories().length === 0 && !this._categoriesLoading()) {
       this.ensureCategoriesLoaded();
     }
     return this.categories();
   }
-
   getChats(): Chat[] {
     if (this.activeChats().length === 0 && !this._chatsLoading()) {
       this.ensureChatsLoaded();
     }
     return this.activeChats();
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      PAGINATION - Load more data
      ════════════════════════════════════════════════════════════════════════ */
-
   loadMoreTodos(visibility: VisibilityFilter = "all"): void {
     if (this._todosLoading() || !this.hasMoreTodos()) return;
     const pagination = this._pagination().todos;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._todosLoading.set(true);
     this._apiService.todos
       .getAll({ page: nextPage, limit: pagination.limit, visibility })
@@ -849,7 +740,6 @@ export class EntityStoreService {
         complete: () => this._todosLoading.set(false),
       });
   }
-
   loadMoreTasks(
     todoId?: string,
     visibility = "private",
@@ -859,18 +749,15 @@ export class EntityStoreService {
     if (this._tasksLoading() || !this.hasMoreTasks()) return;
     const pagination = this._pagination().tasks;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._tasksLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (todoId) filter["todo_id"] = todoId;
-
     if (userId || assigneeId) {
       const orConditions: Record<string, string>[] = [];
       if (userId) orConditions.push({ user_id: userId });
       if (assigneeId) orConditions.push({ assignees: assigneeId });
       filter["$or"] = orConditions;
     }
-
     this._apiService.tasks
       .getAll({ page: nextPage, visibility, limit: pagination.limit, filter })
       .subscribe({
@@ -887,12 +774,10 @@ export class EntityStoreService {
         complete: () => this._tasksLoading.set(false),
       });
   }
-
   loadMoreSubtasks(taskId?: string): void {
     if (this._subtasksLoading() || !this.hasMoreSubtasks()) return;
     const pagination = this._pagination().subtasks;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._subtasksLoading.set(true);
     this._apiService.subtasks
       .getAll({ page: nextPage, limit: pagination.limit, taskId })
@@ -910,12 +795,10 @@ export class EntityStoreService {
         complete: () => this._subtasksLoading.set(false),
       });
   }
-
   loadMoreCategories(): void {
     if (this._categoriesLoading() || !this.hasMoreCategories()) return;
     const pagination = this._pagination().categories;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._categoriesLoading.set(true);
     this._apiService.categories.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
       next: (categories) => {
@@ -931,16 +814,13 @@ export class EntityStoreService {
       complete: () => this._categoriesLoading.set(false),
     });
   }
-
   loadMoreComments(taskId?: string): void {
     if (this._commentsLoading() || !this.hasMoreComments()) return;
     const pagination = this._pagination().comments;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._commentsLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (taskId) filter["task_id"] = taskId;
-
     this._apiService.comments
       .getAll({ page: nextPage, limit: pagination.limit, filter })
       .subscribe({
@@ -957,12 +837,10 @@ export class EntityStoreService {
         complete: () => this._commentsLoading.set(false),
       });
   }
-
   loadMoreChats(): void {
     if (this._chatsLoading() || !this.hasMoreChats()) return;
     const pagination = this._pagination().chats;
     const nextPage = pagination.skip / pagination.limit + 1;
-
     this._chatsLoading.set(true);
     this._apiService.chats.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
       next: (chats) => {
@@ -973,11 +851,9 @@ export class EntityStoreService {
       complete: () => this._chatsLoading.set(false),
     });
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      ENTITY MANAGEMENT - Low level operations
      ════════════════════════════════════════════════════════════════════════ */
-
   addEntity(type: EntityType, data: Record<string, unknown>): void {
     if (!data?.["id"]) return;
     addEntityToSignal(
@@ -985,7 +861,6 @@ export class EntityStoreService {
       data as { id: string }
     );
   }
-
   updateEntitySignal(type: EntityType, _id: string, data: Record<string, unknown>): void {
     if (!data?.["id"]) return;
     updateEntityInSignal(
@@ -994,15 +869,12 @@ export class EntityStoreService {
       data as { id: string }
     );
   }
-
   removeEntity(type: EntityType, id: string): void {
     removeEntityFromSignal(this.getEntitySignal(type) as WritableSignal<{ id: string }[]>, id);
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      UTILITY METHODS
      ════════════════════════════════════════════════════════════════════════ */
-
   private getEntitySignal(type: EntityType): WritableSignal<unknown[]> {
     switch (type) {
       case "todos":
@@ -1025,12 +897,10 @@ export class EntityStoreService {
         return this.tasks;
     }
   }
-
   private setEntitySignal(type: EntityType, data: unknown[]): void {
     const sig = this.getEntitySignal(type);
     sig.set(data);
   }
-
   private getRoute(type: EntityType, operation: "create" | "update" | "delete"): string | null {
     const routes: Record<string, Record<string, string>> = {
       todos: { create: "create_todo", update: "update_todo", delete: "delete_todo" },
@@ -1047,7 +917,6 @@ export class EntityStoreService {
     };
     return routes[type]?.[operation] || null;
   }
-
   private updatePagination(
     type: ChildType,
     skip: number,
@@ -1059,18 +928,15 @@ export class EntityStoreService {
       [type]: { skip: skip + receivedCount, limit, hasMore: receivedCount >= limit },
     }));
   }
-
   currentUserId(): string {
     return this._jwtTokenService.getCurrentUserId() || "";
   }
-
   getUsername(userId: string): string {
     const user = this.users().find((u) => u.id === userId);
     const profile = this.profiles().find((p) => p.user_id === userId);
     if (profile?.name) return `${profile.name} ${profile.last_name || ""}`.trim();
     return user?.username || "Unknown";
   }
-
   clear(): void {
     this.todos.set([]);
     this.tasks.set([]);

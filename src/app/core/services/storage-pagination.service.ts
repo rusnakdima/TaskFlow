@@ -1,30 +1,21 @@
 /* sys lib */
-import { Injectable } from "@angular/core";
-
+import { Injectable, inject } from "@angular/core";
 /* models */
-import { Todo, Task, Subtask, Comment, Chat, Category } from "@entities/generated/api.types";
-import { VisibilityFilter } from "@entities/storage.model";
-
+import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
+import { VisibilityFilter, ChildType } from "@entities/storage.model";
 /* base */
 import { BaseStorageService } from "./storage-entity.service";
-
 /* utils */
 import { upsertEntityBulk } from "@store/utils/store-helpers";
-
 @Injectable({ providedIn: "root" })
-export class StoragePaginationService extends BaseStorageService {
-  constructor() {
-    super();
-  }
-
+export class StoragePaginationService {
+  private readonly _base = inject(BaseStorageService);
   /* ════════════════════════════════════════════════════════════════════════
-     HYDRATION METHODS - Auto-fetch from API when signal is empty
+     PROXY ALL CALLS TO _base (single source of truth - no duplication)
      ════════════════════════════════════════════════════════════════════════ */
-
   ensureTodosLoaded(visibility: VisibilityFilter = "all", limit = 10): void {
-    if (this._todosLoading()) return;
-
-    const existing = this.todos();
+    if (this._base.todosLoading()) return;
+    const existing = this._base.todos();
     if (existing.length > 0) {
       const hasPrivate =
         visibility === "all" || visibility === "private"
@@ -40,252 +31,205 @@ export class StoragePaginationService extends BaseStorageService {
           : true;
       if (hasPrivate && hasShared && hasPublic) return;
     }
-
-    this._todosLoading.set(true);
-    this._apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
+    this._base.todosLoading.set(true);
+    this._base.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
-        this.todos.update((existing) => upsertEntityBulk(existing, todos));
+        this._base.todos.update((existing) => upsertEntityBulk(existing, todos));
         this.updatePagination("todos", 0, limit, todos.length);
       },
-      error: () => this._todosLoading.set(false),
-      complete: () => this._todosLoading.set(false),
+      error: () => this._base.todosLoading.set(false),
+      complete: () => this._base.todosLoading.set(false),
     });
   }
-
   ensureTasksLoaded(todoId?: string, visibility = "private", limit = 10): void {
-    if (!todoId && this.activeTasks().length > 0) return;
-    if (todoId && (this.tasksByTodoId().get(todoId)?.length ?? 0) > 0) return;
-    if (this._tasksLoading()) return;
-
-    this._tasksLoading.set(true);
+    if (!todoId && this._base.activeTasks().length > 0) return;
+    if (todoId && (this._base.tasksByTodoId().get(todoId)?.length ?? 0) > 0) return;
+    if (this._base.tasksLoading()) return;
+    this._base.tasksLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (todoId) filter["todo_id"] = todoId;
-
-    this._apiService.tasks.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
+    this._base.apiService.tasks.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
       next: (tasks) => {
-        this.tasks.update((existing) => upsertEntityBulk(existing, tasks));
+        this._base.tasks.update((existing) => upsertEntityBulk(existing, tasks));
         this.updatePagination("tasks", 0, limit, tasks.length);
       },
-      error: () => this._tasksLoading.set(false),
-      complete: () => this._tasksLoading.set(false),
+      error: () => this._base.tasksLoading.set(false),
+      complete: () => this._base.tasksLoading.set(false),
     });
   }
-
   ensureSubtasksLoaded(taskId?: string, visibility = "private", limit = 10): void {
-    if (!taskId && this.activeSubtasks().length > 0) return;
-    if (taskId && (this.subtasksByTaskId().get(taskId)?.length ?? 0) > 0) return;
-    if (this._subtasksLoading()) return;
-
-    this._subtasksLoading.set(true);
-    this._apiService.subtasks.getAll({ visibility, limit, taskId, load: ["user"] }).subscribe({
+    if (!taskId && this._base.activeSubtasks().length > 0) return;
+    if (taskId && (this._base.subtasksByTaskId().get(taskId)?.length ?? 0) > 0) return;
+    if (this._base.subtasksLoading()) return;
+    this._base.subtasksLoading.set(true);
+    this._base.apiService.subtasks.getAll({ visibility, limit, taskId, load: ["user"] }).subscribe({
       next: (subtasks) => {
-        this.subtasks.update((existing) => upsertEntityBulk(existing, subtasks));
+        this._base.subtasks.update((existing) => upsertEntityBulk(existing, subtasks));
         this.updatePagination("subtasks", 0, limit, subtasks.length);
       },
-      error: () => this._subtasksLoading.set(false),
-      complete: () => this._subtasksLoading.set(false),
+      error: () => this._base.subtasksLoading.set(false),
+      complete: () => this._base.subtasksLoading.set(false),
     });
   }
-
   ensureCategoriesLoaded(visibility: VisibilityFilter = "all", limit = 100): void {
-    if (this._categoriesLoading()) return;
-    if (this.categories().length > 0) return;
-
-    this._categoriesLoading.set(true);
-    this._apiService.categories.getAll({ visibility, limit }).subscribe({
+    if (this._base.categoriesLoading()) return;
+    if (this._base.categories().length > 0) return;
+    this._base.categoriesLoading.set(true);
+    this._base.apiService.categories.getAll({ visibility, limit }).subscribe({
       next: (categories) => {
-        this.categories.set(categories);
+        this._base.categories.set(categories);
         this.updatePagination("categories", 0, limit, categories.length);
       },
-      error: () => this._categoriesLoading.set(false),
-      complete: () => this._categoriesLoading.set(false),
+      error: () => this._base.categoriesLoading.set(false),
+      complete: () => this._base.categoriesLoading.set(false),
     });
   }
-
   ensureCommentsLoaded(taskId?: string, visibility = "private", limit = 10): void {
-    if (taskId && (this.commentsByTaskId().get(taskId)?.length ?? 0) > 0) return;
-    if (!taskId && this.activeComments().length > 0) return;
-    if (this._commentsLoading()) return;
-
-    this._commentsLoading.set(true);
+    if (taskId && (this._base.commentsByTaskId().get(taskId)?.length ?? 0) > 0) return;
+    if (!taskId && this._base.activeComments().length > 0) return;
+    if (this._base.commentsLoading()) return;
+    this._base.commentsLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (taskId) filter["task_id"] = taskId;
-
-    this._apiService.comments.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
+    this._base.apiService.comments.getAll({ visibility, limit, filter, load: ["user"] }).subscribe({
       next: (comments) => {
-        this.comments.update((existing) => upsertEntityBulk(existing, comments));
+        this._base.comments.update((existing) => upsertEntityBulk(existing, comments));
         this.updatePagination("comments", 0, limit, comments.length);
       },
-      error: () => this._commentsLoading.set(false),
-      complete: () => this._commentsLoading.set(false),
+      error: () => this._base.commentsLoading.set(false),
+      complete: () => this._base.commentsLoading.set(false),
     });
   }
-
   ensureChatsLoaded(visibility = "private", limit = 50): void {
-    if (this._chatsLoading() || this.activeChats().length > 0) return;
-
-    this._chatsLoading.set(true);
-    this._apiService.chats.getAll({ visibility, limit }).subscribe({
+    if (this._base.chatsLoading() || this._base.activeChats().length > 0) return;
+    this._base.chatsLoading.set(true);
+    this._base.apiService.chats.getAll({ visibility, limit }).subscribe({
       next: (chats) => {
-        this.chats.set(chats);
+        this._base.chats.set(chats);
         this.updatePagination("chats", 0, limit, chats.length);
       },
-      error: () => this._chatsLoading.set(false),
-      complete: () => this._chatsLoading.set(false),
+      error: () => this._base.chatsLoading.set(false),
+      complete: () => this._base.chatsLoading.set(false),
     });
   }
-
   ensureUserLoaded(): void {
-    if (this._userLoading() || this.currentUser()) return;
-    this._userLoading.set(true);
-
-    const token = this._jwtTokenService.getToken();
-    const user = this._jwtTokenService.getUserFromToken(token);
-    if (user) {
-      this.currentUser.set(user);
-    }
-    this._userLoading.set(false);
+    if (this._base.userLoading() || this._base.currentUser()) return;
+    this._base.userLoading.set(true);
+    const token = this._base.jwtTokenService.getToken();
+    const user = this._base.jwtTokenService.getUserFromToken(token);
+    if (user) this._base.currentUser.set(user);
+    this._base.userLoading.set(false);
   }
-
   ensureProfileLoaded(): void {
-    if (this._profileLoading() || this.profiles().length > 0) return;
-    this._profileLoading.set(true);
-
-    const token = this._jwtTokenService.getToken();
-    const userId = this._jwtTokenService.getUserId(token);
+    if (this._base.profileLoading() || this._base.profiles().length > 0) return;
+    this._base.profileLoading.set(true);
+    const token = this._base.jwtTokenService.getToken();
+    const userId = this._base.jwtTokenService.getUserId(token);
     if (!userId) {
-      this._profileLoading.set(false);
+      this._base.profileLoading.set(false);
       return;
     }
-
-    this._apiService.profiles
+    this._base.apiService.profiles
       .getAll({ visibility: "private", filter: { user_id: userId }, load: ["user"] })
       .subscribe({
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
-            this.profiles.set(profiles);
+            this._base.profiles.set(profiles);
           }
         },
-        error: () => this._profileLoading.set(false),
-        complete: () => this._profileLoading.set(false),
+        error: () => this._base.profileLoading.set(false),
+        complete: () => this._base.profileLoading.set(false),
       });
   }
-
   loadAllProfiles(): void {
-    this._apiService.profiles.getAll({ visibility: "public", load: ["user"] }).subscribe({
-      next: (profiles) => {
-        this.publicProfiles.set(profiles || []);
-      },
+    this._base.apiService.profiles.getAll({ visibility: "public", load: ["user"] }).subscribe({
+      next: (profiles) => this._base.publicProfiles.set(profiles || []),
       error: () => {},
     });
   }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     LAZY GETTERS - Returns data, triggers hydration if empty
-     ════════════════════════════════════════════════════════════════════════ */
-
-  getTodos(visibility: VisibilityFilter = "all"): Todo[] {
-    if (this.todos().length === 0 && !this._todosLoading()) {
-      this.ensureTodosLoaded(visibility);
-    }
-    switch (visibility) {
-      case "private":
-        return this.privateTodos();
-      case "shared":
-        return this.sharedTodos();
-      case "public":
-        return this.publicTodos();
-      default:
-        return this.allTodos();
-    }
-  }
-
-  getTasks(todoId?: string): Task[] {
-    if (todoId) {
-      const tasks = this.tasksByTodoId().get(todoId) || [];
-      if (tasks.length === 0 && !this._tasksLoading()) {
-        this.ensureTasksLoaded(todoId);
-      }
-      return tasks;
-    }
-    if (this.activeTasks().length === 0 && !this._tasksLoading()) {
-      this.ensureTasksLoaded();
-    }
-    return this.activeTasks();
-  }
-
-  getSubtasks(taskId?: string): Subtask[] {
-    if (taskId) {
-      const subtasks = this.subtasksByTaskId().get(taskId) || [];
-      if (subtasks.length === 0 && !this._subtasksLoading()) {
-        this.ensureSubtasksLoaded(taskId);
-      }
-      return subtasks;
-    }
-    if (this.activeSubtasks().length === 0 && !this._subtasksLoading()) {
-      this.ensureSubtasksLoaded();
-    }
-    return this.activeSubtasks();
-  }
-
-  getComments(taskId?: string, subtaskId?: string): Comment[] {
-    if (taskId) return this.commentsByTaskId().get(taskId) || [];
-    if (subtaskId) return this.commentsBySubtaskId().get(subtaskId) || [];
-    return this.activeComments();
-  }
-
-  getCategories(): Category[] {
-    if (this.categories().length === 0 && !this._categoriesLoading()) {
-      this.ensureCategoriesLoaded();
-    }
-    return this.categories();
-  }
-
-  getChats(): Chat[] {
-    if (this.activeChats().length === 0 && !this._chatsLoading()) {
-      this.ensureChatsLoaded();
-    }
-    return this.activeChats();
-  }
-
-  getRooms(): import("@entities/generated/api.types").Room[] {
-    if (this.rooms().length === 0 && !this._roomsLoading()) {
-      this.ensureRoomsLoaded();
-    }
-    return this.rooms();
-  }
-
   ensureRoomsLoaded(): void {
-    if (this._roomsLoading() || this.rooms().length > 0) return;
-    if (!navigator.onLine || !this._mongoConnectionService.isConnected()) return;
-
-    this._roomsLoading.set(true);
-    const token = this._jwtTokenService.getToken();
-    this._apiService.invokeCommand("get_rooms", { token, load: "participants" }).subscribe({
+    if (this._base.roomsLoading() || this._base.rooms().length > 0) return;
+    if (!navigator.onLine || !this._base.mongoConnectionService.isConnected()) return;
+    this._base.roomsLoading.set(true);
+    const token = this._base.jwtTokenService.getToken();
+    this._base.apiService.invokeCommand("get_rooms", { token, load: "participants" }).subscribe({
       next: (result: any) => {
         const rooms = Array.isArray(result) ? result : result?.data || [];
-        this.rooms.set(rooms);
+        this._base.rooms.set(rooms);
       },
-      error: () => this._roomsLoading.set(false),
-      complete: () => this._roomsLoading.set(false),
+      error: () => this._base.roomsLoading.set(false),
+      complete: () => this._base.roomsLoading.set(false),
     });
   }
-
   /* ════════════════════════════════════════════════════════════════════════
-     PAGINATION - Load more data
+     LAZY GETTERS
      ════════════════════════════════════════════════════════════════════════ */
-
+  getTodos(visibility: VisibilityFilter = "all"): Todo[] {
+    if (this._base.todos().length === 0 && !this._base.todosLoading())
+      this.ensureTodosLoaded(visibility);
+    switch (visibility) {
+      case "private":
+        return this._base.privateTodos();
+      case "shared":
+        return this._base.sharedTodos();
+      case "public":
+        return this._base.publicTodos();
+      default:
+        return this._base.allTodos();
+    }
+  }
+  getTasks(todoId?: string): Task[] {
+    if (todoId) {
+      const tasks = this._base.tasksByTodoId().get(todoId) || [];
+      if (tasks.length === 0 && !this._base.tasksLoading()) this.ensureTasksLoaded(todoId);
+      return tasks;
+    }
+    if (this._base.activeTasks().length === 0 && !this._base.tasksLoading())
+      this.ensureTasksLoaded();
+    return this._base.activeTasks();
+  }
+  getSubtasks(taskId?: string): Subtask[] {
+    if (taskId) {
+      const subtasks = this._base.subtasksByTaskId().get(taskId) || [];
+      if (subtasks.length === 0 && !this._base.subtasksLoading()) this.ensureSubtasksLoaded(taskId);
+      return subtasks;
+    }
+    if (this._base.activeSubtasks().length === 0 && !this._base.subtasksLoading())
+      this.ensureSubtasksLoaded();
+    return this._base.activeSubtasks();
+  }
+  getComments(taskId?: string, subtaskId?: string): Comment[] {
+    if (taskId) return this._base.commentsByTaskId().get(taskId) || [];
+    if (subtaskId) return this._base.commentsBySubtaskId().get(subtaskId) || [];
+    return this._base.activeComments();
+  }
+  getCategories(): Category[] {
+    if (this._base.categories().length === 0 && !this._base.categoriesLoading())
+      this.ensureCategoriesLoaded();
+    return this._base.categories();
+  }
+  getChats(): Chat[] {
+    if (this._base.activeChats().length === 0 && !this._base.chatsLoading())
+      this.ensureChatsLoaded();
+    return this._base.activeChats();
+  }
+  getRooms(): Room[] {
+    if (this._base.rooms().length === 0 && !this._base.roomsLoading()) this.ensureRoomsLoaded();
+    return this._base.rooms();
+  }
+  /* ════════════════════════════════════════════════════════════════════════
+     PAGINATION - Load more
+     ════════════════════════════════════════════════════════════════════════ */
   loadMoreTodos(visibility: VisibilityFilter = "all"): void {
-    if (this._todosLoading() || !this.hasMoreTodos()) return;
-    const pagination = this._pagination().todos;
+    if (this._base.todosLoading() || !this.hasMoreTodos()) return;
+    const pagination = this._base.pagination().todos;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._todosLoading.set(true);
-    this._apiService.todos
+    this._base.todosLoading.set(true);
+    this._base.apiService.todos
       .getAll({ page: nextPage, limit: pagination.limit, visibility })
       .subscribe({
         next: (todos) => {
-          this.todos.update((existing) => upsertEntityBulk(existing, todos));
+          this._base.todos.update((existing) => upsertEntityBulk(existing, todos));
           this.updatePagination(
             "todos",
             nextPage * pagination.limit,
@@ -293,37 +237,33 @@ export class StoragePaginationService extends BaseStorageService {
             todos.length
           );
         },
-        error: () => this._todosLoading.set(false),
-        complete: () => this._todosLoading.set(false),
+        error: () => this._base.todosLoading.set(false),
+        complete: () => this._base.todosLoading.set(false),
       });
   }
-
   loadMoreTasks(
     todoId?: string,
     visibility = "private",
     userId?: string,
     assigneeId?: string
   ): void {
-    if (this._tasksLoading() || !this.hasMoreTasks()) return;
-    const pagination = this._pagination().tasks;
+    if (this._base.tasksLoading() || !this.hasMoreTasks()) return;
+    const pagination = this._base.pagination().tasks;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._tasksLoading.set(true);
+    this._base.tasksLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (todoId) filter["todo_id"] = todoId;
-
     if (userId || assigneeId) {
       const orConditions: Record<string, string>[] = [];
       if (userId) orConditions.push({ user_id: userId });
       if (assigneeId) orConditions.push({ assignees: assigneeId });
       filter["$or"] = orConditions;
     }
-
-    this._apiService.tasks
+    this._base.apiService.tasks
       .getAll({ page: nextPage, visibility, limit: pagination.limit, filter })
       .subscribe({
         next: (tasks) => {
-          this.tasks.update((existing) => [...existing, ...tasks]);
+          this._base.tasks.update((existing) => [...existing, ...tasks]);
           this.updatePagination(
             "tasks",
             nextPage * pagination.limit,
@@ -331,22 +271,20 @@ export class StoragePaginationService extends BaseStorageService {
             tasks.length
           );
         },
-        error: () => this._tasksLoading.set(false),
-        complete: () => this._tasksLoading.set(false),
+        error: () => this._base.tasksLoading.set(false),
+        complete: () => this._base.tasksLoading.set(false),
       });
   }
-
   loadMoreSubtasks(taskId?: string): void {
-    if (this._subtasksLoading() || !this.hasMoreSubtasks()) return;
-    const pagination = this._pagination().subtasks;
+    if (this._base.subtasksLoading() || !this.hasMoreSubtasks()) return;
+    const pagination = this._base.pagination().subtasks;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._subtasksLoading.set(true);
-    this._apiService.subtasks
+    this._base.subtasksLoading.set(true);
+    this._base.apiService.subtasks
       .getAll({ page: nextPage, limit: pagination.limit, taskId })
       .subscribe({
         next: (subtasks) => {
-          this.subtasks.update((existing) => [...existing, ...subtasks]);
+          this._base.subtasks.update((existing) => [...existing, ...subtasks]);
           this.updatePagination(
             "subtasks",
             nextPage * pagination.limit,
@@ -354,20 +292,18 @@ export class StoragePaginationService extends BaseStorageService {
             subtasks.length
           );
         },
-        error: () => this._subtasksLoading.set(false),
-        complete: () => this._subtasksLoading.set(false),
+        error: () => this._base.subtasksLoading.set(false),
+        complete: () => this._base.subtasksLoading.set(false),
       });
   }
-
   loadMoreCategories(): void {
-    if (this._categoriesLoading() || !this.hasMoreCategories()) return;
-    const pagination = this._pagination().categories;
+    if (this._base.categoriesLoading() || !this.hasMoreCategories()) return;
+    const pagination = this._base.pagination().categories;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._categoriesLoading.set(true);
-    this._apiService.categories.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
+    this._base.categoriesLoading.set(true);
+    this._base.apiService.categories.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
       next: (categories) => {
-        this.categories.update((existing) => [...existing, ...categories]);
+        this._base.categories.update((existing) => [...existing, ...categories]);
         this.updatePagination(
           "categories",
           nextPage * pagination.limit,
@@ -375,25 +311,22 @@ export class StoragePaginationService extends BaseStorageService {
           categories.length
         );
       },
-      error: () => this._categoriesLoading.set(false),
-      complete: () => this._categoriesLoading.set(false),
+      error: () => this._base.categoriesLoading.set(false),
+      complete: () => this._base.categoriesLoading.set(false),
     });
   }
-
   loadMoreComments(taskId?: string): void {
-    if (this._commentsLoading() || !this.hasMoreComments()) return;
-    const pagination = this._pagination().comments;
+    if (this._base.commentsLoading() || !this.hasMoreComments()) return;
+    const pagination = this._base.pagination().comments;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._commentsLoading.set(true);
+    this._base.commentsLoading.set(true);
     const filter: Record<string, unknown> = {};
     if (taskId) filter["task_id"] = taskId;
-
-    this._apiService.comments
+    this._base.apiService.comments
       .getAll({ page: nextPage, limit: pagination.limit, filter })
       .subscribe({
         next: (comments) => {
-          this.comments.update((existing) => [...existing, ...comments]);
+          this._base.comments.update((existing) => [...existing, ...comments]);
           this.updatePagination(
             "comments",
             nextPage * pagination.limit,
@@ -401,24 +334,58 @@ export class StoragePaginationService extends BaseStorageService {
             comments.length
           );
         },
-        error: () => this._commentsLoading.set(false),
-        complete: () => this._commentsLoading.set(false),
+        error: () => this._base.commentsLoading.set(false),
+        complete: () => this._base.commentsLoading.set(false),
       });
   }
-
   loadMoreChats(): void {
-    if (this._chatsLoading() || !this.hasMoreChats()) return;
-    const pagination = this._pagination().chats;
+    if (this._base.chatsLoading() || !this.hasMoreChats()) return;
+    const pagination = this._base.pagination().chats;
     const nextPage = pagination.skip / pagination.limit + 1;
-
-    this._chatsLoading.set(true);
-    this._apiService.chats.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
+    this._base.chatsLoading.set(true);
+    this._base.apiService.chats.getAll({ page: nextPage, limit: pagination.limit }).subscribe({
       next: (chats) => {
-        this.chats.update((existing) => [...existing, ...chats]);
+        this._base.chats.update((existing) => [...existing, ...chats]);
         this.updatePagination("chats", nextPage * pagination.limit, pagination.limit, chats.length);
       },
-      error: () => this._chatsLoading.set(false),
-      complete: () => this._chatsLoading.set(false),
+      error: () => this._base.chatsLoading.set(false),
+      complete: () => this._base.chatsLoading.set(false),
     });
+  }
+  /* ════════════════════════════════════════════════════════════════════════
+     HAS MORE CHECKS
+     ════════════════════════════════════════════════════════════════════════ */
+  hasMoreTodos(): boolean {
+    return this._base.pagination().todos?.hasMore ?? true;
+  }
+  hasMoreTasks(): boolean {
+    return this._base.pagination().tasks?.hasMore ?? true;
+  }
+  hasMoreSubtasks(): boolean {
+    return this._base.pagination().subtasks?.hasMore ?? true;
+  }
+  hasMoreCategories(): boolean {
+    return this._base.pagination().categories?.hasMore ?? true;
+  }
+  hasMoreComments(): boolean {
+    return this._base.pagination().comments?.hasMore ?? true;
+  }
+  hasMoreChats(): boolean {
+    return this._base.pagination().chats?.hasMore ?? true;
+  }
+  /* ════════════════════════════════════════════════════════════════════════
+     PAGINATION STATE
+     ════════════════════════════════════════════════════════════════════════ */
+  private updatePagination(entity: ChildType, skip: number, limit: number, received: number): void {
+    this._base.pagination.update((p) => ({
+      ...p,
+      [entity]: { skip: skip + received, limit, hasMore: received >= limit },
+    }));
+  }
+  resetPagination(entity: ChildType): void {
+    this._base.pagination.update((p) => ({
+      ...p,
+      [entity]: { skip: 0, limit: 10, hasMore: true },
+    }));
   }
 }

@@ -1,6 +1,5 @@
 import { ResponseStatus } from "./response.model";
 import { TableItem } from "@shared/models/api.types";
-
 export interface AdminDataWithRelations {
   data?: TableItem;
   relations?: Record<string, TableItem[]>;
@@ -16,7 +15,6 @@ export interface AdminDataWithRelations {
   daily_activities?: TableItem[];
   [key: string]: unknown;
 }
-
 export interface LoadDataOptions {
   visibility?: string;
   filter?: Record<string, unknown>;

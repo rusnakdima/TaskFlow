@@ -5,7 +5,6 @@ import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 import { OrderCalculationService, Orderable } from "./order-calculation.service";
-
 @Injectable({
   providedIn: "root",
 })
@@ -13,9 +12,7 @@ export class DragDropOrderService {
   private requestService = inject(ApiService);
   private notifyService = inject(NotifyService);
   private orderCalculationService = inject(OrderCalculationService);
-
   private updatingOrders = new Set<string>();
-
   /**
    * Handle drag-drop reordering for any orderable entity list
    */
@@ -28,16 +25,13 @@ export class DragDropOrderService {
     isPrivate: boolean = true
   ): Observable<any> {
     const operationKey = `${entityType}-${parentTodoId || "root"}`;
-
     if (this.updatingOrders.has(operationKey)) {
       this.notifyService.showWarning("Please wait for previous operation to complete");
       return of(null);
     }
-
     if (event.previousIndex === event.currentIndex) {
       return of(null);
     }
-
     const isOffline = this.requestService.isOffline();
     if (isOffline && !isPrivate) {
       this.notifyService.showWarning(
@@ -45,15 +39,12 @@ export class DragDropOrderService {
       );
       return of(null);
     }
-
     // IMPORTANT: Use currentList directly - it's already sorted for display
     // The CDK indices correspond to this sorted list
     const draggedItem = currentList[event.previousIndex];
-
     if (!draggedItem) {
       return of(null);
     }
-
     // Use the global reorder function with currentList (already sorted for display)
     const result = this.orderCalculationService.reorderItems(
       currentList,
@@ -61,11 +52,9 @@ export class DragDropOrderService {
       event.previousIndex,
       event.currentIndex
     );
-
     if (!result.itemsToUpdate || result.itemsToUpdate.length === 0) {
       return of(null);
     }
-
     // Handle special fields for todos
     const transformedItems = result.itemsToUpdate.map((item) => {
       if (entityType === "todos") {
@@ -82,12 +71,9 @@ export class DragDropOrderService {
       }
       return item;
     });
-
     this.updatingOrders.add(operationKey);
-
     const visibility = isPrivate ? "private" : "shared";
     const offlineOption = isOffline ? { offline: true } : {};
-
     return this.requestService
       .updateAll(table, transformedItems, { visibility, ...offlineOption })
       .pipe(
@@ -102,7 +88,6 @@ export class DragDropOrderService {
         })
       );
   }
-
   private capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }

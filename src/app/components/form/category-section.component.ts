@@ -14,12 +14,10 @@ import { MatIconModule } from "@angular/material/icon";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
 import { Category } from "@entities/generated/api.types";
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
-
 export interface CategorySectionValue {
   selectedIds: string[];
   searchQuery: string;
 }
-
 @Component({
   selector: "app-category-section",
   standalone: true,
@@ -37,12 +35,10 @@ export interface CategorySectionValue {
 export class CategorySectionComponent implements ControlValueAccessor {
   @Input() categories: Category[] = [];
   @Input() disabled = false;
-
   @Output() addCategory = new EventEmitter<void>();
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() toggleSelection = new EventEmitter<string>();
   @Output() toggleSelectAll = new EventEmitter<void>();
-
   @Input()
   get selectedIds(): Set<string> {
     return this._selectedIds();
@@ -50,7 +46,6 @@ export class CategorySectionComponent implements ControlValueAccessor {
   set selectedIds(value: Set<string>) {
     this._selectedIds.set(value);
   }
-
   @Input()
   get searchQuery(): string {
     return this._searchQuery();
@@ -58,54 +53,43 @@ export class CategorySectionComponent implements ControlValueAccessor {
   set searchQuery(value: string) {
     this._searchQuery.set(value);
   }
-
   @Input()
   get filteredCategories(): Category[] {
     const query = this._searchQuery().toLowerCase();
     if (!query) return this.categories;
     return this.categories.filter((c) => c.title.toLowerCase().includes(query));
   }
-
   @Input()
   get isAllSelected(): boolean {
     return this.categories.length > 0 && this._selectedIds().size === this.categories.length;
   }
-
   private _selectedIds = signal<Set<string>>(new Set());
   private _searchQuery = signal("");
-
   private onChange: (value: CategorySectionValue) => void = () => {};
   private onTouched: () => void = () => {};
-
   writeValue(obj: CategorySectionValue): void {
     if (obj) {
       this._selectedIds.set(new Set(obj.selectedIds ?? []));
       this._searchQuery.set(obj.searchQuery ?? "");
     }
   }
-
   registerOnChange(fn: (value: CategorySectionValue) => void): void {
     this.onChange = fn;
   }
-
   registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
-
   setDisabledState(isDisabled: boolean): void {
     this.disabled = isDisabled;
   }
-
   onSearchQueryChange(value: string): void {
     this._searchQuery.set(value);
     this.searchQueryChange.emit(value);
     this.emitChange();
   }
-
   onAddCategory(): void {
     this.addCategory.emit();
   }
-
   onToggleSelectAll(): void {
     const allIds = this.categories.map((c: Category) => c.id);
     const currentSelected = this._selectedIds();
@@ -118,7 +102,6 @@ export class CategorySectionComponent implements ControlValueAccessor {
     this.emitChange();
     this.onTouched();
   }
-
   onToggleSelection(categoryId: string): void {
     const selected = new Set(this._selectedIds());
     if (selected.has(categoryId)) {
@@ -131,11 +114,9 @@ export class CategorySectionComponent implements ControlValueAccessor {
     this.emitChange();
     this.onTouched();
   }
-
   isSelected(categoryId: string): boolean {
     return this._selectedIds().has(categoryId);
   }
-
   private emitChange(): void {
     this.onChange({
       selectedIds: Array.from(this._selectedIds()),

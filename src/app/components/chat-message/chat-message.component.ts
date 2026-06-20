@@ -13,7 +13,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { ChatMessage } from "@entities/chat.model";
 import { MessageReactionsComponent } from "@pages/chat/components/message-reactions/message-reactions.component";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
-
 @Component({
   selector: "app-chat-message",
   standalone: true,
@@ -34,7 +33,6 @@ export class ChatMessageComponent implements OnInit {
   @Input() isGrouped = false;
   @Input() editingMessageId: string | null = null;
   @Input() editingMessageContent = "";
-
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
   @Output() contextMenu = new EventEmitter<{
@@ -50,27 +48,21 @@ export class ChatMessageComponent implements OnInit {
   @Output() retrySend = new EventEmitter<ChatMessage>();
   @Output() deleteMessage = new EventEmitter<ChatMessage>();
   @Output() startEditMessage = new EventEmitter<ChatMessage>();
-
   showReactionPicker = signal(false);
   showEmojiGrid = signal(false);
   isHovered = signal(false);
   quickEmojis = ["😀", "😂", "❤️", "🥰", "😍", "🎉", "🔥", "👍", "👎"];
-
   ngOnInit(): void {}
-
   get isOwn(): boolean {
     return this.message?.isMine ?? false;
   }
-
   get isEditing(): boolean {
     return this.editingMessageId === this.message?.id;
   }
-
   onEditInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
     this.editMessageInput.emit(target.value);
   }
-
   onContextMenu(event: MouseEvent): void {
     console.debug("onContextMenu", {
       event,
@@ -81,83 +73,56 @@ export class ChatMessageComponent implements OnInit {
     event.stopPropagation();
     this.contextMenu.emit({ event, message: this.message, isOwn: this.isOwn });
   }
-
   onSaveEdit(): void {
     this.saveEdit.emit();
   }
-
   onCancelEdit(): void {
     this.cancelEdit.emit();
   }
-
   onReply(message: ChatMessage): void {
-    console.debug("onReply", { message });
     this.reply.emit(message);
   }
-
   onReact(payload: { message: ChatMessage; emoji: string }): void {
-    console.debug("onReact", payload);
     this.react.emit(payload);
     this.showReactionPicker.set(false);
     this.showEmojiGrid.set(false);
   }
-
   onRemoveReaction(payload: { message: ChatMessage; emoji: string }): void {
-    console.debug("onRemoveReaction", payload);
     this.removeReaction.emit(payload);
     this.showEmojiGrid.set(false);
   }
-
   onCancelReply(message: ChatMessage): void {
-    console.debug("onCancelReply", { message });
     this.cancelReply.emit(message);
   }
-
   onToggleReactionPicker(): void {
-    console.debug("onToggleReactionPicker");
     this.showReactionPicker.update((v) => !v);
   }
-
   onToggleEmojiGrid(): void {
-    console.debug("onToggleEmojiGrid");
     this.showEmojiGrid.update((v) => !v);
   }
-
   onMouseLeave(): void {
     this.isHovered.set(false);
     this.showEmojiGrid.set(false);
   }
-
   onMouseEnter(): void {
     this.isHovered.set(true);
   }
-
   onQuickReaction(emoji: string): void {
-    console.debug("onQuickReaction", { emoji });
     this.react.emit({ message: this.message, emoji });
     this.showEmojiGrid.set(false);
   }
-
   onPickerClosed(): void {
-    console.debug("onPickerClosed");
     this.showReactionPicker.set(false);
   }
-
   onRetrySend(): void {
-    console.debug("onRetrySend");
     this.retrySend.emit(this.message);
   }
-
   onDeleteMessage(): void {
-    console.debug("onDeleteMessage", { message: this.message });
     this.deleteMessage.emit(this.message);
   }
-
   startEditMessageInline(): void {
-    console.debug("startEditMessageInline", { message: this.message });
     this.startEditMessage.emit(this.message);
   }
-
   formatTime(time: string): string {
     if (!time || time === "Invalid Date") {
       return new Date().toLocaleTimeString("en-US", {
@@ -176,15 +141,12 @@ export class ChatMessageComponent implements OnInit {
     }
     return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   }
-
   getBubbleClasses(): string {
     const base =
       "relative flex flex-col min-h-[44px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-full word-break transition-all duration-200 ease-out";
-
     if (this.isOwn) {
       return `${base} bg-[var(--accent-color)] text-white shadow-lg shadow-[var(--accent-color)]/10`;
     }
-
     return `${base} bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 shadow-sm`;
   }
 }

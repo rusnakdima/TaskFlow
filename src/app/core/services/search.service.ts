@@ -7,9 +7,7 @@ import { AuthService } from "@services/auth/auth.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { ProfileSearchService } from "@core/services/profile-search.service";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
-
 export type SearchableEntity = "todos" | "tasks" | "subtasks" | "comments" | "chats" | "categories";
-
 export type GlobalSearchCategory =
   | "project"
   | "task"
@@ -19,7 +17,6 @@ export type GlobalSearchCategory =
   | "page"
   | "action"
   | "chat";
-
 export interface GlobalSearchItem {
   id: string;
   label: string;
@@ -29,7 +26,6 @@ export interface GlobalSearchItem {
   route?: string;
   data?: any;
 }
-
 export interface GlobalSearchResults {
   projects: GlobalSearchItem[];
   tasks: GlobalSearchItem[];
@@ -39,13 +35,11 @@ export interface GlobalSearchResults {
   chats: GlobalSearchItem[];
   rooms: GlobalSearchItem[];
 }
-
 export interface SearchResult<T> {
   items: T[];
   hasMore: boolean;
   fromCache: boolean;
 }
-
 @Injectable({ providedIn: "root" })
 export class SearchService {
   private apiService = inject(ApiService);
@@ -53,10 +47,8 @@ export class SearchService {
   private authService = inject(AuthService);
   private mongoConnectionService = inject(MongoConnectionService);
   private profileSearchService = inject(ProfileSearchService);
-
   private searchSubject = new Subject<{ entity: SearchableEntity; query: string }>();
   private destroy$ = new Subject<void>();
-
   private searchState = signal<
     Record<
       SearchableEntity,
@@ -75,14 +67,12 @@ export class SearchService {
     chats: { items: [], hasMore: true, isLoading: false, currentQuery: "" },
     categories: { items: [], hasMore: true, isLoading: false, currentQuery: "" },
   });
-
   readonly todosResults = computed(() => this.searchState().todos.items);
   readonly tasksResults = computed(() => this.searchState().tasks.items);
   readonly subtasksResults = computed(() => this.searchState().subtasks.items);
   readonly commentsResults = computed(() => this.searchState().comments.items);
   readonly chatsResults = computed(() => this.searchState().chats.items);
   readonly categoriesResults = computed(() => this.searchState().categories.items);
-
   private globalSearchSubject = new Subject<string>();
   private globalSearchState = signal<GlobalSearchResults>({
     projects: [],
@@ -93,11 +83,8 @@ export class SearchService {
     chats: [],
     rooms: [],
   });
-
   readonly globalSearchResults = computed(() => this.globalSearchState());
-
   readonly isGlobalSearching = signal(false);
-
   readonly isSearching = computed(() => {
     const state = this.searchState();
     return (
@@ -109,7 +96,6 @@ export class SearchService {
       state.categories.isLoading
     );
   });
-
   constructor() {
     this.searchSubject
       .pipe(
@@ -119,28 +105,22 @@ export class SearchService {
         takeUntil(this.destroy$)
       )
       .subscribe();
-
     this.initGlobalSearchListener();
   }
-
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
   search(entity: SearchableEntity, query: string): void {
     this.updateState(entity, { currentQuery: query });
-
     if (!query.trim()) {
       this.updateState(entity, { items: [], hasMore: true });
       this.loadFromCache(entity);
       return;
     }
-
     this.updateState(entity, { isLoading: true });
     this.searchSubject.next({ entity, query });
   }
-
   private performSearch(entity: SearchableEntity, query: string): Observable<SearchResult<any>> {
     return new Observable((subscriber) => {
       if (!query.trim()) {
@@ -148,7 +128,6 @@ export class SearchService {
         subscriber.complete();
         return;
       }
-
       if (!this.mongoConnectionService.isConnected()) {
         this.searchLocally(entity, query).subscribe({
           next: (result) => {
@@ -163,16 +142,12 @@ export class SearchService {
         });
         return;
       }
-
       const token = this.authService.getToken();
       const userId = this.authService.getValueByKey("id");
-
       const needsUserIdFilter = ["tasks", "subtasks", "comments", "chats"].includes(entity);
-
       const filter = needsUserIdFilter
         ? { $or: [{ user_id: userId }, { assignees: userId }] }
         : undefined;
-
       this.apiService
         .invokeCommand<any[]>("search_data", {
           table: entity,
@@ -211,7 +186,6 @@ export class SearchService {
         });
     });
   }
-
   private searchLocally(entity: SearchableEntity, query: string): Observable<SearchResult<any>> {
     return new Observable((subscriber) => {
       const items = this.getLocalItems(entity);
@@ -220,12 +194,10 @@ export class SearchService {
         query: query,
         filterType: this.getFilterType(entity),
       });
-
       subscriber.next({ items: filtered, hasMore: false, fromCache: true });
       subscriber.complete();
     });
   }
-
   private getLocalItems(entity: SearchableEntity): any[] {
     switch (entity) {
       case "todos":
@@ -244,15 +216,12 @@ export class SearchService {
         return [];
     }
   }
-
   private getVisibility(_entity: SearchableEntity): string {
     return "all";
   }
-
   private getFilterType(entity: SearchableEntity): "status" | "visibility" {
     return entity === "todos" ? "visibility" : "status";
   }
-
   private updateState(
     entity: SearchableEntity,
     updates: Partial<{
@@ -267,21 +236,17 @@ export class SearchService {
       [entity]: { ...state[entity], ...updates },
     }));
   }
-
   private loadFromCache(entity: SearchableEntity): void {
     const state = this.searchState()[entity];
     if (state.items.length > 0) return;
-
     const items = this.getLocalItems(entity);
     if (items.length > 0) {
       this.updateState(entity, { items });
     }
   }
-
   clearResults(entity: SearchableEntity): void {
     this.updateState(entity, { items: [], hasMore: true, currentQuery: "" });
   }
-
   clearAllResults(): void {
     const entities: SearchableEntity[] = [
       "todos",
@@ -293,7 +258,6 @@ export class SearchService {
     ];
     entities.forEach((entity) => this.clearResults(entity));
   }
-
   searchAllEntities(query: string): void {
     if (!query.trim()) {
       this.globalSearchState.set({
@@ -307,18 +271,14 @@ export class SearchService {
       });
       return;
     }
-
     this.isGlobalSearching.set(true);
     this.globalSearchSubject.next(query);
   }
-
   private performGlobalSearch(query: string): void {
     const q = query.toLowerCase();
     this.isGlobalSearching.set(true);
-
     const storageResults = this.performGlobalSearchFromStorage(q);
     this.globalSearchState.set(storageResults);
-
     if (this.mongoConnectionService.isConnected()) {
       this.performGlobalSearchFromApi(query, storageResults);
     } else {
@@ -326,11 +286,9 @@ export class SearchService {
       this.isGlobalSearching.set(false);
     }
   }
-
   private performGlobalSearchFromApi(query: string, baseResults?: GlobalSearchResults): void {
     const token = this.authService.getToken();
     const userId = this.authService.getValueByKey("id");
-
     forkJoin({
       projects: this.apiService.invokeCommand<any[]>("search_data", {
         table: "todos",
@@ -397,7 +355,6 @@ export class SearchService {
           route: `/todos/${t.id}/tasks?visibility=${t.visibility || "private"}`,
           data: t,
         }));
-
         const apiTasks = (results.tasks || []).map((t: any) => ({
           id: t.id,
           label: t.title,
@@ -407,7 +364,6 @@ export class SearchService {
           route: `/todos/${t.todo_id}/tasks?highlightTaskId=${t.id}&visibility=${t.visibility || "private"}`,
           data: t,
         }));
-
         const apiSubtasks = (results.subtasks || []).map((s: any) => {
           const parentTask = this.storageService.getTaskById(s.task_id);
           const route = parentTask
@@ -423,7 +379,6 @@ export class SearchService {
             data: s,
           };
         });
-
         const apiCategories = (results.categories || []).map((c: any) => ({
           id: c.id,
           label: c.title,
@@ -432,7 +387,6 @@ export class SearchService {
           route: `/categories?highlightCategoryId=${c.id}`,
           data: c,
         }));
-
         const apiChats = (results.chats || []).map((c: any) => ({
           id: c.id,
           label: c.content?.slice(0, 50) || "Chat message",
@@ -442,7 +396,6 @@ export class SearchService {
           route: `/chat?room=${c.room_id || c.user_id}`,
           data: c,
         }));
-
         const apiProfiles = (results.profiles || []).map((p: any) => ({
           id: p.id,
           label: p.name && p.last_name ? `${p.name} ${p.last_name}` : p.user?.username || "Unknown",
@@ -452,7 +405,6 @@ export class SearchService {
           route: `/profile?userId=${p.user_id}`,
           data: p,
         }));
-
         const apiRooms = ((results.rooms || []) as any[])
           .filter((r: any) => r.name?.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 5)
@@ -465,7 +417,6 @@ export class SearchService {
             route: `/chat?room=${r.room || r.id}`,
             data: r,
           }));
-
         const profiles =
           apiProfiles.length > 0
             ? apiProfiles
@@ -483,7 +434,6 @@ export class SearchService {
                   route: `/profile?userId=${p.user_id}`,
                   data: p,
                 }));
-
         const projects = apiProjects.length > 0 ? apiProjects : baseResults?.projects || [];
         const tasks = apiTasks.length > 0 ? apiTasks : baseResults?.tasks || [];
         const subtasks = apiSubtasks.length > 0 ? apiSubtasks : baseResults?.subtasks || [];
@@ -491,7 +441,6 @@ export class SearchService {
         const chats = apiChats.length > 0 ? apiChats : baseResults?.chats || [];
         const users = profiles.length > 0 ? profiles : baseResults?.users || [];
         const rooms = apiRooms.length > 0 ? apiRooms : baseResults?.rooms || [];
-
         this.globalSearchState.set({
           projects,
           tasks,
@@ -508,7 +457,6 @@ export class SearchService {
       },
     });
   }
-
   private performGlobalSearchFromStorage(q: string): GlobalSearchResults {
     const projects = this.storageService
       .todos()
@@ -523,7 +471,6 @@ export class SearchService {
         route: `/todos/${t.id}/tasks?visibility=${t.visibility || "private"}`,
         data: t,
       }));
-
     const tasks = this.storageService
       .tasks()
       .filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
@@ -537,7 +484,6 @@ export class SearchService {
         route: `/todos/${t.todo_id}/tasks?highlightTaskId=${t.id}&visibility=${t.visibility || "private"}`,
         data: t,
       }));
-
     const subtasks = this.storageService
       .subtasks()
       .filter((s) => s.title?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
@@ -557,7 +503,6 @@ export class SearchService {
           data: s,
         };
       });
-
     const categories = this.storageService
       .categories()
       .filter((c) => c.title?.toLowerCase().includes(q))
@@ -570,7 +515,6 @@ export class SearchService {
         route: `/categories?highlightCategoryId=${c.id}`,
         data: c,
       }));
-
     const users = this.getProfilesFromStorage(q)
       .slice(0, 5)
       .map((p) => ({
@@ -582,7 +526,6 @@ export class SearchService {
         route: `/profile?userId=${p.user_id}`,
         data: p,
       }));
-
     const chats = this.storageService
       .chats()
       .filter(
@@ -598,7 +541,6 @@ export class SearchService {
         route: `/chat?room=${c.room_id || c.user_id}`,
         data: c,
       }));
-
     const rooms = (this.storageService.rooms() || [])
       .filter((r: any) => r.name?.toLowerCase().includes(q))
       .slice(0, 5)
@@ -611,10 +553,8 @@ export class SearchService {
         route: `/chat?room=${r.room || r.id}`,
         data: r,
       }));
-
     return { projects, tasks, subtasks, categories, users, chats, rooms };
   }
-
   private getProfilesFromStorage(query: string): any[] {
     const profiles = this.storageService.allProfiles() || [];
     const q = query.toLowerCase();
@@ -625,7 +565,6 @@ export class SearchService {
       return fullName.includes(q) || username.includes(q) || email.includes(q);
     });
   }
-
   clearGlobalSearch(): void {
     this.globalSearchState.set({
       projects: [],
@@ -637,7 +576,6 @@ export class SearchService {
       rooms: [],
     });
   }
-
   initGlobalSearchListener(): void {
     this.globalSearchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))

@@ -2,22 +2,17 @@ import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@entities/generated/api.types";
 import { StorageService } from "@services/storage.service";
 import { ProjectTemplate, TemplateTask } from "@entities/template.model";
-
 export { ProjectTemplate, TemplateTask } from "@entities/template.model";
-
 @Injectable({
   providedIn: "root",
 })
 export class TemplateService {
   private readonly STORAGE_KEY = "projectTemplates";
   private storageService = inject(StorageService);
-
   templates = signal<ProjectTemplate[]>([]);
-
   constructor() {
     this.loadTemplates();
   }
-
   private loadTemplates(): void {
     const stored = localStorage.getItem(this.STORAGE_KEY);
     if (stored) {
@@ -28,11 +23,9 @@ export class TemplateService {
       }
     }
   }
-
   private saveTemplates(): void {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.templates()));
   }
-
   createTemplate(name: string, description: string, todo: Todo): ProjectTemplate {
     const tasks = this.storageService.tasksByTodoId().get(todo.id) || [];
     const templateTasks: TemplateTask[] = tasks.map((task) => {
@@ -44,7 +37,6 @@ export class TemplateService {
         subtasks: subtasks.map((st) => ({ title: st.title })),
       };
     });
-
     const template: ProjectTemplate = {
       id: Date.now().toString(),
       name,
@@ -53,13 +45,10 @@ export class TemplateService {
       categories: todo.categories || [],
       createdAt: new Date().toISOString(),
     };
-
     this.templates.update((templates) => [...templates, template]);
     this.saveTemplates();
-
     return template;
   }
-
   applyTemplate(template: ProjectTemplate, todo_id?: string): any[] {
     return template.tasks.map((templateTask, index) => ({
       id: `${todo_id}-task-${Date.now()}-${index}`,
@@ -87,20 +76,16 @@ export class TemplateService {
       dependsOn: [],
     }));
   }
-
   deleteTemplate(templateId: string): void {
     this.templates.update((templates) => templates.filter((t) => t.id !== templateId));
     this.saveTemplates();
   }
-
   getTemplate(templateId: string): ProjectTemplate | undefined {
     return this.templates().find((t) => t.id === templateId);
   }
-
   getTemplates(): ProjectTemplate[] {
     return this.templates();
   }
-
   getTemplateTasks(templateId: string): TemplateTask[] {
     const template = this.getTemplate(templateId);
     return template?.tasks || [];

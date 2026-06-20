@@ -5,17 +5,13 @@ import { Router, RouterModule, ActivatedRoute } from "@angular/router";
 import { Location } from "@angular/common";
 import { Subscription } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* components */
 import { QrScannerComponent } from "@components/qr-scanner/qr-scanner.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
-
 import { Profile } from "@entities/generated/api.types";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -24,7 +20,6 @@ import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { ShortcutEmittersService } from "@services/ui/shortcut-emitters.service";
 import { ThemeService } from "@services/ui/theme.service";
-
 @Component({
   selector: "app-profile",
   standalone: true,
@@ -36,7 +31,6 @@ export class ProfileView implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private storage = inject(UnifiedStorageService);
-
   constructor(
     private location: Location,
     private authService: AuthService,
@@ -47,12 +41,10 @@ export class ProfileView implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private route: ActivatedRoute
   ) {}
-
   userId: string = "";
   viewedUserId = signal<string | null>(null);
   isViewingOtherUser = signal(false);
   viewedUserProfile = signal<Profile | null>(null);
-
   profile = computed(() => this.storage.profiles()[0]);
   displayProfile = computed(() =>
     this.isViewingOtherUser() ? this.viewedUserProfile() : this.profile()
@@ -60,22 +52,17 @@ export class ProfileView implements OnInit, OnDestroy {
   currentUsername = computed(() => this.displayProfile()?.user?.username || "");
   currentEmail = computed(() => this.displayProfile()?.user?.email || "");
   role = computed(() => this.storage.currentUser()?.role || "");
-
   isDarkTheme = computed(() => this.themeService.getEffectiveMode() === "dark");
-
   // Offline auth signals
   canExportData = signal(false);
   importError = signal<string | null>(null);
   showImportExport = signal(false);
-
   // QR Scanner
   isScanningQr = signal(false);
-
   // My QR Code (for mobile login)
   showMyQr = signal(false);
   myQrCode = signal<string | null>(null);
   myQrToken = signal<string | null>(null);
-
   ngOnInit(): void {
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const userIdParam = params["userId"];
@@ -90,14 +77,12 @@ export class ProfileView implements OnInit, OnDestroy {
         this.isViewingOtherUser.set(false);
       }
     });
-
     this.userId = this.authService.getValueByKey("id");
     this.storage.ensureUserLoaded();
     this.storage.ensureProfileLoaded();
     this.canExportData.set(!!this.userId);
     this.showImportExport.set(true);
   }
-
   private fetchViewedUserProfile(userId: string): void {
     this.requestService
       .invokeCommand("get_profile", {
@@ -118,23 +103,18 @@ export class ProfileView implements OnInit, OnDestroy {
         },
       });
   }
-
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
   }
-
   setTheme(theme: string) {
     this.themeService.setMode(theme ? "dark" : "light");
   }
-
   toggleTheme() {
     this.themeService.toggleMode();
   }
-
   showShortcuts() {
     this.shortcutEmitters.emitShortcuts();
   }
-
   isMyProfile(): boolean {
     if (this.isViewingOtherUser()) {
       return false;
@@ -142,14 +122,12 @@ export class ProfileView implements OnInit, OnDestroy {
     const profile = this.profile();
     return profile !== null && profile.user_id === this.authService.getValueByKey("id");
   }
-
   exportUserData() {
     const userData = this.authService.exportUserData();
     if (!userData) {
       this.notifyService.showError("Failed to export user data");
       return;
     }
-
     const blob = new Blob([userData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -159,24 +137,19 @@ export class ProfileView implements OnInit, OnDestroy {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
     this.notifyService.showSuccess("User data exported successfully");
   }
-
   importUserData(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) {
       return;
     }
-
     const file = input.files[0];
     const reader = new FileReader();
-
     reader.onload = (e) => {
       try {
         const result = e.target?.result as string;
         const importResult = this.authService.importUserData(result);
-
         if (importResult.success) {
           this.notifyService.showSuccess(
             "User data imported. Please login with your password to complete setup."
@@ -194,15 +167,12 @@ export class ProfileView implements OnInit, OnDestroy {
         this.notifyService.showError("Invalid file format");
       }
     };
-
     reader.readAsText(file);
     input.value = "";
   }
-
   logout() {
     this.authService.logout();
   }
-
   async logoutAll() {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Logout All Devices",
@@ -213,15 +183,12 @@ export class ProfileView implements OnInit, OnDestroy {
     if (!confirmed) return;
     this.authService.logoutAll();
   }
-
   startQrScanning(): void {
     this.isScanningQr.set(true);
   }
-
   stopQrScanning(): void {
     this.isScanningQr.set(false);
   }
-
   onQrScanned(event: { token: string; isDesktopTarget: boolean }): void {
     if (event.isDesktopTarget) {
       this.completeDesktopLoginFromMobileScan(event.token);
@@ -229,14 +196,12 @@ export class ProfileView implements OnInit, OnDestroy {
       this.approveQrLogin(event.token);
     }
   }
-
   private approveQrLogin(token: string): void {
     const username = this.storage.profiles()[0]?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in to approve QR login");
       return;
     }
-
     this.requestService
       .invokeCommand<{ success: boolean }>("qr_approve", {
         token,
@@ -253,14 +218,12 @@ export class ProfileView implements OnInit, OnDestroy {
         },
       });
   }
-
   private completeDesktopLoginFromMobileScan(token: string): void {
     const username = this.storage.profiles()[0]?.user?.username;
     if (!username) {
       this.notifyService.showError("You must be logged in");
       return;
     }
-
     this.requestService
       .invokeCommand<{
         token: string;
@@ -288,7 +251,6 @@ export class ProfileView implements OnInit, OnDestroy {
         },
       });
   }
-
   async showMyQrCode(): Promise<void> {
     const username = this.storage.profiles()[0]?.user?.username;
     const userId = this.authService.getValueByKey("id");
@@ -296,7 +258,6 @@ export class ProfileView implements OnInit, OnDestroy {
       this.notifyService.showError("You must be logged in to show QR code");
       return;
     }
-
     try {
       const sub = this.requestService
         .invokeCommand<{
@@ -322,13 +283,11 @@ export class ProfileView implements OnInit, OnDestroy {
       );
     }
   }
-
   closeMyQrCode(): void {
     this.showMyQr.set(false);
     this.myQrCode.set(null);
     this.myQrToken.set(null);
   }
-
   openChat(): void {
     const userId = this.viewedUserId();
     if (userId) {

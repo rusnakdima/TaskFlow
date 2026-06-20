@@ -1,20 +1,16 @@
 /* sys lib */
 import { Component, Input, computed, inject, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
-
 /* services */
 import { StorageService } from "@services/storage.service";
-
 /* helpers */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { Task } from "@entities/generated/api.types";
-
 export interface ProgressBarSegment {
   status: string;
   percentage: number;
   color: string;
 }
-
 @Component({
   selector: "app-progress-bar",
   standalone: true,
@@ -28,16 +24,12 @@ export class ProgressBarComponent {
   @Input() showLabel = true;
   @Input() showPercentage = true;
   @Input() showLegend = false;
-
   // Count-based inputs (alternative to items)
   @Input() completedCount?: number;
   @Input() totalCount?: number;
-
   // Task ID for count-based progress (uses task's subtasks_count/completed_subtasks_count)
   @Input() taskId?: string;
-
   private readonly storageService = inject(StorageService);
-
   segments = computed(() => {
     if (this.items && this.items.length > 0) {
       return BaseItemHelper.getProgressSegments(this.items ?? []);
@@ -84,7 +76,6 @@ export class ProgressBarComponent {
     }
     return [];
   });
-
   totalProgress = computed(() => {
     if (this.items && this.items.length > 0) {
       const items = this.items ?? [];
@@ -100,7 +91,6 @@ export class ProgressBarComponent {
     }
     return 0;
   });
-
   get heightClass(): string {
     switch (this.size) {
       case "sm":

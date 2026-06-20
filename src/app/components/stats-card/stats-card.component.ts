@@ -1,7 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-
 @Component({
   selector: "app-stats-card",
   standalone: true,
@@ -14,7 +13,6 @@ export class StatsCardComponent {
   @Input() value: number | string = 0;
   @Input() icon = "assignment";
   @Input() iconBgClass = "bg-blue-500";
-
   get gradientClass(): string {
     const colorMap: Record<string, string> = {
       "bg-blue-500": "from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700",

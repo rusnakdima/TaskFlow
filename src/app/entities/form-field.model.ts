@@ -14,7 +14,6 @@ export enum TypeField {
   subgroup = "subgroup",
   sublist = "sublist",
 }
-
 interface CommonFormField {
   label: string | ((param: Record<string, unknown>) => string);
   name: string;
@@ -22,13 +21,11 @@ interface CommonFormField {
   required?: boolean;
   isShow: (param: Record<string, unknown>, index?: number) => boolean;
 }
-
 export interface OptionData {
   value: unknown;
   label: string;
   isShow: (param: Record<string, unknown>, index?: number) => boolean;
 }
-
 export interface TextField extends CommonFormField {
   type: TypeField.text;
 }
@@ -85,7 +82,6 @@ export interface SubListField extends CommonFormField {
   type: TypeField.sublist;
   subList: Array<FormField>;
 }
-
 export type FormField =
   | TextField
   | NumberField

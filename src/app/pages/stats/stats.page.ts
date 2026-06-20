@@ -2,10 +2,8 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit, signal, inject, DestroyRef } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* models */
 import {
   Statistics,
@@ -14,14 +12,12 @@ import {
   DetailedMetric,
   StatisticsResponse,
 } from "@entities/statistics.model";
-
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ApiService } from "@services/api.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField } from "@entities/table-field.model";
@@ -33,7 +29,6 @@ import {
   PullToRefreshDirective,
   PullToRefreshIndicatorComponent,
 } from "@components/pull-to-refresh";
-
 @Component({
   selector: "app-stats",
   standalone: true,
@@ -54,15 +49,11 @@ export class StatsView implements OnInit {
   private shortcutService = inject(ShortcutService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
-
   refreshState = signal<"idle" | "pulling" | "triggered" | "refreshing" | "complete">("idle");
   refreshDistance = signal(0);
-
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-
   selectedTimeRange = signal<string>("week");
-
   timeRanges: SegmentOption[] = [
     { id: "day", label: "This Day", icon: "today" },
     { id: "week", label: "This Week", icon: "date_range" },
@@ -70,7 +61,6 @@ export class StatsView implements OnInit {
     { id: "quarter", label: "This Quarter", icon: "calendar_view_month" },
     { id: "year", label: "This Year", icon: "calendar_today" },
   ];
-
   statistics = signal<Statistics>({
     total_tasks: 0,
     completion_rate: 0,
@@ -81,24 +71,19 @@ export class StatsView implements OnInit {
     previous_average_time: 0,
     previous_productivity_score: 0,
   });
-
   chartData = signal<ChartData>({
     completion_trend: [],
     categories: [],
     daily_activity: [],
   });
-
   achievements = signal<Achievement[]>([]);
-
   detailedMetrics = signal<DetailedMetric[]>([]);
-
   detailedMetricsFields: TableField[] = [
     { key: "name", label: "Metric", type: "text" },
     { key: "current", label: "Current Period", type: "text" },
     { key: "previous", label: "Previous Period", type: "text" },
     { key: "change", label: "Change", type: "change" },
   ];
-
   categoryDetailFields: TableField[] = [
     { key: "name", label: "Category", type: "text" },
     { key: "count", label: "Total Tasks", type: "number" },
@@ -116,11 +101,9 @@ export class StatsView implements OnInit {
       getValue: (item: Record<string, unknown>) => `${item["percentage"]}%`,
     },
   ];
-
   ngOnInit(): void {
     // Data is already loaded in app.ts, just load statistics
     this.loadStatistics();
-
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       if (!this.authService.isLoggedIn()) {
         this.router.navigate(["/login"]);
@@ -133,14 +116,11 @@ export class StatsView implements OnInit {
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
   }
-
   onPullToRefresh(): Promise<void> {
     return this.syncService.syncAll() as unknown as Promise<void>;
   }
-
   loadStatistics(): void {
     const userId: string = this.authService.getValueByKey("id");
-
     if (userId && userId !== "") {
       this.requestService
         .invokeCommand<StatisticsResponse>("statistics_get", {
@@ -165,17 +145,14 @@ export class StatsView implements OnInit {
         });
     }
   }
-
   getPercentageChange(current: number, previous: number): number {
     if (previous === 0) return 0;
     return Math.round(((current - previous) / previous) * 100);
   }
-
   changeTimeRange(range: string): void {
     this.selectedTimeRange.set(range);
     this.loadStatistics();
   }
-
   changeTimeRangeFromSelector(id: string): void {
     this.selectedTimeRange.set(id);
     this.loadStatistics();

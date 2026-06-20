@@ -1,9 +1,7 @@
 import { NetworkErrorHelper } from "./network-error.helper";
-
 export class LoginErrorHelper {
   static handleAuthError(error: unknown, notifyService: any, hasLocalUsers: boolean = false): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
-
     if (NetworkErrorHelper.isNetworkError(error)) {
       if (hasLocalUsers) {
         notifyService.showError("No internet connection. Using local database...");
@@ -20,7 +18,6 @@ export class LoginErrorHelper {
       notifyService.showError(errorMessage);
     }
   }
-
   static handleWebAuthnError(
     error: unknown,
     notifyService: any,
@@ -29,12 +26,10 @@ export class LoginErrorHelper {
     const message = error instanceof Error ? error.message : "Operation failed";
     notifyService.showError(`${context} failed: ${message}`);
   }
-
   static handleQrError(error: unknown, notifyService: any, context: string = "QR login"): void {
     const message = error instanceof Error ? error.message : String(error);
     notifyService.showError(`${context} failed: ${message}`);
   }
-
   static handleBiometricError(
     error: unknown,
     notifyService: any,

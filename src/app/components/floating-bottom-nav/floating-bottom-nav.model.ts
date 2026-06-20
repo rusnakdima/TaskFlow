@@ -6,7 +6,6 @@ export interface FloatingNavItem {
   routeType?: "todos" | "profile";
   childRoutes?: NavRouteConfig[];
 }
-
 export interface NavRouteConfig {
   pattern: RegExp;
   icon: string;

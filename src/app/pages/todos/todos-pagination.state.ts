@@ -1,6 +1,5 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { EntityStoreService } from "@core/services/entity-store.service";
-
 export interface TodoPagination {
   skip: number;
   limit: number;
@@ -8,11 +7,9 @@ export interface TodoPagination {
   hasMore: boolean;
   loading: boolean;
 }
-
 @Injectable({ providedIn: "root" })
 export class TodosPaginationStateService {
   private entityStore = inject(EntityStoreService);
-
   todoPagination = signal<TodoPagination>({
     skip: 0,
     limit: 10,
@@ -20,7 +17,6 @@ export class TodosPaginationStateService {
     hasMore: true,
     loading: false,
   });
-
   loadInitialTodos(): void {
     const hasAllTodos =
       this.entityStore.privateTodos().length > 0 &&
@@ -36,12 +32,10 @@ export class TodosPaginationStateService {
       }));
       return;
     }
-
     this.todoPagination.update((p) => ({ ...p, loading: true }));
     this.entityStore.ensureTodosLoaded("all");
     this.todoPagination.update((p) => ({ ...p, loading: false }));
   }
-
   loadMore(): void {
     if (this.todoPagination().loading || !this.todoPagination().hasMore) return;
     this.entityStore.loadMoreTodos();

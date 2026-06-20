@@ -3,17 +3,13 @@ import { ChatState } from "../state/chat.state";
 import { ApiService } from "@services/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-
 @Injectable({ providedIn: "root" })
 export class ChatReactionsService {
   private requestService = inject(ApiService);
   private authService = inject(AuthService);
   private notifyService = inject(NotifyService);
-
   state = inject(ChatState);
-
   addReaction(messageId: string, emoji: string): void {
-    console.debug("addReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("add_message_reaction", {
         messageId,
@@ -50,9 +46,7 @@ export class ChatReactionsService {
         },
       });
   }
-
   removeReaction(messageId: string, emoji: string): void {
-    console.debug("removeReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("remove_message_reaction", {
         messageId,

@@ -4,14 +4,11 @@ export enum TodoPermission {
   MODERATOR = "moderator",
   OWNER = "owner",
 }
-
 export const ASSIGNEE_DEFAULT_ROLE = "viewer";
-
 export interface AssigneeRole {
   profileId: string;
   role: TodoPermission;
 }
-
 export interface TodoPermissionCheck {
   canEditTodo: boolean;
   canDeleteTodo: boolean;
@@ -22,7 +19,6 @@ export interface TodoPermissionCheck {
   canDeleteTask: boolean;
   permission: TodoPermission;
 }
-
 export function getPermissionFromRole(role: string): TodoPermission {
   const lowerRole = role.toLowerCase();
   switch (lowerRole) {
@@ -39,23 +35,18 @@ export function getPermissionFromRole(role: string): TodoPermission {
       return TodoPermission.VIEWER;
   }
 }
-
 export function hasEditPermission(permission: TodoPermission): boolean {
   return permission === TodoPermission.MODERATOR || permission === TodoPermission.OWNER;
 }
-
 export function hasDeletePermission(permission: TodoPermission): boolean {
   return permission === TodoPermission.OWNER;
 }
-
 export function hasManagePermissionsPermission(permission: TodoPermission): boolean {
   return permission === TodoPermission.MODERATOR || permission === TodoPermission.OWNER;
 }
-
 export function hasTransferOwnershipPermission(permission: TodoPermission): boolean {
   return permission === TodoPermission.OWNER;
 }
-
 export function hasCreateTaskPermission(permission: TodoPermission): boolean {
   return (
     permission === TodoPermission.EDITOR ||

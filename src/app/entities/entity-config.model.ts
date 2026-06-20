@@ -1,7 +1,5 @@
 import { Visibility } from "@entities/api.model";
-
 export type StorageTarget = "local" | "cloud";
-
 export interface EntityConfig {
   type: EntityType;
   storageTarget: StorageTarget;
@@ -9,7 +7,6 @@ export interface EntityConfig {
   parentId?: string;
   parentType?: EntityType;
 }
-
 export type EntityType =
   | "todos"
   | "tasks"
@@ -20,19 +17,16 @@ export type EntityType =
   | "profiles"
   | "users"
   | "dailyActivities";
-
 export interface CreateContext {
   targetDb: StorageTarget;
   visibility?: Visibility;
   todoId?: string;
   taskId?: string;
 }
-
 export interface UpdateContext {
   targetDb: StorageTarget;
   visibility?: Visibility;
 }
-
 export interface PermissionContext {
   todoId: string;
   userId: string;
@@ -41,7 +35,6 @@ export interface PermissionContext {
   isOwner: boolean;
   isGlobalAdmin: boolean;
 }
-
 export interface PermissionCheckResult {
   canView: boolean;
   canCreate: boolean;
@@ -51,26 +44,21 @@ export interface PermissionCheckResult {
   canManageAssignees: boolean;
   permissionLevel: TodoPermissionLevel;
 }
-
 export type TodoPermissionLevel = "viewer" | "editor" | "moderator" | "owner";
-
 export interface CategoryVisibilityOption {
   id: StorageTarget;
   label: string;
   icon: string;
 }
-
 export const CATEGORY_VISIBILITY_OPTIONS: CategoryVisibilityOption[] = [
   { id: "local", label: "Local", icon: "folder" },
   { id: "cloud", label: "Cloud", icon: "cloud" },
 ];
-
 export interface TodoVisibilityOption {
   id: Visibility;
   label: string;
   icon: string;
 }
-
 export const TODO_VISIBILITY_OPTIONS: TodoVisibilityOption[] = [
   { id: "private", label: "Private", icon: "lock" },
   { id: "shared", label: "Shared", icon: "group" },

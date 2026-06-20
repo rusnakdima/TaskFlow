@@ -3,7 +3,6 @@ import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { TaskStatus } from "@entities/generated/api.types";
 import { BaseItemHelper } from "@helpers/base-item.helper";
-
 @Component({
   selector: "app-status-toggle",
   standalone: true,
@@ -14,9 +13,7 @@ export class StatusToggleComponent {
   @Input() status: TaskStatus | string = TaskStatus.PENDING;
   @Input() size: "sm" | "md" | "lg" = "md";
   @Output() toggle = new EventEmitter<TaskStatus>();
-
   TaskStatus = TaskStatus;
-
   getIcon(): string {
     switch (this.status) {
       case TaskStatus.COMPLETED:
@@ -32,7 +29,6 @@ export class StatusToggleComponent {
         return "radio_button_unchecked";
     }
   }
-
   getButtonClass(): string {
     const sizeClass =
       this.size === "sm" ? "!text-lg!" : this.size === "lg" ? "!text-3xl!" : "!text-2xl!";
@@ -50,7 +46,6 @@ export class StatusToggleComponent {
         return `${sizeClass} text-gray-400! hover:bg-gray-500/10! dark:text-gray-500! dark:hover:bg-gray-400/10!`;
     }
   }
-
   getTitle(): string {
     switch (this.status) {
       case TaskStatus.COMPLETED:
@@ -66,7 +61,6 @@ export class StatusToggleComponent {
         return "Mark as completed";
     }
   }
-
   onToggle(): void {
     const currentStatus = this.status as TaskStatus;
     const nextStatus = BaseItemHelper.getNextStatus(currentStatus);

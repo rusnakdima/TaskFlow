@@ -1,6 +1,5 @@
 import { Injectable } from "@angular/core";
 import { EntityType, VisibilityFilter } from "@entities/storage.model";
-
 export interface FilterOptions {
   visibility?: VisibilityFilter | string;
   todoId?: string;
@@ -12,7 +11,6 @@ export interface FilterOptions {
   search?: string;
   [key: string]: any;
 }
-
 @Injectable({ providedIn: "root" })
 export class QueryBuilder {
   buildQuery(entityType: EntityType, filters: FilterOptions): any {
@@ -29,7 +27,6 @@ export class QueryBuilder {
     if (filters.search) query.$or = this.buildSearchFilter(filters.search, entityType);
     return query;
   }
-
   buildVisibilityFilter(visibility: string): any {
     switch (visibility) {
       case "private":
@@ -43,7 +40,6 @@ export class QueryBuilder {
         return {};
     }
   }
-
   combineFilters(filters: any[]): any {
     if (!filters || filters.length === 0) return {};
     if (filters.length === 1) return filters[0];
@@ -59,12 +55,10 @@ export class QueryBuilder {
     });
     return combined.$and.length > 0 ? combined : {};
   }
-
   private buildSearchFilter(search: string, entityType: EntityType): any[] {
     const searchFields = this.getSearchFields(entityType);
     return searchFields.map((field) => ({ [field]: { $regex: search, $options: "i" } }));
   }
-
   private getSearchFields(entityType: EntityType): string[] {
     switch (entityType) {
       case "todos":

@@ -6,7 +6,6 @@ import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { ConversationItem } from "@entities/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-
 @Injectable({ providedIn: "root" })
 export class ChatRoomsService {
   private requestService = inject(ApiService);
@@ -14,19 +13,16 @@ export class ChatRoomsService {
   private storageService = inject(UnifiedStorageService);
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
-
   loadRooms(): void {
     if (!this.state.currentUserId()) {
       this.loadConversations();
       this.loadGroups();
       return;
     }
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       this.loadRoomsFromLocal();
       return;
     }
-
     this.requestService
       .invokeCommand("get_rooms", {
         token: this.authService.getToken(),
@@ -41,12 +37,10 @@ export class ChatRoomsService {
           this.loadRoomsIntoConversations(rooms);
         },
         error: (err) => {
-          console.error("get_rooms error", err);
           this.loadRoomsFromLocal();
         },
       });
   }
-
   private loadRoomsFromLocal(): void {
     this.requestService.chats.getAll({ visibility: "private", limit: 100 }).subscribe({
       next: () => {
@@ -59,27 +53,21 @@ export class ChatRoomsService {
       },
     });
   }
-
   private loadConversationsFromLocal(): void {
     const chats = this.storageService.chats();
     const currentUserId = this.state.currentUserId();
     const convMap = new Map<string, ConversationItem>();
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
-
       const roomId = chat.room_id;
       if (!roomId) continue;
-
       const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
-
       if (!convMap.has(roomId)) {
         let name = "Unknown";
         let avatar: string | null = null;
         let isGroup = roomId.startsWith("group_");
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
-
         if (existingConv && existingConv.name !== "Unknown") {
           name = existingConv.name;
           avatar = existingConv.avatar;
@@ -102,7 +90,6 @@ export class ChatRoomsService {
             name = "Group";
           }
         }
-
         convMap.set(roomId, {
           roomId: roomId,
           name: name,
@@ -125,32 +112,26 @@ export class ChatRoomsService {
         existing.lastMessageTime = this.state.formatDate(chat.created_at || "");
       }
     }
-
     const existingConversations = this.state.conversations();
     for (const conv of existingConversations) {
       if (!convMap.has(conv.roomId)) {
         convMap.set(conv.roomId, { ...conv, isLocal: true });
       }
     }
-
     const sorted = Array.from(convMap.values()).sort((a, b) => {
       const timeA = a.lastMessageTime || "";
       const timeB = b.lastMessageTime || "";
       return timeB.localeCompare(timeA);
     });
-
     this.state.conversations.set(sorted);
   }
-
   private loadGroupsFromLocal(): void {
     const chats = this.storageService.chats();
     const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
       const roomId = chat.room_id;
       if (!roomId || !roomId.startsWith("group_")) continue;
-
       if (!existingRooms.has(roomId)) {
         const conv: ConversationItem = {
           roomId: roomId,
@@ -172,11 +153,9 @@ export class ChatRoomsService {
       }
     }
   }
-
   private loadRoomsIntoConversations(rooms: any[]): void {
     const currentUserId = this.state.currentUserId();
     if (!currentUserId || !Array.isArray(rooms)) return;
-
     for (const room of rooms) {
       const isGroup = room.is_group === true || (room.room || "").startsWith("group_");
       const memberIds: string[] = (room.participant_ids || []).filter(
@@ -185,10 +164,8 @@ export class ChatRoomsService {
       const otherUserId = isGroup
         ? undefined
         : memberIds.find((id: string) => id !== currentUserId);
-
       let name = isGroup ? room.name || "Group" : room.name || "Unknown";
       let avatar: string | null = null;
-
       if (!isGroup && otherUserId) {
         const profile = this.getProfileByUserId(otherUserId);
         if (profile) {
@@ -198,9 +175,7 @@ export class ChatRoomsService {
           this.fetchProfileIfMissing(otherUserId);
         }
       }
-
       const existingIdx = this.state.conversations().findIndex((c) => c.roomId === room.room);
-
       if (existingIdx !== -1) {
         const currentConv = this.state.conversations()[existingIdx];
         if (currentConv.isLocal || currentConv.name === "Unknown") {
@@ -219,7 +194,6 @@ export class ChatRoomsService {
         }
         continue;
       }
-
       const conv: ConversationItem = {
         roomId: room.room,
         name: name,
@@ -236,31 +210,24 @@ export class ChatRoomsService {
         bio: "",
         otherUserId: otherUserId,
       };
-
       this.state.conversations.update((convs) => [...convs, conv]);
     }
   }
-
   private loadConversations(): void {
     const chats = this.storageService.chats();
     const currentUserId = this.state.currentUserId();
     const convMap = new Map<string, ConversationItem>();
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
-
       const roomId = chat.room_id;
       if (!roomId) continue;
-
       const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
-
       if (!convMap.has(roomId)) {
         let name = "Unknown";
         let avatar: string | null = null;
         let isGroup = roomId.startsWith("group_");
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
-
         if (existingConv && existingConv.name !== "Unknown") {
           name = existingConv.name;
           avatar = existingConv.avatar;
@@ -283,7 +250,6 @@ export class ChatRoomsService {
             name = "Group";
           }
         }
-
         convMap.set(roomId, {
           roomId: roomId,
           name: name,
@@ -301,33 +267,26 @@ export class ChatRoomsService {
           otherUserId: otherUserId,
         });
       }
-
       const conv = convMap.get(roomId)!;
       conv.lastMessage = chat.content;
       conv.lastMessageTime = this.state.formatDate(chat.created_at || "");
-
       if (!chat.read_by?.includes(currentUserId) && chat.sender_id !== currentUserId) {
         conv.unreadCount++;
       }
     }
-
     const sorted = Array.from(convMap.values()).sort((a, b) => {
       const aTime = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
       const bTime = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
       return bTime - aTime;
     });
-
     this.state.conversations.set(sorted);
   }
-
   private loadGroups(): void {
     if (!this.state.currentUserId()) return;
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       this.loadGroupsFromLocal();
       return;
     }
-
     this.requestService
       .invokeCommand("get_groups", {
         userId: userId,
@@ -341,7 +300,6 @@ export class ChatRoomsService {
           const groups = Array.isArray(result) ? result : result?.data || [];
           if (Array.isArray(groups)) {
             const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
-
             for (const group of groups) {
               if (!existingRooms.has(group.room_id)) {
                 const conv: ConversationItem = {
@@ -365,12 +323,10 @@ export class ChatRoomsService {
           }
         },
         error: (err) => {
-          console.error("Load groups error", err);
           this.loadGroupsFromLocal();
         },
       });
   }
-
   selectConversation(conv: ConversationItem): void {
     this.state.activeConversationId.set(conv.roomId);
     this.state.showSidebar.set(false);
@@ -381,7 +337,6 @@ export class ChatRoomsService {
       this.fetchProfileIfMissing(conv.otherUserId);
     }
   }
-
   private markConversationAsRead(roomId: string): void {
     const conv = this.state.conversations().find((c) => c.roomId === roomId);
     if (conv) {
@@ -391,10 +346,8 @@ export class ChatRoomsService {
       );
     }
   }
-
   private getProfileByUserId(userId: string): any {
     return undefined;
   }
-
   private fetchProfileIfMissing(userId: string): void {}
 }

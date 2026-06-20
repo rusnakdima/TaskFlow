@@ -2,16 +2,13 @@ import { Injectable, signal, computed } from "@angular/core";
 import { Task } from "@entities/generated/api.types";
 import { FilteredListHelper } from "@helpers/filtered-list.helper";
 import { FilterField } from "@entities/filter-config.model";
-
 @Injectable({ providedIn: "root" })
 export class TasksFiltersHelper {
   private _activeFilters = signal<Record<string, string | string[] | any>>({});
-
   activeFilter = computed(() => {
     const filters = this._activeFilters();
     return (filters["status"] as string) || "all";
   });
-
   filterFields: FilterField[] = [
     {
       key: "status",
@@ -37,7 +34,6 @@ export class TasksFiltersHelper {
       ],
     },
   ];
-
   filterOptions = [
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
@@ -47,16 +43,13 @@ export class TasksFiltersHelper {
     { key: "done", label: "Done" },
     { key: "high", label: "High Priority" },
   ];
-
   hasActiveFilters = computed(() => {
     const filters = this._activeFilters();
     return Object.keys(filters).length > 0;
   });
-
   onFiltersChange(filters: Record<string, string | string[] | any>): void {
     this._activeFilters.set(filters);
   }
-
   listTasks(todoTasks: Task[], searchQuery: string): Task[] {
     return FilteredListHelper.filterAndSort(todoTasks, {
       filter: this.activeFilter(),

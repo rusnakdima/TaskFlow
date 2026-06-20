@@ -13,36 +13,29 @@ import {
 import { Subscription } from "rxjs";
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { distinctUntilChanged, filter, map } from "rxjs";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 import { MatTooltipModule } from "@angular/material/tooltip";
-
 /* components */
 import { ConnectionStatusComponent } from "@components/connection-status/connection-status.component";
-
 /* models */
 import { Todo, Task } from "@entities/generated/api.types";
 import { ResponseStatus } from "@entities/response.model";
 import { NotificationAction } from "@entities/notification.model";
-
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
 import { AppStateService } from "@core/services/app-state.service";
 import { ThemeService } from "@services/ui/theme.service";
-
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-
 interface Breadcrumb {
   label: string;
   description: string;
   url: string;
 }
-
 @Component({
   selector: "app-header",
   standalone: true,
@@ -68,37 +61,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private appStateService: AppStateService,
     private themeService: ThemeService
   ) {}
-
   @Output() isShowNavEvent: EventEmitter<boolean> = new EventEmitter();
-
   title = signal("");
   description = signal("");
   subtitle = signal("");
   iconUrl = signal("");
-
   todo = signal<Todo | null>(null);
   task = signal<Task | null>(null);
-
   isBack = signal(false);
   isSyncing = signal(false);
-
   showInfoBlock = this.appStateService.showInfoBlock;
-
   notifications = this.notifyService.notifications;
   unreadCount = this.notifyService.unreadCount;
-
   breadcrumbs = signal<Breadcrumb[]>([]);
   private syncSubscription: Subscription | null = null;
-
   isDark = computed(() => this.themeService.getEffectiveMode() === "dark");
-
   ngOnInit(): void {
     this.syncSubscription = this.syncService.isSyncing$.subscribe((isSyncing) =>
       this.isSyncing.set(isSyncing)
     );
-
     this.updateBreadcrumbs();
-
     this.router.events
       .pipe(
         filter((event) => event instanceof NavigationEnd),
@@ -110,7 +92,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.updateTitleAndBack();
       });
   }
-
   private updateTitleAndBack(): void {
     const currentUrl = this.router.url.split("?")[0];
     this.isBack.set(currentUrl !== "/dashboard" && currentUrl !== "/");
@@ -126,36 +107,29 @@ export class HeaderComponent implements OnInit, OnDestroy {
     );
     this.cdr.detectChanges();
   }
-
   private async updateBreadcrumbs(): Promise<void> {
     const breadcrumbs = await this.createBreadcrumbs(this.route.root);
     this.breadcrumbs.set(breadcrumbs);
     this.updateTitleAndBack();
   }
-
   ngOnDestroy(): void {
     this.syncSubscription?.unsubscribe();
   }
-
   async createBreadcrumbs(
     route: ActivatedRoute,
     url: string = "",
     breadcrumbs: Breadcrumb[] = []
   ): Promise<Breadcrumb[]> {
     const children: ActivatedRoute[] = route.children;
-
     if (children.length === 0) {
       return breadcrumbs;
     }
-
     for (const child of children) {
       const routeURL: string = child.snapshot.url.map((segment) => segment.path).join("/");
       const breadcrumbData = child.snapshot.data["breadcrumb"];
       const newUrl = url + "/" + routeURL;
-
       let label: string = "";
       let description: string = "";
-
       if (routeURL == "") {
         if (breadcrumbData) {
           if (typeof breadcrumbData === "function") {
@@ -167,12 +141,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
         }
         return this.createBreadcrumbs(child, url, breadcrumbs);
       }
-
       if (breadcrumbData) {
         if (typeof breadcrumbData === "function") {
           const resolvedTodo = child.snapshot.data["todo"];
           const resolvedTask = child.snapshot.data["task"];
-
           if (resolvedTask) {
             const taskData = resolvedTask as { task: Task; todo: Todo };
             if (taskData?.task) {
@@ -192,7 +164,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
             description = todo.description || "";
             this.description.set(description);
           }
-
           if (!label) {
             label = "TaskFlow";
           }
@@ -202,48 +173,37 @@ export class HeaderComponent implements OnInit, OnDestroy {
       } else {
         label = child.snapshot.title?.toString() || routeURL;
       }
-
       breadcrumbs.push({
         label: label,
         description: description,
         url: newUrl,
       });
-
       return this.createBreadcrumbs(child, newUrl, breadcrumbs);
     }
-
     return breadcrumbs;
   }
-
   toggleInfoBlock() {
     this.appStateService.toggleInfoBlock();
   }
-
   goBack() {
     this.location.back();
   }
-
   showNav() {
     this.isShowNavEvent.next(true);
   }
-
   markAsRead(id: string) {
     this.notifyService.markAsRead(id);
   }
-
   markAllAsRead() {
     this.notifyService.markAllAsRead();
   }
-
   clearNotifications() {
     this.notifyService.clearAll();
   }
-
   onNotificationClick(notif: NotificationAction): void {
     if (notif.id) {
       this.markAsRead(notif.id);
     }
-
     if (notif.type === "chat") {
       if (notif.todo_id) {
         this.router.navigate(["/todos", notif.todo_id, "tasks"], {
@@ -288,18 +248,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
       }
     }
   }
-
   toggleTheme() {
     this.themeService.toggleMode();
   }
-
   async syncAll(silent: boolean = false) {
     if (this.isSyncing()) return;
-
     if (!silent) {
       this.notifyService.showInfo("Starting synchronization...");
     }
-
     try {
       const response = await this.syncService.syncAll();
       if (response.status === ResponseStatus.SUCCESS) {

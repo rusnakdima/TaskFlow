@@ -8,7 +8,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { Chat } from "@entities/generated/api.types";
 import { ChatMessage } from "@entities/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-
 @Injectable({ providedIn: "root" })
 export class ChatMessagesService implements OnDestroy {
   private requestService = inject(ApiService);
@@ -17,14 +16,12 @@ export class ChatMessagesService implements OnDestroy {
   private notifyService = inject(NotifyService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-
   ngOnDestroy(): void {
     if (this.onlineHandler && typeof window !== "undefined") {
       window.removeEventListener("online", this.onlineHandler);
       this.onlineHandler = null;
     }
   }
-
   loadMessagesForRoom(roomId: string, skip = 0, limit = 100): void {
     this.requestService
       .invokeCommand("get_messages_by_room", {
@@ -37,19 +34,15 @@ export class ChatMessagesService implements OnDestroy {
         next: (result: any) => {
           const currentUserId = this.state.currentUserId();
           const msgs: ChatMessage[] = [];
-
           const data = Array.isArray(result) ? result : result.data || [];
-
           for (const chat of data) {
             if (chat.deleted_at) continue;
-
             const sender = chat.sender || {};
             const profile = sender.profile || {};
             const senderName = profile.name
               ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
               : chat.sender_name || chat.sender_id || "Unknown";
             const senderAvatar = profile.image_url || chat.sender_avatar || null;
-
             let readStatus: "sent" | "delivered" | "read" | undefined;
             if (chat.sender_id === currentUserId) {
               const readByArr: string[] = chat.read_by || [];
@@ -60,7 +53,6 @@ export class ChatMessagesService implements OnDestroy {
                 readStatus = "read";
               }
             }
-
             msgs.push({
               id: chat.id,
               content: chat.content,
@@ -80,7 +72,6 @@ export class ChatMessagesService implements OnDestroy {
               })),
             });
           }
-
           this.state.messages.set(msgs);
           this.populateReplyChain(msgs);
         },
@@ -89,7 +80,6 @@ export class ChatMessagesService implements OnDestroy {
         },
       });
   }
-
   loadPreviousMessagesForRoom(
     roomId: string,
     skip: number,
@@ -107,19 +97,15 @@ export class ChatMessagesService implements OnDestroy {
           next: (result: any) => {
             const currentUserId = this.state.currentUserId();
             const msgs: ChatMessage[] = [];
-
             const data = Array.isArray(result) ? result : result.data || [];
-
             for (const chat of data) {
               if (chat.deleted_at) continue;
-
               const sender = chat.sender || {};
               const profile = sender.profile || {};
               const senderName = profile.name
                 ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
                 : chat.sender_name || chat.sender_id || "Unknown";
               const senderAvatar = profile.image_url || chat.sender_avatar || null;
-
               let readStatus: "sent" | "delivered" | "read" | undefined;
               if (chat.sender_id === currentUserId) {
                 const readByArr: string[] = chat.read_by || [];
@@ -130,7 +116,6 @@ export class ChatMessagesService implements OnDestroy {
                   readStatus = "read";
                 }
               }
-
               msgs.push({
                 id: chat.id,
                 content: chat.content,
@@ -150,7 +135,6 @@ export class ChatMessagesService implements OnDestroy {
                 })),
               });
             }
-
             this.populateReplyChain(msgs);
             subscriber.next(msgs);
             subscriber.complete();
@@ -162,7 +146,6 @@ export class ChatMessagesService implements OnDestroy {
         });
     });
   }
-
   private populateReplyChain(msgs: ChatMessage[]): void {
     const msgMap = new Map(msgs.map((m) => [m.id, m]));
     msgs.forEach((msg) => {
@@ -171,18 +154,14 @@ export class ChatMessagesService implements OnDestroy {
       }
     });
   }
-
   sendMessage(content: string): void {
     const conv = this.state.activeConversation();
     if (!content || !conv) return;
-
     const userId = this.state.currentUserId();
     if (!userId) return;
-
     const replyId = this.state.replyToMessage()?.id || null;
     const tempId = `temp_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
-
     const localChat: Chat = {
       id: tempId,
       room_id: conv.roomId,
@@ -195,7 +174,6 @@ export class ChatMessagesService implements OnDestroy {
       temp_id: tempId,
     };
     this.storageService.addChat(localChat);
-
     const uiMsg: ChatMessage = {
       id: tempId,
       content: content,
@@ -209,11 +187,9 @@ export class ChatMessagesService implements OnDestroy {
       replyId: replyId,
     };
     this.state.messages.update((msgs) => [...msgs, uiMsg]);
-
     this.state.messageInput.set("");
     this.state.replyToMessage.set(null);
     this.updateConversationLastMessage(conv.roomId, content);
-
     const messagePayload: any = {
       roomId: conv.roomId,
       senderId: userId,
@@ -250,7 +226,6 @@ export class ChatMessagesService implements OnDestroy {
       },
     });
   }
-
   private queueChatMessageForSync(
     tempId: string,
     conv: any,
@@ -281,12 +256,10 @@ export class ChatMessagesService implements OnDestroy {
       isChatOperation: true,
       lastError: lastError,
     };
-
     const queue = this.getChatQueue();
     queue.push(queuedOp);
     this.saveChatQueue(queue);
   }
-
   private getChatQueue(): any[] {
     try {
       const stored = localStorage.getItem("taskflow_chat_offline_queue");
@@ -295,23 +268,16 @@ export class ChatMessagesService implements OnDestroy {
       return [];
     }
   }
-
   private saveChatQueue(queue: any[]): void {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
-    } catch (error) {
-      console.error("Failed to save chat queue", error);
-    }
+    } catch (error) {}
   }
-
   private processChatQueue(): void {
     if (!navigator.onLine) return;
-
     const queue = this.getChatQueue();
     if (queue.length === 0) return;
-
     const remaining: any[] = [];
-
     for (const op of queue) {
       const queuePayload: any = {
         roomId: op.data.room_id,
@@ -347,18 +313,14 @@ export class ChatMessagesService implements OnDestroy {
         },
       });
     }
-
     this.saveChatQueue(remaining);
   }
-
   retrySendMessage(tempId: string): void {
     const queue = this.getChatQueue();
     const op = queue.find((o) => o.id === tempId);
     if (!op) {
-      console.warn("retrySendMessage: op not found in queue", { tempId });
       return;
     }
-
     this.storageService.updateChatSyncStatus(tempId, "pending");
     this.state.messages.update((msgs) =>
       msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "pending" as const } : m))
@@ -394,7 +356,6 @@ export class ChatMessagesService implements OnDestroy {
       },
     });
   }
-
   private reloadChatsFromApi(): void {
     this.requestService
       .getAll<Chat>("chats", {
@@ -404,23 +365,19 @@ export class ChatMessagesService implements OnDestroy {
       .subscribe({
         next: (cloudChats) => {
           const localChats = this.storageService.chats();
-
           const merged: Chat[] = [...localChats];
           const existingIds = new Set(localChats.map((c) => c.id));
-
           for (const cloudChat of cloudChats) {
             if (!existingIds.has(cloudChat.id)) {
               merged.push(cloudChat);
               existingIds.add(cloudChat.id);
             }
           }
-
           this.storageService.setChats(merged);
         },
         error: () => {},
       });
   }
-
   private updateConversationLastMessage(roomId: string, message: string): void {
     const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     this.state.conversations.update((convs) =>
@@ -429,7 +386,6 @@ export class ChatMessagesService implements OnDestroy {
       )
     );
   }
-
   saveEditMessage(): void {
     const msgId = this.state.editingMessageId();
     const content = this.state.editingMessageContent().trim();
@@ -437,7 +393,6 @@ export class ChatMessagesService implements OnDestroy {
       this.state.cancelEditMessage();
       return;
     }
-
     this.requestService
       .invokeCommand("edit_message", {
         id: msgId,
@@ -457,11 +412,9 @@ export class ChatMessagesService implements OnDestroy {
         },
       });
   }
-
   deleteMessage(): void {
     const msg = this.state.contextMenuMessage();
     if (!msg) return;
-
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: msg.id,
@@ -478,9 +431,7 @@ export class ChatMessagesService implements OnDestroy {
         },
       });
   }
-
   deleteMessageById(messageId: string): void {
-    console.debug("deleteMessageById", { messageId });
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: messageId,
@@ -495,13 +446,11 @@ export class ChatMessagesService implements OnDestroy {
         },
       });
   }
-
   initChatQueueListener(): void {
     this.onlineHandler = () => {
       this.processChatQueue();
     };
     window.addEventListener("online", this.onlineHandler);
-
     if (navigator.onLine) {
       this.processChatQueue();
     }

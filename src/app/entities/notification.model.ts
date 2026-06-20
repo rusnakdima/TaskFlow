@@ -15,7 +15,6 @@ export interface NotificationAction {
   icon?: string;
   callback?: () => void;
 }
-
 export interface NotificationSettings {
   duration?: number;
   position?: "top" | "bottom" | "center";

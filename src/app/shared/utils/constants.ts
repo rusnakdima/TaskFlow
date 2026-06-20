@@ -1,6 +1,5 @@
 export const LOG_BUFFER_SIZE = 100;
 export const LOG_FLUSH_INTERVAL = 5000;
-
 export const SMILEYS_EMOJIS = [
   "😀",
   "😃",
@@ -51,7 +50,6 @@ export const SMILEYS_EMOJIS = [
   "🤒",
   "🤕",
 ];
-
 export const GESTURES_EMOJIS = [
   "👋",
   "🤚",
@@ -105,7 +103,6 @@ export const GESTURES_EMOJIS = [
   "👅",
   "👄",
 ];
-
 export const OBJECTS_EMOJIS = [
   "❤️",
   "🧡",
@@ -159,7 +156,6 @@ export const OBJECTS_EMOJIS = [
   "🏆",
   "🥇",
 ];
-
 export const RECENT_EMOJIS_DEFAULT = [
   "😀",
   "😂",
@@ -178,9 +174,7 @@ export const RECENT_EMOJIS_DEFAULT = [
   "💯",
   "🙏",
 ];
-
 import { FilterConfig } from "@entities/filter-config.model";
-
 export const FILTER_CONFIGS: FilterConfig[] = [
   {
     key: "deletedFilter",
@@ -304,10 +298,8 @@ export const FILTER_CONFIGS: FilterConfig[] = [
     dataType: ["todos", "tasks", "subtasks"],
   },
 ];
-
 import { TaskStatus } from "@entities/generated/api.types";
 import { TodoPermission } from "@core/services/permission.service";
-
 export const TableFieldColors = {
   boolean: { true: "text-green-600!", false: "text-gray-400!" },
   change: {
@@ -319,12 +311,10 @@ export const TableFieldColors = {
       "bg-transparent! text-gray-600! border border-gray-400! dark:text-gray-400! dark:border-gray-400/50!",
   },
 } as const;
-
 export const TableFieldIcons = {
   boolean: { true: "check_circle", false: "radio_button_unchecked" },
   change: { positive: "trending_up", negative: "trending_down", neutral: "trending_flat" },
 } as const;
-
 export const ActionColors = {
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   default_disabled: "text-gray-400! dark:text-gray-500!",
@@ -374,7 +364,6 @@ export const ActionColors = {
     "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
   toggleDetails_disabled: "text-gray-400! dark:text-gray-500!",
 } as const;
-
 export const TABLE_ACTIONS = {
   EDIT: { key: "edit", icon: "edit", label: "Edit", permission: TodoPermission.EDITOR },
   DELETE: { key: "delete", icon: "delete", label: "Delete", permission: TodoPermission.OWNER },
@@ -410,34 +399,29 @@ export const TABLE_ACTIONS = {
     permission: TodoPermission.OWNER,
   },
 } as const;
-
 export const PRIORITY_COLORS = {
   low: "bg-transparent text-blue-600 border border-blue-500 dark:text-blue-400 dark:border-blue-400/50",
   medium:
     "bg-transparent text-yellow-600 border border-yellow-500 dark:text-yellow-400 dark:border-yellow-400/50",
   high: "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
 } as const;
-
 export const PRIORITY_ICONS = {
   low: "keyboard_arrow_down",
   medium: "remove",
   high: "keyboard_arrow_up",
 } as const;
-
 export const STATUS_COLORS = {
   [TaskStatus.PENDING]: "text-gray-400!",
   [TaskStatus.COMPLETED]: "text-green-600! dark:text-green-400!",
   [TaskStatus.SKIPPED]: "text-orange-600! dark:text-orange-400!",
   [TaskStatus.FAILED]: "text-red-600! dark:text-red-400!",
 } as const;
-
 export const STATUS_ICONS = {
   [TaskStatus.PENDING]: "radio_button_unchecked",
   [TaskStatus.COMPLETED]: "check_circle",
   [TaskStatus.SKIPPED]: "cancel",
   [TaskStatus.FAILED]: "dangerous",
 } as const;
-
 export const STATUS_COLUMN_COLORS = {
   [TaskStatus.PENDING]:
     "bg-linear-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700",
@@ -447,14 +431,12 @@ export const STATUS_COLUMN_COLORS = {
     "bg-linear-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700",
   [TaskStatus.FAILED]: "bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700",
 } as const;
-
 export const STATUS_BG_COLORS = {
   [TaskStatus.PENDING]: "bg-blue-500",
   [TaskStatus.COMPLETED]: "bg-green-500",
   [TaskStatus.SKIPPED]: "bg-yellow-500",
   [TaskStatus.FAILED]: "bg-red-500",
 } as const;
-
 export const STATUS_BUTTON_COLORS = {
   [TaskStatus.PENDING]:
     "bg-transparent text-blue-500 border border-blue-500 hover:bg-blue-500/10 dark:text-blue-400 dark:border-blue-400/50 dark:hover:bg-blue-400/10",
@@ -465,21 +447,18 @@ export const STATUS_BUTTON_COLORS = {
   [TaskStatus.FAILED]:
     "bg-transparent text-red-600 border border-red-500 hover:bg-red-500/10 dark:text-red-400 dark:border-red-400/50 dark:hover:bg-red-400/10",
 } as const;
-
 export const STATUS_BUTTON_ICONS = {
   [TaskStatus.PENDING]: "radio_button_unchecked",
   [TaskStatus.COMPLETED]: "check_circle",
   [TaskStatus.SKIPPED]: "cancel",
   [TaskStatus.FAILED]: "dangerous",
 } as const;
-
 export const DELETED_CHIP_COLORS = {
   deleted:
     "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
   active:
     "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
 } as const;
-
 export const VISIBILITY_COLORS = {
   private:
     "bg-transparent text-red-600 border border-red-500 dark:text-red-400 dark:border-red-400/50",
@@ -488,7 +467,6 @@ export const VISIBILITY_COLORS = {
   public:
     "bg-transparent text-green-600 border border-green-500 dark:text-green-400 dark:border-green-400/50",
 } as const;
-
 export const TABLE_CARD_COLORS = {
   priority: PRIORITY_COLORS,
   priorityIcons: PRIORITY_ICONS,
@@ -498,7 +476,6 @@ export const TABLE_CARD_COLORS = {
   statusBg: STATUS_BG_COLORS,
   visibility: VISIBILITY_COLORS,
 } as const;
-
 export const TABLE_COLUMNS = {
   todos: [
     { key: "title", label: "Title", type: "text", sortable: true },
@@ -612,7 +589,6 @@ export const TABLE_COLUMNS = {
     { key: "expand", label: "", type: "expand" },
   ],
 } as const;
-
 export const TABLE_BUTTON_COLORS = {
   restore:
     "text-yellow-600! hover:text-yellow-700! dark:text-yellow-400! dark:hover:text-yellow-300!",
@@ -621,17 +597,14 @@ export const TABLE_BUTTON_COLORS = {
   delete: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
 } as const;
-
 import { ItemDisplayConfig } from "@entities/item-display.model";
 import { Todo, Task, Subtask } from "@entities/generated/api.types";
-
 export const DEFAULT_ACTIONS = [
   TABLE_ACTIONS.EDIT,
   TABLE_ACTIONS.DELETE,
   TABLE_ACTIONS.ARCHIVE,
   TABLE_ACTIONS.RESTORE,
 ];
-
 export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "drag-handle", type: "drag-handle", width: "32px", line: 1 },
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
@@ -648,7 +621,6 @@ export const TODO_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 1 },
 ];
-
 export const TODO_TABLE_CONFIG: ItemDisplayConfig[] = [
   { key: "drag-handle", type: "drag-handle", width: "32px", showIf: () => false },
   { key: "checkbox", type: "checkbox", width: "40px" },
@@ -661,7 +633,6 @@ export const TODO_TABLE_CONFIG: ItemDisplayConfig[] = [
   },
   { key: "actions", type: "actions", getClass: () => ActionColors.default },
 ];
-
 export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "drag-handle", type: "drag-handle", width: "32px", line: 1 },
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
@@ -694,7 +665,6 @@ export const TASK_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 3 },
 ];
-
 export const TASK_TABLE_CONFIG: ItemDisplayConfig[] = [
   {
     key: "drag-handle",
@@ -723,7 +693,6 @@ export const TASK_TABLE_CONFIG: ItemDisplayConfig[] = [
   },
   { key: "actions", type: "actions", getClass: () => ActionColors.default },
 ];
-
 export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "drag-handle", type: "drag-handle", width: "32px", line: 1 },
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
@@ -757,7 +726,6 @@ export const SUBTASK_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 3 },
 ];
-
 export const SUBTASK_TABLE_CONFIG: ItemDisplayConfig[] = [
   { key: "checkbox", type: "checkbox", width: "40px" },
   {
@@ -782,7 +750,6 @@ export const SUBTASK_TABLE_CONFIG: ItemDisplayConfig[] = [
   },
   { key: "actions", type: "actions", getClass: () => ActionColors.default },
 ];
-
 export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
   {
@@ -806,7 +773,6 @@ export const KANBAN_TASK_CONFIG: ItemDisplayConfig[] = [
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 3 },
 ];
-
 export const CATEGORY_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "drag-handle", type: "drag-handle", width: "32px", line: 1 },
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
@@ -814,13 +780,11 @@ export const CATEGORY_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 1 },
   { key: "expand-toggle", type: "expand-toggle", width: "32px", line: 3 },
 ];
-
 export const CATEGORY_TABLE_CONFIG: ItemDisplayConfig[] = [
   { key: "checkbox", type: "checkbox", width: "40px" },
   { key: "title", type: "title", sortable: true, getClass: () => "flex-1 min-w-0", line: 1 },
   { key: "menu", type: "menu", getClass: () => ActionColors.default, line: 1 },
 ];
-
 export const ADMIN_CARD_CONFIG: ItemDisplayConfig[] = [
   { key: "checkbox", type: "checkbox", width: "40px", line: 1 },
   { key: "title", type: "title", getClass: () => "flex-1 min-w-0", line: 1 },

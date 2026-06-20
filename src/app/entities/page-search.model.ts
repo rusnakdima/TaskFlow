@@ -10,7 +10,6 @@ export const DEFAULT_EXCLUDE_FIELDS = [
   "task_id",
   "subtask_id",
 ];
-
 export interface PageSearchConfig {
   includeFields: string[];
   excludeFields?: string[];
