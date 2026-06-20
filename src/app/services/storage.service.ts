@@ -27,8 +27,13 @@ import { StorageCacheService } from "@core/services/storage-cache.service";
 import { StorageQueryService } from "@core/services/storage-query.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 /* utils */
-import { deduplicateById, groupByKey, createGroupedMap } from "@store/utils/store-helpers";
-import { TimestampHelper, VisibilityHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
+import {
+  deduplicateById,
+  groupByKey,
+  createGroupedMap,
+  upsertEntityBulk,
+} from "@store/utils/store-helpers";
+import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 @Injectable({ providedIn: "root" })
 export class StorageService {
@@ -75,15 +80,9 @@ export class StorageService {
   private readonly activeChats = computed(() =>
     this._entityService.chats().filter((c) => !c.deleted_at)
   );
-  readonly privateTodos = computed(() =>
-    this._entityService.privateTodos().filter((t) => !t.deleted_at)
-  );
-  readonly sharedTodos = computed(() =>
-    this._entityService.sharedTodos().filter((t) => !t.deleted_at)
-  );
-  readonly publicTodos = computed(() =>
-    this._entityService.publicTodos().filter((t) => !t.deleted_at)
-  );
+  readonly privateTodos = this._entityService.privateTodos;
+  readonly sharedTodos = this._entityService.sharedTodos;
+  readonly publicTodos = this._entityService.publicTodos;
   readonly todos = computed(() => this.allActiveTodos());
   readonly tasks = computed(() => this.activeTasks());
   readonly subtasks = computed(() => this.activeSubtasks());
@@ -306,71 +305,24 @@ export class StorageService {
   }
   moveTodoToShared(todo_id?: string): void {
     if (!todo_id) return;
-    const todo = this.get("todos", todo_id);
-    if (!todo) return;
-    this._entityService.privateTodos.update((todos) => todos.filter((t) => t.id !== todo_id));
-    if (!this._entityService.sharedTodos().some((t) => t.id === todo_id)) {
-      this._entityService.sharedTodos.update((todos) => [
-        { ...todo, visibility: "shared" as const },
-        ...todos.filter((t) => t.id !== todo_id),
-      ]);
-    }
+    this._entityService.todos.update((todos) =>
+      todos.map((t) => (t.id === todo_id ? { ...t, visibility: "shared" as const } : t))
+    );
   }
   /**
    * @deprecated Use updateEntityVisibility("todos", id, "private") instead
    */
   moveTodoToPrivate(todo_id?: string): void {
     if (!todo_id) return;
-    const todo = this.get("todos", todo_id);
-    if (!todo) return;
-    this._entityService.sharedTodos.update((todos) => todos.filter((t) => t.id !== todo_id));
-    if (!this._entityService.privateTodos().some((t) => t.id === todo_id)) {
-      this._entityService.privateTodos.update((todos) => [
-        { ...todo, visibility: "private" as const },
-        ...todos.filter((t) => t.id !== todo_id),
-      ]);
-    }
+    this._entityService.todos.update((todos) =>
+      todos.map((t) => (t.id === todo_id ? { ...t, visibility: "private" as const } : t))
+    );
   }
   updateEntityVisibility(table: EntityType, id: string, newVisibility: string): void {
-    let entity: any;
     if (table === "todos") {
-      const allTodos = [
-        ...this._entityService.privateTodos(),
-        ...this._entityService.sharedTodos(),
-        ...this._entityService.publicTodos(),
-      ];
-      entity = allTodos.find((t) => t.id === id);
-    } else {
-      entity = this.get(table, id);
-    }
-    if (!entity) return;
-    if (table === "todos") {
-      const privateTodos = this._entityService.privateTodos;
-      const sharedTodos = this._entityService.sharedTodos;
-      const publicTodos = this._entityService.publicTodos;
-      const oldList = privateTodos().some((t) => t.id === id)
-        ? privateTodos
-        : sharedTodos().some((t) => t.id === id)
-          ? sharedTodos
-          : publicTodos().some((t) => t.id === id)
-            ? publicTodos
-            : null;
-      if (!oldList) return;
-      const newList =
-        newVisibility === "private"
-          ? privateTodos
-          : newVisibility === "public"
-            ? publicTodos
-            : sharedTodos;
-      if (newList().some((t) => t.id === id)) {
-        return;
-      }
-      const updatedEntity = { ...entity, visibility: newVisibility };
-      oldList.update((todos) => todos.filter((t) => t.id !== id));
-      newList.update((todos) => {
-        const filtered = todos.filter((t) => t.id !== id);
-        return [updatedEntity, ...filtered];
-      });
+      this._entityService.todos.update((todos) =>
+        todos.map((t) => (t.id === id ? { ...t, visibility: newVisibility } : t))
+      );
     } else {
       this.updateRecord(table, id, { visibility: newVisibility });
     }
@@ -395,9 +347,7 @@ export class StorageService {
       })
     );
     this._entityService.chats.update((items) => items);
-    this._entityService.privateTodos.update((items) => items.filter((t) => t.id !== todo_id));
-    this._entityService.sharedTodos.update((items) => items.filter((t) => t.id !== todo_id));
-    this._entityService.publicTodos.update((items) => items.filter((t) => t.id !== todo_id));
+    this._entityService.todos.update((items) => items.filter((t) => t.id !== todo_id));
   }
   removeRecordWithCascade(table: string, id: string, deletedAt?: string): void {
     if (table === "todos") {
@@ -480,14 +430,7 @@ export class StorageService {
     comments: Comment[];
     chats?: Chat[];
   }): void {
-    const visibility = VisibilityHelper.getVisibility(data.todo.visibility);
-    const targetArray =
-      visibility === "private"
-        ? this._entityService.privateTodos
-        : visibility === "public"
-          ? this._entityService.publicTodos
-          : this._entityService.sharedTodos;
-    targetArray.set([data.todo, ...targetArray()]);
+    this._entityService.todos.update((existing) => upsertEntityBulk(existing, [data.todo]));
     if (data.tasks?.length) this._entityService.tasks.update((t) => [...t, ...data.tasks]);
     if (data.subtasks?.length) this._entityService.subtasks.update((s) => [...s, ...data.subtasks]);
     if (data.comments?.length) this._entityService.comments.update((c) => [...c, ...data.comments]);
@@ -548,12 +491,8 @@ export class StorageService {
         })
       );
       this._entityService.chats.update((chats) => chats.map((c) => ({ ...c, ...update })));
-      [
-        this._entityService.privateTodos,
-        this._entityService.sharedTodos,
-        this._entityService.publicTodos,
-      ].forEach((signal) =>
-        signal.update((todos) => todos.map((t) => (t.id === id ? { ...t, ...update } : t)))
+      this._entityService.todos.update((todos) =>
+        todos.map((t) => (t.id === id ? { ...t, ...update } : t))
       );
     } else if (table === "tasks") {
       const { subtaskIds = [] } = this.cascadeService.computeCascadeForTask(
