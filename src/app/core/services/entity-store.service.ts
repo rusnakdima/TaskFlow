@@ -1,23 +1,13 @@
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
 import { Observable, from, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-import {
-  Todo,
-  Task,
-  Subtask,
-  Comment,
-  Chat,
-  User,
-  Category,
-  Profile,
-  Room,
-} from "@entities/generated/api.types";
-import { ConversationItem, ChatMessage } from "@entities/chat.model";
+import { Todo, Task, Subtask, Comment, Chat, User, Category } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
 import { ApiService, Visibility } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
+import { BaseStorageService } from "@core/services/storage-entity.service";
 import {
   upsertEntityBulk,
   updateEntityInSignal,
@@ -52,22 +42,25 @@ export class EntityStoreService {
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
   private readonly tauriApi = inject(TauriApiService);
+  private readonly _baseStorage = inject(BaseStorageService);
   /* ════════════════════════════════════════════════════════════════════════
-     SINGLE SOURCE OF TRUTH SIGNALS - One signal per entity type
+     PROXIED SIGNALS FROM BASE STORAGE - Single source of truth
      ════════════════════════════════════════════════════════════════════════ */
-  readonly todos = signal<Todo[]>([]);
-  readonly tasks = signal<Task[]>([]);
-  readonly subtasks = signal<Subtask[]>([]);
-  readonly comments = signal<Comment[]>([]);
-  readonly chats = signal<Chat[]>([]);
-  readonly categories = signal<Category[]>([]);
-  readonly profiles = signal<Profile[]>([]);
-  readonly publicProfiles = signal<Profile[]>([]);
-  readonly users = signal<User[]>([]);
+  readonly todos = this._baseStorage.todos;
+  readonly tasks = this._baseStorage.tasks;
+  readonly subtasks = this._baseStorage.subtasks;
+  readonly comments = this._baseStorage.comments;
+  readonly chats = this._baseStorage.chats;
+  readonly categories = this._baseStorage.categories;
+  readonly localCategories = this._baseStorage.localCategories;
+  readonly cloudCategories = this._baseStorage.cloudCategories;
+  readonly profiles = this._baseStorage.profiles;
+  readonly publicProfiles = this._baseStorage.publicProfiles;
+  readonly users = this._baseStorage.users;
   readonly currentUser = signal<User | null>(null);
-  readonly rooms = signal<Room[]>([]);
-  readonly conversations = signal<ConversationItem[]>([]);
-  readonly messages = signal<ChatMessage[]>([]);
+  readonly rooms = this._baseStorage.rooms;
+  readonly conversations = this._baseStorage.conversations;
+  readonly messages = this._baseStorage.messages;
   readonly activeConversationId = signal<string | null>(null);
   private readonly _todosLoading = signal(false);
   private readonly _tasksLoading = signal(false);
@@ -473,23 +466,17 @@ export class EntityStoreService {
   ensureTodosLoaded(visibility: VisibilityFilter = "all", limit = 10): void {
     if (this._todosLoading()) return;
     const existing = this.todos();
-    if (existing.length > 0) {
+    if (visibility !== "all" && existing.length > 0) {
       const hasPrivate =
-        visibility === "all" || visibility === "private"
-          ? existing.some((t) => t.visibility === "private")
-          : true;
+        visibility === "private" ? existing.some((t) => t.visibility === "private") : true;
       const hasShared =
-        visibility === "all" || visibility === "shared"
-          ? existing.some((t) => t.visibility === "shared")
-          : true;
+        visibility === "shared" ? existing.some((t) => t.visibility === "shared") : true;
       const hasPublic =
-        visibility === "all" || visibility === "public"
-          ? existing.some((t) => t.visibility === "public")
-          : true;
+        visibility === "public" ? existing.some((t) => t.visibility === "public") : true;
       if (hasPrivate && hasShared && hasPublic) return;
     }
     this._todosLoading.set(true);
-    if (visibility === "private" || visibility === "all") {
+    if (visibility === "private") {
       this.loadTodosFromLocal(limit).subscribe();
     }
     if (visibility !== "private") {
@@ -878,23 +865,23 @@ export class EntityStoreService {
   private getEntitySignal(type: EntityType): WritableSignal<unknown[]> {
     switch (type) {
       case "todos":
-        return this.todos;
+        return this._baseStorage.todos as WritableSignal<unknown[]>;
       case "tasks":
-        return this.tasks;
+        return this._baseStorage.tasks as WritableSignal<unknown[]>;
       case "subtasks":
-        return this.subtasks;
+        return this._baseStorage.subtasks as WritableSignal<unknown[]>;
       case "comments":
-        return this.comments;
+        return this._baseStorage.comments as WritableSignal<unknown[]>;
       case "chats":
-        return this.chats;
+        return this._baseStorage.chats as WritableSignal<unknown[]>;
       case "categories":
-        return this.categories;
+        return this._baseStorage.categories as WritableSignal<unknown[]>;
       case "users":
-        return this.users;
+        return this._baseStorage.users as WritableSignal<unknown[]>;
       case "profiles":
-        return this.profiles as unknown as WritableSignal<unknown[]>;
+        return this._baseStorage.profiles as unknown as WritableSignal<unknown[]>;
       default:
-        return this.tasks;
+        return this._baseStorage.tasks as WritableSignal<unknown[]>;
     }
   }
   private setEntitySignal(type: EntityType, data: unknown[]): void {

@@ -15,21 +15,17 @@ export class StoragePaginationService {
      ════════════════════════════════════════════════════════════════════════ */
   ensureTodosLoaded(visibility: VisibilityFilter = "all", limit = 10): void {
     if (this._base.todosLoading()) return;
-    const existing = this._base.todos();
-    if (existing.length > 0) {
-      const hasPrivate =
-        visibility === "all" || visibility === "private"
-          ? existing.some((t) => t.visibility === "private")
-          : true;
-      const hasShared =
-        visibility === "all" || visibility === "shared"
-          ? existing.some((t) => t.visibility === "shared")
-          : true;
-      const hasPublic =
-        visibility === "all" || visibility === "public"
-          ? existing.some((t) => t.visibility === "public")
-          : true;
-      if (hasPrivate && hasShared && hasPublic) return;
+    if (visibility !== "all") {
+      const existing = this._base.todos();
+      if (existing.length > 0) {
+        const hasPrivate =
+          visibility === "private" ? existing.some((t) => t.visibility === "private") : true;
+        const hasShared =
+          visibility === "shared" ? existing.some((t) => t.visibility === "shared") : true;
+        const hasPublic =
+          visibility === "public" ? existing.some((t) => t.visibility === "public") : true;
+        if (hasPrivate && hasShared && hasPublic) return;
+      }
     }
     this._base.todosLoading.set(true);
     this._base.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({

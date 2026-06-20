@@ -88,10 +88,16 @@ export class BaseStorageService {
      FILTERED COMPUTED SIGNALS - Derived from single source signals
      ════════════════════════════════════════════════════════════════════════ */
 
-  // Todo filters by visibility
-  readonly privateTodos = signal<Todo[]>([]);
-  readonly sharedTodos = signal<Todo[]>([]);
-  readonly publicTodos = signal<Todo[]>([]);
+  // Todo filters by visibility - computed from todos signal
+  readonly privateTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "private" && !t.deleted_at)
+  );
+  readonly sharedTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "shared" && !t.deleted_at)
+  );
+  readonly publicTodos = computed(() =>
+    this.todos().filter((t) => t.visibility === "public" && !t.deleted_at)
+  );
   readonly allTodos = computed(() => this.todos().filter((t) => !t.deleted_at));
   readonly archivedTodos = computed(() => this.todos().filter((t) => !!t.deleted_at));
 
