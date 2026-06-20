@@ -45,7 +45,10 @@ export class ProfileView implements OnInit, OnDestroy {
   viewedUserId = signal<string | null>(null);
   isViewingOtherUser = signal(false);
   viewedUserProfile = signal<Profile | null>(null);
-  profile = computed(() => this.storage.profiles()[0]);
+  profile = computed(() => {
+    const currentUserId = this.authService.getValueByKey("id");
+    return this.storage.profiles().find((p) => p.user_id === currentUserId) ?? null;
+  });
   displayProfile = computed(() =>
     this.isViewingOtherUser() ? this.viewedUserProfile() : this.profile()
   );
