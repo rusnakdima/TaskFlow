@@ -1,23 +1,18 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-
+use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::services::db_backup::DbBackupService;
+use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
+use crate::utils::response_helper::err_response;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::Value;
-
-use crate::models::response::{ResponseModel, ResponseStatus};
-use crate::utils::response_helper::err_response;
-
-use crate::services::db_backup::DbBackupService;
-use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
-
+use std::sync::Arc;
+use std::sync::Mutex;
 pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
   admin_manager: Mutex<Option<AdminManager>>,
   db_backup: DbBackupService,
 }
-
 impl ManageDbService {
   pub fn new(
     json_provider: JsonProvider,
@@ -29,14 +24,12 @@ impl ManageDbService {
     let admin_manager = mongodb_provider
       .clone()
       .map(|mp| AdminManager::new(json_provider.clone(), mp, cascade_service.clone()));
-
     let db_backup = DbBackupService::new(
       json_provider.clone(),
       mongodb_provider.clone(),
       mongo_db_uri,
       mongo_db_name,
     );
-
     Self {
       json_provider,
       mongodb_provider: Mutex::new(mongodb_provider),
@@ -44,7 +37,6 @@ impl ManageDbService {
       db_backup,
     }
   }
-
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
     let manager = match self.admin_manager.lock() {
       Ok(guard) => guard.clone(),
@@ -65,7 +57,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn get_admin_data_paginated(
     &self,
     data_type: String,
@@ -82,7 +73,6 @@ impl ManageDbService {
         message: "MongoDB not available".to_string(),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     let docs = mongo
       .find_many(&data_type, None, Some(skip), Some(limit), None, true)
       .await
@@ -91,14 +81,12 @@ impl ManageDbService {
         message: format!("Error getting paginated {} data: {}", data_type, e),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", docs.len(), data_type),
       data: crate::utils::common::convert_data_to_object(&docs),
     })
   }
-
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
     let manager = match self.admin_manager.lock() {
       Ok(guard) => guard.clone(),
@@ -119,7 +107,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn get_archive_data_paginated(
     &self,
     data_type: String,
@@ -149,7 +136,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn permanently_delete_record(
     &self,
     table: String,
@@ -179,7 +165,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn permanently_delete_record_local(
     &self,
     table: String,
@@ -204,7 +189,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn toggle_delete_status(
     &self,
     table: String,
@@ -230,7 +214,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub async fn toggle_delete_status_local(
     &self,
     table: String,
@@ -255,7 +238,6 @@ impl ManageDbService {
       }),
     }
   }
-
   pub fn get_mongodb_provider(&self) -> Option<Arc<MongoProvider>> {
     self
       .mongodb_provider
@@ -263,7 +245,6 @@ impl ManageDbService {
       .ok()
       .and_then(|guard| guard.clone())
   }
-
   pub async fn get_tasks_by_month(
     &self,
     year: i32,
@@ -277,7 +258,6 @@ impl ManageDbService {
     } else {
       format!("{:04}-{:02}-01", year, month + 1)
     };
-
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({
         "$or": [
             { "start_date": { "$gte": &start_of_month, "$lt": &end_of_month } },
@@ -286,9 +266,7 @@ impl ManageDbService {
         ]
     }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-
     let mut all_tasks: Vec<Value> = Vec::new();
-
     if !offline {
       let mongo_option = match self.mongodb_provider.lock() {
         Ok(guard) => guard.clone(),
@@ -303,7 +281,6 @@ impl ManageDbService {
         }
       }
     }
-
     if visibility == "private" {
       if let Ok(tasks) = self
         .json_provider
@@ -313,7 +290,6 @@ impl ManageDbService {
         all_tasks.extend(tasks)
       }
     }
-
     let result_map = serde_json::json!({ "tasks": all_tasks });
     Ok(ResponseModel {
       status: ResponseStatus::Success,
@@ -326,19 +302,15 @@ impl ManageDbService {
       data: crate::utils::common::convert_data_to_object(&result_map),
     })
   }
-
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     self.db_backup.import_to_local(user_id).await
   }
-
   pub async fn export_to_cloud(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
     self.db_backup.export_to_cloud(user_id).await
   }
-
   pub async fn check_mongodb_connection_async(&self) -> bool {
     self.db_backup.check_mongodb_connection_async().await
   }
-
   pub async fn upsert_to_json(
     &self,
     table: String,
@@ -360,7 +332,6 @@ impl ManageDbService {
       data: serde_json::Value::String(id),
     })
   }
-
   pub async fn upsert_to_mongo(
     &self,
     table: String,
@@ -377,7 +348,6 @@ impl ManageDbService {
         message: "MongoDB not available".to_string(),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     let result = self.db_backup.upsert_to_mongo(&mongo, &table, data).await;
     Ok(ResponseModel {
       status: if result {
@@ -393,7 +363,6 @@ impl ManageDbService {
       data: serde_json::Value::String(id),
     })
   }
-
   pub async fn batch_upsert_to_mongo(
     &self,
     records: Value,
@@ -408,10 +377,8 @@ impl ManageDbService {
         message: "MongoDB not available".to_string(),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     let mut total_count = 0;
     let mut success_count = 0;
-
     if let Some(obj) = records.as_object() {
       for (table, items) in obj {
         if let Some(arr) = items.as_array() {
@@ -428,7 +395,6 @@ impl ManageDbService {
         }
       }
     }
-
     Ok(ResponseModel {
       status: if success_count == total_count {
         ResponseStatus::Success
@@ -445,7 +411,6 @@ impl ManageDbService {
       }),
     })
   }
-
   pub async fn delete_from_json(
     &self,
     table: String,
@@ -466,7 +431,6 @@ impl ManageDbService {
       data: serde_json::Value::String(id),
     })
   }
-
   pub async fn batch_soft_delete_json(
     &self,
     table: String,
@@ -490,7 +454,6 @@ impl ManageDbService {
       data: serde_json::json!({ "count": success_count }),
     })
   }
-
   pub async fn batch_restore_json(
     &self,
     table: String,
@@ -514,7 +477,6 @@ impl ManageDbService {
       data: serde_json::json!({ "count": success_count }),
     })
   }
-
   pub async fn get_all_from_json(
     &self,
     table: String,
@@ -531,7 +493,6 @@ impl ManageDbService {
       data: crate::utils::common::convert_data_to_object(&items),
     })
   }
-
   pub async fn import_private_to_local(
     &self,
     user_id: String,

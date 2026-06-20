@@ -1,7 +1,6 @@
 use crate::models::response::ResponseModel;
 use crate::AppState;
 use tauri::State;
-
 #[tauri::command]
 pub async fn statistics_get(
   state: State<'_, AppState>,

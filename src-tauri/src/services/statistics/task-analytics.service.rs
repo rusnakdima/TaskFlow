@@ -3,9 +3,7 @@ use crate::utils::percentage::calculate_percentage;
 use chrono::DateTime;
 use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
 use serde_json::Value;
-
 pub struct TaskAnalytics;
-
 impl TaskAnalytics {
   pub async fn calculate_average_task_time(tasks: &[Value]) -> i32 {
     let pipeline = AggregationPipeline::new()
@@ -14,7 +12,6 @@ impl TaskAnalytics {
         ("created_at", serde_json::json!("$created_at")),
         ("updated_at", serde_json::json!("$updated_at")),
       ]);
-
     let results = pipeline
       .execute_docs(tasks.to_vec())
       .await
@@ -23,7 +20,6 @@ impl TaskAnalytics {
     if count == 0 {
       return 0;
     }
-
     let mut total_duration = 0.0;
     for task in results {
       if let (Some(created_str), Some(updated_str)) = (
@@ -43,7 +39,6 @@ impl TaskAnalytics {
     }
     (total_duration / count as f32) as i32
   }
-
   pub async fn compute_statistics(
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
@@ -54,7 +49,6 @@ impl TaskAnalytics {
     let completion_rate = calculate_percentage(completed_tasks, total_tasks);
     let average_task_time = Self::calculate_average_task_time(tasks).await;
     let productivity_score = Self::compute_productivity_score(daily_activities).await;
-
     let (previous_total_tasks, previous_completed_tasks) =
       Self::compute_activity_totals(previous_daily_activities).await;
     let previous_completion_rate =
@@ -62,7 +56,6 @@ impl TaskAnalytics {
     let previous_average_time = Self::calculate_average_task_time(previous_tasks).await;
     let previous_productivity_score =
       Self::compute_productivity_score(previous_daily_activities).await;
-
     StatisticsModel {
       total_tasks,
       completion_rate,
@@ -74,7 +67,6 @@ impl TaskAnalytics {
       previous_productivity_score,
     }
   }
-
   async fn compute_activity_totals(daily_activities: &[Value]) -> (i32, i32) {
     let pipeline = AggregationPipeline::new().group(
       GroupStage::new(serde_json::Value::Null)
@@ -84,7 +76,6 @@ impl TaskAnalytics {
         )
         .sum("completed", serde_json::json!("$tasks_completed")),
     );
-
     let results = pipeline
       .execute_docs(daily_activities.to_vec())
       .await
@@ -103,12 +94,10 @@ impl TaskAnalytics {
       (0, 0)
     }
   }
-
   async fn compute_productivity_score(daily_activities: &[Value]) -> i32 {
     if daily_activities.is_empty() {
       return 0;
     }
-
     let pipeline = AggregationPipeline::new().group(GroupStage::new(serde_json::Value::Null).sum(
       "score",
       serde_json::json!({ "$sum": [
@@ -117,27 +106,23 @@ impl TaskAnalytics {
           "$subtasks_created", "$subtasks_completed"
         ] }),
     ));
-
     let results = pipeline
       .execute_docs(daily_activities.to_vec())
       .await
       .unwrap_or_default();
     if let Some(result) = results.first() {
       let score = result.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-
       (score / daily_activities.len() as f32) as i32
     } else {
       0
     }
   }
-
   pub async fn compute_detailed_metrics(
     daily_activities: &[Value],
     previous_daily_activities: &[Value],
   ) -> Vec<DetailedMetricModel> {
     let current_metrics = Self::compute_metric_sums(daily_activities).await;
     let previous_metrics = Self::compute_metric_sums(previous_daily_activities).await;
-
     let calculate_change = |current: i32, previous: i32| -> i32 {
       if previous == 0 {
         if current > 0 {
@@ -149,7 +134,6 @@ impl TaskAnalytics {
         (((current as f32 - previous as f32) / previous as f32) * 100.0) as i32
       }
     };
-
     vec![
       DetailedMetricModel {
         name: "Tasks Created".to_string(),
@@ -171,7 +155,6 @@ impl TaskAnalytics {
       },
     ]
   }
-
   async fn compute_metric_sums(daily_activities: &[Value]) -> (i32, i32, i32) {
     let pipeline = AggregationPipeline::new().group(
       GroupStage::new(serde_json::Value::Null)
@@ -182,7 +165,6 @@ impl TaskAnalytics {
           serde_json::json!({ "$cond": [{ "$gt": [{ "$sum": ["$tasks_created", "$tasks_completed", "$tasks_updated"] }, 0] }, 1, 0] }),
         ),
     );
-
     let results = pipeline
       .execute_docs(daily_activities.to_vec())
       .await
@@ -200,7 +182,6 @@ impl TaskAnalytics {
         .get("active_days")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0) as i32;
-
       (tasks_created, tasks_completed, active_days)
     } else {
       (0, 0, 0)

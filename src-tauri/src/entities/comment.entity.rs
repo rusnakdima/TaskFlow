@@ -1,11 +1,9 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("comments")]
 #[many_to_one("user", "users", "user_id")]
@@ -32,7 +30,6 @@ pub struct CommentEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 #[validate(xor("task_id", "subtask_id"))]
 pub struct CommentCreateModel {
@@ -44,7 +41,6 @@ pub struct CommentCreateModel {
   pub task_id: Option<String>,
   pub subtask_id: Option<String>,
 }
-
 impl From<CommentCreateModel> for CommentEntity {
   fn from(value: CommentCreateModel) -> Self {
     CommentEntity {

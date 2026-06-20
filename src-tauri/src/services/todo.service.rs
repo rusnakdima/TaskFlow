@@ -6,22 +6,18 @@ use crate::utils::cascade::soft_delete_cascade_all;
 use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
-
 pub struct TodoService {
   base: BaseCrudService,
 }
-
 impl TodoService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
       base: BaseCrudService::new(json_provider, mongo_provider),
     }
   }
-
   fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
     self.base.get_provider(visibility)
   }
-
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
       .base
@@ -29,16 +25,13 @@ impl TodoService {
       .find_by_id("todos", id)
       .await?
       .ok_or_else(|| err_response("Todo not found"))?;
-
     if !PermissionService::can_view_todo(&doc, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to view this todo",
       ));
     }
-
     Ok(success_response(doc))
   }
-
   pub async fn get_all(
     &self,
     user_id: &str,
@@ -50,7 +43,6 @@ impl TodoService {
     let provider = self.get_provider(visibility)?;
     let permission_filter =
       PermissionService::get_todo_filter_for_user(user_id, None, Some(visibility));
-
     let final_filter = if let Some(f) = filter {
       let combined = serde_json::json!({
           "$and": [permission_filter, f]
@@ -65,14 +57,11 @@ impl TodoService {
           .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
       )
     };
-
     let docs = provider
       .find_many("todos", final_filter.as_ref(), skip, limit, None, true)
       .await?;
-
     Ok(success_response(docs))
   }
-
   pub async fn create(
     &self,
     data: Value,
@@ -82,7 +71,6 @@ impl TodoService {
     let doc = provider.insert("todos", data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn update(
     &self,
     id: &str,
@@ -95,25 +83,20 @@ impl TodoService {
       .find_by_id("todos", id)
       .await?
       .ok_or_else(|| err_response("Todo not found"))?;
-
     let stored_visibility = get_visibility(&existing);
     let provider = self.get_provider(stored_visibility)?;
-
     if !PermissionService::can_edit_todo(&existing, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to edit this todo",
       ));
     }
-
     let mut update_data = data;
     if let Some(v) = update_data.get_mut("visibility") {
       *v = Value::String(stored_visibility.to_string());
     }
-
     let doc = provider.patch("todos", id, update_data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
       .base
@@ -121,17 +104,13 @@ impl TodoService {
       .find_by_id("todos", id)
       .await?
       .ok_or_else(|| err_response("Todo not found"))?;
-
     let visibility = get_visibility(&existing);
-
     let provider = self.get_provider(visibility)?;
-
     if !PermissionService::can_delete_todo(&existing, user_id) {
       return Err(err_response(
         "Unauthorized: You do not have permission to delete this todo",
       ));
     }
-
     let _ = soft_delete_cascade_all(&provider, "todos", id).await;
     Ok(success_response(json!({})))
   }

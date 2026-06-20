@@ -1,72 +1,50 @@
-pub mod repository;
-
 #[path = "base-crud.service.rs"]
 pub mod base_crud_service;
-
-#[path = "manage-db.service.rs"]
-pub mod manage_db_service;
-
-#[path = "notification.service.rs"]
-pub mod notification_service;
-
-#[path = "permission.service.rs"]
-pub mod permission_service;
-
-#[path = "todo.service.rs"]
-pub mod todo_service;
-
-#[path = "task.service.rs"]
-pub mod task_service;
-
-#[path = "subtask.service.rs"]
-pub mod subtask_service;
-
 #[path = "category.service.rs"]
 pub mod category_service;
-
 #[path = "chat.service.rs"]
 pub mod chat_service;
-
-#[path = "group.service.rs"]
-pub mod group_service;
-
-#[path = "room.service.rs"]
-pub mod room_service;
-
+#[path = "crud_service.rs"]
+pub mod crud_service;
 #[path = "db-backup.service.rs"]
 pub mod db_backup;
-
+#[path = "group.service.rs"]
+pub mod group_service;
+#[path = "manage-db.service.rs"]
+pub mod manage_db_service;
+#[path = "notification.service.rs"]
+pub mod notification_service;
+#[path = "permission.service.rs"]
+pub mod permission_service;
+pub mod repository;
+#[path = "room.service.rs"]
+pub mod room_service;
+#[path = "subtask.service.rs"]
+pub mod subtask_service;
+#[path = "task.service.rs"]
+pub mod task_service;
+#[path = "todo.service.rs"]
+pub mod todo_service;
 // Special services (not CRUD)
-pub mod auth;
-
-#[path = "auth.service.rs"]
-pub mod auth_service;
-
-#[path = "profile.service.rs"]
-pub mod profile_service;
-
 #[path = "about.service.rs"]
 pub mod about_service;
-
+pub mod auth;
+#[path = "auth.service.rs"]
+pub mod auth_service;
+#[path = "profile.service.rs"]
+pub mod profile_service;
 // Refactored from crud.service.rs - now modularized
-pub mod cascade;
-
-#[path = "entity-resolution.service.rs"]
-pub mod entity_resolution_service;
-
 #[path = "activity-monitor.service.rs"]
 pub mod activity_monitor_service;
-
 #[path = "admin.service.rs"]
 pub mod admin_manager;
-
-pub mod statistics;
-
-pub mod profile;
-pub mod user;
-
-#[path = "statistics.service.rs"]
-pub mod statistics_service;
-
+pub mod cascade;
+#[path = "entity-resolution.service.rs"]
+pub mod entity_resolution_service;
 #[path = "github.service.rs"]
 pub mod github_service;
+pub mod profile;
+pub mod statistics;
+#[path = "statistics.service.rs"]
+pub mod statistics_service;
+pub mod user;

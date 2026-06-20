@@ -1,7 +1,6 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use nosql_orm::CascadeManager;
-
 pub async fn soft_delete_cascade_all(
   provider: &DataProvider,
   table: &str,

@@ -1,10 +1,8 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("rooms")]
 #[soft_delete]
@@ -26,7 +24,6 @@ pub struct RoomEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct RoomCreateModel {
   pub name: Option<String>,
@@ -37,7 +34,6 @@ pub struct RoomCreateModel {
   #[serde(default)]
   pub participant_ids: Vec<String>,
 }
-
 impl From<RoomCreateModel> for RoomEntity {
   fn from(create: RoomCreateModel) -> Self {
     RoomEntity {

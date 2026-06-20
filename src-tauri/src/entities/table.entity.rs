@@ -1,6 +1,5 @@
 /* sys lib */
 use serde_json::{Map, Value};
-
 // Import all model types
 use crate::entities::{
   category_entity::{CategoryCreateModel, CategoryEntity},
@@ -15,7 +14,6 @@ use crate::entities::{
 };
 use nosql_orm::prelude::apply_timestamps;
 use nosql_orm::validators::Validate as OrmValidate;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum TableModelType {
   #[default]
@@ -29,7 +27,6 @@ pub enum TableModelType {
   Chat,
   Comment,
 }
-
 impl TableModelType {
   pub const TABLE_TODOS: &'static str = "todos";
   pub const TABLE_TASKS: &'static str = "tasks";
@@ -40,7 +37,6 @@ impl TableModelType {
   pub const TABLE_DAILY_ACTIVITIES: &'static str = "daily_activities";
   pub const TABLE_CHATS: &'static str = "chats";
   pub const TABLE_COMMENTS: &'static str = "comments";
-
   pub fn table_name(&self) -> &'static str {
     match self {
       TableModelType::Todo => Self::TABLE_TODOS,
@@ -55,7 +51,6 @@ impl TableModelType {
     }
   }
 }
-
 pub fn validate_table(table_name: &str) -> Result<TableModelType, String> {
   match table_name {
     "todos" => Ok(TableModelType::Todo),
@@ -73,7 +68,6 @@ pub fn validate_table(table_name: &str) -> Result<TableModelType, String> {
     )),
   }
 }
-
 macro_rules! validate_model_case {
   ($create_model_type:ty, $entity_type:ty, $label:expr, $data:expr, $is_create:expr, $visibility:expr) => {{
     if $is_create {
@@ -93,7 +87,6 @@ macro_rules! validate_model_case {
     }
   }};
 }
-
 macro_rules! validate_model_case_with_preprocess {
   ($create_model_type:ty, $entity_type:ty, $label:expr, $data:expr, $is_create:expr, $visibility:expr, $preprocess:ident) => {{
     if $is_create {
@@ -114,7 +107,6 @@ macro_rules! validate_model_case_with_preprocess {
     }
   }};
 }
-
 /// Validate data for create or update operation
 /// Returns validated data ready for database operation
 pub fn validate_model(
@@ -124,11 +116,9 @@ pub fn validate_model(
   visibility: Option<String>,
 ) -> Result<Value, String> {
   let model_type = validate_table(table_name)?;
-
   if !data.is_object() {
     return Err("Data must be a JSON object".to_string());
   }
-
   match model_type {
     TableModelType::Chat => validate_model_case!(
       ChatCreateModel,
@@ -205,19 +195,16 @@ pub fn validate_model(
     ),
   }
 }
-
 fn serialize_for_insert<T: serde::Serialize>(model: &T, label: &str) -> Result<Value, String> {
   let mut value = serde_json::to_value(model)
     .map_err(|e| format!("Failed to serialize {} model: {}", label, e))?;
   apply_timestamps(&mut value, true);
   Ok(value)
 }
-
 fn with_update_timestamp(mut value: Value) -> Value {
   apply_timestamps(&mut value, false);
   value
 }
-
 fn inject_visibility(value: Value, visibility: Option<String>) -> Value {
   if let Some(vis) = visibility {
     if let Value::Object(mut obj) = value {
@@ -230,7 +217,6 @@ fn inject_visibility(value: Value, visibility: Option<String>) -> Value {
     value
   }
 }
-
 fn filter_empty_fields(data: Value) -> Value {
   if let Value::Object(obj) = data {
     let filtered: Map<String, Value> = obj

@@ -1,12 +1,10 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::response_helper::err_response;
-
 pub struct BaseCrudService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
 }
-
 impl BaseCrudService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
@@ -14,11 +12,9 @@ impl BaseCrudService {
       mongo_provider,
     }
   }
-
   pub fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
     let offline = std::env::var("OFFLINE_MODE").unwrap_or_default() == "true";
     let use_json = visibility == "private" || offline || visibility == "all";
-
     if use_json {
       Ok(self.json_provider.clone())
     } else {
@@ -30,11 +26,9 @@ impl BaseCrudService {
       }
     }
   }
-
   pub fn get_json_provider(&self) -> &DataProvider {
     &self.json_provider
   }
-
   pub fn get_mongo_provider(&self) -> Option<&DataProvider> {
     self.mongo_provider.as_ref()
   }

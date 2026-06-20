@@ -2,14 +2,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result};
-
 /* helpers */
 use crate::utils::common::format_date;
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskStatus {
   #[serde(rename = "pending")]
@@ -21,7 +18,6 @@ pub enum TaskStatus {
   #[serde(rename = "failed")]
   Failed,
 }
-
 impl Display for TaskStatus {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     let status_str = match self {
@@ -33,7 +29,6 @@ impl Display for TaskStatus {
     write!(f, "{}", status_str)
   }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("tasks")]
 #[soft_delete]
@@ -70,7 +65,6 @@ pub struct TaskEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct TaskCreateModel {
   #[validate(required)]
@@ -90,12 +84,10 @@ pub struct TaskCreateModel {
   pub end_date: String,
   pub order: i32,
 }
-
 impl From<TaskCreateModel> for TaskEntity {
   fn from(value: TaskCreateModel) -> Self {
     let formatted_start_date = format_date(&value.start_date);
     let formatted_end_date = format_date(&value.end_date);
-
     TaskEntity {
       id: None,
       todo_id: value.todo_id,

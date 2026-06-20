@@ -1,11 +1,8 @@
 /* sys lib */
 use std::env;
 use std::path::Path;
-
 const ENV_CONTENT: &str = include_str!("../../.env");
-
 #[derive(Debug, Clone)]
-
 pub struct ConfigHelper {
   pub name_app: String,
   pub app_home_folder: String,
@@ -24,7 +21,6 @@ pub struct ConfigHelper {
   pub client_secret_github: String,
   pub callback_url_github: String,
 }
-
 fn parse_env_content(content: &str) -> Vec<(String, String)> {
   let mut vars = Vec::new();
   for line in content.lines() {
@@ -47,7 +43,6 @@ fn parse_env_content(content: &str) -> Vec<(String, String)> {
   }
   vars
 }
-
 fn load_env_from_file(path: &Path) -> bool {
   if let Ok(content) = std::fs::read_to_string(path) {
     let vars = parse_env_content(&content);
@@ -56,10 +51,8 @@ fn load_env_from_file(path: &Path) -> bool {
     }
     return true;
   }
-
   false
 }
-
 #[cfg(feature = "embedded_env")]
 fn load_embedded_env() {
   let vars = parse_env_content(ENV_CONTENT);
@@ -67,25 +60,20 @@ fn load_embedded_env() {
     env::set_var(key, value);
   }
 }
-
 impl ConfigHelper {
   pub fn new() -> Self {
     dotenvy::dotenv().ok();
-
     let fallback_env_paths = [
       Path::new("/data/data/com.tcs.taskflow/files/.env"),
       Path::new("resource/.env"),
       Path::new("./resource/.env"),
     ];
-
     load_embedded_env();
-
     for path in &fallback_env_paths {
       if load_env_from_file(path) {
         break;
       }
     }
-
     Self {
       name_app: env::var("NAME_APP").unwrap_or_else(|_| "TaskFlow".to_string()),
       app_home_folder: env::var("APP_HOME_FOLDER").unwrap_or_else(|_| ".taskflow".to_string()),

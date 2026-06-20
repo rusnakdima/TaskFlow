@@ -1,6 +1,5 @@
 /* sys lib */
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct StatisticsModel {
@@ -13,21 +12,18 @@ pub struct StatisticsModel {
   pub previous_average_time: i32,
   pub previous_productivity_score: i32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CompletionTrendItem {
   pub label: String,
   pub value: i32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DailyActivityItem {
   pub day_name: String,
   pub activity: i32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CategoryItem {
@@ -36,7 +32,6 @@ pub struct CategoryItem {
   pub percentage: i32,
   pub color: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ChartDataModel {
@@ -44,7 +39,6 @@ pub struct ChartDataModel {
   pub categories: Vec<CategoryItem>,
   pub daily_activity: Vec<DailyActivityItem>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DetailedMetricModel {
@@ -53,7 +47,6 @@ pub struct DetailedMetricModel {
   pub previous: String,
   pub change: i32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct StatisticsResponseModel {

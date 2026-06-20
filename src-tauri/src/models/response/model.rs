@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -16,7 +15,6 @@ pub enum Status {
   Unauthorized,
   Forbidden,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Response<T = Value> {
@@ -24,7 +22,6 @@ pub struct Response<T = Value> {
   pub message: String,
   pub data: T,
 }
-
 impl<T> Response<T> {
   pub fn success(message: impl Into<String>, data: T) -> Self {
     Self {
@@ -33,7 +30,6 @@ impl<T> Response<T> {
       data,
     }
   }
-
   pub fn error(status: Status, message: impl Into<String>) -> Self
   where
     T: Default,
@@ -45,7 +41,6 @@ impl<T> Response<T> {
     }
   }
 }
-
 impl<T: Serialize> Response<T> {
   pub fn to_json_value(self) -> Value {
     serde_json::to_value(self).unwrap_or_else(|_| {
@@ -57,16 +52,13 @@ impl<T: Serialize> Response<T> {
     })
   }
 }
-
 impl Default for Status {
   fn default() -> Self {
     Status::Success
   }
 }
-
 pub type ResponseModel = Response<Value>;
 pub type ResponseStatus = Status;
-
 impl ResponseModel {
   pub fn new_false(message: &str) -> Self {
     ResponseModel {
@@ -75,7 +67,6 @@ impl ResponseModel {
       data: Value::String("".to_string()),
     }
   }
-
   pub fn new_success(message: &str) -> Self {
     ResponseModel {
       status: ResponseStatus::Success,
@@ -83,7 +74,6 @@ impl ResponseModel {
       data: Value::String("".to_string()),
     }
   }
-
   pub fn success_with_message(data: Value, message: impl Into<String>) -> Self {
     ResponseModel {
       status: ResponseStatus::Success,
@@ -91,7 +81,6 @@ impl ResponseModel {
       data,
     }
   }
-
   pub fn created(data: Value) -> Self {
     ResponseModel {
       status: ResponseStatus::Created,
@@ -99,7 +88,6 @@ impl ResponseModel {
       data,
     }
   }
-
   pub fn updated(data: Value) -> Self {
     ResponseModel {
       status: ResponseStatus::Updated,
@@ -107,7 +95,6 @@ impl ResponseModel {
       data,
     }
   }
-
   pub fn deleted(data: Value) -> Self {
     ResponseModel {
       status: ResponseStatus::Deleted,
@@ -115,7 +102,6 @@ impl ResponseModel {
       data,
     }
   }
-
   pub fn validation_error(message: impl Into<String>) -> Self {
     ResponseModel {
       status: ResponseStatus::ValidationError,
@@ -123,7 +109,6 @@ impl ResponseModel {
       data: Value::Null,
     }
   }
-
   pub fn not_found(entity: &str) -> Self {
     ResponseModel {
       status: ResponseStatus::NotFound,
@@ -131,7 +116,6 @@ impl ResponseModel {
       data: Value::Null,
     }
   }
-
   pub fn unauthorized(message: impl Into<String>) -> Self {
     ResponseModel {
       status: ResponseStatus::Unauthorized,
@@ -139,7 +123,6 @@ impl ResponseModel {
       data: Value::Null,
     }
   }
-
   pub fn forbidden(message: impl Into<String>) -> Self {
     ResponseModel {
       status: ResponseStatus::Forbidden,
@@ -148,7 +131,6 @@ impl ResponseModel {
     }
   }
 }
-
 impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
   fn from(error: Box<dyn std::error::Error + Send + Sync>) -> Self {
     ResponseModel {
@@ -158,7 +140,6 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ResponseModel {
     }
   }
 }
-
 impl From<serde_json::Error> for ResponseModel {
   fn from(error: serde_json::Error) -> Self {
     ResponseModel {
@@ -168,7 +149,6 @@ impl From<serde_json::Error> for ResponseModel {
     }
   }
 }
-
 impl From<String> for ResponseModel {
   fn from(error: String) -> Self {
     ResponseModel {
@@ -178,13 +158,11 @@ impl From<String> for ResponseModel {
     }
   }
 }
-
 impl From<nosql_orm::error::OrmError> for ResponseModel {
   fn from(error: nosql_orm::error::OrmError) -> Self {
     err_response_formatted("Database error", &error.to_string())
   }
 }
-
 pub fn err_response(message: &str) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Error,
@@ -192,7 +170,6 @@ pub fn err_response(message: &str) -> ResponseModel {
     data: Value::String("".to_string()),
   }
 }
-
 pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Error,
@@ -200,7 +177,6 @@ pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
     data: Value::String("".to_string()),
   }
 }
-
 pub fn success_response<T: Serialize>(data: T) -> ResponseModel {
   ResponseModel {
     status: ResponseStatus::Success,

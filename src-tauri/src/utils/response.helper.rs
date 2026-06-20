@@ -1,5 +1,4 @@
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 /// Creates an error response with the given message
 pub fn err_response(message: &str) -> ResponseModel {
   ResponseModel {
@@ -8,7 +7,6 @@ pub fn err_response(message: &str) -> ResponseModel {
     data: serde_json::Value::String("".to_string()),
   }
 }
-
 /// Creates an error response with a formatted message
 pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
   ResponseModel {
@@ -17,7 +15,6 @@ pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
     data: serde_json::Value::String("".to_string()),
   }
 }
-
 /// Creates a success response with data
 pub fn success_response<T: serde::Serialize>(data: T) -> ResponseModel {
   ResponseModel {

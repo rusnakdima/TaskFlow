@@ -6,22 +6,18 @@ use crate::utils::cascade::soft_delete_cascade_all;
 use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
-
 pub struct TaskService {
   base: BaseCrudService,
 }
-
 impl TaskService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
       base: BaseCrudService::new(json_provider, mongo_provider),
     }
   }
-
   fn get_provider(&self, visibility: &str) -> Result<DataProvider, ResponseModel> {
     self.base.get_provider(visibility)
   }
-
   pub async fn get_by_id(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
       .base
@@ -29,10 +25,8 @@ impl TaskService {
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
-
     let todo_id = doc.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
     let visibility = get_visibility(&doc);
-
     if !todo_id.is_empty() {
       if let Some(todo) = self
         .get_provider(visibility)?
@@ -46,10 +40,8 @@ impl TaskService {
         }
       }
     }
-
     Ok(success_response(doc))
   }
-
   pub async fn get_all(
     &self,
     user_id: &str,
@@ -59,9 +51,7 @@ impl TaskService {
     limit: Option<u64>,
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
-
     let todos_filter = PermissionService::get_todo_filter_for_user(user_id, None, Some(visibility));
-
     let todos = provider
       .find_many(
         "todos",
@@ -75,38 +65,30 @@ impl TaskService {
         true,
       )
       .await?;
-
     let todo_ids: Vec<String> = todos
       .iter()
       .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
       .collect();
-
     if todo_ids.is_empty() {
       return Ok(success_response(serde_json::Value::Array(vec![])));
     }
-
     let mut task_filter = json!({
       "todo_id": { "$in": todo_ids }
     });
-
     if let Some(f) = filter {
       task_filter = json!({
         "$and": [task_filter, f]
       });
     }
-
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&task_filter)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
     );
-
     let docs = provider
       .find_many("tasks", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-
     Ok(success_response(docs))
   }
-
   pub async fn create(
     &self,
     data: Value,
@@ -114,9 +96,7 @@ impl TaskService {
     user_id: &str,
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
-
     let todo_id = data.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
-
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_add_task_to_todo(&todo, user_id) {
@@ -126,11 +106,9 @@ impl TaskService {
         }
       }
     }
-
     let doc = provider.insert("tasks", data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn update(
     &self,
     id: &str,
@@ -143,16 +121,12 @@ impl TaskService {
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
-
     let visibility = get_visibility(&existing);
-
     let provider = self.get_provider(visibility)?;
-
     let todo_id = existing
       .get("todo_id")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_edit_task(&existing, &todo, user_id) {
@@ -162,11 +136,9 @@ impl TaskService {
         }
       }
     }
-
     let doc = provider.patch("tasks", id, data).await?;
     Ok(success_response(doc))
   }
-
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
       .base
@@ -174,16 +146,12 @@ impl TaskService {
       .find_by_id("tasks", id)
       .await?
       .ok_or_else(|| err_response("Task not found"))?;
-
     let visibility = get_visibility(&existing);
-
     let provider = self.get_provider(visibility)?;
-
     let todo_id = existing
       .get("todo_id")
       .and_then(|v| v.as_str())
       .unwrap_or("");
-
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_delete_task(&existing, &todo, user_id) {
@@ -193,7 +161,6 @@ impl TaskService {
         }
       }
     }
-
     let _ = soft_delete_cascade_all(&provider, "tasks", id).await;
     Ok(success_response(json!({})))
   }

@@ -1,21 +1,16 @@
 use std::sync::Arc;
-
 /* tokio */
 use tokio::time::{timeout, Duration};
-
 /* providers */
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-
 /* models */
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 use crate::utils::response_helper::err_response;
 use bcrypt::{hash, DEFAULT_COST};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
   pub id: String,
@@ -23,26 +18,21 @@ pub struct Claims {
   pub role: Option<String>,
   pub exp: usize,
 }
-
 impl Claims {
   pub fn extract_user_id(&self) -> &str {
     &self.id
   }
-
   pub fn extract_profile_id(&self) -> Option<&str> {
     self.profile_id.as_deref()
   }
-
   pub fn extract_role(&self) -> Option<&str> {
     self.role.as_deref()
   }
 }
-
 #[allow(dead_code)]
 pub fn hash_password(password: &str) -> Result<String, ResponseModel> {
   hash(password, DEFAULT_COST).map_err(|e| err_response(&format!("Error hashing password: {}", e)))
 }
-
 pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, ResponseModel> {
   let token_data = decode::<Claims>(
     token,
@@ -55,7 +45,6 @@ pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, 
   })?;
   Ok(token_data.claims.id)
 }
-
 pub fn extract_profile_from_token(token: &str, jwt_secret: &str) -> Result<String, ResponseModel> {
   let token_data = decode::<Claims>(
     token,
@@ -71,7 +60,6 @@ pub fn extract_profile_from_token(token: &str, jwt_secret: &str) -> Result<Strin
     .profile_id
     .ok_or_else(|| err_response("Profile ID not found in token"))
 }
-
 pub fn validate_user_owns_data(
   token: &str,
   jwt_secret: &str,
@@ -87,7 +75,6 @@ pub fn validate_user_owns_data(
   }
   Ok(())
 }
-
 pub async fn validate_admin_role(
   token: &str,
   jwt_secret: &str,
@@ -95,11 +82,9 @@ pub async fn validate_admin_role(
   mongodb_provider: Option<&Arc<MongoProvider>>,
 ) -> Result<(), ResponseModel> {
   let user_id = extract_user_from_token(token, jwt_secret)?;
-
   let table_name = TableModelType::User.table_name();
   let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": user_id }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-
   let user_val = match timeout(
     Duration::from_secs(3),
     json_provider.find_many(table_name, Some(&filter), None, None, None, true),
@@ -116,7 +101,6 @@ pub async fn validate_admin_role(
     Ok(Err(_)) => None,
     Err(_) => None,
   };
-
   let user_val = match user_val {
     Some(v) => v,
     None => {
@@ -132,10 +116,8 @@ pub async fn validate_admin_role(
       users.pop().ok_or_else(|| err_response("User not found"))?
     }
   };
-
   let user: UserEntity = serde_json::from_value(user_val)
     .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
   if user.role != "admin" {
     return Err(ResponseModel {
       status: ResponseStatus::Error,
@@ -145,7 +127,6 @@ pub async fn validate_admin_role(
   }
   Ok(())
 }
-
 pub async fn find_user_by_username(
   json_provider: &JsonProvider,
   mongodb_provider: Option<&Arc<MongoProvider>>,
@@ -154,7 +135,6 @@ pub async fn find_user_by_username(
   let table_name = TableModelType::User.table_name();
   let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "username": username }))
     .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
-
   let user_val = match timeout(
     Duration::from_secs(3),
     json_provider.find_many(table_name, Some(&filter), None, None, None, true),
@@ -171,7 +151,6 @@ pub async fn find_user_by_username(
     Ok(Err(_)) => None,
     Err(_) => None,
   };
-
   let user_val = match user_val {
     Some(v) => v,
     None => {
@@ -187,7 +166,6 @@ pub async fn find_user_by_username(
       users.pop().ok_or_else(|| err_response("User not found"))?
     }
   };
-
   serde_json::from_value::<UserEntity>(user_val)
     .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))
 }

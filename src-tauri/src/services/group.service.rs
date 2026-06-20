@@ -3,12 +3,10 @@ use crate::repositories::data_provider::DataProvider;
 use crate::utils::response_helper::{err_response, success_response};
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
-
 pub struct GroupService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
 }
-
 impl GroupService {
   pub fn new(json_provider: DataProvider, mongo_provider: Option<DataProvider>) -> Self {
     Self {
@@ -16,15 +14,12 @@ impl GroupService {
       mongo_provider,
     }
   }
-
   fn get_json_provider(&self) -> &DataProvider {
     &self.json_provider
   }
-
   fn get_mongo_provider(&self) -> Option<&DataProvider> {
     self.mongo_provider.as_ref()
   }
-
   pub async fn get_by_id(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let doc = self
       .json_provider
@@ -33,14 +28,12 @@ impl GroupService {
       .ok_or_else(|| err_response("Group not found"))?;
     Ok(success_response(doc))
   }
-
   pub async fn get_by_room_id(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
         .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
     );
-
     let docs = self
       .json_provider
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
@@ -48,7 +41,6 @@ impl GroupService {
     if !docs.is_empty() {
       return Ok(success_response(docs.into_iter().next().unwrap()));
     }
-
     if let Some(mongo) = self.get_mongo_provider() {
       let mongo_docs = mongo
         .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
@@ -57,10 +49,8 @@ impl GroupService {
         return Ok(success_response(mongo_docs.into_iter().next().unwrap()));
       }
     }
-
     return Err(err_response("Group not found"));
   }
-
   pub async fn get_all(
     &self,
     _visibility: &str,
@@ -76,15 +66,12 @@ impl GroupService {
     } else {
       None
     };
-
     let mut all_docs: Vec<Value> = Vec::new();
-
     let json_docs = self
       .json_provider
       .find_many("groups", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
     all_docs.extend(json_docs);
-
     if let Some(mongo) = self.get_mongo_provider() {
       let mongo_docs = mongo
         .find_many("groups", filter_opt.as_ref(), skip, limit, None, true)
@@ -98,10 +85,8 @@ impl GroupService {
         }
       }
     }
-
     Ok(success_response(all_docs))
   }
-
   pub async fn create(
     &self,
     data: Value,
@@ -115,12 +100,10 @@ impl GroupService {
     create_data["created_at"] = serde_json::json!(now);
     create_data["updated_at"] = serde_json::json!(now);
     let doc = mongo.insert("groups", create_data).await?;
-
     let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("groups", doc.clone()).await;
     }
-
     if create_room {
       if let Some(room_id) = doc.get("room_id").and_then(|v| v.as_str()) {
         let name = doc.get("name").and_then(|v| v.as_str()).map(String::from);
@@ -134,7 +117,6 @@ impl GroupService {
               .collect()
           })
           .unwrap_or_default();
-
         let room_data = json!({
           "name": name,
           "room": room_id,
@@ -143,21 +125,17 @@ impl GroupService {
           "created_at": now,
           "updated_at": now
         });
-
         let mongo_room = self
           .get_mongo_provider()
           .ok_or_else(|| err_response("MongoDB not available"))?;
         let room_doc = mongo_room.insert("rooms", room_data).await?;
-
         if let DataProvider::Json(p) = json_provider {
           let _ = p.insert("rooms", room_doc).await;
         }
       }
     }
-
     Ok(success_response(doc))
   }
-
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
@@ -172,7 +150,6 @@ impl GroupService {
     }
     Ok(success_response(doc))
   }
-
   pub async fn add_members(
     &self,
     room_id: &str,
@@ -181,7 +158,6 @@ impl GroupService {
     let mongo = self
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
-
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
@@ -198,7 +174,6 @@ impl GroupService {
       .get("id")
       .and_then(|v| v.as_str())
       .unwrap_or(room_id);
-
     let mut members: Vec<String> = existing
       .get("member_ids")
       .and_then(|v| v.as_array())
@@ -209,13 +184,11 @@ impl GroupService {
           .collect()
       })
       .unwrap_or_default();
-
     for member_id in member_ids {
       if !members.contains(&member_id) {
         members.push(member_id);
       }
     }
-
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
     let doc = mongo.patch("groups", group_id, update_data.clone()).await?;
@@ -225,7 +198,6 @@ impl GroupService {
     }
     Ok(success_response(doc))
   }
-
   pub async fn remove_members(
     &self,
     id: &str,
@@ -238,7 +210,6 @@ impl GroupService {
       .find_by_id("groups", id)
       .await?
       .ok_or_else(|| err_response("Group not found"))?;
-
     let mut members: Vec<String> = existing
       .get("member_ids")
       .and_then(|v| v.as_array())
@@ -249,9 +220,7 @@ impl GroupService {
           .collect()
       })
       .unwrap_or_default();
-
     members.retain(|m| !member_ids.contains(m));
-
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "member_ids": members.clone(), "updated_at": now });
     let doc = mongo.patch("groups", id, update_data.clone()).await?;
@@ -261,14 +230,11 @@ impl GroupService {
     }
     Ok(success_response(doc))
   }
-
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
-
     let is_1on1 = id.starts_with("dm_");
-
     let existing = if is_1on1 {
       None
     } else {
@@ -289,7 +255,6 @@ impl GroupService {
         .await?;
       docs.first().cloned()
     };
-
     let (doc_id, room_id) = if let Some(existing_doc) = existing {
       let d_id = existing_doc
         .get("id")
@@ -332,9 +297,7 @@ impl GroupService {
         return Err(err_response("Group not found"));
       }
     };
-
     self.cascade_delete_room(&room_id).await?;
-
     if !is_1on1 {
       let _ = mongo.delete("groups", &doc_id).await;
       let json_provider = self.get_json_provider();
@@ -342,19 +305,15 @@ impl GroupService {
         let _ = p.delete("groups", &doc_id).await;
       }
     }
-
     Ok(success_response(json!({})))
   }
-
   async fn cascade_delete_room(&self, room_id: &str) -> Result<(), ResponseModel> {
     let mongo = self
       .get_mongo_provider()
       .ok_or_else(|| err_response("MongoDB not available"))?;
-
     if room_id.is_empty() {
       return Ok(());
     }
-
     let chat_filter = json!({ "room_id": room_id });
     if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
       let chat_docs: Vec<serde_json::Value> = mongo
@@ -367,7 +326,6 @@ impl GroupService {
           let _ = mongo.delete("messages", chat_id).await;
         }
       }
-
       let json_provider = self.get_json_provider();
       if let DataProvider::Json(p) = json_provider {
         let json_chat_docs: Vec<serde_json::Value> = DatabaseProvider::find_many(
@@ -389,7 +347,6 @@ impl GroupService {
         }
       }
     }
-
     let room_filter = json!({ "room": room_id });
     if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
       let room_docs: Vec<serde_json::Value> = mongo
@@ -421,15 +378,12 @@ impl GroupService {
         }
       }
     }
-
     Ok(())
   }
-
   pub async fn hard_delete_cascade(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_obj = nosql_orm::query::Filter::from_json(&filter)
       .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
-
     let group_opt = if let Some(mongo) = self.get_mongo_provider() {
       mongo
         .find_many("groups", Some(&filter_obj), None, Some(1), None, true)
@@ -439,7 +393,6 @@ impl GroupService {
     } else {
       None
     };
-
     let group = if let Some(g) = group_opt {
       g
     } else {
@@ -452,12 +405,10 @@ impl GroupService {
         .next()
         .ok_or_else(|| err_response("Group not found"))?
     };
-
     let actual_room_id = group
       .get("room_id")
       .and_then(|v| v.as_str())
       .unwrap_or(room_id);
-
     if !actual_room_id.is_empty() {
       let chat_filter = json!({ "room_id": actual_room_id });
       if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
@@ -473,7 +424,6 @@ impl GroupService {
             }
           }
         }
-
         if let Some(mongo) = self.get_mongo_provider() {
           let mongo_docs: Vec<serde_json::Value> = mongo
             .find_many("chats", Some(&chat_filter_obj), None, None, None, true)
@@ -487,7 +437,6 @@ impl GroupService {
         }
       }
     }
-
     let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let group_filter = json!({ "room_id": room_id });
@@ -503,7 +452,6 @@ impl GroupService {
         }
       }
     }
-
     if let Some(mongo) = self.get_mongo_provider() {
       let group_filter = json!({ "room_id": room_id });
       if let Ok(group_filter_obj) = nosql_orm::query::Filter::from_json(&group_filter) {
@@ -517,7 +465,6 @@ impl GroupService {
           }
         }
       }
-
       let room_filter = json!({ "room": actual_room_id });
       if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
         let rooms: Vec<serde_json::Value> = mongo
@@ -531,7 +478,6 @@ impl GroupService {
         }
       }
     }
-
     if let DataProvider::Json(p) = json_provider {
       let room_filter = json!({ "room": actual_room_id });
       if let Ok(room_filter_obj) = nosql_orm::query::Filter::from_json(&room_filter) {
@@ -546,7 +492,6 @@ impl GroupService {
         }
       }
     }
-
     Ok(success_response(json!({
       "room_id": actual_room_id,
       "deleted": true

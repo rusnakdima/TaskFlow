@@ -1,20 +1,15 @@
 /* sys lib */
 use std::collections::HashMap;
 use std::sync::Arc;
-
 /* providers */
 use crate::repositories::{json_provider::JsonProvider, mongodb_provider::MongoProvider};
 use nosql_orm::provider::DatabaseProvider;
-
 /* models */
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 /* helpers */
 use crate::utils::common::convert_data_to_object;
-
 /* services */
 use crate::services::cascade::CascadeService;
-
 /* AdminManager - Handles admin operations for data management */
 #[derive(Clone)]
 pub struct AdminManager {
@@ -22,7 +17,6 @@ pub struct AdminManager {
   pub mongodb_provider: Arc<MongoProvider>,
   pub cascade_service: CascadeService,
 }
-
 impl AdminManager {
   pub fn new(
     json_provider: JsonProvider,
@@ -35,7 +29,6 @@ impl AdminManager {
       cascade_service,
     }
   }
-
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
       "todos",
@@ -47,7 +40,6 @@ impl AdminManager {
       "daily_activities",
     ];
     let mut all_data = HashMap::new();
-
     for table in tables {
       let docs = self
         .json_provider
@@ -60,14 +52,12 @@ impl AdminManager {
         })?;
       all_data.insert(table.to_string(), docs);
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Archive data retrieved successfully from local database".to_string(),
       data: convert_data_to_object(&all_data),
     })
   }
-
   pub async fn get_archive_data_paginated(
     &self,
     data_type: String,
@@ -83,14 +73,12 @@ impl AdminManager {
         message: format!("Error getting paginated {} data: {}", data_type, e),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", docs.len(), data_type),
       data: convert_data_to_object(&docs),
     })
   }
-
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
     let tables = vec![
       "todos",
@@ -102,7 +90,6 @@ impl AdminManager {
       "daily_activities",
     ];
     let mut all_data = HashMap::new();
-
     for table in tables {
       let docs = self
         .mongodb_provider
@@ -115,14 +102,12 @@ impl AdminManager {
         })?;
       all_data.insert(table.to_string(), docs);
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Admin data retrieved successfully from MongoDB".to_string(),
       data: convert_data_to_object(&all_data),
     })
   }
-
   pub async fn permanently_delete_record(
     &self,
     table: String,
@@ -130,7 +115,6 @@ impl AdminManager {
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
     if use_json {
       if table == "todos" || table == "tasks" || table == "subtasks" {
         self
@@ -152,14 +136,12 @@ impl AdminManager {
         let _ = mongo.delete(&table, &id).await;
       }
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted".to_string(),
       data: serde_json::Value::String(id),
     })
   }
-
   pub async fn permanently_delete_record_local(
     &self,
     table: String,
@@ -173,14 +155,12 @@ impl AdminManager {
     } else {
       let _ = self.json_provider.delete(&table, &id).await;
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted from local database".to_string(),
       data: serde_json::Value::String(id),
     })
   }
-
   pub async fn toggle_delete_status(
     &self,
     table: String,
@@ -188,7 +168,6 @@ impl AdminManager {
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
-
     let record = if use_json {
       self
         .json_provider
@@ -220,13 +199,11 @@ impl AdminManager {
           data: serde_json::Value::String("".to_string()),
         })?
     };
-
     let is_deleted = record
       .get("deleted_at")
       .and_then(|v| v.as_str())
       .map(|s| !s.is_empty())
       .unwrap_or(false);
-
     if !is_deleted {
       if use_json {
         self
@@ -252,14 +229,12 @@ impl AdminManager {
           .await?;
       }
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Record delete status toggled to {}", !is_deleted),
       data: serde_json::Value::Bool(!is_deleted),
     })
   }
-
   pub async fn toggle_delete_status_local(
     &self,
     table: String,
@@ -279,13 +254,11 @@ impl AdminManager {
         message: "Record not found".to_string(),
         data: serde_json::Value::String("".to_string()),
       })?;
-
     let is_deleted = record
       .get("deleted_at")
       .and_then(|v| v.as_str())
       .map(|s| !s.is_empty())
       .unwrap_or(false);
-
     if !is_deleted {
       self
         .cascade_service
@@ -297,7 +270,6 @@ impl AdminManager {
         .restore_cascade_json(&table, &id)
         .await?;
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!(

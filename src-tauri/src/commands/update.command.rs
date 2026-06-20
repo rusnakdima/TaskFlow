@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-
 use crate::models::response::ResponseModel;
 use crate::services::about_service::AboutService;
 use crate::utils::response_helper::{err_response, success_response};
@@ -7,7 +6,6 @@ use crate::AppState;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::ShellExt;
 use tokio::io::AsyncWriteExt;
-
 #[tauri::command]
 pub async fn getBinaryNameFile(
   state: State<'_, AppState>,
@@ -20,7 +18,6 @@ pub async fn getBinaryNameFile(
     .await
     .map_err(|e| err_response(&e.message))
 }
-
 #[tauri::command]
 pub async fn downloadUpdate(
   url: String,
@@ -31,20 +28,16 @@ pub async fn downloadUpdate(
   let mut response = reqwest::get(&url)
     .await
     .map_err(|e| err_response(&format!("Download failed: {}", e)))?;
-
   let total_size = response.content_length().unwrap_or(0);
   let mut downloaded: u64 = 0;
-
   let download_dir = app_handle
     .path()
     .download_dir()
     .map_err(|e| err_response(&format!("Failed to get download directory: {}", e)))?;
-
   let file_path = download_dir.join(&file_name);
   let mut file = tokio::fs::File::create(&file_path)
     .await
     .map_err(|e| err_response(&format!("Failed to create file: {}", e)))?;
-
   loop {
     match response.chunk().await {
       Ok(Some(chunk)) => {
@@ -52,9 +45,7 @@ pub async fn downloadUpdate(
           .write_all(&chunk)
           .await
           .map_err(|e| err_response(&format!("Write failed: {}", e)))?;
-
         downloaded += chunk.len() as u64;
-
         if total_size > 0 {
           let percent = (downloaded as f64 / total_size as f64 * 100.0) as u32;
           let _ = window.emit("download-progress", percent);
@@ -66,24 +57,20 @@ pub async fn downloadUpdate(
       }
     }
   }
-
   file
     .flush()
     .await
     .map_err(|e| err_response(&format!("Flush failed: {}", e)))?;
-
   Ok(success_response(serde_json::Value::String(
     file_path.display().to_string(),
   )))
 }
-
 #[tauri::command]
 pub async fn openFile(path: String) -> Result<ResponseModel, ResponseModel> {
   AboutService::open_file(path)
     .await
     .map_err(|e| err_response(&e.message))
 }
-
 #[tauri::command]
 pub async fn installUpdate(
   installer_path: String,
@@ -93,13 +80,11 @@ pub async fn installUpdate(
   if !path.exists() {
     return Err(err_response("Installer file not found"));
   }
-
   let extension = path
     .extension()
     .and_then(|e| e.to_str())
     .unwrap_or("")
     .to_lowercase();
-
   #[cfg(target_os = "windows")]
   {
     let shell = app_handle.shell();
@@ -116,7 +101,6 @@ pub async fn installUpdate(
         .map_err(|e| err_response(&format!("Failed to run installer: {}", e)))?;
     }
   }
-
   #[cfg(target_os = "macos")]
   {
     let shell = app_handle.shell();
@@ -126,7 +110,6 @@ pub async fn installUpdate(
       .spawn()
       .map_err(|e| err_response(&format!("Failed to open installer: {}", e)))?;
   }
-
   #[cfg(target_os = "linux")]
   {
     let shell = app_handle.shell();
@@ -159,10 +142,8 @@ pub async fn installUpdate(
       )));
     }
   }
-
   Ok(success_response(serde_json::Value::Bool(true)))
 }
-
 #[tauri::command]
 pub fn getCurrentVersion() -> String {
   env!("CARGO_PKG_VERSION").to_string()

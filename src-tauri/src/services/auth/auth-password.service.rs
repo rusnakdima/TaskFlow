@@ -1,7 +1,6 @@
 /* sys lib */
 use bcrypt::{hash, DEFAULT_COST};
 use std::sync::Arc;
-
 /* providers */
 use crate::repositories::{
   email_provider::EmailProvider, json_provider::JsonProvider, mongodb_provider::MongoProvider,
@@ -9,23 +8,19 @@ use crate::repositories::{
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::query::Filter;
 use nosql_orm::repository::Repository;
-
 /* models */
 use crate::entities::{
   password_reset::PasswordReset, table_entity::TableModelType, user_entity::UserEntity,
 };
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 /* helpers */
 use crate::utils::config::ConfigHelper;
 use crate::utils::response_helper::{err_response, err_response_formatted};
-
 #[derive(Clone)]
 pub struct AuthPasswordService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
 }
-
 impl AuthPasswordService {
   pub fn new(json_provider: JsonProvider, mongodb_provider: Option<Arc<MongoProvider>>) -> Self {
     Self {
@@ -33,7 +28,6 @@ impl AuthPasswordService {
       mongodb_provider,
     }
   }
-
   pub async fn request_password_reset(
     &self,
     email: String,
@@ -43,41 +37,32 @@ impl AuthPasswordService {
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| err_response("Password reset unavailable: MongoDB offline"))?;
-
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
-
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("User not found: {}", e)))?;
-
     let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
-
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
     let code = format!("{:06}", rand::random::<u32>() % 1000000);
     let expiration = chrono::Utc::now()
       .checked_add_signed(chrono::Duration::minutes(15))
       .expect("valid timestamp")
       .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
     user.temporary_code = code.clone();
     user.code_expires_at = expiration;
-
     let email_service = EmailProvider::from_config(config)?;
     email_service
       .send_password_reset_code(&email, &code)
       .await
       .map_err(|_| err_response("Failed to send reset email"))?;
-
     let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
     user_repo_json
       .update(user.clone())
       .await
       .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
-
     if let Some(mongo) = &self.mongodb_provider {
       let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
       user_repo_mongo
@@ -85,14 +70,12 @@ impl AuthPasswordService {
         .await
         .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Verification code sent to your email".to_string(),
       data: serde_json::Value::String("".to_string()),
     })
   }
-
   pub async fn verify_code(
     &self,
     email: String,
@@ -102,20 +85,15 @@ impl AuthPasswordService {
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| err_response("Verification unavailable: MongoDB offline"))?;
-
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
-
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("User not found: {}", e)))?;
-
     let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
-
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
     if user.temporary_code == code && !user.temporary_code.is_empty() {
       let now = chrono::Utc::now();
       if let Ok(expires) = chrono::DateTime::parse_from_rfc3339(&user.code_expires_at) {
@@ -131,45 +109,35 @@ impl AuthPasswordService {
     }
     Err(err_response("Invalid verification code"))
   }
-
   pub async fn reset_password(
     &self,
     reset_data: PasswordReset,
   ) -> Result<ResponseModel, ResponseModel> {
     let email = reset_data.email;
     let password = reset_data.new_password;
-
     let mongo = self
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| err_response("Password reset unavailable: MongoDB offline"))?;
-
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("email".to_string(), serde_json::json!(email));
-
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("User not found: {}", e)))?;
-
     let user_val = users.pop().ok_or_else(|| err_response("User not found"))?;
-
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
     let hashed_password = hash(password, DEFAULT_COST)
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
-
     user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
-
     let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
     user_repo_json
       .update(user.clone())
       .await
       .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
-
     if let Some(mongo) = &self.mongodb_provider {
       let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
       user_repo_mongo
@@ -177,14 +145,12 @@ impl AuthPasswordService {
         .await
         .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password reset successfully. Please login again.".to_string(),
       data: serde_json::Value::String("".to_string()),
     })
   }
-
   pub async fn change_password(
     &self,
     user_id: String,
@@ -194,15 +160,12 @@ impl AuthPasswordService {
       .mongodb_provider
       .as_ref()
       .ok_or_else(|| err_response("Password change unavailable: MongoDB offline"))?;
-
     let table_name = TableModelType::User.table_name();
     let filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
-
     let mut users = mongo
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
       .map_err(|e| err_response(&format!("User not found: {}", e)))?;
-
     let user_val = if users.is_empty() {
       let json_filter = Filter::Eq("id".to_string(), serde_json::json!(user_id));
       let json_users = self
@@ -217,23 +180,18 @@ impl AuthPasswordService {
     } else {
       users.pop().ok_or_else(|| err_response("User not found"))?
     };
-
     let mut user = serde_json::from_value::<UserEntity>(user_val.clone())
       .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
-
     let hashed_password = hash(new_password, DEFAULT_COST)
       .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
-
     user.password = hashed_password;
     user.temporary_code = "".to_string();
     user.code_expires_at = "".to_string();
-
     let user_repo_json = Repository::<UserEntity, _>::new(self.json_provider.clone());
     user_repo_json
       .update(user.clone())
       .await
       .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
-
     if let Some(mongo) = &self.mongodb_provider {
       let user_repo_mongo = Repository::<UserEntity, MongoProvider>::new((**mongo).clone());
       user_repo_mongo
@@ -241,7 +199,6 @@ impl AuthPasswordService {
         .await
         .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
     }
-
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password changed successfully. Please login again.".to_string(),

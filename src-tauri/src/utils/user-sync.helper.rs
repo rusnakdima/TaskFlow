@@ -2,16 +2,12 @@
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::MongoProvider;
 use serde_json::Value;
-
 /* helpers */
 use nosql_orm::timestamps::timestamp_now_rfc3339;
-
 /* entities */
 use crate::models::response::{ResponseModel, ResponseStatus};
-
 /* providers */
 use nosql_orm::providers::JsonProvider;
-
 /// Helper method
 /// Fails if MongoDB is not available
 pub async fn update_user_profile_id_both(
@@ -33,7 +29,6 @@ pub async fn update_user_profile_id_both(
       message: format!("User {} not found in JSON", user_id),
       data: serde_json::Value::String("".to_string()),
     })?;
-
   let mut updated_user = user_value.clone();
   if let Some(obj) = updated_user.as_object_mut() {
     obj.insert(
@@ -41,7 +36,6 @@ pub async fn update_user_profile_id_both(
       Value::String(profile_id.to_string()),
     );
   }
-
   json_provider
     .update("users", user_id, updated_user)
     .await
@@ -50,13 +44,10 @@ pub async fn update_user_profile_id_both(
       message: format!("Failed to update user in JSON: {}", e),
       data: serde_json::Value::String("".to_string()),
     })?;
-
   let Some(mongo) = mongo_provider else {
     return Ok(());
   };
-
   let now_for_compare = timestamp_now_rfc3339();
-
   match mongo.find_by_id("users", user_id).await {
     Ok(Some(existing_mongo_user)) => {
       let local_time = chrono::DateTime::parse_from_rfc3339(&now_for_compare).ok();
@@ -64,7 +55,6 @@ pub async fn update_user_profile_id_both(
         .get("updated_at")
         .and_then(|v| v.as_str())
         .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
-
       let should_update = local_time
         .map(|l| match mongo_time {
           Some(m) if l > m => true,
@@ -72,7 +62,6 @@ pub async fn update_user_profile_id_both(
           _ => false,
         })
         .unwrap_or(true);
-
       if should_update {
         let mut updated = existing_mongo_user.clone();
         if let Some(obj) = updated.as_object_mut() {
@@ -106,14 +95,12 @@ pub async fn update_user_profile_id_both(
           message: "User disappeared from JSON".to_string(),
           data: serde_json::Value::String("".to_string()),
         })?;
-
       if let Some(obj) = new_user.as_object_mut() {
         obj.insert(
           "profile_id".to_string(),
           Value::String(profile_id.to_string()),
         );
       }
-
       mongo
         .insert("users", new_user)
         .await
@@ -131,6 +118,5 @@ pub async fn update_user_profile_id_both(
       });
     }
   }
-
   Ok(())
 }

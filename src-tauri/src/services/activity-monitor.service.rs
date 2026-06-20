@@ -1,19 +1,15 @@
 /* sys lib */
 use serde_json::Value;
 use std::sync::Arc;
-
 /* helpers */
 use crate::utils::activity_log::ActivityLogHelper;
-
 /* services */
 use crate::services::entity_resolution_service::EntityResolutionService;
-
 #[derive(Clone)]
 pub struct ActivityMonitorService {
   pub activity_log_helper: Arc<ActivityLogHelper>,
   pub entity_resolution: Arc<EntityResolutionService>,
 }
-
 impl ActivityMonitorService {
   pub fn new(
     activity_log_helper: Arc<ActivityLogHelper>,
@@ -24,7 +20,6 @@ impl ActivityMonitorService {
       entity_resolution,
     }
   }
-
   pub async fn log_action(
     &self,
     table: &str,
@@ -41,7 +36,6 @@ impl ActivityMonitorService {
       Some(id) => id,
       None => return,
     };
-
     let activity_type = match (table, operation) {
       ("todos", "create") => "todo_created",
       ("todos", "update") => "todo_updated",
@@ -74,7 +68,6 @@ impl ActivityMonitorService {
       }
       _ => "",
     };
-
     if !activity_type.is_empty() {
       let _ = self
         .activity_log_helper

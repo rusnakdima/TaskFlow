@@ -1,9 +1,7 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-
 use nosql_orm::Model;
-
+use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("daily_activities")]
 #[many_to_one("user", "users", "user_id")]
@@ -37,7 +35,6 @@ pub struct DailyActivityModel {
   #[serde(default)]
   pub updated_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, nosql_orm::Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct DailyActivityCreateModel {
@@ -46,7 +43,6 @@ pub struct DailyActivityCreateModel {
   #[validate(required)]
   pub date: String,
 }
-
 impl From<DailyActivityCreateModel> for DailyActivityModel {
   fn from(value: DailyActivityCreateModel) -> Self {
     DailyActivityModel {
@@ -76,7 +72,6 @@ impl From<DailyActivityCreateModel> for DailyActivityModel {
     }
   }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DailyActivityUpdateModel {
@@ -104,7 +99,6 @@ pub struct DailyActivityUpdateModel {
   pub created_at: String,
   pub updated_at: String,
 }
-
 impl From<DailyActivityUpdateModel> for DailyActivityModel {
   fn from(value: DailyActivityUpdateModel) -> Self {
     DailyActivityModel {

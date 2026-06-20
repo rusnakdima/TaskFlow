@@ -1,15 +1,10 @@
 use std::collections::HashSet;
 use std::sync::Arc;
-
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-
 use crate::models::response::ResponseModel;
-
 use crate::utils::response_helper::err_response_formatted;
-
 use super::{CascadeResult, CascadeService};
-
 impl CascadeService {
   pub async fn sync_todo_with_children(
     &self,
@@ -20,10 +15,8 @@ impl CascadeService {
     delete_from_source: bool,
   ) -> Result<CascadeResult, ResponseModel> {
     let mut result = CascadeResult::new();
-
     let source_is_mongo = source_provider_name == "Mongo";
     let target_is_mongo = target_provider_name == "Mongo";
-
     let todo = if source_is_mongo {
       if let Some(ref mongo) = self.mongodb_provider {
         mongo.find_by_id("todos", todo_id).await.ok().flatten()
@@ -38,11 +31,9 @@ impl CascadeService {
         .ok()
         .flatten()
     };
-
     let Some(todo) = todo else {
       return Ok(result);
     };
-
     let should_sync = if let Some(ref mongo) = self.mongodb_provider {
       if source_is_mongo {
         if let Ok(Some(json_todo)) = self.json_provider.find_by_id("todos", todo_id).await {
@@ -60,13 +51,10 @@ impl CascadeService {
     } else {
       false
     };
-
     if should_sync {
       let _ = self.sync_entity_to_json("todos", todo_id).await?;
     }
-
     let now = chrono::Utc::now().to_rfc3339();
-
     if target_is_mongo {
       let update_data = serde_json::json!({
         "visibility": target_visibility,
@@ -93,10 +81,8 @@ impl CascadeService {
         let _ = mongo.patch("todos", todo_id, update_data).await;
       }
     }
-
     let task_filter =
       nosql_orm::query::Filter::Eq("todo_id".to_string(), serde_json::json!(todo_id));
-
     let tasks = if source_provider_name == "Mongo" {
       if let Some(ref mongo) = self.mongodb_provider {
         mongo
@@ -113,7 +99,6 @@ impl CascadeService {
         .await
         .unwrap_or_default()
     };
-
     for task in &tasks {
       if let Some(task_id) = task.get("id").and_then(|v| v.as_str()) {
         let sync_result = self
@@ -129,15 +114,12 @@ impl CascadeService {
         }
       }
     }
-
     if delete_from_source && source_provider_name == "Json" {
       let _ = self.permanent_delete_cascade_json("todos", todo_id).await;
     }
-
     result.todo_count = 1;
     Ok(result)
   }
-
   pub async fn sync_task_with_children(
     &self,
     task_id: &str,
@@ -146,7 +128,6 @@ impl CascadeService {
     delete_from_source: bool,
   ) -> Result<CascadeResult, ResponseModel> {
     let mut result = CascadeResult::new();
-
     if !to_mongo {
       if let Some(ref mongo) = self.mongodb_provider {
         if let Ok(Some(task)) = mongo.find_by_id("tasks", task_id).await {
@@ -162,10 +143,8 @@ impl CascadeService {
         }
       }
     }
-
     let subtask_filter =
       nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-
     let subtasks = if to_mongo {
       self
         .json_provider
@@ -182,13 +161,10 @@ impl CascadeService {
         Vec::new()
       }
     };
-
     let target_str = if to_mongo { "Mongo" } else { "Json" };
-
     let _ = self
       .sync_child_entity("tasks", task_id, target_str, visibility)
       .await;
-
     for subtask in &subtasks {
       if let Some(subtask_id) = subtask.get("id").and_then(|v| v.as_str()) {
         let _ = self
@@ -197,10 +173,8 @@ impl CascadeService {
         result.subtask_count += 1;
       }
     }
-
     let comment_filter =
       nosql_orm::query::Filter::Eq("task_id".to_string(), serde_json::json!(task_id));
-
     let comments = if to_mongo {
       self
         .json_provider
@@ -217,7 +191,6 @@ impl CascadeService {
         Vec::new()
       }
     };
-
     for comment in &comments {
       if let Some(comment_id) = comment.get("id").and_then(|v| v.as_str()) {
         let _ = self
@@ -226,14 +199,11 @@ impl CascadeService {
         result.comment_count += 1;
       }
     }
-
     if delete_from_source && to_mongo {
       let _ = self.permanent_delete_cascade_json("tasks", task_id).await;
     }
-
     Ok(result)
   }
-
   async fn sync_child_entity(
     &self,
     table: &str,
@@ -255,11 +225,9 @@ impl CascadeService {
         None
       }
     };
-
     let Some(entity) = entity_opt else {
       return Ok(());
     };
-
     let sanitized = {
       fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
         if let serde_json::Value::Object(obj) = value {
@@ -276,7 +244,6 @@ impl CascadeService {
       }
       sanitize_for_mongo_replacement(entity)
     };
-
     if target_provider == "Mongo" {
       if let Some(ref mongo) = self.mongodb_provider {
         match mongo.find_by_id(table, id).await {
@@ -300,7 +267,6 @@ impl CascadeService {
         Err(_) => {}
       }
     }
-
     Ok(())
   }
 }

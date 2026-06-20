@@ -1,11 +1,9 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("profiles")]
 #[one_to_one("user", "users", "user_id")]
@@ -24,7 +22,6 @@ pub struct ProfileEntity {
   #[serde(default)]
   pub updated_at: Option<DateTime<Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ProfileCreateModel {
   #[serde(default)]
@@ -40,7 +37,6 @@ pub struct ProfileCreateModel {
   #[validate(not_empty)]
   pub user_id: String,
 }
-
 impl From<ProfileCreateModel> for ProfileEntity {
   fn from(value: ProfileCreateModel) -> Self {
     ProfileEntity {

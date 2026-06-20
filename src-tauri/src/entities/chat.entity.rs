@@ -1,13 +1,10 @@
 /* sys lib */
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-
 /* crate */
 use crate::entities::user_entity::UserEntity;
-
 #[derive(Debug, Clone, Serialize, Deserialize, Model)]
 #[table_name("chats")]
 #[soft_delete]
@@ -32,7 +29,6 @@ pub struct ChatEntity {
   #[serde(default)]
   pub sender: Option<UserEntity>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ChatCreateModel {
   #[validate(required)]
@@ -43,7 +39,6 @@ pub struct ChatCreateModel {
   #[validate(length(min = 1, max = 5000))]
   pub content: String,
 }
-
 impl From<ChatCreateModel> for ChatEntity {
   fn from(create: ChatCreateModel) -> Self {
     let sender = create.sender_id.clone();
