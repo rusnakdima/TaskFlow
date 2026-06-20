@@ -30,6 +30,16 @@ interface DisplayTask {
   isPrivate: boolean;
   isOwner: boolean;
 }
+
+interface DisplayTodo {
+  id: string;
+  title: string;
+  description: string | null;
+  visibility: string;
+  tasksCount: number;
+  completedTasksCount: number;
+  updated_at: string | undefined;
+}
 @Component({
   selector: "app-dashboard",
   standalone: true,
@@ -115,11 +125,28 @@ export class DashboardView implements OnInit {
         return { text, status: task.status };
       });
   });
+  allTodosData = computed<DisplayTodo[]>(() => {
+    return this.storage
+      .allTodos()
+      .map((todo) => ({
+        id: todo.id,
+        title: todo.title,
+        description: todo.description ?? null,
+        visibility: todo.visibility,
+        tasksCount: todo.tasks_count ?? 0,
+        completedTasksCount: todo.completed_tasks_count ?? 0,
+        updated_at: todo.updated_at,
+      }))
+      .sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a))
+      .slice(0, 5);
+  });
+  totalProjects = computed(() => this.storage.allTodos().length);
   constructor() {}
   ngOnInit(): void {
     this.storage.ensureUserLoaded();
     this.storage.ensureProfileLoaded();
     this.storage.ensureTasksLoaded();
+    this.storage.ensureTodosLoaded("all");
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       this.refreshState.set("refreshing");
       this.syncService.refreshLocal().finally(() => {
@@ -161,6 +188,9 @@ export class DashboardView implements OnInit {
   }
   navigateToTodos(): void {
     this.router.navigate(["/todos"]);
+  }
+  navigateToTodo(todo: DisplayTodo): void {
+    this.router.navigate(["/todos", todo.id, "tasks"]);
   }
   navigateToTasks(task: DisplayTask): void {
     this.router.navigate(["/todos", task.todo_id, "tasks"], {

@@ -10,6 +10,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { UnifiedStorageService } from "@core/services/unified-storage.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 import { GithubService } from "@services/github/github.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { ApiService } from "@services/api.service";
@@ -60,6 +61,7 @@ export class ManageTodoPage implements OnInit {
   private apiService = inject(ApiService);
   private requestService = inject(ApiService);
   private permissionService = inject(PermissionService);
+  private entityStore = inject(EntityStoreService);
   form!: FormGroup;
   isEdit = signal(false);
   isSubmitting = signal(false);
@@ -342,7 +344,9 @@ export class ManageTodoPage implements OnInit {
           formValue.visibility
         );
       } else {
-        await firstValueFrom(this.apiService.todos.create(payload, visibility));
+        const result = await firstValueFrom(this.apiService.todos.create(payload, visibility));
+        this.entityStore.addEntity("todos", result as any);
+        this.entityStore.ensureTodosLoaded(visibility as any);
       }
       this.notifyService.showSuccess(
         `Project ${this.isEdit() ? "updated" : "created"} successfully`
