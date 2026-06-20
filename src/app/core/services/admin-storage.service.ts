@@ -7,7 +7,6 @@ import { AdminService } from "@services/data/admin.service";
 import { ApiService } from "@services/api.service";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
-import { ResponseStatus } from "@entities/response.model";
 @Injectable({
   providedIn: "root",
 })
@@ -20,12 +19,13 @@ export class AdminStorageService extends BaseAdminStorageService {
   loadInitialData(type: string, limit: number): Observable<any> {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, 0, limit).subscribe({
-        next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS && response.data) {
+        next: (response: any) => {
+          const data = response?.data || response;
+          if (data) {
             subscriber.next(response);
             subscriber.complete();
           } else {
-            subscriber.error(new Error(response.message || "Failed to load data"));
+            subscriber.error(new Error("Failed to load data"));
           }
         },
         error: (err) => subscriber.error(err),
@@ -38,12 +38,13 @@ export class AdminStorageService extends BaseAdminStorageService {
   loadMoreData(type: string, skip: number, limit = 10): Observable<any> {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, skip, limit).subscribe({
-        next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS && response.data) {
+        next: (response: any) => {
+          const data = response?.data || response;
+          if (data) {
             subscriber.next(response);
             subscriber.complete();
           } else {
-            subscriber.error(new Error(response.message || "Failed to load more data"));
+            subscriber.error(new Error("Failed to load more data"));
           }
         },
         error: (err) => subscriber.error(err),
