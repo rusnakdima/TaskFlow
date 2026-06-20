@@ -146,14 +146,14 @@ export class StorageQueryService {
       return deduplicateById(allTodos, { filterDeleted: true });
     });
   }
-  get privateTodos(): ReturnType<typeof computed<Todo[]>> {
-    return computed(() => this._entityService.privateTodos().filter((t) => !t.deleted_at));
+  get privateTodos() {
+    return this._entityService.privateTodos;
   }
-  get sharedTodos(): ReturnType<typeof computed<Todo[]>> {
-    return computed(() => this._entityService.sharedTodos().filter((t) => !t.deleted_at));
+  get sharedTodos() {
+    return this._entityService.sharedTodos;
   }
-  get publicTodos(): ReturnType<typeof computed<Todo[]>> {
-    return computed(() => this._entityService.publicTodos().filter((t) => !t.deleted_at));
+  get publicTodos() {
+    return this._entityService.publicTodos;
   }
   get todos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => this.allActiveTodos());
@@ -448,43 +448,17 @@ export class StorageQueryService {
     else signal.update((existing: T[]) => upsertEntityBulk(existing, items));
   }
   private storeTodos(
-    visibility: "private" | "shared" | "public",
+    _visibility: "private" | "shared" | "public",
     items: Todo[],
     options?: { append?: boolean; resetPagination?: boolean }
   ): void {
-    const [extractNested, targetSignal] =
-      visibility === "private"
-        ? [
-            (t: any) => {
-              const n = { tasks: t.tasks, chats: t.chats, user: t.user };
-              delete t.tasks;
-              delete t.chats;
-              delete t.user;
-              return n;
-            },
-            this._entityService.privateTodos,
-          ]
-        : visibility === "public"
-          ? [
-              (t: any) => {
-                const n = { tasks: t.tasks, chats: t.chats, user: t.user };
-                delete t.tasks;
-                delete t.chats;
-                delete t.user;
-                return n;
-              },
-              this._entityService.publicTodos,
-            ]
-          : [
-              (t: any) => {
-                const n = { tasks: t.tasks, chats: t.chats, user: t.user };
-                delete t.tasks;
-                delete t.chats;
-                delete t.user;
-                return n;
-              },
-              this._entityService.sharedTodos,
-            ];
+    const extractNested = (t: any) => {
+      const n = { tasks: t.tasks, chats: t.chats, user: t.user };
+      delete t.tasks;
+      delete t.chats;
+      delete t.user;
+      return n;
+    };
     const nested = { tasks: [] as Task[], chats: [] as Chat[], users: [] as User[] };
     const todos = items.map((todo) => {
       const n = extractNested(todo);
@@ -496,7 +470,7 @@ export class StorageQueryService {
     if (nested.tasks.length) this.setCollection("tasks", nested.tasks, { append: options?.append });
     if (nested.chats.length) this.setCollection("chats", nested.chats, { append: options?.append });
     if (nested.users.length) this.setCollection("users", nested.users, { append: options?.append });
-    targetSignal.update((existing: Todo[]) => upsertEntityBulk(existing, todos));
+    this._entityService.todos.update((existing: Todo[]) => upsertEntityBulk(existing, todos));
   }
   private storeTodosMixed(
     items: Todo[],
@@ -547,27 +521,20 @@ export class StorageQueryService {
     return of(this.getAdminDataWithRelations());
   }
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
-    const targetSignal =
-      visibility === "private"
-        ? this._entityService.privateTodos
-        : visibility === "public"
-          ? this._entityService.publicTodos
-          : this._entityService.sharedTodos;
+    const targetLength =
+      visibility === "all"
+        ? this._entityService.todos().length
+        : visibility === "private"
+          ? this._entityService.privateTodos().length
+          : visibility === "public"
+            ? this._entityService.publicTodos().length
+            : this._entityService.sharedTodos().length;
     console.debug("ensureTodosLoaded", {
       visibility,
-      currentLength: targetSignal().length,
-      targetSignal:
-        visibility === "private"
-          ? "privateTodos"
-          : visibility === "public"
-            ? "publicTodos"
-            : "sharedTodos",
+      currentLength: targetLength,
     });
-    if (targetSignal().length > 0 && visibility !== "all") {
-      console.debug("ensureTodosLoaded SKIP", {
-        visibility,
-        currentLength: targetSignal().length,
-      });
+    if (targetLength > 0 && visibility !== "all") {
+      console.debug("ensureTodosLoaded SKIP", { visibility, currentLength: targetLength });
       return;
     }
     this._todosLoading.set(true);
@@ -584,7 +551,7 @@ export class StorageQueryService {
             assignees: t.assignees,
           })),
         });
-        targetSignal.set(todos);
+        this._entityService.todos.update((existing) => upsertEntityBulk(existing, todos));
         this.updatePagination("todos", 0, limit, todos.length);
       },
       error: (_err) => {},
@@ -718,7 +685,7 @@ export class StorageQueryService {
           count: todos.length,
           todos: todos.map((t: any) => ({ id: t.id, title: t.title, visibility: t.visibility })),
         });
-        this._entityService.privateTodos.update((existing) => [...existing, ...todos]);
+        this._entityService.todos.update((existing) => upsertEntityBulk(existing, todos));
         this.updatePagination("todos", (currentPage + 1) * 10, 10, todos.length);
       },
       error: (err) => console.error("loadMoreTodos ERROR", err),
