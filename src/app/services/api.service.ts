@@ -396,7 +396,7 @@ export class ApiService {
     return new Observable((subscriber) => {
       this.tauriApi.invoke<T>(route, this.toSnakeCase(args) as Record<string, unknown>).subscribe({
         next: (data) => {
-          subscriber.next(data);
+          subscriber.next(this.fromSnakeCase(data) as T);
           subscriber.complete();
         },
         error: (err: unknown) => {
@@ -432,7 +432,7 @@ export class ApiService {
         .subscribe({
           next: (response) => {
             if (response.status === ResponseStatus.SUCCESS) {
-              subscriber.next(response.data as T);
+              subscriber.next(this.fromSnakeCase(response.data) as T);
               subscriber.complete();
             } else {
               subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
@@ -490,9 +490,8 @@ export class ApiService {
         .invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
         .subscribe({
           next: (response) => {
-            // invoke already handles error cases and extracts data, so response IS the data
-            const items = Array.isArray(response) ? response : (response as any)?.items || [];
-            subscriber.next(items as T[]);
+            const items = Array.isArray(response) ? response : (response as any)?.data?.items || [];
+            subscriber.next(this.fromSnakeCase(items) as T[]);
             subscriber.complete();
           },
           error: (err: unknown) => {
@@ -665,6 +664,24 @@ export class ApiService {
         Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
           key.replace(/([A-Z])/g, (letter) => `_${letter.toLowerCase()}`),
           this.toSnakeCase(value),
+        ])
+      );
+    }
+    return obj;
+  }
+
+  private fromSnakeCase(obj: unknown): unknown {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.fromSnakeCase(item));
+    }
+    if (typeof obj === "object" && !(obj instanceof Date)) {
+      return Object.fromEntries(
+        Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
+          key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()),
+          this.fromSnakeCase(value),
         ])
       );
     }
