@@ -2,14 +2,11 @@
 import { Injectable, inject, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 import { tap, take } from "rxjs/operators";
-
 /* models */
 import { LoginForm, SignupForm, AuthResponse } from "@entities/auth-forms.model";
 import { PasswordReset } from "@entities/password-reset.model";
-
 /* helpers */
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
-
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@services/api.service";
@@ -17,7 +14,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { StorageService } from "@services/storage.service";
 import { Router } from "@angular/router";
-
 // ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
 // token handling, and profile operations. Future refactoring should split these responsibilities
 // into dedicated services (AuthService → AuthService + TokenService + UserService).
@@ -32,7 +28,6 @@ export class AuthService {
   private _userValidationService: UserValidationService | null = null;
   private _storageService: StorageService | null = null;
   private _injector = inject(Injector);
-
   private get requestService(): ApiService {
     if (!this._requestService) this._requestService = this._injector.get(ApiService);
     return this._requestService;
@@ -58,16 +53,13 @@ export class AuthService {
     if (!this._storageService) this._storageService = this._injector.get(StorageService);
     return this._storageService;
   }
-
   constructor() {}
-
   /**
    * Check if token is valid on backend
    */
   checkToken<R>(token: string): Observable<R> {
     return this.requestService.invokeCommand<R>("check_token", { token });
   }
-
   /**
    * Perform online login
    */
@@ -95,7 +87,6 @@ export class AuthService {
       });
     });
   }
-
   /**
    * Perform online login
    */
@@ -106,11 +97,9 @@ export class AuthService {
       })
     );
   }
-
   login<R>(loginData: LoginForm): Observable<R> {
     return this.requestService.invokeCommand<R>("login", { loginForm: loginData });
   }
-
   signup<R>(signupData: SignupForm): Observable<R> {
     return this.requestService.invokeCommand<R>("register", { signupForm: signupData }).pipe(
       tap((response) => {
@@ -118,30 +107,24 @@ export class AuthService {
       })
     );
   }
-
   requestPasswordReset<R>(email: string): Observable<R> {
     return this.requestService.invokeCommand<R>("requestPasswordReset", { email });
   }
-
   verifyCode<R>(email: string, code: string): Observable<R> {
     return this.requestService.invokeCommand<R>("verifyCode", { email, code });
   }
-
   resetPassword<R>(passwordReset: PasswordReset): Observable<R> {
     return this.requestService.invokeCommand<R>("resetPassword", { resetData: passwordReset });
   }
-
   changePassword<R>(newPassword: string): Observable<R> {
     const token = this.getToken();
     return this.requestService.invokeCommand<R>("change_password", { token, newPassword });
   }
-
   logout() {
     this.jwtTokenService.clearToken();
     this.storageService.clear();
     window.location.reload();
   }
-
   /**
    * Full logout - clear all local user data
    */
@@ -150,23 +133,19 @@ export class AuthService {
     this.storageService.clear();
     window.location.reload();
   }
-
   /**
    * Single source of truth for auth status.
    */
   isLoggedIn(): boolean {
     return this.jwtTokenService.isLoggedIn();
   }
-
   getToken(): string | null {
     return this.jwtTokenService.getToken();
   }
-
   hasRole(role: string): boolean {
     const token = this.getToken();
     return token ? this.jwtTokenService.hasRole(token, role) : false;
   }
-
   getValueByKey(key: string): string {
     const token = this.getToken();
     if (key === "username") {
@@ -177,15 +156,12 @@ export class AuthService {
     }
     return this.jwtTokenService.getValueByKey(token, key) ?? "";
   }
-
   exportUserData(): string | null {
     return null;
   }
-
   importUserData(_userData: string): { success: boolean; error?: string } {
     return { success: false };
   }
-
   /**
    * Initialize user session from stored token
    * Handles both valid and expired tokens with offline fallback
@@ -197,7 +173,6 @@ export class AuthService {
     const token = this.getToken();
     const isAuthPage = authRoutes.some((route) => this.router.url.startsWith(route));
     const isTokenExpired = this.jwtTokenService.isTokenExpired(token);
-
     // 1. Handle Missing or Expired Session
     if (!token || isTokenExpired) {
       if (!isAuthPage) {
@@ -208,14 +183,12 @@ export class AuthService {
       }
       return;
     }
-
     // 2. Valid JWT - now verify user exists in backend
     const userId = this.jwtTokenService.getUserId(token);
     if (!userId) {
       this.userValidationService.invalidateUserSession();
       return;
     }
-
     // Check token validity against user record in database
     this.checkToken<any>(token)
       .pipe(take(1))
@@ -226,7 +199,6 @@ export class AuthService {
         },
       });
   }
-
   /**
    * Load current user data from backend or cache
    * Stores profile/user from login/register response or fetches via check_token
@@ -247,7 +219,6 @@ export class AuthService {
       };
       this.storageService.setCollection("user", user);
     }
-
     if (!response) {
       const token = this.getToken();
       if (!token) return;

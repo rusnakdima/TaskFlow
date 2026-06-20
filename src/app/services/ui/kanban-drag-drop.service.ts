@@ -1,16 +1,13 @@
 /* sys lib */
 import { Injectable } from "@angular/core";
 import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
-
 /* models */
 import { Task, TaskStatus } from "@entities/generated/api.types";
 import { KanbanColumn } from "@entities/drag-drop.model";
-
 export interface KanbanItem {
   id: string;
   status: TaskStatus;
 }
-
 /**
  * KanbanDragDropService - Handles drag-drop operations for Kanban board
  * Extracted from KanbanView to reduce component complexity
@@ -44,7 +41,6 @@ export class KanbanDragDropService {
       newStatus: result.newStatus,
     };
   }
-
   /**
    * Generic kanban drop handler for any item type with id and status
    */
@@ -61,9 +57,7 @@ export class KanbanDragDropService {
     if (isUpdatingOrder) {
       return { moved: false };
     }
-
     const item = event.item.data as T;
-
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return { moved: false };
@@ -72,7 +66,6 @@ export class KanbanDragDropService {
       return { moved: true, item, newStatus: targetStatus };
     }
   }
-
   /**
    * Get connected drop lists for CDK drag-drop
    * @param currentColumnId - Current column ID
@@ -84,7 +77,6 @@ export class KanbanDragDropService {
       .filter((col) => col.id !== currentColumnId)
       .map((col) => "cdk-drop-list-" + col.id);
   }
-
   /**
    * Handle task drop event in a simple list view
    * @param event - CDK drag-drop event
@@ -103,15 +95,12 @@ export class KanbanDragDropService {
   } {
     if (isUpdatingOrder) return { updated: false };
     if (event.previousIndex === event.currentIndex) return { updated: false };
-
     const tasks = [...list];
     const prevTask = { ...tasks[event.previousIndex] };
     const currentTask = { ...tasks[event.currentIndex] };
-
     const tempOrder = prevTask.order;
     prevTask.order = currentTask.order;
     currentTask.order = tempOrder;
-
     return {
       updated: true,
       prevTask,

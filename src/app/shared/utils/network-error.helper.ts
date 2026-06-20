@@ -8,7 +8,6 @@ export interface NetworkError {
   message?: string;
   name?: string;
 }
-
 export class NetworkErrorHelper {
   /**
    * Check if an error is network-related
@@ -32,7 +31,6 @@ export class NetworkErrorHelper {
     const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
     const errorName = errObj?.name || "";
-
     return (
       lowerMessage.includes("networkerror") ||
       lowerMessage.includes("network") ||
@@ -51,7 +49,6 @@ export class NetworkErrorHelper {
       errorName === "NetworkError"
     );
   }
-
   /**
    * Check if error indicates MongoDB connection failure
    * More specific than isNetworkError - focuses on database connectivity
@@ -63,7 +60,6 @@ export class NetworkErrorHelper {
     const errObj = error as NetworkError | null;
     const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
-
     return (
       lowerMessage.includes("mongodb") ||
       lowerMessage.includes("server selection timeout") ||
@@ -75,7 +71,6 @@ export class NetworkErrorHelper {
       lowerMessage.includes("mongos")
     );
   }
-
   /**
    * Check if error indicates authentication failure (wrong credentials)
    *
@@ -86,7 +81,6 @@ export class NetworkErrorHelper {
     const errObj = error as NetworkError | null;
     const message = errObj?.message || String(error) || "";
     const lowerMessage = message.toLowerCase();
-
     return (
       lowerMessage.includes("invalid password") ||
       lowerMessage.includes("wrong password") ||
@@ -98,7 +92,6 @@ export class NetworkErrorHelper {
       lowerMessage.includes("access denied")
     );
   }
-
   /**
    * Get a user-friendly message for network errors
    *
@@ -110,18 +103,14 @@ export class NetworkErrorHelper {
     if (this.isMongoConnectionError(error)) {
       return "Cannot connect to database. Please check your internet connection and backend server.";
     }
-
     if (this.isAuthenticationError(error)) {
       return errObj?.message || "Authentication failed. Please check your credentials.";
     }
-
     if (this.isNetworkError(error)) {
       return "Unable to connect to server. Working offline - changes will sync when connection is restored.";
     }
-
     return errObj?.message || "An unexpected error occurred";
   }
-
   /**
    * Get detailed troubleshooting steps for connection errors
    *
@@ -130,7 +119,6 @@ export class NetworkErrorHelper {
    */
   static getTroubleshootingSteps(error: NetworkError | unknown): string[] {
     const steps: string[] = [];
-
     if (this.isMongoConnectionError(error)) {
       steps.push(
         "Check if MongoDB server is running",
@@ -145,10 +133,8 @@ export class NetworkErrorHelper {
         "Check if firewall is blocking the connection"
       );
     }
-
     return steps;
   }
-
   /**
    * Format a complete error message with troubleshooting steps
    *
@@ -158,11 +144,9 @@ export class NetworkErrorHelper {
   static formatErrorMessage(error: NetworkError | unknown): string {
     const baseMessage = this.getNetworkErrorMessage(error);
     const steps = this.getTroubleshootingSteps(error);
-
     if (steps.length === 0) {
       return baseMessage;
     }
-
     return baseMessage + "\n\nPlease check:\n" + steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
   }
 }

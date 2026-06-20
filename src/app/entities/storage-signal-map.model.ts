@@ -1,5 +1,4 @@
 import { WritableSignal } from "@angular/core";
-
 export interface StorageSignalMap {
   [key: string]: WritableSignal<any[]>;
   todos: WritableSignal<any[]>;

@@ -3,9 +3,7 @@ import { Component, OnInit, signal, inject, computed, DestroyRef } from "@angula
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { Subscription, firstValueFrom } from "rxjs";
-
 import { MatIconModule } from "@angular/material/icon";
-
 import { Todo } from "@entities/generated/api.types";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
@@ -15,13 +13,11 @@ import { GithubService } from "@services/github/github.service";
 import { ApiService } from "@services/api.service";
 import { bindSaveShortcut } from "@helpers/keyboard.helper";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-
 import { BasicInfoSectionComponent } from "@components/form/basic-info-section.component";
 import { PrioritySectionComponent } from "@components/form/priority-section.component";
 import { TimelineSectionComponent } from "@components/form/timeline-section.component";
 import { GithubIssueSectionComponent } from "@components/form/github-issue-section.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-manage-task",
   standalone: true,
@@ -48,28 +44,21 @@ export class ManageTaskPage implements OnInit {
   private githubService = inject(GithubService);
   private destroyRef = inject(DestroyRef);
   private apiService = inject(ApiService);
-
   form!: FormGroup;
   timelineGroup!: FormGroup;
-
   isEdit = signal(false);
   isSubmitting = signal(false);
-
   todos = signal<Todo[]>([]);
-
   startDateForEndDate = signal<Date | null>(null);
-
   pageTitle = computed(() => {
     return this.isEdit() ? "Edit Task" : "Create Task";
   });
-
   parentTodoHasGithubRepo = computed(() => {
     const todoId = this.form.get("todo_id")?.value;
     if (!todoId) return false;
     const parentTodo = this.todos().find((t) => t.id === todoId);
     return !!parentTodo?.github_repo_id;
   });
-
   ngOnInit(): void {
     this.initForm();
     this.subscribeToRoute();
@@ -78,14 +67,12 @@ export class ManageTaskPage implements OnInit {
       .subscribe();
     this.loadParentEntities();
   }
-
   private initForm(): void {
     this.timelineGroup = this.fb.group({
       startDate: [null as Date | null],
       endDate: [null as Date | null],
       repeat: ["none"],
     });
-
     this.form = this.fb.group({
       _id: [""],
       id: [""],
@@ -102,42 +89,33 @@ export class ManageTaskPage implements OnInit {
       publish_to_github: [false],
     });
   }
-
   private subscribeToRoute(): void {
     this.subscriptions.add(
       this.route.params.subscribe(async (params) => {
         await this.loadData(params);
       })
     );
-
     this.timelineGroup.get("startDate")?.valueChanges.subscribe((startDate) => {
       this.startDateForEndDate.set(startDate || null);
     });
   }
-
   private async loadData(params: any): Promise<void> {
     this.todos.set(this.storage.todos());
-
     const todoId = params.todoId;
     const taskId = params.taskId;
-
     if (todoId) {
       this.form.patchValue({ todo_id: todoId });
     }
-
     if (taskId) {
       this.isEdit.set(true);
       await this.loadExistingTask(taskId);
     }
   }
-
   private async loadParentEntities(): Promise<void> {
     this.todos.set(this.storage.todos());
   }
-
   private async loadExistingTask(taskId: string): Promise<void> {
     const visibility = this.route.snapshot.queryParamMap.get("visibility") || undefined;
-
     try {
       const item = await firstValueFrom(this.apiService.tasks.get(taskId, visibility));
       if (item) {
@@ -147,13 +125,11 @@ export class ManageTaskPage implements OnInit {
       this.notifyService.showError("Failed to load task");
     }
   }
-
   private applyItemToForm(item: any): void {
     this.form.get("basicInfo")?.patchValue({
       title: item.title || "",
       description: item.description || "",
     });
-
     this.form.patchValue({
       _id: item._id || "",
       id: item.id || "",
@@ -163,49 +139,39 @@ export class ManageTaskPage implements OnInit {
       order: item.order ?? 0,
       publish_to_github: item.publish_to_github || false,
     });
-
     this.timelineGroup.patchValue({
       startDate: item.start_date || null,
       endDate: item.end_date || null,
       repeat: item.repeat || "none",
     });
   }
-
   back(): void {
     this.location.back();
   }
-
   async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.notifyService.showError("Please fill in required fields");
       return;
     }
-
     this.isSubmitting.set(true);
-
     try {
       const formValue = this.form.value;
       const basicInfo = formValue.basicInfo;
       const timeline = this.timelineGroup.value;
       const payload = this.buildPayload(formValue, basicInfo, timeline);
-
       const parentTodo = this.todos().find((t) => t.id === formValue.todo_id);
       const visibility = parentTodo?.visibility || "private";
-
       if (this.isEdit()) {
         const id = formValue._id || formValue.id;
         await firstValueFrom(this.apiService.tasks.update(id, payload, visibility));
-
         if (formValue.publish_to_github && parentTodo?.github_repo_id) {
           await this.handleGithubIssueForTask(id, formValue, parentTodo);
         }
       } else {
         const result = await firstValueFrom(this.apiService.tasks.create(payload, visibility));
-
         if (result?.id) {
           this.storage.addEntity("tasks", result);
         }
-
         if (result?.todo_id) {
           const todo = this.todos().find((t) => t.id === result.todo_id);
           if (todo) {
@@ -215,7 +181,6 @@ export class ManageTaskPage implements OnInit {
             });
           }
         }
-
         if (formValue.publish_to_github && parentTodo?.github_repo_id) {
           const taskId = result?.id;
           if (taskId) {
@@ -223,7 +188,6 @@ export class ManageTaskPage implements OnInit {
           }
         }
       }
-
       this.notifyService.showSuccess(`Task ${this.isEdit() ? "updated" : "created"} successfully`);
       this.location.back();
     } catch (err: any) {
@@ -232,11 +196,9 @@ export class ManageTaskPage implements OnInit {
       this.isSubmitting.set(false);
     }
   }
-
   private buildPayload(formValue: any, basicInfo: any, timeline: any): any {
     const token = this.jwtTokenService.getToken();
     const userId = this.jwtTokenService.getUserId(token);
-
     return {
       id: formValue.id || undefined,
       title: basicInfo.title,
@@ -253,14 +215,11 @@ export class ManageTaskPage implements OnInit {
       publish_to_github: formValue.publish_to_github || false,
     };
   }
-
   private handleGithubIssueForTask(taskId: string, formValue: any, parentTodo: Todo): void {
     if (!parentTodo.github_repo_id || !parentTodo.github_repo_name) return;
-
     const [owner, repo] = parentTodo.github_repo_name.split("/");
     const issueBody = this.buildIssueBody(formValue);
     const existingTask = this.storage.tasks().find((t) => t.id === taskId);
-
     if (existingTask?.github_issue_id) {
       this.githubService
         .updateIssue(owner, repo, existingTask.github_issue_number!, formValue.title, issueBody)
@@ -278,18 +237,14 @@ export class ManageTaskPage implements OnInit {
       });
     }
   }
-
   private buildIssueBody(formValue: any): string {
     return `**Task Details**
-
 **Description:** ${formValue.description || "N/A"}
 **Priority:** ${formValue.priority || "medium"}
 **Due Date:** ${formValue.end_date || "N/A"}
 **Created in:** TaskFlow
-
 ---
 [View in TaskFlow](taskflow://tasks/${formValue.id || formValue._id})`;
   }
-
   private subscriptions = new Subscription();
 }

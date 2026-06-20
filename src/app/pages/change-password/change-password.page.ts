@@ -8,21 +8,16 @@ import {
   Validators,
   FormBuilder,
 } from "@angular/forms";
-
 /* validators */
 import { minLengthValidator, passwordMismatchValidator } from "@validators/auth.validators";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
-
 /* models */
 import { PasswordReset } from "@entities/password-reset.model";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 @Component({
   selector: "app-change-password",
   standalone: true,
@@ -34,7 +29,6 @@ import { AppButtonComponent } from "@components/shared/button/button.component";
 export class ChangePasswordView {
   resetForm: FormGroup;
   private userEmail: string = "";
-
   constructor(
     private location: Location,
     private authService: AuthService,
@@ -45,18 +39,14 @@ export class ChangePasswordView {
       confirmPassword: ["", [Validators.required, passwordMismatchValidator()]],
     });
   }
-
   errorText: string = "";
   isVerified: boolean = false;
   isLoggedInUser: boolean = false;
-
   isShowPassword: boolean = false;
   isShowConfirmPassword: boolean = false;
-
   ngOnInit() {
     this.userEmail = sessionStorage.getItem("resetPasswordEmail") || "";
     this.isLoggedInUser = this.authService.isLoggedIn();
-
     if (this.isLoggedInUser) {
       this.isVerified = true;
     } else if (this.userEmail) {
@@ -66,19 +56,15 @@ export class ChangePasswordView {
       this.isVerified = false;
     }
   }
-
   back() {
     this.location.back();
   }
-
   get f() {
     return this.resetForm.controls;
   }
-
   isInvalid(attr: string) {
     return (this.f[attr].touched || this.f[attr].dirty) && this.f[attr].errors;
   }
-
   onSubmit() {
     if (this.resetForm.invalid) {
       Object.values(this.resetForm.controls).forEach((control) => {
@@ -86,14 +72,12 @@ export class ChangePasswordView {
       });
       return;
     }
-
     if (this.isLoggedInUser) {
       this.changePasswordAsLoggedIn();
     } else if (this.userEmail) {
       this.resetPasswordAsGuest();
     }
   }
-
   private changePasswordAsLoggedIn() {
     this.authService.changePassword<string>(this.f["password"].value).subscribe({
       next: () => {
@@ -108,14 +92,12 @@ export class ChangePasswordView {
       },
     });
   }
-
   private resetPasswordAsGuest() {
     const passwordReset: PasswordReset = {
       email: this.userEmail,
       code: sessionStorage.getItem("resetPasswordCode") || "",
       newPassword: this.f["password"].value,
     };
-
     this.authService.resetPassword<string>(passwordReset).subscribe({
       next: () => {
         this.notifyService.showSuccess("Password changed successfully");

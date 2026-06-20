@@ -13,7 +13,6 @@ import { Router, RouterModule } from "@angular/router";
 import { ConversationItem, FilterType } from "@entities/chat.model";
 import { Profile } from "@entities/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
-
 @Component({
   selector: "app-chat-sidebar",
   standalone: true,
@@ -43,7 +42,6 @@ export class ChatSidebarComponent {
   @Input() isTablet = false;
   @Input() isCollapsed = false;
   @Input() activeConvId: string | null = null;
-
   @Output() selectConversation = new EventEmitter<ConversationItem>();
   @Output() conversationContextMenu = new EventEmitter<{
     event: MouseEvent;
@@ -64,73 +62,56 @@ export class ChatSidebarComponent {
   @Output() createGroup = new EventEmitter<string>();
   @Output() closeCreateGroup = new EventEmitter<void>();
   @Output() collapseSidebar = new EventEmitter<void>();
-
   get hasUnread(): boolean {
     return this.conversations.some((c) => c.unreadCount > 0);
   }
-
   isSelected(conv: ConversationItem): boolean {
     return conv.roomId === this.activeConvId;
   }
-
   onSearchChange(value: string): void {
     this.searchChange.emit(value);
   }
-
   onSearchKeydown(event: KeyboardEvent): void {
     this.searchKeydown.emit(event);
   }
-
   onSearchFocus(): void {
     this.searchFocus.emit();
   }
-
   onSearchBlur(): void {
     this.searchBlur.emit();
   }
-
   onSelectConversation(conv: ConversationItem): void {
     this.selectConversation.emit(conv);
   }
-
   onContextMenu(event: MouseEvent, conv: ConversationItem): void {
     this.conversationContextMenu.emit({ event, conv });
   }
-
   onFilterChange(type: FilterType): void {
     this.filterChange.emit(type);
   }
-
   onToggleUserDropdown(): void {
     this.toggleUserDropdown.emit();
   }
-
   onCloseUserDropdown(): void {
     this.closeUserDropdown.emit();
   }
-
   onToggleUserForAdd(userId: string): void {
     this.toggleUserForAdd.emit(userId);
   }
-
   onStartConversation(profile: Profile): void {
     this.router.navigate(["/chat"], { queryParams: { userId: profile.user_id } });
   }
-
   onOpenCreateGroup(): void {
     this.router.navigate(["/chat/create-group"]);
   }
-
   onCreateGroup(): void {
     if (this.newGroupName.trim()) {
       this.createGroup.emit(this.newGroupName.trim());
     }
   }
-
   onCloseCreateGroup(): void {
     this.closeCreateGroup.emit();
   }
-
   onCollapseSidebar(): void {
     this.collapseSidebar.emit();
   }

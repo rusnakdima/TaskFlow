@@ -1,7 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-
 @Component({
   selector: "app-form-section",
   standalone: true,
@@ -14,7 +13,6 @@ export class FormSectionComponent {
   @Input() title = "";
   @Input() description = "";
   @Input() iconColor: "blue" | "purple" | "green" | "indigo" | "red" = "blue";
-
   get iconBgClass(): string {
     const classes: Record<string, string> = {
       blue: "flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30",
@@ -28,7 +26,6 @@ export class FormSectionComponent {
     };
     return classes[this.iconColor] ?? classes["blue"];
   }
-
   get iconClass(): string {
     const classes: Record<string, string> = {
       blue: "h-5! w-5! min-w-5 text-xl! text-blue-600 dark:text-blue-400",

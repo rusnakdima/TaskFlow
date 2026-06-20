@@ -2,21 +2,16 @@
 import { CommonModule } from "@angular/common";
 import { Component, signal } from "@angular/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* env */
 import { environment } from "@env/environment";
-
 /* models */
 import { Response, ResponseStatus } from "@entities/response.model";
 import { Author } from "@entities/author.model";
-
 /* services */
 import { AboutService } from "@services/features/about.service";
 import { NotifyService } from "@services/notifications/notify.service";
-
 @Component({
   selector: "app-about",
   standalone: true,
@@ -29,7 +24,6 @@ export class AboutView {
     private aboutService: AboutService,
     private notifyService: NotifyService
   ) {}
-
   version: string = environment.version;
   nameProduct: string = environment.nameProduct;
   yearCreate: number = environment.yearCreate;
@@ -38,43 +32,33 @@ export class AboutView {
   gitRepoName: string = environment.gitRepoName;
   dateVersion = signal(localStorage["dateVersion"] || "Unknown");
   dateCheck = signal(localStorage["dateCheck"] || "Unknown");
-
   nameFile = signal("");
   lastVersion = signal("");
   pathUpdate = signal<string>("");
-
   windUpdates = signal<boolean>(false);
   downloadProgress = signal<boolean>(false);
   downloadProgressValue = signal<number>(0);
-
   unlistenProgress: UnlistenFn | null = null;
-
   ngOnInit(): void {
     this.getDate();
   }
-
   matchVersion(lastVer: string) {
     const v1Components = lastVer.split(".").map(Number);
     const v2Components = this.version.split(".").map(Number);
-
     for (let i = 0; i < Math.max(v1Components.length, v2Components.length); i++) {
       const v1Value = v1Components[i] || 0;
       const v2Value = v2Components[i] || 0;
-
       if (v1Value < v2Value) {
         return false;
       } else if (v1Value > v2Value) {
         return true;
       }
     }
-
     return false;
   }
-
   formatDate(date: string) {
     return new Date(date).toISOString().split("T")[0];
   }
-
   getDate() {
     this.aboutService.getDate(this.version).subscribe({
       next: (res: any) => {
@@ -92,11 +76,9 @@ export class AboutView {
       },
     });
   }
-
   checkUpdate() {
     localStorage["dateCheck"] = String(this.formatDate(new Date().toUTCString()));
     this.dateCheck.set(localStorage["dateCheck"]);
-
     this.aboutService.checkUpdate().subscribe({
       next: (res: any) => {
         if (res && res.tag_name) {
@@ -134,20 +116,16 @@ export class AboutView {
       },
     });
   }
-
   async downloadFile() {
     if (this.nameFile() != "") {
       this.downloadProgress.set(true);
       this.downloadProgressValue.set(0);
-
       if (!this.unlistenProgress) {
         this.unlistenProgress = await listen<number>("download-progress", (event) => {
           this.downloadProgressValue.set(event.payload);
         });
       }
-
       this.notifyService.showWarning("Wait until the program update is downloaded!");
-
       try {
         const data: Response<string> = await this.aboutService.downloadUpdate<string>(
           this.lastVersion(),
@@ -178,7 +156,6 @@ export class AboutView {
       );
     }
   }
-
   openFile() {
     this.aboutService
       .installUpdate<string>(this.pathUpdate())

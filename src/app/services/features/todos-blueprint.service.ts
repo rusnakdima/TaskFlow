@@ -4,7 +4,6 @@ import { StorageService } from "@services/storage.service";
 import { Todo } from "@entities/generated/api.types";
 import { Observable, of } from "rxjs";
 import { ApiService, Visibility } from "@services/api.service";
-
 @Injectable({
   providedIn: "root",
 })
@@ -12,7 +11,6 @@ export class TodosBlueprintService {
   private templateService = inject(TemplateService);
   private storageService = inject(StorageService);
   private requestService = inject(ApiService);
-
   showBlueprintDialog = signal(false);
   showCreateBlueprintDialog = signal(false);
   newBlueprintName = signal("");
@@ -20,10 +18,8 @@ export class TodosBlueprintService {
   showApplyBlueprintDialog = signal(false);
   applyBlueprintTitle = signal("");
   selectedTemplateForApply = signal<ProjectTemplate | null>(null);
-
   getTodosFromBlueprint(template: ProjectTemplate, userId: string): Todo[] {
     const todos: Todo[] = [];
-
     if (template.tasks && template.tasks.length > 0) {
       template.tasks.forEach((taskTemplate: TemplateTask, index: number) => {
         const todo = this.createTodoFromTemplate(taskTemplate, userId);
@@ -31,50 +27,40 @@ export class TodosBlueprintService {
         todos.push(todo);
       });
     }
-
     return todos;
   }
-
   saveAsBlueprint(todo: Todo): void {
     this.newBlueprintName.set(todo.title || "");
     this.newBlueprintDescription.set(todo.description || "");
     this.showCreateBlueprintDialog.set(true);
   }
-
   confirmSaveAsBlueprint(): void {
     const name = this.newBlueprintName();
     const description = this.newBlueprintDescription();
     if (!name.trim()) return;
-
     const todos = this.storageService.todos();
     const allTodos: Todo[] = todos;
     const foundTodo = allTodos.find(
       (t) => t.title === name && t.description === (description || "")
     );
-
     if (foundTodo) {
       this.templateService.createTemplate(name, description || "", foundTodo);
     }
-
     this.showCreateBlueprintDialog.set(false);
     this.newBlueprintName.set("");
     this.newBlueprintDescription.set("");
   }
-
   closeCreateBlueprintDialog(): void {
     this.showCreateBlueprintDialog.set(false);
     this.newBlueprintName.set("");
     this.newBlueprintDescription.set("");
   }
-
   confirmCreateFromBlueprint(userId: string): Observable<Todo[]> {
     const template = this.selectedTemplateForApply();
     const title = this.applyBlueprintTitle();
-
     if (!template) {
       return of([]);
     }
-
     const todoData: Partial<Todo> = {
       title: title || template.name,
       description: template.description || "",
@@ -82,7 +68,6 @@ export class TodosBlueprintService {
       priority: "medium",
       user_id: userId,
     };
-
     return new Observable((subscriber) => {
       this.requestService
         .create(
@@ -98,16 +83,13 @@ export class TodosBlueprintService {
             if (createdTodo) {
               const currentTodos = this.storageService.todos();
               this.storageService.setCollection("privateTodos", [...currentTodos, createdTodo]);
-
               const tasks = this.templateService.applyTemplate(template, createdTodo.id);
               const currentTasks = this.storageService.tasks();
               this.storageService.setCollection("tasks", [...currentTasks, ...tasks], {
                 append: true,
               });
-
               subscriber.next([createdTodo]);
               subscriber.complete();
-
               this.showApplyBlueprintDialog.set(false);
               this.selectedTemplateForApply.set(null);
               this.applyBlueprintTitle.set("");
@@ -119,21 +101,17 @@ export class TodosBlueprintService {
         });
     });
   }
-
   openApplyBlueprint(template: ProjectTemplate): void {
     this.selectedTemplateForApply.set(template);
     this.showApplyBlueprintDialog.set(true);
     this.applyBlueprintTitle.set(template.name || "");
   }
-
   removeBlueprint(templateId: string): void {
     this.templateService.deleteTemplate(templateId);
   }
-
   getSubtasksCount(template: ProjectTemplate): number {
     return template.tasks?.length || 0;
   }
-
   private createTodoFromTemplate(template: TemplateTask, userId: string): Todo {
     return {
       id: `todo-${Date.now()}`,

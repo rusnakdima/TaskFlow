@@ -9,7 +9,6 @@ export interface PromptDialogConfig {
   confirmClass?: string;
   validateFn?: (value: string) => string | null;
 }
-
 export interface ConfirmDialogConfig {
   title: string;
   message: string;

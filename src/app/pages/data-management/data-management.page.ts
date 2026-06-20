@@ -11,7 +11,6 @@ import {
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatCardModule } from "@angular/material/card";
@@ -24,7 +23,6 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatSelectModule } from "@angular/material/select";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
-
 /* services */
 import { EntityStoreService } from "@core/services/entity-store.service";
 import { AdminStorageService } from "@core/services/admin-storage.service";
@@ -37,20 +35,16 @@ import { ApiService } from "@services/api.service";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
 import { TodoPermission } from "@core/services/permission.service";
 import { VisibilitySyncService } from "@core/services/visibility-sync.service";
-
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";
 import { BulkActionHelper } from "@helpers/bulk-action.helper";
-
 /* models */
 import { AdminFilterState } from "@entities/admin-table.model";
 import { ResponseStatus } from "@entities/response.model";
-
 /* constants */
 import { ActionColors } from "@shared/utils/constants";
 import { FILTER_CONFIGS } from "@shared/utils/constants";
-
 /* components */
 import { TableViewComponent } from "@components/table-view/table-view.component";
 import { TableField, TableFieldActionButton } from "@entities/table-field.model";
@@ -67,7 +61,6 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
-
 @Component({
   selector: "app-data-management-view",
   standalone: true,
@@ -96,11 +89,9 @@ import { ItemExpandDetailsComponent } from "@components/item-expand-details/item
 })
 export class DataManagementView implements OnInit {
   @ViewChild("expandRowTemplate") expandRowTemplate!: TemplateRef<any>;
-
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
-
   protected entityStore = inject(EntityStoreService);
   protected adminStorageService = inject(AdminStorageService);
   protected archiveStorageService = inject(ArchiveStorageService);
@@ -112,7 +103,6 @@ export class DataManagementView implements OnInit {
   protected requestService = inject(ApiService);
   private confirmDialogService = inject(ConfirmDialogService);
   private visibilitySyncService = inject(VisibilitySyncService);
-
   paginationState = signal<{
     skip: number;
     limit: number;
@@ -120,34 +110,26 @@ export class DataManagementView implements OnInit {
     hasMore: boolean;
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
-
   mode: "admin" | "archive" = "admin";
   dataMap = signal<any>({});
   userPermission = signal<TodoPermission>(TodoPermission.OWNER);
-
   selectedType = signal<string>("todos");
   loading = signal<boolean>(false);
   selectedRecords = signal<Set<string>>(new Set());
   showFilters = signal<boolean>(false);
   expandedRecords = signal<Set<string>>(new Set());
-
   adminTableFields = TableFieldFactory.createAdminFields();
-
   dataSourceOptions = signal<SegmentOption[]>([
     { id: "all", label: "All Sources", icon: "apps" },
     { id: "local", label: "Local JSON DB", icon: "folder" },
     { id: "cloud", label: "Cloud MongoDB", icon: "cloud" },
   ]);
-
   activeDataSource = signal<"all" | "local" | "cloud">("all");
-
   private localTodoIds = signal<Set<string>>(new Set());
   private cloudTodoIds = signal<Set<string>>(new Set());
-
   getAdminActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.TOGGLE_DELETE, TABLE_ACTIONS.DELETE_FOREVER];
   }
-
   titleFilter = signal<string>("");
   descriptionFilter = signal<string>("");
   priorityFilter = signal<string>("");
@@ -164,13 +146,11 @@ export class DataManagementView implements OnInit {
   deletedFilter = signal<string>("all");
   sortBy = signal<string>("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
-
   userList = signal<{ id: string; label: string }[]>([]);
   categoryList = signal<{ id: string; label: string }[]>([]);
   todoList = signal<{ id: string; label: string }[]>([]);
   taskList = signal<{ id: string; label: string }[]>([]);
   subtaskList = signal<{ id: string; label: string }[]>([]);
-
   dataTypes: SegmentOption[] = [
     { id: "todos", label: "Todos", icon: "list_alt" },
     { id: "tasks", label: "Tasks", icon: "checklist" },
@@ -179,34 +159,28 @@ export class DataManagementView implements OnInit {
     { id: "categories", label: "Categories", icon: "category" },
     { id: "daily_activities", label: "Daily Activities", icon: "schedule" },
   ];
-
   ngOnInit(): void {
     this.route.data.subscribe((data) => {
       this.mode = data["mode"] || "admin";
       this.loadData();
     });
-
     const refreshSub = this.shortcutService.refresh$.subscribe(() => {
       this.loadData(true);
       this.notifyService.showSuccess("Data refreshed");
     });
     this.destroyRef.onDestroy(() => refreshSub.unsubscribe());
   }
-
   loadData(force: boolean = false) {
     this.loading.set(true);
-
     if (this.mode === "admin") {
       this.loadAdminData(force);
     } else {
       this.loadArchiveData(force);
     }
   }
-
   private loadAdminData(force: boolean = false) {
     const type = this.selectedType();
     const limit = 10;
-
     if (!force && this.adminStorageService.isTypeLoaded(type)) {
       const data = this.getAdminData();
       this.paginationState.set({
@@ -220,7 +194,6 @@ export class DataManagementView implements OnInit {
       this.populateFilterLists();
       return;
     }
-
     const sub = this.adminStorageService.loadInitialData(type, limit).subscribe({
       next: (response: any) => {
         const data = response?.data || [];
@@ -231,7 +204,6 @@ export class DataManagementView implements OnInit {
         else if (type === "categories") this.adminStorageService.categoriesSignal.set(data);
         else if (type === "daily_activities")
           this.adminStorageService.dailyActivitiesSignal.set(data);
-
         this.adminStorageService.setTypeLoaded(type, true);
         this.paginationState.set({
           skip: data.length,
@@ -250,11 +222,9 @@ export class DataManagementView implements OnInit {
     });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
-
   private loadArchiveData(force: boolean = false) {
     const type = this.selectedType();
     const limit = 10;
-
     if (!force && this.archiveStorageService.isTypeLoaded(type)) {
       const data = this.getArchiveData();
       this.paginationState.set({
@@ -268,7 +238,6 @@ export class DataManagementView implements OnInit {
       this.populateFilterLists();
       return;
     }
-
     const sub = this.archiveStorageService.loadInitialData(type, limit).subscribe({
       next: (response: any) => {
         const data = response?.data || [];
@@ -279,7 +248,6 @@ export class DataManagementView implements OnInit {
         else if (type === "categories") this.archiveStorageService.categoriesSignal.set(data);
         else if (type === "daily_activities")
           this.archiveStorageService.dailyActivitiesSignal.set(data);
-
         this.archiveStorageService.setTypeLoaded(type, true);
         this.paginationState.set({
           skip: data.length,
@@ -298,18 +266,14 @@ export class DataManagementView implements OnInit {
     });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
-
   loadMore() {
     if (this.paginationState().loading || !this.paginationState().hasMore) {
       return;
     }
-
     this.paginationState.update((s) => ({ ...s, loading: true }));
-
     const type = this.selectedType();
     const skip = this.paginationState().skip;
     const limit = this.paginationState().limit;
-
     if (this.mode === "admin") {
       const sub = this.adminStorageService.loadMoreData(type, skip, limit).subscribe({
         next: (response: any) => {
@@ -352,7 +316,6 @@ export class DataManagementView implements OnInit {
       this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
   }
-
   private appendDataToSignal(type: string, storage: any, newData: any[]): void {
     switch (type) {
       case "todos":
@@ -375,20 +338,17 @@ export class DataManagementView implements OnInit {
         break;
     }
   }
-
   getFieldConfig(): TableField[] {
     if (this.mode === "archive") {
       return TableFieldFactory.getArchiveColumns(this.selectedType());
     }
     return TableFieldFactory.getColumns(this.selectedType());
   }
-
   getTitleField(): string {
     if (this.selectedType() === "daily_activities") return "date";
     if (this.selectedType() === "comments" || this.selectedType() === "chats") return "content";
     return "title";
   }
-
   onAdminAction(event: { action: string; item: any }): void {
     if (event.action === "edit") {
       this.onEditRecord(event.item);
@@ -402,11 +362,9 @@ export class DataManagementView implements OnInit {
       this.deleteRecord(event.item);
     }
   }
-
   onEditRecord(item: any): void {
     const type = this.selectedType();
     const visibility = this.mode === "admin" ? "public" : "private";
-
     switch (type) {
       case "todos":
         this.router.navigate(["/todos", item.id, "edit_todo"], {
@@ -440,22 +398,17 @@ export class DataManagementView implements OnInit {
         break;
     }
   }
-
   onRecordSelect(event: { id: string; selected: boolean }): void {
     this.toggleSelect(event);
   }
-
   getFilteredData(): any[] {
     let data: any[];
-
     if (this.mode === "admin") {
       data = this.getAdminData();
     } else {
       data = this.getArchiveData();
     }
-
     if (!data || data.length === 0) return [];
-
     const source = this.activeDataSource();
     if (source !== "all" && this.mode === "admin") {
       if (source === "local") {
@@ -464,11 +417,9 @@ export class DataManagementView implements OnInit {
         data = this.filterByDataSource(data, "cloud");
       }
     }
-
     if (this.selectedType() === "tasks" || this.selectedType() === "subtasks") {
       data = FilterHelper.filterAdminByStatus(data, this.isCompletedFilter());
     }
-
     const filterState: AdminFilterState = {
       titleFilter: this.titleFilter(),
       descriptionFilter: this.descriptionFilter(),
@@ -486,17 +437,14 @@ export class DataManagementView implements OnInit {
       sortBy: this.sortBy(),
       sortOrder: this.sortOrder(),
     };
-
     const filterConfigs = FilterHelper.buildAdminFilterConfigs(filterState, this.selectedType());
     data = FilterHelper.applyFilters(data, filterConfigs);
     data = FilterHelper.applyAdminCustomFilters(data, filterState, this.selectedType());
-
     return SortHelper.sortByField(data, {
       field: this.sortBy(),
       order: this.sortOrder(),
     });
   }
-
   private filterByDataSource(data: any[], source: "local" | "cloud"): any[] {
     if (this.selectedType() === "todos") {
       if (source === "local") {
@@ -507,11 +455,9 @@ export class DataManagementView implements OnInit {
     }
     return data;
   }
-
   getCurrentData(): any[] {
     return this.getFilteredData();
   }
-
   private getData(source: "admin" | "archive"): any[] {
     const service = source === "admin" ? this.adminStorageService : this.archiveStorageService;
     switch (this.selectedType()) {
@@ -531,32 +477,26 @@ export class DataManagementView implements OnInit {
         return [];
     }
   }
-
   private getAdminData(): any[] {
     return this.getData("admin");
   }
-
   private getArchiveData(): any[] {
     return this.getData("archive");
   }
-
   getSelectedTypeLabel(): string {
     const type = this.dataTypes.find((t) => t.id === this.selectedType());
     return type ? type.label : this.selectedType();
   }
-
   getSelectedTypeIcon(): string {
     const type = this.dataTypes.find((t) => t.id === this.selectedType());
     return type ? type.icon || "list_alt" : "list_alt";
   }
-
   getToolbarConfig(): PageToolbarConfig {
     const sortOptions: { key: string; label: string; icon?: string }[] = [
       { key: "createdAt", label: "Created Date", icon: "schedule" },
       { key: "updatedAt", label: "Updated Date", icon: "update" },
       { key: "title", label: "Title", icon: "sort_by_alpha" },
     ];
-
     if (
       this.selectedType() === "todos" ||
       this.selectedType() === "tasks" ||
@@ -564,12 +504,10 @@ export class DataManagementView implements OnInit {
     ) {
       sortOptions.push({ key: "priority", label: "Priority", icon: "flag" });
     }
-
     if (this.selectedType() === "todos" || this.selectedType() === "tasks") {
       sortOptions.push({ key: "startDate", label: "Start Date", icon: "play_arrow" });
       sortOptions.push({ key: "endDate", label: "End Date", icon: "stop" });
     }
-
     return {
       ...(this.mode !== "admin" &&
         this.mode !== "archive" && {
@@ -603,7 +541,6 @@ export class DataManagementView implements OnInit {
       },
     };
   }
-
   selectDataType(typeId: string) {
     this.selectedType.set(typeId);
     this.clearSelection();
@@ -612,16 +549,13 @@ export class DataManagementView implements OnInit {
     this.paginationState.set({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
     this.loadData(true);
   }
-
   onDataSourceChange(source: "all" | "local" | "cloud") {
     this.activeDataSource.set(source);
     this.clearSelection();
   }
-
   closeFilters() {
     this.showFilters.set(false);
   }
-
   toggleSelect(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     this.selectedRecords.update((records) => {
@@ -631,11 +565,9 @@ export class DataManagementView implements OnInit {
       return newRecords;
     });
   }
-
   onCardClick(event: { event: MouseEvent; id: string }): void {
     this.toggleSelectById(event.id);
   }
-
   onItemAction(event: { action: string; item: any }): void {
     const { action, item } = event;
     switch (action) {
@@ -652,7 +584,6 @@ export class DataManagementView implements OnInit {
         break;
     }
   }
-
   getItemType(): any {
     const typeMap: { [key: string]: string } = {
       todos: "todo",
@@ -664,7 +595,6 @@ export class DataManagementView implements OnInit {
     };
     return typeMap[this.selectedType()] || "todo";
   }
-
   toggleSelectById(id: string): void {
     const isSelected = this.selectedRecords().has(id);
     this.selectedRecords.update((records) => {
@@ -674,15 +604,12 @@ export class DataManagementView implements OnInit {
       return newRecords;
     });
   }
-
   isSelected(id: string): boolean {
     return this.selectedRecords().has(id);
   }
-
   clearSelection(): void {
     this.selectedRecords.set(new Set());
   }
-
   clearFilters(): void {
     const cleared = FilterHelper.getDefaultAdminFilterState();
     this.titleFilter.set(cleared.titleFilter);
@@ -702,7 +629,6 @@ export class DataManagementView implements OnInit {
     this.sortBy.set(cleared.sortBy);
     this.sortOrder.set(cleared.sortOrder);
   }
-
   onBulkSelectAll(): void {
     const currentData = this.getCurrentData();
     if (this.isAllSelected()) {
@@ -715,7 +641,6 @@ export class DataManagementView implements OnInit {
       });
     }
   }
-
   onBulkSelectAllRecords(selectAll: boolean): void {
     const currentData = this.getCurrentData();
     if (selectAll) {
@@ -732,12 +657,10 @@ export class DataManagementView implements OnInit {
       });
     }
   }
-
   isAllSelected(): boolean {
     const currentData = this.getCurrentData();
     return currentData.length > 0 && currentData.every((item) => this.isSelected(item.id));
   }
-
   async deleteRecord(record: any) {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Permanently Delete",
@@ -746,7 +669,6 @@ export class DataManagementView implements OnInit {
       confirmText: "Delete Permanently",
     });
     if (!confirmed) return;
-
     const table = this.selectedType();
     const visibility = this.mode === "admin" ? "public" : "private";
     try {
@@ -754,7 +676,6 @@ export class DataManagementView implements OnInit {
         this.mode === "admin"
           ? await this.adminService.permanentlyDeleteRecord(table, record.id, visibility)
           : await this.adminService.permanentlyDeleteRecordLocal(table, record.id);
-
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record permanently deleted");
         this.removeRecordFromStorage(table, record.id);
@@ -765,7 +686,6 @@ export class DataManagementView implements OnInit {
       this.notifyService.showError(error instanceof Error ? error.message : String(error));
     }
   }
-
   async toggleDeleteStatus(record: any) {
     try {
       const table = this.selectedType();
@@ -774,7 +694,6 @@ export class DataManagementView implements OnInit {
         this.mode === "admin"
           ? await this.adminService.toggleDeleteStatus(table, record.id, visibility)
           : await this.adminService.toggleDeleteStatusLocal(table, record.id);
-
       if (response.status === ResponseStatus.SUCCESS) {
         this.notifyService.showSuccess("Record status updated");
         const isDeleted = response.data === true;
@@ -788,14 +707,12 @@ export class DataManagementView implements OnInit {
       this.notifyService.showError(error instanceof Error ? error.message : String(error));
     }
   }
-
   async onBulkSoftDelete(): Promise<void> {
     const selectedIds = Array.from(this.selectedRecords());
     const allSelected = this.getCurrentData().filter((item) => selectedIds.includes(item.id));
     const allArchived = allSelected.every((item) => item.deleted_at);
     const visibility = this.mode === "admin" ? "public" : "private";
     const table = this.selectedType();
-
     if (allArchived) {
       await this.adminCascadeService.restoreBatch(table, selectedIds, visibility);
       selectedIds.forEach((id) => this.updateRecordInStorage(table, id, { deleted_at: null }));
@@ -807,7 +724,6 @@ export class DataManagementView implements OnInit {
     }
     this.selectedRecords.set(new Set());
   }
-
   async onBulkHardDelete(): Promise<void> {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Permanently Delete",
@@ -819,16 +735,13 @@ export class DataManagementView implements OnInit {
     const visibility = this.mode === "admin" ? "public" : "private";
     const table = this.selectedType();
     const idsToDelete = Array.from(this.selectedRecords());
-
     await this.adminCascadeService.hardDeleteBatch(table, idsToDelete, visibility);
     idsToDelete.forEach((id) => this.removeRecordFromStorage(table, id));
     this.selectedRecords.set(new Set());
   }
-
   onBulkCancel(): void {
     this.clearSelection();
   }
-
   toggleExpand(recordId: string): void {
     this.expandedRecords.update((expanded) => {
       const newExpanded = new Set(expanded);
@@ -840,11 +753,9 @@ export class DataManagementView implements OnInit {
       return newExpanded;
     });
   }
-
   isExpanded(recordId: string): boolean {
     return this.expandedRecords().has(recordId);
   }
-
   formatFieldDate(dateStr: string): string {
     if (!dateStr) return "-";
     try {
@@ -854,11 +765,9 @@ export class DataManagementView implements OnInit {
       return dateStr || "-";
     }
   }
-
   getValue(item: any, field: any): any {
     return item[field.key];
   }
-
   getPriorityBadgeClass(priority: string): string {
     switch (priority?.toLowerCase()) {
       case "urgent":
@@ -873,7 +782,6 @@ export class DataManagementView implements OnInit {
         return "bg-transparent text-gray-600 border border-gray-400 dark:text-gray-400 dark:border-gray-400/50";
     }
   }
-
   getUserDisplayName(user: any): string {
     if (!user) return "-";
     if (user.profile?.name) {
@@ -881,31 +789,25 @@ export class DataManagementView implements OnInit {
     }
     return user.username || "-";
   }
-
   getActionButtonClass(action: string): string {
     const colorKey = action as keyof typeof ActionColors;
     return ActionColors[colorKey] || ActionColors.default;
   }
-
   resolveUserName(userId: string): string {
     return this.entityStore.getUsername(userId);
   }
-
   resolveTodoTitle(todoId: string): string {
     const todo = this.entityStore.todoMap().get(todoId);
     return todo?.title || "-";
   }
-
   resolveTaskTitle(taskId: string): string {
     const task = this.entityStore.taskMap().get(taskId);
     return task?.title || "-";
   }
-
   resolveSubtaskTitle(subtaskId: string): string {
     const subtask = this.entityStore.subtaskMap().get(subtaskId);
     return subtask?.title || "-";
   }
-
   populateFilterLists(): void {
     this.userList.set(
       this.entityStore.users().map((u) => ({
@@ -913,7 +815,6 @@ export class DataManagementView implements OnInit {
         label: this.entityStore.getUsername(u.id),
       }))
     );
-
     const todos = this.entityStore.todos();
     this.todoList.set(
       todos.map((t) => ({
@@ -921,7 +822,6 @@ export class DataManagementView implements OnInit {
         label: t.title || t.id,
       }))
     );
-
     const tasks = this.entityStore.tasks();
     this.taskList.set(
       tasks.map((t) => ({
@@ -929,7 +829,6 @@ export class DataManagementView implements OnInit {
         label: t.title || t.id,
       }))
     );
-
     const subtasks = this.entityStore.subtasks();
     this.subtaskList.set(
       subtasks.map((s) => ({
@@ -937,7 +836,6 @@ export class DataManagementView implements OnInit {
         label: s.title || s.id,
       }))
     );
-
     const categories = this.entityStore.categories();
     this.categoryList.set(
       categories.map((c) => ({
@@ -946,14 +844,12 @@ export class DataManagementView implements OnInit {
       }))
     );
   }
-
   getFiltersForCurrentType(): any[] {
     const selectedType = this.selectedType();
     return FILTER_CONFIGS.filter(
       (f) => !f.dataType || f.dataType.length === 0 || f.dataType.includes(selectedType)
     );
   }
-
   getFilterSignal(key: string): WritableSignal<string> {
     switch (key) {
       case "deletedFilter":
@@ -988,7 +884,6 @@ export class DataManagementView implements OnInit {
         return signal("");
     }
   }
-
   getFilterOptions(filterKey: string): any[] {
     switch (filterKey) {
       case "userFilter": {
@@ -1030,7 +925,6 @@ export class DataManagementView implements OnInit {
         return [];
     }
   }
-
   getFilterValuesObject(): Record<string, string> {
     return {
       deletedFilter: this.deletedFilter(),
@@ -1049,17 +943,14 @@ export class DataManagementView implements OnInit {
       endDateFilter: this.endDateFilter(),
     };
   }
-
   getDynamicOptionsFn = (key: string): any[] => {
     return this.getFilterOptions(key);
   };
-
   onDynamicFilterChange(event: { key: string; value: string }): void {
     const signal = this.getFilterSignal(event.key);
     signal.set(event.value);
     this.showFilters.set(true);
   }
-
   getOriginalData(): any[] {
     if (this.mode === "admin") {
       return this.getAdminData();
@@ -1067,17 +958,14 @@ export class DataManagementView implements OnInit {
       return this.getArchiveData();
     }
   }
-
   private removeRecordFromStorage(table: string, id: string): void {
     const storage = this.mode === "admin" ? this.adminStorageService : this.archiveStorageService;
     storage.removeRecord(table, id);
   }
-
   private updateRecordInStorage(table: string, id: string, updates: Partial<any>): void {
     const storage = this.mode === "admin" ? this.adminStorageService : this.archiveStorageService;
     storage.updateRecord(table, id, updates);
   }
-
   async cleanupNonPrivateFromJson(): Promise<void> {
     try {
       await this.visibilitySyncService.cleanupNonPrivateFromJson();

@@ -2,29 +2,23 @@
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-
 /* models */
 import { Chat } from "@entities/generated/api.types";
 import { ConversationItem, ChatMessage } from "@entities/chat.model";
-
 /* base */
 import { BaseStorageService } from "./storage-entity.service";
-
 @Injectable({ providedIn: "root" })
 export class StorageChatService extends BaseStorageService {
   constructor() {
     super();
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      CHAT OPERATIONS - Optimistic with offline support
      ════════════════════════════════════════════════════════════════════════ */
-
   sendMessage(content: string, roomId: string, replyId?: string): Observable<Chat> {
     const userId = this.currentUserId();
     const tempId = `temp_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
-
     const localChat: Chat = {
       id: tempId,
       room_id: roomId,
@@ -37,7 +31,6 @@ export class StorageChatService extends BaseStorageService {
       temp_id: tempId,
     };
     this.chats.update((chats) => [...chats, localChat]);
-
     const uiMsg: ChatMessage = {
       id: tempId,
       content,
@@ -51,7 +44,6 @@ export class StorageChatService extends BaseStorageService {
       replyId,
     };
     this.messages.update((msgs) => [...msgs, uiMsg]);
-
     const token = this._jwtTokenService.getToken();
     return this._apiService
       .invokeCommand<any>("send_message", {
@@ -83,14 +75,11 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   editMessage(messageId: string, content: string): Observable<void> {
     const previousMessages = this.messages();
-
     this.messages.update((msgs) =>
       msgs.map((m) => (m.id === messageId ? { ...m, content, isEdited: true } : m))
     );
-
     const token = this._jwtTokenService.getToken();
     return this._apiService
       .invokeCommand<void>("edit_message", { id: messageId, content, token })
@@ -102,12 +91,9 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   deleteMessage(messageId: string): Observable<void> {
     const previousMessages = this.messages();
-
     this.messages.update((msgs) => msgs.filter((m) => m.id !== messageId));
-
     const token = this._jwtTokenService.getToken();
     return this._apiService
       .invokeCommand<void>("hard_delete_message", { id: messageId, token })
@@ -119,11 +105,9 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   createGroup(name: string): Observable<void> {
     const userId = this.currentUserId();
     const roomId = "group_" + Date.now();
-
     const token = this._jwtTokenService.getToken();
     return this._apiService
       .invokeCommand<void>("create_group", {
@@ -144,7 +128,6 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   addGroupMembers(roomId: string, memberIds: string[]): Observable<void> {
     const token = this._jwtTokenService.getToken();
     return this._apiService
@@ -174,7 +157,6 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   removeGroupMembers(roomId: string, memberId: string): Observable<void> {
     const token = this._jwtTokenService.getToken();
     return this._apiService
@@ -204,7 +186,6 @@ export class StorageChatService extends BaseStorageService {
         })
       );
   }
-
   deleteGroup(roomId: string): Observable<void> {
     const token = this._jwtTokenService.getToken();
     return this._apiService.invokeCommand<void>("delete_group_cascade", { id: roomId, token }).pipe(
@@ -222,11 +203,9 @@ export class StorageChatService extends BaseStorageService {
       })
     );
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      CHAT HELPERS
      ════════════════════════════════════════════════════════════════════════ */
-
   override updateChatByTempId(
     tempId: string,
     cloudId: string,
@@ -240,7 +219,6 @@ export class StorageChatService extends BaseStorageService {
       )
     );
   }
-
   override updateChatSyncStatus(tempId: string, syncStatus: "pending" | "synced" | "failed"): void {
     this.chats.update((chats) =>
       chats.map((c) =>
@@ -248,7 +226,6 @@ export class StorageChatService extends BaseStorageService {
       )
     );
   }
-
   updateConversationLastMessage(roomId: string, message: string): void {
     const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     this.conversations.update((convs) =>
@@ -257,21 +234,17 @@ export class StorageChatService extends BaseStorageService {
       )
     );
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      CONVERSATION MANAGEMENT
      ════════════════════════════════════════════════════════════════════════ */
-
   selectConversation(roomId: string): void {
     this.activeConversationId.set(roomId);
     this.loadMessagesForRoom(roomId);
-
     const conv = this.conversations().find((c) => c.roomId === roomId);
     if (conv && conv.unreadCount > 0) {
       this.markConversationAsRead(roomId);
     }
   }
-
   loadMessagesForRoom(roomId: string, skip = 0, limit = 100): void {
     const token = this._jwtTokenService.getToken();
     this._apiService
@@ -281,24 +254,20 @@ export class StorageChatService extends BaseStorageService {
           const data = Array.isArray(result) ? result : result?.data || [];
           const currentUserId = this.currentUserId();
           const msgs: ChatMessage[] = [];
-
           for (const chat of data) {
             if (chat.deleted_at) continue;
-
             const sender = chat.sender || {};
             const profile = sender.profile || {};
             const senderName = profile.name
               ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
               : chat.sender_name || chat.sender_id || "Unknown";
             const senderAvatar = profile.image_url || chat.sender_avatar || null;
-
             let readStatus: "sent" | "delivered" | "read" | undefined;
             if (chat.sender_id === currentUserId) {
               const readByArr: string[] = chat.read_by || [];
               const otherReaders = readByArr.filter((id: string) => id !== currentUserId);
               readStatus = otherReaders.length === 0 ? "sent" : "read";
             }
-
             msgs.push({
               id: chat.id,
               content: chat.content,
@@ -312,7 +281,6 @@ export class StorageChatService extends BaseStorageService {
               replyId: chat.reply_id || null,
             });
           }
-
           this.messages.set(msgs);
           this.populateReplyChain(msgs);
         },
@@ -321,7 +289,6 @@ export class StorageChatService extends BaseStorageService {
         },
       });
   }
-
   private populateReplyChain(msgs: ChatMessage[]): void {
     const msgMap = new Map(msgs.map((m) => [m.id, m]));
     msgs.forEach((msg) => {
@@ -330,31 +297,25 @@ export class StorageChatService extends BaseStorageService {
       }
     });
   }
-
   private markConversationAsRead(roomId: string): void {
     this.conversations.update((convs) =>
       convs.map((c) => (c.roomId === roomId ? { ...c, unreadCount: 0 } : c))
     );
   }
-
   loadConversationsFromChats(): void {
     const chats = this.chats();
     const currentUserId = this.currentUserId();
     const convMap = new Map<string, ConversationItem>();
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
       const roomId = chat.room_id;
       if (!roomId) continue;
-
       if (!convMap.has(roomId)) {
         const isGroup = roomId.startsWith("group_");
         let otherUserId: string | undefined;
-
         if (!isGroup) {
           otherUserId = chat.sender_id !== currentUserId ? chat.sender_id : undefined;
         }
-
         convMap.set(roomId, {
           roomId,
           name: isGroup ? "Group" : "Unknown",
@@ -382,27 +343,22 @@ export class StorageChatService extends BaseStorageService {
           ? new Date(chat.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
           : existing.lastMessageTime;
       }
-
       if (!chat.read_by?.includes(currentUserId) && chat.sender_id !== currentUserId) {
         const conv = convMap.get(roomId)!;
         conv.unreadCount++;
       }
     }
-
     const sorted = Array.from(convMap.values()).sort((a, b) => {
       const aTime = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
       const bTime = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
       return bTime - aTime;
     });
-
     this.conversations.set(sorted);
   }
-
   loadGroups(): void {
     const userId = this.currentUserId();
     if (!userId) return;
     if (!navigator.onLine || !this._mongoConnectionService.isConnected()) return;
-
     const token = this._jwtTokenService.getToken();
     this._apiService
       .invokeCommand<any>("get_groups", {
@@ -416,7 +372,6 @@ export class StorageChatService extends BaseStorageService {
         next: (result: any) => {
           const groups = Array.isArray(result) ? result : result?.data || [];
           const existingRooms = new Set(this.conversations().map((c) => c.roomId));
-
           for (const group of groups) {
             if (!existingRooms.has(group.room_id)) {
               const conv: ConversationItem = {
@@ -444,11 +399,9 @@ export class StorageChatService extends BaseStorageService {
         error: () => {},
       });
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      OFFLINE QUEUE
      ════════════════════════════════════════════════════════════════════════ */
-
   private queueChatMessageForSync(
     tempId: string,
     roomId: string,
@@ -477,7 +430,6 @@ export class StorageChatService extends BaseStorageService {
     queue.push(queuedOp);
     this.saveChatQueue(queue);
   }
-
   private getChatQueue(): any[] {
     try {
       const stored = localStorage.getItem("taskflow_chat_offline_queue");
@@ -486,28 +438,21 @@ export class StorageChatService extends BaseStorageService {
       return [];
     }
   }
-
   private saveChatQueue(queue: any[]): void {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
-    } catch (error) {
-      console.error("Failed to save chat queue", error);
-    }
+    } catch (error) {}
   }
-
   /* ════════════════════════════════════════════════════════════════════════
      STATE MANAGEMENT
      ════════════════════════════════════════════════════════════════════════ */
-
   setChats(chats: Chat[]): void {
     this.chats.set(chats);
     this.loadConversationsFromChats();
   }
-
   addChat(chat: Chat): void {
     this.chats.update((chats) => [...chats, chat]);
   }
-
   clearChatState(): void {
     this.conversations.set([]);
     this.messages.set([]);

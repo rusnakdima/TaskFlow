@@ -8,13 +8,11 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatMenuModule } from "@angular/material/menu";
 import { ViewMode } from "@entities/view-mode.model";
-
 export interface ViewModeTab {
   id: ViewMode;
   label: string;
   icon?: string;
 }
-
 @Component({
   selector: "app-view-mode-tabs",
   standalone: true,
@@ -25,25 +23,19 @@ export class ViewModeTabsComponent {
   @Input() options: ViewModeTab[] = [];
   @Input() active: ViewMode = "card";
   @Output() select = new EventEmitter<ViewMode>();
-
   isHovering = signal(false);
-
   getActiveOption(): ViewModeTab | undefined {
     return this.options.find((o) => o.id === this.active);
   }
-
   onSelect(id: ViewMode): void {
     this.select.emit(id);
   }
-
   onMouseEnter(): void {
     this.isHovering.set(true);
   }
-
   onMouseLeave(): void {
     this.isHovering.set(false);
   }
-
   onWheel(event: WheelEvent): void {
     if (!this.isHovering() || this.options.length === 0) return;
     event.preventDefault();

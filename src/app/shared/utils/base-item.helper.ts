@@ -1,11 +1,8 @@
 /* sys lib */
-
 /* models */
 import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
-
 /* helpers */
 import { calculatePercentage } from "@shared/utils/percentage.util";
-
 /* constants */
 import {
   PRIORITY_COLORS,
@@ -13,7 +10,6 @@ import {
   STATUS_ICONS,
   STATUS_COLUMN_COLORS,
 } from "@shared/utils/constants";
-
 /**
  * Base helper for item components (Task, Subtask, Todo)
  * Provides common methods for status/priority handling
@@ -25,7 +21,6 @@ export class BaseItemHelper {
   static getStatusColor(status: string): string {
     return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS[TaskStatus.PENDING];
   }
-
   /**
    * Get column color class based on status (Kanban specific)
    */
@@ -35,7 +30,6 @@ export class BaseItemHelper {
       STATUS_COLUMN_COLORS[TaskStatus.PENDING]
     );
   }
-
   /**
    * Get the next status in the cycle: Pending -> Completed -> Skipped -> Failed -> Pending
    */
@@ -46,14 +40,12 @@ export class BaseItemHelper {
       TaskStatus.SKIPPED,
       TaskStatus.FAILED,
     ];
-
     const currentIndex = statusCycle.indexOf(currentStatus);
     if (currentIndex === -1 || currentIndex === statusCycle.length - 1) {
       return statusCycle[0];
     }
     return statusCycle[currentIndex + 1];
   }
-
   /**
    * Get assignee color
    */
@@ -83,7 +75,6 @@ export class BaseItemHelper {
     }
     return colors[Math.abs(hash) % colors.length] + " text-white";
   }
-
   /**
    * Get initials from name
    */
@@ -96,7 +87,6 @@ export class BaseItemHelper {
       .toUpperCase()
       .slice(0, 2);
   }
-
   /**
    * Check if task is blocked by dependencies
    */
@@ -118,14 +108,12 @@ export class BaseItemHelper {
     }
     return false;
   }
-
   /**
    * Get status icon
    */
   static getStatusIcon(status: string): string {
     return STATUS_ICONS[status as keyof typeof STATUS_ICONS] || STATUS_ICONS[TaskStatus.PENDING];
   }
-
   /**
    * Get priority color class
    */
@@ -138,7 +126,6 @@ export class BaseItemHelper {
     };
     return colorMap[p] || colorMap["low"];
   }
-
   /**
    * Get priority badge class
    */
@@ -148,7 +135,6 @@ export class BaseItemHelper {
     const p = priority.toLowerCase();
     return PRIORITY_COLORS[p as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.low;
   }
-
   /**
    * Get status badge class
    */
@@ -169,11 +155,9 @@ export class BaseItemHelper {
         return "bg-transparent text-gray-600 border border-gray-400 dark:text-gray-400 dark:border-gray-400/50";
     }
   }
-
   static calculateProgress(completed: number, total: number): number {
     return calculatePercentage(completed, total);
   }
-
   /**
    * Count completed items
    */
@@ -183,7 +167,6 @@ export class BaseItemHelper {
       (item) => item.status === TaskStatus.COMPLETED || item.status === TaskStatus.SKIPPED
     ).length;
   }
-
   /**
    * Get task progress percentage
    */
@@ -196,7 +179,6 @@ export class BaseItemHelper {
       subtasks.length
     );
   }
-
   /**
    * Get progress segments for progress bar
    */
@@ -209,16 +191,12 @@ export class BaseItemHelper {
     if (!Array.isArray(items) || items.length === 0) {
       return [{ status: TaskStatus.PENDING, percentage: 100, color: "bg-gray-400" }];
     }
-
     const total = items.length;
-
     const completed = items.filter((s) => s.status === TaskStatus.COMPLETED).length;
     const skipped = items.filter((s) => s.status === TaskStatus.SKIPPED).length;
     const failed = items.filter((s) => s.status === TaskStatus.FAILED).length;
     const pending = items.filter((s) => s.status === TaskStatus.PENDING).length;
-
     const segments: Array<{ status: string; percentage: number; color: string }> = [];
-
     if (completed > 0) {
       segments.push({
         status: TaskStatus.COMPLETED,
@@ -247,7 +225,6 @@ export class BaseItemHelper {
         color: "bg-gray-400",
       });
     }
-
     return segments;
   }
 }

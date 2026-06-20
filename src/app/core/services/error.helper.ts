@@ -1,6 +1,5 @@
 import { Subscriber } from "rxjs";
 import { ApiError } from "@entities/api.model";
-
 export class ErrorHelper {
   static extractErrorMessage(err: any): string {
     if (!err) return "Unknown error occurred";
@@ -18,7 +17,6 @@ export class ErrorHelper {
     }
     return "Unknown error occurred";
   }
-
   static handleApiError<T>(subscriber: Subscriber<T>): (err: any) => void {
     return (err: any) => {
       const message = ErrorHelper.extractErrorMessage(err);
@@ -27,7 +25,6 @@ export class ErrorHelper {
       );
     };
   }
-
   static isNetworkError(err: any): boolean {
     if (!err) return false;
     if (err instanceof TypeError) return true;

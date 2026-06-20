@@ -14,14 +14,12 @@ import { ApiService } from "@services/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
-
 @Injectable({ providedIn: "root" })
 export class ProfileSearchService {
   private apiService = inject(ApiService);
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private mongoConnectionService = inject(MongoConnectionService);
-
   private _profiles = signal<Profile[]>([]);
   private _isLoading = signal(false);
   private _currentPage = signal(0);
@@ -29,15 +27,12 @@ export class ProfileSearchService {
   private _isInitialized = signal(false);
   private _searchQuery = signal("");
   private _isSearching = signal(false);
-
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
-
   readonly profiles = this._profiles.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly hasMore = this._hasMore.asReadonly();
   readonly isSearching = this._isSearching.asReadonly();
-
   constructor() {
     this.searchSubject
       .pipe(
@@ -48,24 +43,20 @@ export class ProfileSearchService {
       )
       .subscribe();
   }
-
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
   loadInitial(): Observable<Profile[]> {
     if (this._isInitialized() && this._profiles().length > 0 && !this._searchQuery()) {
       return of(this._profiles());
     }
-
     const stored = this.storageService.allProfiles();
     if (stored && stored.length > 0 && !this._searchQuery()) {
       this._profiles.set(stored);
       this._isInitialized.set(true);
       return of(stored);
     }
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       const localProfiles = this.storageService.allProfiles() || [];
       if (localProfiles.length > 0) {
@@ -76,10 +67,8 @@ export class ProfileSearchService {
       }
       return of([]);
     }
-
     return this.loadFromDb(0);
   }
-
   search(query: string): void {
     this._searchQuery.set(query);
     if (query.trim()) {
@@ -90,12 +79,10 @@ export class ProfileSearchService {
       this.loadInitial().subscribe();
     }
   }
-
   private performSearch(query: string): Observable<Profile[]> {
     if (!query.trim()) {
       return this.loadInitial();
     }
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       const stored = this.storageService.allProfiles() || [];
       const lowerQuery = query.toLowerCase();
@@ -111,10 +98,8 @@ export class ProfileSearchService {
       this._isSearching.set(false);
       return of(filtered);
     }
-
     this._isLoading.set(true);
     const token = this.authService.getToken();
-
     return new Observable((subscriber) => {
       this.apiService
         .invokeCommand("search_data", {
@@ -144,17 +129,14 @@ export class ProfileSearchService {
         });
     });
   }
-
   loadMore(): Observable<Profile[]> {
     if (this._isLoading() || !this._hasMore()) {
       return of([]);
     }
     return this.loadFromDb(this._currentPage() + 1);
   }
-
   private loadFromDb(page: number): Observable<Profile[]> {
     this._isLoading.set(true);
-
     return this.apiService
       .getAll<Profile>("profiles", {
         visibility: "public",
@@ -177,7 +159,6 @@ export class ProfileSearchService {
         })
       );
   }
-
   refreshCache(): void {
     this._isInitialized.set(false);
     this._currentPage.set(0);
@@ -185,7 +166,6 @@ export class ProfileSearchService {
     this._searchQuery.set("");
     this.loadInitial().subscribe();
   }
-
   addProfile(profile: Profile): void {
     const current = this._profiles();
     if (!current.find((p) => p.user_id === profile.user_id)) {

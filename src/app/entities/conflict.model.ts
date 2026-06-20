@@ -1,5 +1,4 @@
 import { Todo, Task, Subtask } from "./generated/api.types";
-
 export interface Conflict {
   id: string;
   entityType: "todo" | "task" | "subtask" | "category";
@@ -11,9 +10,7 @@ export interface Conflict {
   timestamp: string;
   resolved: boolean;
 }
-
 export type ConflictResolution = "local" | "remote" | "merge" | "skip";
-
 export interface ConflictDetectionStats {
   totalConflicts: number;
   resolved: number;

@@ -3,21 +3,17 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, inject, DestroyRef, signal } from "@angular/core";
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* components */
 import { ProfileFormComponent } from "@components/form/profile-form/profile-form.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
-
 /* services */
 import { AuthService } from "@services/auth/auth.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@services/api.service";
 import { UnifiedStorageService } from "@core/services/unified-storage.service";
 import { ProfileRequiredService } from "@core/services/profile-required.service";
-
 interface ProfileMetadata {
   _id: string;
   id: string;
@@ -26,7 +22,6 @@ interface ProfileMetadata {
   created_at: string;
   updated_at: string;
 }
-
 @Component({
   selector: "app-manage-profile",
   standalone: true,
@@ -54,10 +49,8 @@ export class ManageProfileView implements OnInit {
   private apiService = inject(ApiService);
   private storage = inject(UnifiedStorageService);
   private profileRequiredService = inject(ProfileRequiredService);
-
   uiForm!: FormGroup;
   basicInfoGroup!: FormGroup;
-
   metadata: ProfileMetadata = {
     _id: "",
     id: "",
@@ -66,24 +59,18 @@ export class ManageProfileView implements OnInit {
     created_at: "",
     updated_at: "",
   };
-
   ngOnInit() {
     this.initForm();
     this.userId = this.authService.getValueByKey("id") || "";
-
     if (!this.userId) {
       this.notifyService.showError("You are not logged in");
       this.router.navigate(["/login"]);
       return;
     }
-
     this.metadata.user_id = this.userId;
     this.isProfileRequired = this.profileRequiredService.profileRequiredMode();
-
     this.storage.ensureProfileLoaded();
-
     let profile = this.storage.profiles().find((p) => p.user_id === this.userId);
-
     if (!profile) {
       let attempts = 0;
       const maxAttempts = 30;
@@ -105,7 +92,6 @@ export class ManageProfileView implements OnInit {
       this.loadProfile(profile);
     }
   }
-
   private initForm(): void {
     this.basicInfoGroup = this.fb.group({
       name: ["", Validators.required],
@@ -113,12 +99,10 @@ export class ManageProfileView implements OnInit {
       bio: [""],
       image_url: ["/assets/images/avatars/avatar-1.svg"],
     });
-
     this.uiForm = this.fb.group({
       basicInfo: this.basicInfoGroup,
     });
   }
-
   private loadProfile(profile: any) {
     this.isEditMode = true;
     this.profileLoading.set(false);
@@ -138,7 +122,6 @@ export class ManageProfileView implements OnInit {
       updated_at: profile.updated_at,
     };
   }
-
   onCancel() {
     if (this.isProfileRequired) {
       this.profileRequiredService.setProfileRequiredMode(false);
@@ -147,7 +130,6 @@ export class ManageProfileView implements OnInit {
       this.router.navigate(["/profile"]);
     }
   }
-
   onSubmit() {
     if (this.uiForm.invalid || this.basicInfoGroup.invalid) {
       Object.values(this.basicInfoGroup.controls).forEach((control) => {
@@ -155,10 +137,8 @@ export class ManageProfileView implements OnInit {
       });
       return;
     }
-
     const basicInfo = this.basicInfoGroup.value;
     const body = { ...this.metadata, ...basicInfo };
-
     if (this.isEditMode) {
       const currentProfile = this.storage.profiles().find((p) => p.user_id === this.userId);
       if (currentProfile) {

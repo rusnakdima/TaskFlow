@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
-
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatSelectModule } from "@angular/material/select";
@@ -11,9 +10,7 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatSliderModule } from "@angular/material/slider";
-
 import { FormField, OptionData, TypeField } from "@entities/form-field.model";
-
 @Component({
   selector: "app-unified-field",
   standalone: true,
@@ -39,11 +36,8 @@ export class UnifiedFieldComponent {
   @Input() form!: FormGroup;
   @Input() showError: boolean = true;
   @Input() class: string = "";
-
   @Output() valueChange = new EventEmitter<any>();
-
   TypeField = TypeField;
-
   getLabel(): string {
     if (!this.field?.label) return "";
     if (this.field.label instanceof Function) {
@@ -51,22 +45,18 @@ export class UnifiedFieldComponent {
     }
     return this.field.label;
   }
-
   isShow(): boolean {
     if (!this.field?.isShow) return true;
     return this.field.isShow(this.form as any);
   }
-
   isInvalid(attr: string): boolean {
     const control = this.form?.get(attr);
     if (!control) return false;
     return (control.touched || control.dirty) && !!control.errors;
   }
-
   getErrorMessage(fieldName: string): string {
     const control = this.form?.get(fieldName);
     if (!control?.errors) return "";
-
     if (control.errors["required"]) {
       return `Field '${this.getLabel()}' should not be empty`;
     }
@@ -87,28 +77,22 @@ export class UnifiedFieldComponent {
     }
     return `Invalid value for '${this.getLabel()}'`;
   }
-
   getOptions(): OptionData[] {
     if (!this.field || !("options" in this.field)) return [];
     return (this.field as any).options || [];
   }
-
   isOptionVisible(option: OptionData): boolean {
     return option.isShow(this.form as any);
   }
-
   onValueChange(value: any) {
     this.valueChange.emit(value);
   }
-
   getMin(): number {
     return (this.field as any).min ?? 0;
   }
-
   getMax(): number {
     return (this.field as any).max ?? 100;
   }
-
   trackByValue(_index: number, item: OptionData): string {
     return String(item.value);
   }

@@ -378,6 +378,46 @@ export class BaseStorageService {
     });
   }
 
+  get apiService() {
+    return this._apiService;
+  }
+  get jwtTokenService() {
+    return this._jwtTokenService;
+  }
+  get mongoConnectionService() {
+    return this._mongoConnectionService;
+  }
+  get pagination() {
+    return this._pagination;
+  }
+  get todosLoading() {
+    return this._todosLoading;
+  }
+  get tasksLoading() {
+    return this._tasksLoading;
+  }
+  get subtasksLoading() {
+    return this._subtasksLoading;
+  }
+  get categoriesLoading() {
+    return this._categoriesLoading;
+  }
+  get chatsLoading() {
+    return this._chatsLoading;
+  }
+  get commentsLoading() {
+    return this._commentsLoading;
+  }
+  get userLoading() {
+    return this._userLoading;
+  }
+  get profileLoading() {
+    return this._profileLoading;
+  }
+  get roomsLoading() {
+    return this._roomsLoading;
+  }
+
   getSignal(entityType: EntityType): WritableSignal<any> | null {
     switch (entityType) {
       case "todos":

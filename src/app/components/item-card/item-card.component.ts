@@ -14,7 +14,6 @@ import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
 import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable } from "rxjs";
-
 import { CheckboxComponent } from "@components/fields/checkbox/checkbox.component";
 import { ItemExpandDetailsComponent } from "@components/item-expand-details/item-expand-details.component";
 import { CommentsToggleComponent } from "@components/comments-toggle/comments-toggle.component";
@@ -30,7 +29,6 @@ import { ActionColors } from "@shared/utils/constants";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { PermissionService, TodoPermission } from "@core/services/permission.service";
-
 @Component({
   selector: "app-item-card",
   standalone: true,
@@ -55,7 +53,6 @@ export class ItemCardComponent {
   private storageService = inject(StorageService);
   private authService = inject(AuthService);
   private permissionService = inject(PermissionService);
-
   @Input() item: Todo | Task | Subtask | Category | null = null;
   @Input() config: ItemDisplayConfig[] = [];
   @Input() displayMode: DisplayMode = "card";
@@ -75,7 +72,6 @@ export class ItemCardComponent {
   @Input() showStatusToggle: boolean = false;
   @Input() onExpandRequest?: (item: any) => Observable<any>;
   @Input() userPermission: TodoPermission = TodoPermission.VIEWER;
-
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() cardClick = new EventEmitter<{ event: MouseEvent; id: string; visibility?: string }>();
   @Output() itemAction = new EventEmitter<{ action: string; item: any }>();
@@ -85,26 +81,21 @@ export class ItemCardComponent {
   @Output() deleteComment = new EventEmitter<string>();
   @Output() markAsRead = new EventEmitter<string[]>();
   @Output() statusToggle = new EventEmitter<{ item: any; status: TaskStatus }>();
-
   showMenu = signal(false);
   expanded = signal(false);
   commentsExpanded = signal(false);
-
   readonly isViewerPermission = TodoPermission.VIEWER;
   readonly isAdminPermission = [TodoPermission.MODERATOR, TodoPermission.OWNER];
-
   isActionDisabled(): boolean {
     if (this.itemType === "category" && this.item) {
       const currentUserId = this.authService.getValueByKey("id");
       return (this.item as any).user_id !== currentUserId;
     }
-
     if (this.userPermission === TodoPermission.VIEWER) {
       return true;
     }
     return false;
   }
-
   canToggleStatus(): boolean {
     if (this.userPermission === TodoPermission.VIEWER) {
       return false;
@@ -118,62 +109,48 @@ export class ItemCardComponent {
     }
     return false;
   }
-
   get itemId(): string {
     return this.item?.id || "";
   }
-
   get taskStatus(): TaskStatus {
     return (this.item as Task)?.status || TaskStatus.PENDING;
   }
-
   get isCategory(): boolean {
     return this.itemType === "category";
   }
-
   get canExpand(): boolean {
     return this.expandable;
   }
-
   toggleExpanded(event: MouseEvent): void {
     event.stopPropagation();
     this.expanded.update((v) => !v);
   }
-
   get isExpanded(): boolean {
     return this.expanded();
   }
-
   toggleCommentsHandler(): void {
     this.commentsExpanded.update((v) => !v);
     this.toggleComments.emit(this.itemId);
   }
-
   get visibleConfig(): ItemDisplayConfig[] {
     return this.config.filter((c) => !c.showIf || c.showIf(this.item));
   }
-
   get line1Config(): ItemDisplayConfig[] {
     return this.visibleConfig.filter((c) => c.line === 1 || !c.line);
   }
-
   get line2Config(): ItemDisplayConfig[] {
     return this.visibleConfig.filter((c) => c.line === 2);
   }
-
   get line3Config(): ItemDisplayConfig[] {
     return this.visibleConfig.filter((c) => c.line === 3);
   }
-
   getBadgeGroupItems(): ItemDisplayConfig[] {
     const badgeTypes = ["priority-badge", "status-badge", "deleted-badge"];
     return this.visibleConfig.filter((c) => badgeTypes.includes(c.type));
   }
-
   get hasBadgeGroup(): boolean {
     return this.visibleConfig.some((c) => c.type === "badge-group");
   }
-
   getValue(config: ItemDisplayConfig): any {
     if (config.getValue) {
       return config.getValue(this.item);
@@ -183,7 +160,6 @@ export class ItemCardComponent {
     }
     return undefined;
   }
-
   getDisplayValue(config: ItemDisplayConfig): string {
     if (config.getDisplayValue) {
       return config.getDisplayValue(this.item);
@@ -191,7 +167,6 @@ export class ItemCardComponent {
     const value = this.getValue(config);
     return value?.toString() || "";
   }
-
   getFieldClass(config: ItemDisplayConfig): string {
     let cls = config.class || "";
     if (config.getClass) {
@@ -199,7 +174,6 @@ export class ItemCardComponent {
     }
     return cls.trim();
   }
-
   getActionColor(action: ItemDisplayAction): string {
     const colorKey = action.key as keyof typeof ActionColors;
     const disabledKey = (action.key + "_disabled") as keyof typeof ActionColors;
@@ -208,18 +182,15 @@ export class ItemCardComponent {
     }
     return ActionColors[colorKey] || ActionColors.default;
   }
-
   isActionDisabledByPermission(action: ItemDisplayAction): boolean {
     if (!action.permission) {
       return this.isActionDisabled();
     }
     const currentUserId = this.authService.getValueByKey("id");
     if (!currentUserId) return false;
-
     if (this.userPermission === TodoPermission.VIEWER) {
       return true;
     }
-
     const required = action.permission;
     if (required === TodoPermission.EDITOR) {
       if (this.userPermission === TodoPermission.EDITOR) {
@@ -247,7 +218,6 @@ export class ItemCardComponent {
     }
     return true;
   }
-
   canEditItem(): boolean {
     if (this.itemType === "todo") {
       return this.permissionService.canEditTodoFields(this.userPermission);
@@ -262,7 +232,6 @@ export class ItemCardComponent {
     }
     return false;
   }
-
   canArchiveItem(): boolean {
     if (this.itemType === "todo") {
       return this.permissionService.canArchiveTodo(this.userPermission);
@@ -285,7 +254,6 @@ export class ItemCardComponent {
     }
     return false;
   }
-
   isActionDisabledForType(action: ItemDisplayAction): boolean {
     const key = action.key?.toLowerCase() || "";
     if (key === "edit") {
@@ -296,33 +264,27 @@ export class ItemCardComponent {
     }
     return this.isActionDisabledByPermission(action);
   }
-
   getChipColor(config: ItemDisplayConfig): string {
     if (config.getChipColor) {
       return config.getChipColor(this.item);
     }
     return "";
   }
-
   getBadgeClass(config: ItemDisplayConfig): string {
     if (config.getBadgeClass) {
       return config.getBadgeClass(this.item);
     }
     return "";
   }
-
   isChecked(): boolean {
     return this.isSelected;
   }
-
   onCheckboxChange(result: { checked: boolean; event?: MouseEvent }): void {
     this.selectionChangeEvent.emit({ id: this.itemId, selected: result.checked });
   }
-
   onCardClick(event: MouseEvent): void {
     this.cardClick.emit({ event, id: this.itemId, visibility: (this.item as any)?.visibility });
   }
-
   onFieldClick(config: ItemDisplayConfig, event: MouseEvent): void {
     event.stopPropagation();
     if (config.onClick) {
@@ -331,7 +293,6 @@ export class ItemCardComponent {
       this.showMenu.update((v) => !v);
     }
   }
-
   onAction(action: string, event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
@@ -339,20 +300,16 @@ export class ItemCardComponent {
     if (!this.item) return;
     this.itemAction.emit({ action, item: this.item });
   }
-
   onMenuClick(event: MouseEvent): void {
     event.stopPropagation();
     this.showMenu.update((v) => !v);
   }
-
   onDragDrop(event: CdkDragDrop<any>): void {
     this.dropped.emit(event);
   }
-
   trackByConfig(index: number, config: ItemDisplayConfig): string {
     return config.key || `config-${index}`;
   }
-
   getComments(): Comment[] {
     if (!this.item) return [];
     if (this.itemType === "task") {
@@ -363,27 +320,21 @@ export class ItemCardComponent {
     }
     return [];
   }
-
   onAddComment(content: string): void {
     this.addComment.emit({ content, itemId: this.itemId });
   }
-
   onDeleteComment(commentId: string): void {
     this.deleteComment.emit(commentId);
   }
-
   onMarkAsRead(commentIds: string[]): void {
     this.markAsRead.emit(commentIds);
   }
-
   onStatusToggle(status: TaskStatus): void {
     this.statusToggle.emit({ item: this.item, status });
   }
-
   getProgressItems(config: ItemDisplayConfig): Array<{ status: string }> {
     if (!this.item) return [];
     if (config.type !== "progress-bar") return [];
-
     if (this.itemType === "todo") {
       const tasks = (this.item as Todo).tasks;
       if (tasks && tasks.length > 0) {
@@ -400,10 +351,8 @@ export class ItemCardComponent {
     }
     return [];
   }
-
   hasProgressCounts(config: ItemDisplayConfig): boolean {
     if (!this.item || config.type !== "progress-bar") return false;
-
     if (this.itemType === "todo") {
       return (this.item as Todo).tasks_count > 0;
     }
@@ -412,10 +361,8 @@ export class ItemCardComponent {
     }
     return false;
   }
-
   getCompletedCount(config: ItemDisplayConfig): number {
     if (!this.item || config.type !== "progress-bar") return 0;
-
     if (this.itemType === "todo") {
       return (this.item as Todo).completed_tasks_count || 0;
     }
@@ -424,10 +371,8 @@ export class ItemCardComponent {
     }
     return 0;
   }
-
   getTotalCount(config: ItemDisplayConfig): number {
     if (!this.item || config.type !== "progress-bar") return 0;
-
     if (this.itemType === "todo") {
       return (this.item as Todo).tasks_count || 0;
     }
@@ -436,7 +381,6 @@ export class ItemCardComponent {
     }
     return 0;
   }
-
   getProgressSize(config: ItemDisplayConfig): "sm" | "md" | "lg" {
     return (config as any).size || "sm";
   }

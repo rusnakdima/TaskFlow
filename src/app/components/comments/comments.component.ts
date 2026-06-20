@@ -16,25 +16,19 @@ import {
   AfterViewChecked,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
-
 /* components */
 import { SubtaskCommentsListComponent } from "@components/subtask-comments-list/subtask-comments-list.component";
-
 /* models */
 import { SubtaskCommentGroup } from "@entities/comment-ext.model";
 import { Comment, Todo } from "@entities/generated/api.types";
 import { UnifiedStorageService } from "@core/services/unified-storage.service";
-
 /* helpers */
 import { DateHelper } from "@helpers/date.helper";
 import { AuthService } from "@services/auth/auth.service";
-
 /* mixins */
 import { ScrollingMixin } from "@mixins/scrolling.mixin";
-
 @Component({
   selector: "app-comments",
   standalone: true,
@@ -47,7 +41,6 @@ export class CommentsComponent
 {
   private authService = inject(AuthService);
   private storage = inject(UnifiedStorageService);
-
   @Input() title: string = "Comments";
   @Input() comments: Comment[] = [];
   @Input() task_id?: string;
@@ -63,19 +56,15 @@ export class CommentsComponent
   @Input() taskIdForSubtasks?: string;
   @Input() highlightSubtaskId?: string;
   @Input() disabled: boolean = false;
-
   @Output() addCommentEvent = new EventEmitter<string>();
   @Output() deleteCommentEvent = new EventEmitter<string>();
   @Output() markAsReadEvent = new EventEmitter<string[]>();
   @Output() loadMoreEvent = new EventEmitter<void>();
   @Output() addSubtaskCommentEvent = new EventEmitter<{ content: string; subtask_id: string }>();
-
   @ViewChild("scrollContainer") override scrollContainer!: ElementRef;
-
   newCommentContent = signal("");
   private forceScrollBottom = false;
   private usernameMap = new Map<string, string>();
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes["comments"] && !changes["comments"].isFirstChange()) {
       this.shouldScroll.set(true);
@@ -86,13 +75,11 @@ export class CommentsComponent
       this.processedIds.set(new Set());
     }
   }
-
   ngAfterViewInit() {
     this.initIntersectionObserver(".unread-comment", "data-comment-id", (id: string) =>
       this.markAsReadEvent.emit([id])
     );
     this.shouldScroll.set(true);
-
     if (this.highlightCommentId) {
       setTimeout(() => {
         const element = document.getElementById("comment-" + this.highlightCommentId);
@@ -101,10 +88,8 @@ export class CommentsComponent
         }
       }, 300);
     }
-
     this.loadProfiles();
   }
-
   private loadProfiles(): void {
     const publicProfiles = this.storage.publicProfiles();
     publicProfiles.forEach((profile) => {
@@ -116,7 +101,6 @@ export class CommentsComponent
       }
     });
   }
-
   ngAfterViewChecked() {
     if (this.shouldScroll()) {
       if (this.forceScrollBottom) {
@@ -128,27 +112,22 @@ export class CommentsComponent
       this.shouldScroll.set(false);
     }
   }
-
   ngOnDestroy() {
     this.destroyObserver();
   }
-
   formatDate(date: string | undefined) {
     if (!date) return "";
     return DateHelper.formatDateShort(date);
   }
-
   get currentUserId() {
     return this.authService.getValueByKey("id");
   }
-
   isUnread(comment: Comment): boolean {
     const userId = this.currentUserId;
     if (!userId) return false;
     if (comment.user_id === userId) return false;
     return !comment.read_by || !comment.read_by.includes(userId);
   }
-
   addComment() {
     if (!this.newCommentContent().trim()) {
       return;
@@ -156,11 +135,9 @@ export class CommentsComponent
     this.addCommentEvent.emit(this.newCommentContent().trim());
     this.newCommentContent.set("");
   }
-
   deleteComment(commentId: string) {
     this.deleteCommentEvent.emit(commentId);
   }
-
   getUsername(userId: string): string {
     const comment = this.comments.find((c) => c.user_id === userId);
     if (comment?.user?.username) {
@@ -168,7 +145,6 @@ export class CommentsComponent
     }
     return this.usernameMap.get(userId) || "Unknown";
   }
-
   canEditComment(comment?: Comment): boolean {
     if (!comment) return false;
     if (comment.user_id === this.currentUserId) return true;

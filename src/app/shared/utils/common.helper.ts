@@ -4,12 +4,10 @@ export class Common {
       if (str.length <= length) {
         return str;
       }
-
       return str.slice(0, length) + "...";
     }
     return "";
   }
-
   static isValidEmail(email: string): boolean {
     // FIX: Allow all valid email formats, not just specific providers
     // RFC 5322 compliant email regex (simplified but comprehensive)

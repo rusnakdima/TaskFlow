@@ -5,7 +5,6 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { Visibility } from "@services/api.service";
 import { Task } from "@entities/generated/api.types";
 import { Todo } from "@entities/generated/api.types";
-
 export interface TaskPaginationState {
   skip: number;
   limit: number;
@@ -13,12 +12,10 @@ export interface TaskPaginationState {
   hasMore: boolean;
   loading: boolean;
 }
-
 export class TasksPaginationState {
   private apiService = inject(ApiService);
   private entityStore = inject(EntityStoreService);
   private notifyService = inject(NotifyService);
-
   taskPagination = signal<TaskPaginationState>({
     skip: 0,
     limit: 10,
@@ -26,10 +23,8 @@ export class TasksPaginationState {
     hasMore: true,
     loading: false,
   });
-
   todoTasks = signal<Task[]>([]);
   allTasksForTodo = computed(() => this.todoTasks());
-
   loadInitialTasks(
     forceRefresh = false,
     visibilityOverride?: string,
@@ -40,9 +35,7 @@ export class TasksPaginationState {
   ): void {
     const currentTodoId = todoId || this.todoTasks()[0]?.todo_id;
     if (!currentTodoId) return;
-
     const cachedTasks = (entityStore || this.entityStore).tasksByTodoId().get(currentTodoId) || [];
-
     if (cachedTasks.length > 0 && !forceRefresh && !visibilityOverride) {
       const storedTotal = this.taskPagination().total;
       if (storedTotal > 0 && cachedTasks.length >= storedTotal) {
@@ -57,11 +50,9 @@ export class TasksPaginationState {
         return;
       }
     }
-
     this.taskPagination.update((p) => ({ ...p, loading: true }));
     const visibility = visibilityOverride || todo?.visibility || visibilityParam;
     const userId = (entityStore || this.entityStore).currentUserId();
-
     (entityStore || this.apiService).tasks
       .getAll({
         visibility,
@@ -85,7 +76,6 @@ export class TasksPaginationState {
         },
       });
   }
-
   loadMoreTasks(
     todoId?: string | null,
     todo?: Todo | null,
@@ -99,7 +89,6 @@ export class TasksPaginationState {
     const userId = (entityStore || this.entityStore).currentUserId();
     (entityStore || this.entityStore).loadMoreTasks(currentTodoId, visibility, userId, userId);
   }
-
   updateTodoTasks(fn: (tasks: Task[]) => Task[]): void {
     this.todoTasks.update(fn);
   }

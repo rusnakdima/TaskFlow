@@ -4,7 +4,6 @@ import { FormGroup, ReactiveFormsModule, AbstractControl } from "@angular/forms"
 import { FormSectionComponent } from "./form-section/form-section.component";
 import { UnifiedFieldComponent } from "@components/fields/unified/unified-field.component";
 import { TextField, TextareaField, TypeField } from "@entities/form-field.model";
-
 @Component({
   selector: "app-basic-info-section",
   standalone: true,
@@ -15,7 +14,6 @@ import { TextField, TextareaField, TypeField } from "@entities/form-field.model"
 export class BasicInfoSectionComponent {
   @Input() itemType = "";
   @Input() formGroup!: FormGroup | AbstractControl;
-
   titleFieldDef: TextField = {
     name: "title",
     label: "Title",
@@ -23,14 +21,12 @@ export class BasicInfoSectionComponent {
     required: true,
     isShow: () => true,
   };
-
   descriptionFieldDef: TextareaField = {
     name: "description",
     label: "Description",
     type: TypeField.textarea,
     isShow: () => true,
   };
-
   onTitleChange(value: string): void {
     const control = this.formGroup.get("title");
     console.debug("title changed", {
@@ -40,9 +36,7 @@ export class BasicInfoSectionComponent {
     });
     control?.setValue(value);
   }
-
   onDescriptionChange(value: string): void {
-    console.debug("description changed", { value });
     this.formGroup.get("description")?.setValue(value);
   }
 }

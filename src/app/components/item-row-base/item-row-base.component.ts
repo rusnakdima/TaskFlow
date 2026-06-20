@@ -8,14 +8,10 @@ import {
   inject,
   ChangeDetectorRef,
 } from "@angular/core";
-
 import { BaseItemHelper } from "@helpers/base-item.helper";
-
 import { Task, Subtask, Comment, Todo } from "@entities/generated/api.types";
 import { ItemType } from "@entities/base.model";
-
 export { ItemType } from "@entities/base.model";
-
 @Component({
   selector: "app-item-row-base",
   standalone: true,
@@ -24,23 +20,18 @@ export { ItemType } from "@entities/base.model";
 })
 export abstract class ItemRowBaseComponent {
   protected cdr = inject(ChangeDetectorRef);
-
   @Input() isOwner: boolean = true;
   @Input() isPrivate: boolean = true;
   @Input() isSelected: boolean = false;
   @Input() todo: Todo | null = null;
-
   @Output() selectionChangeEvent = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() deleteCommentEvent = new EventEmitter<string>();
   @Output() markAsReadEvent = new EventEmitter<string[]>();
   @Output() actionClickEvent = new EventEmitter<{ action: string; item: any }>();
-
   showComments = signal(false);
-
   getSubtaskStatusIcon = BaseItemHelper.getStatusIcon;
   getSubtaskStatusColor = BaseItemHelper.getStatusColor;
   getSubtaskPriorityColor = BaseItemHelper.getPriorityColor;
-
   abstract get item(): Task | Subtask | null;
   abstract get type(): ItemType;
   abstract get itemComments(): Comment[];
@@ -57,20 +48,16 @@ export abstract class ItemRowBaseComponent {
   abstract get addCommentEvent(): EventEmitter<
     { content: string; task_id: string } | { content: string; subtask_id: string }
   >;
-
   get isSubtask(): boolean {
     return this.type === "subtask";
   }
-
   toggleComments() {
     this.showComments.update((v) => !v);
     this.cdr.markForCheck();
   }
-
   onSelectionChange(checked: boolean): void {
     this.selectionChangeEvent.emit({ id: this.itemId, selected: checked });
   }
-
   onAddComment(content: string) {
     this.addCommentEvent.emit({
       content,
@@ -78,19 +65,15 @@ export abstract class ItemRowBaseComponent {
       subtask_id: this.type === "subtask" ? this.itemId : "",
     });
   }
-
   onDeleteComment(commentId: string) {
     this.deleteCommentEvent.emit(commentId);
   }
-
   onMarkAsRead(commentIds: string[]) {
     this.markAsReadEvent.emit(commentIds);
   }
-
   deleteItem() {
     this.itemDeleteEvent.emit(this.itemId);
   }
-
   onActionClick(action: string) {
     this.actionClickEvent.emit({ action, item: this.item });
   }

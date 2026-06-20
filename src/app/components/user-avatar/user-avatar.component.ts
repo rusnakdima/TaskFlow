@@ -1,7 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-
 @Component({
   selector: "app-user-avatar",
   standalone: true,
@@ -14,9 +13,7 @@ export class UserAvatarComponent {
   @Input() name: string = "";
   @Input() size: "sm" | "md" | "lg" | "xl" = "md";
   @Input() showGroupIcon: boolean = false;
-
   defaultSrc = "assets/images/user.png";
-
   get initials(): string {
     if (!this.name) return "?";
     const parts = this.name.trim().split(" ");
@@ -25,7 +22,6 @@ export class UserAvatarComponent {
     }
     return this.name.charAt(0).toUpperCase();
   }
-
   get dimensionClasses(): string {
     switch (this.size) {
       case "sm":
@@ -38,7 +34,6 @@ export class UserAvatarComponent {
         return "h-16 w-16";
     }
   }
-
   get roundedClasses(): string {
     switch (this.size) {
       case "sm":
@@ -51,11 +46,9 @@ export class UserAvatarComponent {
         return "rounded-2xl";
     }
   }
-
   get divClasses(): string {
     return `${this.dimensionClasses} ${this.roundedClasses} flex items-center justify-center bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color)]/30`;
   }
-
   get textClasses(): string {
     switch (this.size) {
       case "sm":
@@ -68,7 +61,6 @@ export class UserAvatarComponent {
         return "text-lg font-medium text-[var(--accent-color)] dark:text-[var(--accent-300)]";
     }
   }
-
   get iconClasses(): string {
     switch (this.size) {
       case "sm":
@@ -81,11 +73,9 @@ export class UserAvatarComponent {
         return "!h-8 !w-8 text-[var(--accent-color)] dark:text-[var(--accent-300)]";
     }
   }
-
   get imgClasses(): string {
     return `${this.dimensionClasses} ${this.roundedClasses} object-cover`;
   }
-
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
     img.src = this.defaultSrc;

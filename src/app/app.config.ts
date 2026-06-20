@@ -4,11 +4,9 @@ import { provideRouter } from "@angular/router";
 import { provideHttpClient } from "@angular/common/http";
 import { provideNativeDateAdapter } from "@angular/material/core";
 import { provideAnimations } from "@angular/platform-browser/animations";
-
 /* app */
 import { routes } from "@app/app.routes";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-
 function initializeDataSync(dataSyncService: UnifiedSyncService) {
   return async () => {
     const timeoutMs = 10000;
@@ -16,12 +14,9 @@ function initializeDataSync(dataSyncService: UnifiedSyncService) {
       setTimeout(() => reject(new Error("Tauri init timeout")), timeoutMs);
     });
     const initPromise = dataSyncService.initTauriListeners();
-    return Promise.race([initPromise, timeoutPromise]).catch((err) => {
-      console.warn("Tauri listeners init skipped: " + err.message);
-    });
+    return Promise.race([initPromise, timeoutPromise]).catch((_err) => {});
   };
 }
-
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),

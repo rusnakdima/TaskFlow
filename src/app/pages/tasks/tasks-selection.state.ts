@@ -1,16 +1,11 @@
 import { signal, inject } from "@angular/core";
 import { BulkActionService } from "@services/bulk-action.service";
 import { Task } from "@entities/generated/api.types";
-
 export class TasksSelectionState {
   private bulkService = inject(BulkActionService);
-
   highlightTaskId = signal<string | null>(null);
-
   selectedTasks = signal<Set<string>>(new Set());
-
   lastSelectedId = signal<string | null>(null);
-
   toggleTaskSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     if (selected) {
@@ -27,7 +22,6 @@ export class TasksSelectionState {
       return newSelected;
     });
   }
-
   onTableSelectAll(selectAll: boolean, listTasks: () => Task[]): void {
     this.selectedTasks.update((taskIds) => {
       const newSelected = new Set(taskIds);
@@ -39,7 +33,6 @@ export class TasksSelectionState {
       return newSelected;
     });
   }
-
   clearSelection(): void {
     this.selectedTasks.set(new Set());
     this.lastSelectedId.set(null);

@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from "@angular/common";
 import { ChatMessage } from "@entities/chat.model";
 import { ChatMessageComponent } from "../chat-message/chat-message.component";
-
 @Component({
   selector: "app-chat-message-group",
   standalone: true,
@@ -16,7 +15,6 @@ export class ChatMessageGroupComponent {
   @Input() isOwn = false;
   @Input() editingMessageId: string | null = null;
   @Input() editingMessageContent = "";
-
   @Output() reply = new EventEmitter<ChatMessage>();
   @Output() react = new EventEmitter<{ message: ChatMessage; emoji: string }>();
   @Output() removeReaction = new EventEmitter<{ message: ChatMessage; emoji: string }>();

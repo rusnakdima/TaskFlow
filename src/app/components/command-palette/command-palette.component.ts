@@ -19,7 +19,6 @@ import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { ThemeService } from "@services/ui/theme.service";
 import { SearchService } from "@core/services/search.service";
-
 type CommandCategory =
   | "page"
   | "project"
@@ -29,7 +28,6 @@ type CommandCategory =
   | "user"
   | "action"
   | "chat";
-
 interface CommandItem {
   id: string;
   label: string;
@@ -39,7 +37,6 @@ interface CommandItem {
   route?: string;
   action?: () => void;
 }
-
 @Component({
   selector: "app-command-palette",
   standalone: true,
@@ -50,26 +47,20 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
   @Output() close = new EventEmitter<void>();
   @ViewChild("searchInput") searchInputRef!: ElementRef<HTMLInputElement>;
   @ViewChildren("itemBtn") itemButtons!: QueryList<ElementRef<HTMLButtonElement>>;
-
   private searchService = inject(SearchService);
   private router = inject(Router);
   private themeService = inject(ThemeService);
-
   isOpen = signal(false);
   searchQuery = signal("");
   selectedIndex = signal(0);
-
   private allItems: CommandItem[] = [];
-
   allFlatItems = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
     const results = this.searchService.globalSearchResults();
     const items: CommandItem[] = [];
-
     if (!query) {
       return this.allItems;
     }
-
     this.pages.forEach((page) => {
       if (
         page.label.toLowerCase().includes(query) ||
@@ -78,7 +69,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         items.push({ ...page, category: "page" });
       }
     });
-
     this.actions.forEach((action) => {
       if (
         action.label.toLowerCase().includes(query) ||
@@ -87,7 +77,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         items.push({ ...action, category: "action" });
       }
     });
-
     results.projects.forEach((item) => {
       items.push({
         id: item.id,
@@ -98,7 +87,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.tasks.forEach((item) => {
       items.push({
         id: item.id,
@@ -109,7 +97,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.categories.forEach((item) => {
       items.push({
         id: item.id,
@@ -119,7 +106,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.users.forEach((item) => {
       items.push({
         id: item.id,
@@ -130,7 +116,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.subtasks.forEach((item) => {
       items.push({
         id: item.id,
@@ -141,7 +126,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.chats.forEach((item) => {
       items.push({
         id: item.id,
@@ -152,7 +136,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     results.rooms?.forEach((item) => {
       items.push({
         id: item.id,
@@ -163,10 +146,8 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
         route: item.route,
       });
     });
-
     return items;
   });
-
   private pages: CommandItem[] = [
     {
       id: "dashboard",
@@ -257,7 +238,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       route: "/chat",
     },
   ];
-
   private actions: CommandItem[] = [
     {
       id: "new-project",
@@ -284,13 +264,10 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       action: () => window.location.reload(),
     },
   ];
-
   ngOnInit() {
     this.allItems = [...this.pages, ...this.actions];
   }
-
   ngAfterViewInit() {}
-
   private scrollToSelectedItem(): void {
     setTimeout(() => {
       const buttons = this.itemButtons?.toArray();
@@ -302,33 +279,27 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       }
     }, 0);
   }
-
   @HostListener("window:keydown", ["$event"])
   handleKeydown(event: KeyboardEvent) {
     if (!this.isOpen()) return;
-
     if (event.key === "Escape") {
       this.closePalette();
       return;
     }
-
     const items = this.allFlatItems();
     const maxIndex = items.length > 0 ? items.length - 1 : 0;
-
     if (event.key === "ArrowDown") {
       event.preventDefault();
       this.selectedIndex.update((i) => (i < maxIndex ? i + 1 : 0));
       this.scrollToSelectedItem();
       return;
     }
-
     if (event.key === "ArrowUp") {
       event.preventDefault();
       this.selectedIndex.update((i) => (i > 0 ? i - 1 : maxIndex));
       this.scrollToSelectedItem();
       return;
     }
-
     if (event.key === "Enter") {
       event.preventDefault();
       const item = items[this.selectedIndex()];
@@ -338,7 +309,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       return;
     }
   }
-
   open() {
     this.isOpen.set(true);
     this.searchQuery.set("");
@@ -348,13 +318,11 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       this.searchInputRef?.nativeElement?.focus();
     }, 50);
   }
-
   closePalette() {
     this.isOpen.set(false);
     this.searchService.clearGlobalSearch();
     this.close.emit();
   }
-
   onSearch() {
     const query = this.searchQuery().trim();
     if (!query) {
@@ -364,7 +332,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
     }
     this.searchService.searchAllEntities(query);
   }
-
   getGroupedItems(): { category: string; items: CommandItem[] }[] {
     const items = this.allFlatItems();
     if (items.length === 0) {
@@ -372,17 +339,14 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
     }
     return this.groupItems(items);
   }
-
   private groupItems(items: CommandItem[]): { category: string; items: CommandItem[] }[] {
     const groups: { [key: string]: CommandItem[] } = {};
-
     items.forEach((item) => {
       if (!groups[item.category]) {
         groups[item.category] = [];
       }
       groups[item.category].push(item);
     });
-
     const categoryLabels: { [key: string]: string } = {
       page: "Pages",
       project: "Projects",
@@ -393,13 +357,11 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
       action: "Actions",
       chat: "Chats",
     };
-
     return Object.entries(groups).map(([category, items]) => ({
       category: categoryLabels[category] || category,
       items,
     }));
   }
-
   selectItem(item: CommandItem) {
     if (item.route) {
       const [path, queryString] = item.route.split("?");
@@ -418,7 +380,6 @@ export class CommandPaletteComponent implements OnInit, AfterViewInit {
     }
     this.closePalette();
   }
-
   onBackdropClick(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains("command-palette-backdrop")) {
       this.closePalette();

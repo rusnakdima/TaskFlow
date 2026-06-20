@@ -1,7 +1,6 @@
 import { Component, Input, signal, computed, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { PullToRefreshState } from "./pull-to-refresh.directive";
-
 @Component({
   selector: "app-pull-to-refresh-indicator",
   standalone: true,
@@ -24,14 +23,11 @@ import { PullToRefreshState } from "./pull-to-refresh.directive";
 export class PullToRefreshIndicatorComponent {
   @Input() state = signal<PullToRefreshState>("idle");
   @Input() pullDistance = signal(0);
-
   isVisible = computed(() => this.state() !== "idle");
-
   transformStyle = computed(() => {
     const dist = Math.min(this.pullDistance(), 80);
     return `translateY(${dist}px)`;
   });
-
   opacityStyle = computed(() => {
     const s = this.state();
     if (s === "refreshing" || s === "complete") {

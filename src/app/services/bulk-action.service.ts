@@ -1,8 +1,6 @@
 /* sys lib */
 import { Injectable, signal, computed } from "@angular/core";
-
 import { BulkActionMode, BulkActionState } from "@entities/bulk-action.model";
-
 @Injectable({
   providedIn: "root",
 })
@@ -14,14 +12,12 @@ export class BulkActionService {
     mode: "todos",
     show: false,
   });
-
   selectedIds = computed(() => this.state().selectedIds);
   selectedCount = computed(() => this.state().selectedIds.size);
   isAllSelected = computed(() => this.state().isAllSelected);
   totalCount = computed(() => this.state().totalCount);
   mode = computed(() => this.state().mode);
   show = computed(() => this.state().show);
-
   /**
    * Initialize bulk actions for a specific mode
    */
@@ -34,13 +30,11 @@ export class BulkActionService {
       show: false,
     });
   }
-
   /**
    * Set the current pool of IDs that can be selected (e.g. current filtered list)
    */
   updateTotalCount(count: number, allIds?: string[]): void {
     const currentState = this.state();
-
     // Cleanup: remove IDs that are no longer in the list
     const newSelected = new Set(currentState.selectedIds);
     if (allIds) {
@@ -50,7 +44,6 @@ export class BulkActionService {
         }
       }
     }
-
     this.state.set({
       ...currentState,
       totalCount: count,
@@ -59,23 +52,19 @@ export class BulkActionService {
       isAllSelected: newSelected.size === count && count > 0,
     });
   }
-
   /**
    * Toggle selection of a single item
    */
   toggleSelection(id: string): void {
     const currentState = this.state();
     const newSelected = new Set(currentState.selectedIds);
-
     if (newSelected.has(id)) {
       newSelected.delete(id);
     } else {
       newSelected.add(id);
     }
-
     const isAllSelected =
       newSelected.size === currentState.totalCount && currentState.totalCount > 0;
-
     this.state.set({
       ...currentState,
       selectedIds: newSelected,
@@ -83,7 +72,6 @@ export class BulkActionService {
       isAllSelected,
     });
   }
-
   /**
    * Select all items (called with the list of current IDs)
    */
@@ -96,7 +84,6 @@ export class BulkActionService {
       isAllSelected: true,
     });
   }
-
   /**
    * Toggle select all (requires IDs from view if selecting all)
    */
@@ -108,7 +95,6 @@ export class BulkActionService {
       this.selectAll(currentIds);
     }
   }
-
   /**
    * Clear selection
    */
@@ -121,7 +107,6 @@ export class BulkActionService {
       isAllSelected: false,
     });
   }
-
   /**
    * Set mode
    */
@@ -132,7 +117,6 @@ export class BulkActionService {
       mode,
     });
   }
-
   /**
    * Directly set selected count and show state (for views with local selection)
    */

@@ -15,11 +15,9 @@ import { Profile } from "@entities/generated/api.types";
 import { UserAvatarComponent } from "@components/user-avatar/user-avatar.component";
 import { AppButtonComponent } from "@components/shared/button/button.component";
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
-
 export interface PermissionsSectionValue {
   roles: Record<string, string>;
 }
-
 @Component({
   selector: "app-permissions-section",
   standalone: true,
@@ -44,7 +42,6 @@ export interface PermissionsSectionValue {
 export class PermissionsSectionComponent implements ControlValueAccessor {
   @Input() assignees: Profile[] = [];
   @Input() isOwner = false;
-
   @Input()
   get selectedIds(): Set<string> {
     return this._selectedIds();
@@ -52,7 +49,6 @@ export class PermissionsSectionComponent implements ControlValueAccessor {
   set selectedIds(value: Set<string>) {
     this._selectedIds.set(value);
   }
-
   @Input()
   get roles(): Record<string, string> {
     return this._roles();
@@ -60,34 +56,26 @@ export class PermissionsSectionComponent implements ControlValueAccessor {
   set roles(value: Record<string, string>) {
     this._roles.set(value);
   }
-
   @Output() rolesChange = new EventEmitter<{ profileId: string; role: string }>();
   @Output() transferOwnership = new EventEmitter<void>();
-
   private _selectedIds = signal<Set<string>>(new Set());
   private _roles = signal<Record<string, string>>({});
-
   private onChange: (value: PermissionsSectionValue) => void = () => {};
   private onTouched: () => void = () => {};
-
   writeValue(obj: PermissionsSectionValue): void {
     if (obj && obj.roles) {
       this._roles.set(obj.roles);
     }
   }
-
   registerOnChange(fn: (value: PermissionsSectionValue) => void): void {
     this.onChange = fn;
   }
-
   registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
-
   getProfile(profileId: string): Profile | undefined {
     return this.assignees.find((p) => p.user_id === profileId);
   }
-
   onRoleChange(profileId: string, role: string): void {
     this._roles.update((currentRoles) => ({
       ...currentRoles,
@@ -97,11 +85,9 @@ export class PermissionsSectionComponent implements ControlValueAccessor {
     this.onChange({ roles: this._roles() });
     this.onTouched();
   }
-
   onTransferOwnership(): void {
     this.transferOwnership.emit();
   }
-
   getRoleIcon(role: string): string {
     const icons: Record<string, string> = {
       viewer: "visibility",
@@ -111,7 +97,6 @@ export class PermissionsSectionComponent implements ControlValueAccessor {
     };
     return icons[role] || "visibility";
   }
-
   getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
       viewer: "Viewer",
@@ -121,7 +106,6 @@ export class PermissionsSectionComponent implements ControlValueAccessor {
     };
     return labels[role] || "Viewer";
   }
-
   getRoles(): Record<string, string> {
     return this._roles();
   }

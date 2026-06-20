@@ -12,7 +12,6 @@ export type AdminFieldType =
   | "boolean"
   | "change"
   | "expand";
-
 export interface AdminFieldConfig {
   key: string;
   label: string;
@@ -23,7 +22,6 @@ export interface AdminFieldConfig {
   getChipColor?: (value: any) => string;
   getChipText?: (value: any) => string;
 }
-
 export interface AdminFilterState {
   titleFilter: string;
   descriptionFilter: string;

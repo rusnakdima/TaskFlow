@@ -1,7 +1,6 @@
 /* sys lib */
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
-
 @Component({
   selector: "app-modal-dialog",
   standalone: true,
@@ -13,9 +12,7 @@ export class ModalDialogComponent {
   @Input() showClose: boolean = true;
   @Input() size: "sm" | "md" | "lg" = "md";
   @Input() isOpen: boolean = false;
-
   @Output() closed = new EventEmitter<void>();
-
   get sizeClasses(): string {
     switch (this.size) {
       case "sm":
@@ -27,11 +24,9 @@ export class ModalDialogComponent {
         return "max-w-md";
     }
   }
-
   onBackdropClick(): void {
     this.close();
   }
-
   close(): void {
     this.isOpen = false;
     this.closed.emit();

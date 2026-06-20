@@ -2,14 +2,11 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input, Output, EventEmitter } from "@angular/core";
 import { FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
-
 /* materials */
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatCheckboxModule } from "@angular/material/checkbox";
-
 /* models */
 import { CheckboxField } from "@entities/form-field.model";
-
 @Component({
   selector: "app-checkbox",
   standalone: true,
@@ -25,23 +22,19 @@ export class CheckboxComponent {
   @Input() highlight: boolean = false;
   @Input() tabIndex: number = 0;
   @Output() checkedChange = new EventEmitter<{ checked: boolean; event?: MouseEvent }>();
-
   onToggle(event: any) {
     this.checked = event.checked;
     this.checkedChange.emit({ checked: this.checked, event: event.source?.clickEvent });
   }
-
   toggle() {
     this.checked = !this.checked;
     this.checkedChange.emit({ checked: this.checked, event: undefined });
   }
-
   toggleField(fieldName: string) {
     if (!this.form) return;
     const currentValue = this.form.get(fieldName)?.value;
     this.form.get(fieldName)?.setValue(!currentValue);
   }
-
   onKeyDown(event: KeyboardEvent) {
     if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
@@ -52,7 +45,6 @@ export class CheckboxComponent {
       }
     }
   }
-
   isInvalid(attr?: string) {
     if (!this.form || !attr) return false;
     return (

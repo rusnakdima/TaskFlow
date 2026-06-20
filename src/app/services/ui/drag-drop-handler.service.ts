@@ -1,6 +1,5 @@
 import { Injectable } from "@angular/core";
 import { CdkDragEnter, CdkDropList, DragRef } from "@angular/cdk/drag-drop";
-
 @Injectable({
   providedIn: "root",
 })
@@ -10,7 +9,6 @@ export class DragDropHandlerService {
   private _dragSource: CdkDropList | null = null;
   private _dragSourceIndex = 0;
   private _dragRef: DragRef | null = null;
-
   get dragTarget(): CdkDropList | null {
     return this._dragTarget;
   }
@@ -26,24 +24,20 @@ export class DragDropHandlerService {
   get dragRef(): DragRef | null {
     return this._dragRef;
   }
-
   onListEntered(event: CdkDragEnter, placeholder: CdkDropList): void {
     const { item, container } = event;
     if (container === placeholder) return;
     if (!placeholder?.element?.nativeElement) return;
-
     const placeholderEl = placeholder.element.nativeElement as HTMLElement;
     const sourceEl = item.dropContainer.element.nativeElement as HTMLElement;
     const dropEl = container.element.nativeElement as HTMLElement;
     const parent = dropEl.parentElement;
     if (!parent) return;
-
     const dragIndex = Array.prototype.indexOf.call(
       parent.children,
       this._dragSource ? placeholderEl : sourceEl
     );
     const dropIndex = Array.prototype.indexOf.call(parent.children, dropEl);
-
     if (!this._dragSource) {
       this._dragSourceIndex = dragIndex;
       this._dragSource = item.dropContainer;
@@ -51,24 +45,19 @@ export class DragDropHandlerService {
       placeholderEl.style.minHeight = sourceEl.offsetHeight + "px";
       sourceEl.parentElement?.removeChild(sourceEl);
     }
-
     this._dragTargetIndex = dropIndex;
     this._dragTarget = container;
     this._dragRef = item._dragRef;
-
     placeholderEl.style.display = "";
     parent.insertBefore(placeholderEl, dropIndex > dragIndex ? dropEl.nextSibling : dropEl);
-
     placeholder._dropListRef.enter(
       item._dragRef,
       item.element.nativeElement.offsetLeft,
       item.element.nativeElement.offsetTop
     );
   }
-
   onListDropped(placeholder: CdkDropList, onReorder: (prev: number, curr: number) => void): void {
     if (!this._dragTarget || !placeholder?.element?.nativeElement) return;
-
     const placeholderEl = placeholder.element.nativeElement as HTMLElement;
     const parent = placeholderEl.parentElement;
     if (parent) {
@@ -80,17 +69,14 @@ export class DragDropHandlerService {
         parent.insertBefore(sourceEl, parent.children[this._dragSourceIndex]);
       }
     }
-
     if (placeholder._dropListRef.isDragging() && this._dragRef) {
       placeholder._dropListRef.exit(this._dragRef);
     }
-
     const prev = this._dragSourceIndex;
     const curr = this._dragTargetIndex;
     this._dragTarget = null;
     this._dragSource = null;
     this._dragRef = null;
-
     if (prev !== curr) {
       onReorder(prev, curr);
     }

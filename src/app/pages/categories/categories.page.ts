@@ -4,12 +4,10 @@ import { Component, signal, computed, inject, OnInit } from "@angular/core";
 import { RouterModule, ActivatedRoute } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { Observable } from "rxjs";
-
 /* materials */
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatButtonModule } from "@angular/material/button";
-
 /* models */
 import { Category } from "@entities/generated/api.types";
 import { ResponseStatus } from "@entities/response.model";
@@ -20,7 +18,6 @@ import {
   SegmentSelectorComponent,
   SegmentOption,
 } from "@components/segment-selector/segment-selector.component";
-
 /* services */
 import { AdminService } from "@services/data/admin.service";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
@@ -29,13 +26,10 @@ import { SearchService } from "@core/services/search.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
 import { ApiService } from "@services/api.service";
 import { TauriApiService } from "@app/api/tauri-api.service";
-
 /* views */
 import { BaseListView } from "@pages/base-list.page";
-
 /* helpers */
 import { compareByTimestamp } from "@helpers/array.helper";
-
 /* components */
 import { CategoryFormComponent } from "@components/category-form/category-form.component";
 import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
@@ -47,7 +41,6 @@ import {
   PageToolbarConfig,
 } from "@components/page-toolbar/page-toolbar.component";
 import { CATEGORY_CARD_CONFIG, CATEGORY_TABLE_CONFIG } from "@shared/utils/constants";
-
 @Component({
   selector: "app-categories",
   standalone: true,
@@ -78,15 +71,11 @@ export class CategoriesView extends BaseListView implements OnInit {
   private route = inject(ActivatedRoute);
   private _apiService = inject(ApiService);
   private tauriApi = inject(TauriApiService);
-
   refreshState = signal<"idle" | "refreshing">("idle");
   override loading = signal(false);
-
   activeVisibility = signal<"all" | "local" | "cloud">("all");
-
   private localCategoryIds = signal<Set<string>>(new Set());
   private cloudCategoryIds = signal<Set<string>>(new Set());
-
   categoriesPagination = signal<{
     skip: number;
     limit: number;
@@ -94,21 +83,17 @@ export class CategoriesView extends BaseListView implements OnInit {
     hasMore: boolean;
     loading: boolean;
   }>({ skip: 0, limit: 10, total: 0, hasMore: true, loading: false });
-
   allCategories = computed(() =>
     this.entityStore.categories().filter((c: Category) => !c.deleted_at)
   );
-
   localCategories = computed(() => {
     const localIds = this.localCategoryIds();
     return this.allCategories().filter((c) => localIds.has(c.id));
   });
-
   cloudCategories = computed(() => {
     const cloudIds = this.cloudCategoryIds();
     return this.allCategories().filter((c) => cloudIds.has(c.id));
   });
-
   visibilityOptions = computed<SegmentOption[]>(() => [
     {
       id: "all",
@@ -129,31 +114,25 @@ export class CategoriesView extends BaseListView implements OnInit {
       count: this.cloudCategories().length,
     },
   ]);
-
   protected getItems(): { id: string }[] {
     return this.searchResults();
   }
-
   protected get selectedCategories() {
     return this.selectedItems;
   }
-
   showOfflineBanner = computed(() => {
     const vis = this.activeVisibility();
     return vis === "cloud" && this.isOffline();
   });
-
   cloudOffline = computed(() => {
     const vis = this.activeVisibility();
     const offline = this.isOffline();
     return vis === "cloud" && offline;
   });
-
   searchResults = computed(() => {
     if (this.cloudOffline()) {
       return [];
     }
-
     const vis = this.activeVisibility();
     const cats =
       vis === "local"
@@ -161,9 +140,7 @@ export class CategoriesView extends BaseListView implements OnInit {
         : vis === "cloud"
           ? this.cloudCategories()
           : this.allCategories();
-
     let filtered = [...cats];
-
     const query = this.searchQuery().toLowerCase().trim();
     if (query) {
       filtered = filtered.filter((cat: Category) =>
@@ -184,23 +161,19 @@ export class CategoriesView extends BaseListView implements OnInit {
       return order === "asc" ? comparison : -comparison;
     });
   });
-
   override onSearchChange(query: string): void {
     super.onSearchChange(query);
     this.searchService.search("categories", query);
   }
-
   showCreateForm = signal(false);
   editingCategory = signal<Category | null>(null);
   sortBy = signal<"title" | "createdAt" | "updatedAt">("createdAt");
   sortOrder = signal<"asc" | "desc">("desc");
   highlightCategoryId = signal<string | null>(null);
-
   categoryCardConfig = CATEGORY_CARD_CONFIG;
   categoryTableConfig = CATEGORY_TABLE_CONFIG;
   categoryActions = [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   categoryExpandFields: TableField[] = [];
-
   categoryTableFields: TableField[] = [
     {
       key: "title",
@@ -221,19 +194,15 @@ export class CategoriesView extends BaseListView implements OnInit {
       type: "date",
     },
   ];
-
   override ngOnInit(): void {
     super.ngOnInit();
-
     this.pageKey = "categories";
     this.viewMode.set(this.loadViewModePreference());
-
     this.subscriptions.add(
       this.shortcutService.createCategory$.subscribe(() => {
         this.toggleCreateForm();
       })
     );
-
     this.subscriptions.add(
       this.route.queryParams.subscribe((queryParams: any) => {
         const highlightId = queryParams.highlightCategoryId;
@@ -245,20 +214,16 @@ export class CategoriesView extends BaseListView implements OnInit {
         );
       })
     );
-
     this.loadCategories();
   }
-
   loadCategories(): void {
     const visibility = this.activeVisibility();
     if (visibility === "cloud" && this.isOffline()) {
       return;
     }
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
-
     this.loadLocalCategories();
     this.loadCloudCategories();
-
     this.categoriesPagination.update((p) => ({
       ...p,
       loading: false,
@@ -266,7 +231,6 @@ export class CategoriesView extends BaseListView implements OnInit {
       hasMore: true,
     }));
   }
-
   private loadLocalCategories(): void {
     this.subscriptions.add(
       this.tauriApi
@@ -277,7 +241,6 @@ export class CategoriesView extends BaseListView implements OnInit {
             if (localCats && localCats.length > 0) {
               const localIds = new Set<string>(localCats.map((c: any) => c.id));
               this.localCategoryIds.set(localIds);
-
               localCats.forEach((cat: any) => {
                 this.entityStore.addEntity("categories", cat);
               });
@@ -287,7 +250,6 @@ export class CategoriesView extends BaseListView implements OnInit {
         })
     );
   }
-
   private loadCloudCategories(): void {
     this.subscriptions.add(
       this._apiService.categories.getAll({ visibility: "all", limit: 1000 }).subscribe({
@@ -302,37 +264,30 @@ export class CategoriesView extends BaseListView implements OnInit {
       })
     );
   }
-
   loadMoreCategories(): void {
     if (this.categoriesPagination().loading || !this.categoriesPagination().hasMore) return;
     this.categoriesPagination.update((p) => ({ ...p, loading: true }));
     this.entityStore.loadMoreCategories();
   }
-
   toggleCreateForm() {
     this.showCreateForm.update((val) => !val);
     this.editingCategory.set(null);
   }
-
   editCategory(category: Category) {
     this.editingCategory.set(category);
     this.showCreateForm.set(true);
   }
-
   onFormClose() {
     this.showCreateForm.set(false);
     this.editingCategory.set(null);
   }
-
   onFormSaved() {
     this.onFormClose();
     this.loadCategories();
   }
-
   onCategoryExpand(item: Category): Observable<any> {
     return this.relationLoadingService.load<Category>("categories", item.id, ["user"]);
   }
-
   private getCategoryStorageType(categoryId: string): "local" | "cloud" {
     if (this.localCategoryIds().has(categoryId)) {
       return "local";
@@ -342,13 +297,11 @@ export class CategoriesView extends BaseListView implements OnInit {
     }
     return "cloud";
   }
-
   getCategoryStorageTarget(): StorageTarget {
     const editing = this.editingCategory();
     if (!editing) return "local";
     return this.getCategoryStorageType(editing.id) as StorageTarget;
   }
-
   async archiveCategory(categoryId: string) {
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Category",
@@ -360,7 +313,6 @@ export class CategoriesView extends BaseListView implements OnInit {
     if (confirmed) {
       try {
         const storageType = this.getCategoryStorageType(categoryId);
-
         if (storageType === "local") {
           const response = await this.adminService.toggleDeleteStatusLocal(
             "categories",
@@ -401,15 +353,12 @@ export class CategoriesView extends BaseListView implements OnInit {
       }
     }
   }
-
   deleteCategory(categoryId: string) {
     this.archiveCategory(categoryId);
   }
-
   cancelEdit() {
     this.toggleCreateForm();
   }
-
   toggleCategorySelection(categoryId: string): void {
     this.selectedCategories.update((selected) => {
       const next = new Set(selected);
@@ -421,11 +370,9 @@ export class CategoriesView extends BaseListView implements OnInit {
       return next;
     });
   }
-
   async bulkArchive(): Promise<void> {
     const selected = this.selectedCategories();
     if (selected.size === 0) return;
-
     const allCategories = this.allCategories();
     const selectedIdsArr = Array.from(selected);
     const selectedCategoriesList = allCategories.filter((c) => selectedIdsArr.includes(c.id));
@@ -433,14 +380,12 @@ export class CategoriesView extends BaseListView implements OnInit {
       (c) => c.user_id === this.currentUserId
     );
     const skippedCount = selected.size - allowedCategories.length;
-
     if (allowedCategories.length === 0) {
       this.notifyService.showError(
         "You don't have permission to archive any of the selected categories"
       );
       return;
     }
-
     const confirmed = await this.confirmDialogService.confirm({
       title: "Archive Categories",
       message: `Are you sure you want to archive ${selected.size} categorie(s)?${skippedCount > 0 ? ` (${skippedCount} skipped due to permissions)` : ""}`,
@@ -449,22 +394,17 @@ export class CategoriesView extends BaseListView implements OnInit {
     });
     if (confirmed) {
       const archivedAt = new Date().toISOString();
-
       const localCategories = allowedCategories.filter((c) => this.localCategoryIds().has(c.id));
       const cloudCategories = allowedCategories.filter((c) => !this.localCategoryIds().has(c.id));
-
       for (const category of localCategories) {
         await this.adminService.toggleDeleteStatusLocal("categories", category.id, "local");
       }
-
       for (const category of cloudCategories) {
         await this.adminService.toggleDeleteStatus("categories", category.id, "cloud");
       }
-
       this.entityStore.categories.update((cats) =>
         cats.map((c) => (selectedIdsArr.includes(c.id) ? { ...c, deleted_at: archivedAt } : c))
       );
-
       const successMsg =
         skippedCount > 0
           ? `${allowedCategories.length} categorie(s) archived, ${skippedCount} skipped`
@@ -474,9 +414,7 @@ export class CategoriesView extends BaseListView implements OnInit {
       this.searchQuery.set("");
     }
   }
-
   onRowClick(_category: Category): void {}
-
   onTableAction(event: { action: string; item: Category }): void {
     const { action, item } = event;
     if (action === "edit") {
@@ -485,11 +423,9 @@ export class CategoriesView extends BaseListView implements OnInit {
       this.archiveCategory(item.id);
     }
   }
-
   getCategoryTableActions(): TableFieldActionButton[] {
     return [TABLE_ACTIONS.EDIT, TABLE_ACTIONS.ARCHIVE];
   }
-
   onTableSelectAll(selectAll: boolean): void {
     this.selectedItems.update((categoryIds) => {
       const newSelected = new Set(categoryIds);
@@ -502,7 +438,6 @@ export class CategoriesView extends BaseListView implements OnInit {
       return newSelected;
     });
   }
-
   getToolbarConfig(): PageToolbarConfig {
     return {
       sortMenu: {
@@ -547,16 +482,13 @@ export class CategoriesView extends BaseListView implements OnInit {
       },
     };
   }
-
   onSearch(query: string): void {
     this.searchQuery.set(query);
   }
-
   onVisibilityChange(visibility: string): void {
     this.activeVisibility.set(visibility as any);
     this.loadCategories();
   }
-
   onCardClick(event: { event: MouseEvent; id: string }): void {
     if (event.event.shiftKey) {
       const anchorId = this.lastSelectedId();
@@ -570,7 +502,6 @@ export class CategoriesView extends BaseListView implements OnInit {
       return;
     }
   }
-
   onCategoryAction(event: { action: string; item: Category }): void {
     switch (event.action) {
       case "edit":

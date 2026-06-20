@@ -1,20 +1,16 @@
 import { signal, ElementRef } from "@angular/core";
-
 export class ScrollingMixin {
   processedIds = signal<Set<string>>(new Set());
   isFirstLoad = signal(true);
   shouldScroll = signal(false);
-
   scrollContainer?: ElementRef;
   protected observer?: IntersectionObserver;
-
   protected initIntersectionObserver(
     _getUnreadSelector: string,
     getIdAttribute: string,
     onUnreadObserved: (id: string) => void
   ): void {
     if (typeof window === "undefined") return;
-
     this.observer?.disconnect();
     this.observer = new IntersectionObserver(
       (entries) => {
@@ -36,7 +32,6 @@ export class ScrollingMixin {
       { threshold: 1.0 }
     );
   }
-
   protected updateObservedElements(getUnreadSelector: string, getIdAttribute: string): void {
     setTimeout(() => {
       const list = this.scrollContainer?.nativeElement;
@@ -51,7 +46,6 @@ export class ScrollingMixin {
       }
     }, 100);
   }
-
   protected scrollToBottom(): void {
     setTimeout(() => {
       const list = this.scrollContainer?.nativeElement;
@@ -60,7 +54,6 @@ export class ScrollingMixin {
       }
     }, 50);
   }
-
   protected smartScroll(): void {
     setTimeout(() => {
       const list = this.scrollContainer?.nativeElement;
@@ -73,7 +66,6 @@ export class ScrollingMixin {
       }
     }, 100);
   }
-
   protected destroyObserver(): void {
     if (this.observer) {
       this.observer.disconnect();

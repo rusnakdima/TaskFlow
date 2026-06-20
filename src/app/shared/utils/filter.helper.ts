@@ -1,10 +1,8 @@
 /* sys lib */
 import { TaskStatus } from "@entities/generated/api.types";
 import { AdminFilterState } from "@entities/admin-table.model";
-
 /* helpers */
 import { ObjectHelper } from "@helpers/object.helper";
-
 /**
  * Filter configuration interface
  */
@@ -21,7 +19,6 @@ export interface FilterConfig {
     | "isNull"
     | "isNotNull";
 }
-
 /**
  * FilterHelper - Centralized filter logic for all views
  *
@@ -33,7 +30,6 @@ export class FilterHelper {
    */
   static applyFilter<T>(data: T[], config: FilterConfig): T[] {
     const { field, value, operator = "contains" } = config;
-
     if (
       operator !== "isNull" &&
       operator !== "isNotNull" &&
@@ -43,21 +39,17 @@ export class FilterHelper {
     ) {
       return data;
     }
-
     return data.filter((item: T) => {
       const itemValue = ObjectHelper.getNestedValue(item, field);
-
       if (operator === "isNull") {
         return itemValue == null || itemValue === "";
       }
       if (operator === "isNotNull") {
         return itemValue != null && itemValue !== "";
       }
-
       if (itemValue == null || itemValue === undefined) {
         return false;
       }
-
       switch (operator) {
         case "equals":
           return itemValue === value;
@@ -75,7 +67,6 @@ export class FilterHelper {
       }
     });
   }
-
   /**
    * Apply multiple filters to an array
    */
@@ -84,7 +75,6 @@ export class FilterHelper {
       return FilterHelper.applyFilter(filteredData, config);
     }, data);
   }
-
   /**
    * Filter by status
    */
@@ -92,17 +82,14 @@ export class FilterHelper {
     if (!status || status === "all") {
       return data;
     }
-
     if (status === "done") {
       return data.filter(
         (item) =>
           item.status === "completed" || item.status === "skipped" || item.status === "failed"
       );
     }
-
     return data.filter((item) => item.status === status);
   }
-
   /**
    * Filter by priority
    */
@@ -112,7 +99,6 @@ export class FilterHelper {
     }
     return data.filter((item) => item.priority === priority);
   }
-
   /**
    * Filter by completion status
    */
@@ -130,7 +116,6 @@ export class FilterHelper {
         return data;
     }
   }
-
   /**
    * Filter this week
    */
@@ -142,11 +127,9 @@ export class FilterHelper {
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - dayOfWeek);
     startOfWeek.setHours(0, 0, 0, 0);
-
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-
     return data.filter((item) => {
       if (item.start_date && item.end_date) {
         const itemStart = new Date(item.start_date);
@@ -156,20 +139,17 @@ export class FilterHelper {
       return false;
     });
   }
-
   /**
    * Clear all filters
    */
   static clearFilters(): FilterConfig[] {
     return [];
   }
-
   /**
    * Admin-specific filter builder
    */
   static buildAdminFilterConfigs(filters: AdminFilterState, selectedType: string): FilterConfig[] {
     const filterConfigs: FilterConfig[] = [];
-
     if (filters.titleFilter) {
       filterConfigs.push({
         field: "title",
@@ -177,7 +157,6 @@ export class FilterHelper {
         operator: "contains",
       });
     }
-
     if (filters.descriptionFilter) {
       filterConfigs.push({
         field: "description",
@@ -185,7 +164,6 @@ export class FilterHelper {
         operator: "contains",
       });
     }
-
     if (filters.priorityFilter && filters.priorityFilter !== "") {
       filterConfigs.push({
         field: "priority",
@@ -193,14 +171,12 @@ export class FilterHelper {
         operator: "equals",
       });
     }
-
     // Status filter (active/deleted)
     if (filters.deletedFilter === "not_deleted") {
       filterConfigs.push({ field: "deleted_at", value: null, operator: "isNull" });
     } else if (filters.deletedFilter === "deleted") {
       filterConfigs.push({ field: "deleted_at", value: null, operator: "isNotNull" });
     }
-
     // Task/Subtask status filters
     if (selectedType === "tasks" || selectedType === "subtasks") {
       const statusValue = filters.isCompletedFilter;
@@ -212,7 +188,6 @@ export class FilterHelper {
         });
       }
     }
-
     // Visibility filter - only for todos
     if (
       selectedType === "todos" &&
@@ -225,10 +200,8 @@ export class FilterHelper {
         operator: "equals",
       });
     }
-
     return filterConfigs;
   }
-
   /**
    * Apply admin-specific custom filters
    */
@@ -240,30 +213,23 @@ export class FilterHelper {
     if (filters.userFilter) {
       data = this.applyUserFilter(data, filters.userFilter);
     }
-
     if (filters.categoriesFilter) {
       data = this.applyCategoriesFilter(data, filters.categoriesFilter);
     }
-
     if (filters.startDateFilter) {
       data = this.applyStartDateFilter(data, filters.startDateFilter);
     }
-
     if (filters.endDateFilter) {
       data = this.applyEndDateFilter(data, filters.endDateFilter);
     }
-
     if (filters.todoIdFilter && selectedType === "tasks") {
       data = this.applyTodoIdFilter(data, filters.todoIdFilter);
     }
-
     if (filters.taskIdFilter && selectedType === "subtasks") {
       data = this.applyTaskIdFilter(data, filters.taskIdFilter);
     }
-
     return data;
   }
-
   private static applyUserFilter<T>(data: T[], filter: string): T[] {
     return data.filter((item: T) => {
       const itemRecord = item as Record<string, unknown>;
@@ -276,7 +242,6 @@ export class FilterHelper {
       return username.includes(filterStr);
     });
   }
-
   private static applyCategoriesFilter<T>(data: T[], filter: string): T[] {
     return data.filter((item: T) => {
       const itemRecord = item as Record<string, unknown>;
@@ -291,7 +256,6 @@ export class FilterHelper {
       return false;
     });
   }
-
   private static applyStartDateFilter<T>(data: T[], filterDate: string): T[] {
     const date = new Date(filterDate);
     return data.filter((item: T) => {
@@ -300,7 +264,6 @@ export class FilterHelper {
       return itemDate >= date;
     });
   }
-
   private static applyEndDateFilter<T>(data: T[], filterDate: string): T[] {
     const date = new Date(filterDate);
     return data.filter((item: T) => {
@@ -309,19 +272,16 @@ export class FilterHelper {
       return itemDate <= date;
     });
   }
-
   private static applyTodoIdFilter<T>(data: T[], todoId: string): T[] {
     return data.filter((item: T) => {
       return (item as Record<string, unknown>)["todo_id"] === todoId;
     });
   }
-
   private static applyTaskIdFilter<T>(data: T[], taskId: string): T[] {
     return data.filter((item: T) => {
       return (item as Record<string, unknown>)["task_id"] === taskId;
     });
   }
-
   /**
    * Admin-specific status filtering (uses TaskStatus enum logic)
    */
@@ -344,7 +304,6 @@ export class FilterHelper {
     }
     return data;
   }
-
   /**
    * Get default admin filter state
    */

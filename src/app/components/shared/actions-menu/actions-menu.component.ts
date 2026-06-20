@@ -8,7 +8,6 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
-
 export interface MenuAction {
   key?: string;
   label: string;
@@ -16,7 +15,6 @@ export interface MenuAction {
   disabled?: boolean;
   danger?: boolean;
 }
-
 @Component({
   selector: "app-actions-menu",
   standalone: true,
@@ -31,14 +29,12 @@ export class ActionsMenuComponent {
   @Input() disabledText = "Action disabled";
   @Output() menuClosed = new EventEmitter<void>();
   @Output() actionClicked = new EventEmitter<MenuAction>();
-
   @HostListener("document:keydown.escape")
   onEscapeKey(): void {
     if (this.isOpen) {
       this.closeMenu();
     }
   }
-
   toggleMenu(event: Event): void {
     event.stopPropagation();
     if (!this.disabled) {
@@ -48,14 +44,12 @@ export class ActionsMenuComponent {
       }
     }
   }
-
   closeMenu(): void {
     if (this.isOpen) {
       this.isOpen = false;
       this.menuClosed.emit();
     }
   }
-
   onAction(action: MenuAction, event: Event): void {
     event.stopPropagation();
     if (!action.disabled) {
@@ -63,7 +57,6 @@ export class ActionsMenuComponent {
       this.closeMenu();
     }
   }
-
   getActionColor(action: MenuAction): string {
     if (action.danger) {
       return "text-red-600 dark:text-red-400";

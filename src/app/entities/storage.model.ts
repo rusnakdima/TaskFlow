@@ -1,5 +1,4 @@
 import { Todo, Task, Subtask, Comment, Chat, User, Category, Profile } from "./generated/api.types";
-
 export type EntityType =
   | "todos"
   | "tasks"
@@ -15,17 +14,11 @@ export type EntityType =
   | "privateTodos"
   | "sharedTodos"
   | "publicTodos";
-
 export type VisibilityFilter = "all" | "private" | "shared" | "public";
-
 export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
-
 export type ChatOperation = "set" | "add" | "update" | "delete" | "clear";
-
 export type ParentType = "tasks" | "subtasks" | "chats";
-
 export type ChildType = "todos" | "tasks" | "subtasks" | "categories" | "comments" | "chats";
-
 export interface EntityMap {
   todos: Todo;
   tasks: Task;
@@ -36,13 +29,11 @@ export interface EntityMap {
   profiles: Profile;
   users: User;
 }
-
 export interface PaginationState {
   skip: number;
   limit: number;
   hasMore: boolean;
 }
-
 export interface SignalBundle {
   todos: import("@angular/core").WritableSignal<Todo[]>;
   tasks: import("@angular/core").WritableSignal<Task[]>;

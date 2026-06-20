@@ -1,13 +1,10 @@
 import { Injectable, signal, inject } from "@angular/core";
 import { Todo } from "@entities/generated/api.types";
 import { TodosStateService } from "@components/todos/todos-filters/todos-state.service";
-
 @Injectable({ providedIn: "root" })
 export class TodosSelectionStateService {
   private stateService = inject(TodosStateService);
-
   selectedTodos = signal<Set<string>>(new Set());
-
   toggleTodoSelection(event: { id: string; selected: boolean }): void {
     const { id, selected } = event;
     this.selectedTodos.update((todoIds) => {
@@ -20,7 +17,6 @@ export class TodosSelectionStateService {
       return newSelected;
     });
   }
-
   onTableSelectAll(event: { selectAll: boolean; section?: "private" | "shared" | "public" }): void {
     const { selectAll, section } = event;
     this.selectedTodos.update((todoIds) => {

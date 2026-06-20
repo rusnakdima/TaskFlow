@@ -1,12 +1,9 @@
 /* sys lib */
 import { Component, EventEmitter, Output } from "@angular/core";
-
 /* models */
 import { TaskStatus } from "@entities/generated/api.types";
-
 /* helpers */
 import { PRIORITY_COLORS, STATUS_ICONS } from "@shared/utils/constants";
-
 @Component({
   selector: "app-base-kanban-card",
   standalone: true,
@@ -16,9 +13,7 @@ export abstract class BaseKanbanCardComponent {
   @Output() statusCycle = new EventEmitter<any>();
   @Output() selectionChange = new EventEmitter<boolean>();
   @Output() cardClick = new EventEmitter<any>();
-
   TaskStatus = TaskStatus;
-
   getPriorityDotColor(priority: string): string {
     const p = (priority || "medium").toLowerCase();
     switch (p) {
@@ -32,7 +27,6 @@ export abstract class BaseKanbanCardComponent {
         return "bg-yellow-500 dark:bg-yellow-400";
     }
   }
-
   getPriorityBorderColor(priority: string): string {
     const p = (priority || "medium").toLowerCase();
     switch (p) {
@@ -46,11 +40,9 @@ export abstract class BaseKanbanCardComponent {
         return "border-yellow-500 dark:border-yellow-400 border-l-4 border-l-yellow-600 dark:border-l-yellow-500";
     }
   }
-
   getPriorityBgColor(priority: string): string {
     return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.medium;
   }
-
   getStatusBorderColor(status: string): string {
     switch (status) {
       case TaskStatus.COMPLETED:
@@ -64,11 +56,9 @@ export abstract class BaseKanbanCardComponent {
         return "border-l-4 border-l-gray-400";
     }
   }
-
   getStatusIcon(status: string): string {
     return STATUS_ICONS[status as keyof typeof STATUS_ICONS] || STATUS_ICONS[TaskStatus.PENDING];
   }
-
   getStatusColorClass(status: string): string {
     switch (status) {
       case TaskStatus.COMPLETED:
@@ -82,24 +72,19 @@ export abstract class BaseKanbanCardComponent {
         return "text-gray-400 dark:text-gray-500";
     }
   }
-
   stopPropagation(event: Event): void {
     event.stopPropagation();
   }
-
   onStatusCycleClick(event: MouseEvent): void {
     event.stopPropagation();
     this.statusCycle.emit();
   }
-
   onCheckboxChange(checked: boolean): void {
     this.selectionChange.emit(checked);
   }
-
   onCardClick(_event: MouseEvent): void {
     this.cardClick.emit();
   }
-
   onDragHandleClick(event: MouseEvent): void {
     event.stopPropagation();
   }

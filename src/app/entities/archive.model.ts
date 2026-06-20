@@ -1,9 +1,7 @@
 import { Todo, Task, Subtask, Comment, Chat } from "./generated/api.types";
-
 export interface ArchiveDataMap {
   [key: string]: any[];
 }
-
 export interface DailyActivity {
   id: string;
   user_id: string;
@@ -12,9 +10,7 @@ export interface DailyActivity {
   updated_at: string;
   deleted_at?: string | null;
 }
-
 export type ArchiveRecord = Todo | Task | Subtask | Comment | Chat | DailyActivity;
-
 export interface ArchiveDataTypes {
   id: string;
   label: string;

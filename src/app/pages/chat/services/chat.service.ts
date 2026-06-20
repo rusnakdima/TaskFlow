@@ -11,7 +11,6 @@ import { Chat, Profile } from "@entities/generated/api.types";
 import { ConversationItem } from "@entities/chat.model";
 import { ChatMessage } from "@entities/chat.model";
 import { getProfileDisplayName } from "@utils/display-name.util";
-
 @Injectable({ providedIn: "root" })
 export class ChatService implements OnDestroy {
   private requestService = inject(ApiService);
@@ -22,29 +21,24 @@ export class ChatService implements OnDestroy {
   private mongoConnectionService = inject(MongoConnectionService);
   state = inject(ChatState);
   private onlineHandler: (() => void) | null = null;
-
   constructor() {
     this.initChatQueueListener();
   }
-
   ngOnDestroy(): void {
     if (this.onlineHandler && typeof window !== "undefined") {
       window.removeEventListener("online", this.onlineHandler);
       this.onlineHandler = null;
     }
   }
-
   private initChatQueueListener(): void {
     this.onlineHandler = () => {
       this.processChatQueue();
     };
     window.addEventListener("online", this.onlineHandler);
-
     if (navigator.onLine) {
       this.processChatQueue();
     }
   }
-
   loadAllUsers(): void {
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
@@ -59,23 +53,18 @@ export class ChatService implements OnDestroy {
       },
     });
   }
-
   getLoadedProfiles(): Profile[] {
     return this.profileSearchService.profiles();
   }
-
   private updateConversationsWithProfiles(): void {
     const profiles = this.profileSearchService.profiles();
     if (profiles.length === 0) return;
-
     this.state.conversations.update((convs) =>
       convs.map((conv) => {
         if (conv.isGroup) return conv;
-
         const otherUserId =
           conv.otherUserId || (conv.roomId.startsWith("dm_") ? conv.roomId.substring(3) : null);
         if (!otherUserId) return conv;
-
         const profile = profiles.find((p) => p.user_id === otherUserId);
         if (profile) {
           return {
@@ -95,7 +84,6 @@ export class ChatService implements OnDestroy {
       })
     );
   }
-
   loadRooms(): void {
     const userId = this.state.currentUserId();
     if (!userId) {
@@ -103,12 +91,10 @@ export class ChatService implements OnDestroy {
       this.loadGroups();
       return;
     }
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       this.loadRoomsFromLocal();
       return;
     }
-
     this.requestService
       .invokeCommand("get_rooms", {
         token: this.authService.getToken(),
@@ -122,13 +108,11 @@ export class ChatService implements OnDestroy {
           this.loadGroups();
           this.loadRoomsIntoConversations(rooms);
         },
-        error: (err) => {
-          console.error("get_rooms error", err);
+        error: (_err) => {
           this.loadRoomsFromLocal();
         },
       });
   }
-
   private loadRoomsFromLocal(): void {
     this.requestService.chats.getAll({ visibility: "private", limit: 100 }).subscribe({
       next: () => {
@@ -141,27 +125,21 @@ export class ChatService implements OnDestroy {
       },
     });
   }
-
   private loadConversationsFromLocal(): void {
     const chats = this.storageService.chats();
     const currentUserId = this.state.currentUserId();
     const convMap = new Map<string, ConversationItem>();
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
-
       const roomId = chat.room_id;
       if (!roomId) continue;
-
       const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
-
       if (!convMap.has(roomId)) {
         let name = "Unknown";
         let avatar: string | null = null;
         let isGroup = roomId.startsWith("group_");
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
-
         if (existingConv && existingConv.name !== "Unknown") {
           name = existingConv.name;
           avatar = existingConv.avatar;
@@ -184,7 +162,6 @@ export class ChatService implements OnDestroy {
             name = "Group";
           }
         }
-
         convMap.set(roomId, {
           roomId: roomId,
           name: name,
@@ -207,32 +184,26 @@ export class ChatService implements OnDestroy {
         existing.lastMessageTime = this.state.formatDate(chat.created_at || "");
       }
     }
-
     const existingConversations = this.state.conversations();
     for (const conv of existingConversations) {
       if (!convMap.has(conv.roomId)) {
         convMap.set(conv.roomId, { ...conv, isLocal: true });
       }
     }
-
     const sorted = Array.from(convMap.values()).sort((a, b) => {
       const timeA = a.lastMessageTime || "";
       const timeB = b.lastMessageTime || "";
       return timeB.localeCompare(timeA);
     });
-
     this.state.conversations.set(sorted);
   }
-
   private loadGroupsFromLocal(): void {
     const chats = this.storageService.chats();
     const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
       const roomId = chat.room_id;
       if (!roomId || !roomId.startsWith("group_")) continue;
-
       if (!existingRooms.has(roomId)) {
         const conv: ConversationItem = {
           roomId: roomId,
@@ -254,11 +225,9 @@ export class ChatService implements OnDestroy {
       }
     }
   }
-
   private loadRoomsIntoConversations(rooms: any[]): void {
     const currentUserId = this.state.currentUserId();
     if (!currentUserId || !Array.isArray(rooms)) return;
-
     for (const room of rooms) {
       const isGroup = room.is_group === true || (room.room || "").startsWith("group_");
       const memberIds: string[] = (room.participant_ids || []).filter(
@@ -267,10 +236,8 @@ export class ChatService implements OnDestroy {
       const otherUserId = isGroup
         ? undefined
         : memberIds.find((id: string) => id !== currentUserId);
-
       let name = isGroup ? room.name || "Group" : room.name || "Unknown";
       let avatar: string | null = null;
-
       if (!isGroup && otherUserId) {
         const profile = this.getProfileByUserId(otherUserId);
         if (profile) {
@@ -280,9 +247,7 @@ export class ChatService implements OnDestroy {
           this.fetchProfileIfMissing(otherUserId);
         }
       }
-
       const existingIdx = this.state.conversations().findIndex((c) => c.roomId === room.room);
-
       if (existingIdx !== -1) {
         const currentConv = this.state.conversations()[existingIdx];
         if (currentConv.isLocal || currentConv.name === "Unknown") {
@@ -301,7 +266,6 @@ export class ChatService implements OnDestroy {
         }
         continue;
       }
-
       const conv: ConversationItem = {
         roomId: room.room,
         name: name,
@@ -318,31 +282,24 @@ export class ChatService implements OnDestroy {
         bio: "",
         otherUserId: otherUserId,
       };
-
       this.state.conversations.update((convs) => [...convs, conv]);
     }
   }
-
   private loadConversations(): void {
     const chats = this.storageService.chats();
     const currentUserId = this.state.currentUserId();
     const convMap = new Map<string, ConversationItem>();
-
     for (const chat of chats) {
       if (chat.deleted_at) continue;
-
       const roomId = chat.room_id;
       if (!roomId) continue;
-
       const existingConv = this.state.conversations().find((c) => c.roomId === roomId);
-
       if (!convMap.has(roomId)) {
         let name = "Unknown";
         let avatar: string | null = null;
         let isGroup = roomId.startsWith("group_");
         let memberIds: string[] = [];
         let otherUserId: string | undefined;
-
         if (existingConv && existingConv.name !== "Unknown") {
           name = existingConv.name;
           avatar = existingConv.avatar;
@@ -365,7 +322,6 @@ export class ChatService implements OnDestroy {
             name = "Group";
           }
         }
-
         convMap.set(roomId, {
           roomId: roomId,
           name: name,
@@ -383,34 +339,27 @@ export class ChatService implements OnDestroy {
           otherUserId: otherUserId,
         });
       }
-
       const conv = convMap.get(roomId)!;
       conv.lastMessage = chat.content;
       conv.lastMessageTime = this.state.formatDate(chat.created_at || "");
-
       if (!chat.read_by?.includes(currentUserId) && chat.sender_id !== currentUserId) {
         conv.unreadCount++;
       }
     }
-
     const sorted = Array.from(convMap.values()).sort((a, b) => {
       const aTime = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
       const bTime = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
       return bTime - aTime;
     });
-
     this.state.conversations.set(sorted);
   }
-
   private loadGroups(): void {
     const userId = this.state.currentUserId();
     if (!userId) return;
-
     if (!navigator.onLine || !this.mongoConnectionService.isConnected()) {
       this.loadGroupsFromLocal();
       return;
     }
-
     this.requestService
       .invokeCommand("get_groups", {
         userId: userId,
@@ -424,7 +373,6 @@ export class ChatService implements OnDestroy {
           const groups = Array.isArray(result) ? result : result?.data || [];
           if (Array.isArray(groups)) {
             const existingRooms = new Set(this.state.conversations().map((c) => c.roomId));
-
             for (const group of groups) {
               if (!existingRooms.has(group.room_id)) {
                 const conv: ConversationItem = {
@@ -447,13 +395,11 @@ export class ChatService implements OnDestroy {
             }
           }
         },
-        error: (err) => {
-          console.error("Load groups error", err);
+        error: (_err) => {
           this.loadGroupsFromLocal();
         },
       });
   }
-
   selectConversation(conv: ConversationItem): void {
     this.state.activeConversationId.set(conv.roomId);
     this.loadMessagesForRoom(conv.roomId);
@@ -466,7 +412,6 @@ export class ChatService implements OnDestroy {
     }
     setTimeout(() => this.updateConversationsWithProfiles(), 100);
   }
-
   loadMessagesForRoom(roomId: string, skip = 0, limit = 100): void {
     this.requestService
       .invokeCommand("get_messages_by_room", {
@@ -479,19 +424,15 @@ export class ChatService implements OnDestroy {
         next: (result: any) => {
           const currentUserId = this.state.currentUserId();
           const msgs: ChatMessage[] = [];
-
           const data = Array.isArray(result) ? result : result.data || [];
-
           for (const chat of data) {
             if (chat.deleted_at) continue;
-
             const sender = chat.sender || {};
             const profile = sender.profile || {};
             const senderName = profile.name
               ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
               : chat.sender_name || chat.sender_id || "Unknown";
             const senderAvatar = profile.image_url || chat.sender_avatar || null;
-
             let readStatus: "sent" | "delivered" | "read" | undefined;
             if (chat.sender_id === currentUserId) {
               const readByArr: string[] = chat.read_by || [];
@@ -502,7 +443,6 @@ export class ChatService implements OnDestroy {
                 readStatus = "read";
               }
             }
-
             msgs.push({
               id: chat.id,
               content: chat.content,
@@ -522,7 +462,6 @@ export class ChatService implements OnDestroy {
               })),
             });
           }
-
           this.state.messages.set(msgs);
           this.populateReplyChain(msgs);
         },
@@ -531,7 +470,6 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   loadPreviousMessagesForRoom(
     roomId: string,
     skip: number,
@@ -549,19 +487,15 @@ export class ChatService implements OnDestroy {
           next: (result: any) => {
             const currentUserId = this.state.currentUserId();
             const msgs: ChatMessage[] = [];
-
             const data = Array.isArray(result) ? result : result.data || [];
-
             for (const chat of data) {
               if (chat.deleted_at) continue;
-
               const sender = chat.sender || {};
               const profile = sender.profile || {};
               const senderName = profile.name
                 ? `${profile.name}${profile.last_name ? " " + profile.last_name : ""}`
                 : chat.sender_name || chat.sender_id || "Unknown";
               const senderAvatar = profile.image_url || chat.sender_avatar || null;
-
               let readStatus: "sent" | "delivered" | "read" | undefined;
               if (chat.sender_id === currentUserId) {
                 const readByArr: string[] = chat.read_by || [];
@@ -572,7 +506,6 @@ export class ChatService implements OnDestroy {
                   readStatus = "read";
                 }
               }
-
               msgs.push({
                 id: chat.id,
                 content: chat.content,
@@ -592,7 +525,6 @@ export class ChatService implements OnDestroy {
                 })),
               });
             }
-
             this.populateReplyChain(msgs);
             subscriber.next(msgs);
             subscriber.complete();
@@ -604,7 +536,6 @@ export class ChatService implements OnDestroy {
         });
     });
   }
-
   private populateReplyChain(msgs: ChatMessage[]): void {
     const msgMap = new Map(msgs.map((m) => [m.id, m]));
     msgs.forEach((msg) => {
@@ -613,7 +544,6 @@ export class ChatService implements OnDestroy {
       }
     });
   }
-
   private markConversationAsRead(roomId: string): void {
     const conv = this.state.conversations().find((c) => c.roomId === roomId);
     if (conv) {
@@ -623,18 +553,14 @@ export class ChatService implements OnDestroy {
       );
     }
   }
-
   sendMessage(content: string): void {
     const conv = this.state.activeConversation();
     if (!content || !conv) return;
-
     const userId = this.state.currentUserId();
     if (!userId) return;
-
     const replyId = this.state.replyToMessage()?.id || null;
     const tempId = `temp_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
-
     const localChat: Chat = {
       id: tempId,
       room_id: conv.roomId,
@@ -647,7 +573,6 @@ export class ChatService implements OnDestroy {
       temp_id: tempId,
     };
     this.storageService.addChat(localChat);
-
     const uiMsg: ChatMessage = {
       id: tempId,
       content: content,
@@ -661,11 +586,9 @@ export class ChatService implements OnDestroy {
       replyId: replyId,
     };
     this.state.messages.update((msgs) => [...msgs, uiMsg]);
-
     this.state.messageInput.set("");
     this.state.replyToMessage.set(null);
     this.updateConversationLastMessage(conv.roomId, content);
-
     const messagePayload: any = {
       roomId: conv.roomId,
       senderId: userId,
@@ -702,7 +625,6 @@ export class ChatService implements OnDestroy {
       },
     });
   }
-
   private queueChatMessageForSync(
     tempId: string,
     conv: ConversationItem,
@@ -733,12 +655,10 @@ export class ChatService implements OnDestroy {
       isChatOperation: true,
       lastError: lastError,
     };
-
     const queue = this.getChatQueue();
     queue.push(queuedOp);
     this.saveChatQueue(queue);
   }
-
   private getChatQueue(): any[] {
     try {
       const stored = localStorage.getItem("taskflow_chat_offline_queue");
@@ -747,23 +667,16 @@ export class ChatService implements OnDestroy {
       return [];
     }
   }
-
   private saveChatQueue(queue: any[]): void {
     try {
       localStorage.setItem("taskflow_chat_offline_queue", JSON.stringify(queue));
-    } catch (error) {
-      console.error("Failed to save chat queue", error);
-    }
+    } catch (error) {}
   }
-
   private processChatQueue(): void {
     if (!navigator.onLine) return;
-
     const queue = this.getChatQueue();
     if (queue.length === 0) return;
-
     const remaining: any[] = [];
-
     for (const op of queue) {
       const queuePayload: any = {
         roomId: op.data.room_id,
@@ -799,18 +712,14 @@ export class ChatService implements OnDestroy {
         },
       });
     }
-
     this.saveChatQueue(remaining);
   }
-
   retrySendMessage(tempId: string): void {
     const queue = this.getChatQueue();
     const op = queue.find((o) => o.id === tempId);
     if (!op) {
-      console.warn("retrySendMessage: op not found in queue", { tempId });
       return;
     }
-
     this.storageService.updateChatSyncStatus(tempId, "pending");
     this.state.messages.update((msgs) =>
       msgs.map((m) => (m.tempId === tempId ? { ...m, syncStatus: "pending" as const } : m))
@@ -846,7 +755,6 @@ export class ChatService implements OnDestroy {
       },
     });
   }
-
   private reloadChatsFromApi(): void {
     this.requestService
       .getAll<Chat>("chats", {
@@ -856,17 +764,14 @@ export class ChatService implements OnDestroy {
       .subscribe({
         next: (cloudChats) => {
           const localChats = this.storageService.chats();
-
           const merged: Chat[] = [...localChats];
           const existingIds = new Set(localChats.map((c) => c.id));
-
           for (const cloudChat of cloudChats) {
             if (!existingIds.has(cloudChat.id)) {
               merged.push(cloudChat);
               existingIds.add(cloudChat.id);
             }
           }
-
           this.storageService.setChats(merged);
           this.loadConversations();
         },
@@ -875,7 +780,6 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   private updateConversationLastMessage(roomId: string, message: string): void {
     const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     this.state.conversations.update((convs) =>
@@ -884,13 +788,10 @@ export class ChatService implements OnDestroy {
       )
     );
   }
-
   createGroup(name: string): void {
     const userId = this.state.currentUserId();
     if (!userId || !name.trim()) return;
-
     const roomId = "group_" + Date.now();
-
     this.requestService
       .invokeCommand("create_group", {
         name: name,
@@ -911,13 +812,10 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   addMembersToGroup(): void {
     const conv = this.state.activeConversation();
     if (!conv || !conv.isGroup || this.state.selectedAddMembers().length === 0) return;
-
     const memberIds = this.state.selectedAddMembers();
-
     this.requestService
       .invokeCommand("add_group_members", {
         id: conv.roomId,
@@ -943,11 +841,9 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   removeMemberFromGroup(memberId: string): void {
     const conv = this.state.activeConversation();
     if (!conv || !conv.isGroup) return;
-
     this.requestService
       .invokeCommand("remove_group_members", {
         id: conv.roomId,
@@ -972,15 +868,12 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   loadMembers(): void {
     const conv = this.state.activeConversation();
     if (!conv) return;
-
     const memberIds = conv.memberIds || [];
     const profiles = this.profileSearchService.profiles();
     const membersList: any[] = [];
-
     for (const memberId of memberIds) {
       const profile = profiles.find((p) => p.user_id === memberId);
       if (profile) {
@@ -997,18 +890,15 @@ export class ChatService implements OnDestroy {
         });
       }
     }
-
     this.state.members.set(membersList);
     this.loadGroupOwner();
   }
-
   loadGroupOwner(): void {
     const conv = this.state.activeConversation();
     if (!conv || !conv.isGroup) {
       this.state.groupOwnerId.set(null);
       return;
     }
-
     this.requestService
       .invokeCommand("get_group_by_room", {
         room_id: conv.roomId,
@@ -1025,11 +915,9 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   removeConversation(): void {
     const conv = this.state.contextMenuConversation();
     if (!conv) return;
-
     if (conv.isGroup) {
       this.requestService
         .invokeCommand("delete_group_cascade", {
@@ -1078,7 +966,6 @@ export class ChatService implements OnDestroy {
         });
     }
   }
-
   togglePinConversation(): void {
     const conv = this.state.contextMenuConversation();
     if (!conv) return;
@@ -1087,7 +974,6 @@ export class ChatService implements OnDestroy {
     );
     this.state.closeContextMenu();
   }
-
   toggleMuteConversation(): void {
     const conv = this.state.contextMenuConversation();
     if (!conv) return;
@@ -1096,7 +982,6 @@ export class ChatService implements OnDestroy {
     );
     this.state.closeContextMenu();
   }
-
   markAsReadConversation(): void {
     const conv = this.state.contextMenuConversation();
     if (!conv || conv.unreadCount === 0) {
@@ -1109,7 +994,6 @@ export class ChatService implements OnDestroy {
     );
     this.state.closeContextMenu();
   }
-
   saveEditMessage(): void {
     const msgId = this.state.editingMessageId();
     const content = this.state.editingMessageContent().trim();
@@ -1117,7 +1001,6 @@ export class ChatService implements OnDestroy {
       this.state.cancelEditMessage();
       return;
     }
-
     this.requestService
       .invokeCommand("edit_message", {
         id: msgId,
@@ -1137,11 +1020,9 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   deleteMessage(): void {
     const msg = this.state.contextMenuMessage();
     if (!msg) return;
-
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: msg.id,
@@ -1158,9 +1039,7 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   deleteMessageById(messageId: string): void {
-    console.debug("deleteMessageById", { messageId });
     this.requestService
       .invokeCommand("hard_delete_message", {
         id: messageId,
@@ -1175,9 +1054,7 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   addReaction(messageId: string, emoji: string): void {
-    console.debug("addReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("add_message_reaction", {
         messageId,
@@ -1214,9 +1091,7 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   removeReaction(messageId: string, emoji: string): void {
-    console.debug("removeReaction", { messageId, emoji });
     this.requestService
       .invokeCommand("remove_message_reaction", {
         messageId,
@@ -1253,7 +1128,6 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   openConversationWithUserId(userId: string): void {
     this.profileSearchService.loadInitial().subscribe({
       next: () => {
@@ -1269,7 +1143,6 @@ export class ChatService implements OnDestroy {
       },
     });
   }
-
   private fetchProfileAndOpenChat(userId: string): void {
     this.requestService
       .invokeCommand("get_profile", {
@@ -1290,17 +1163,13 @@ export class ChatService implements OnDestroy {
         },
       });
   }
-
   startConversationWithUser(profile: Profile): void {
     const userId = this.state.currentUserId();
     if (!userId) return;
-
     const profileUserId = profile.user_id;
-
     if (!this.state.recentUserIds().includes(profileUserId)) {
       this.state.recentUserIds.update((ids) => [profileUserId, ...ids].slice(0, 20));
     }
-
     const existing = this.state
       .conversations()
       .find((c) => !c.isGroup && c.otherUserId === profileUserId);
@@ -1309,7 +1178,6 @@ export class ChatService implements OnDestroy {
       this.state.closeUserDropdown();
       return;
     }
-
     const roomId = crypto.randomUUID();
     const conv: ConversationItem = {
       roomId: roomId,
@@ -1327,20 +1195,16 @@ export class ChatService implements OnDestroy {
       otherUserId: profileUserId,
       isLocal: true,
     };
-
     this.state.conversations.update((convs) => [conv, ...convs]);
-
     this.state.activeConversationId.set(roomId);
     this.state.messages.set([]);
     this.state.showSidebar.set(false);
     this.state.closeUserDropdown();
   }
-
   private getProfileByUserId(userId: string): Profile | undefined {
     const profiles = this.profileSearchService.profiles();
     return profiles.find((p) => p.user_id === userId);
   }
-
   private fetchProfileIfMissing(userId: string): void {
     if (!this.getProfileByUserId(userId)) {
       this.requestService
@@ -1360,7 +1224,6 @@ export class ChatService implements OnDestroy {
         });
     }
   }
-
   isCurrentUserOwner(): boolean {
     const ownerId = this.state.groupOwnerId();
     const currentUserId = this.state.currentUserId();

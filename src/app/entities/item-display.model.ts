@@ -27,10 +27,8 @@ export type ItemDisplayType =
   | "deleted-badge"
   | "badge-group"
   | "comment-toggle";
-
 import { TableField } from "./table-field.model";
 import { TodoPermission } from "@core/services/permission.service";
-
 export interface ItemDisplayConfig {
   key: string;
   type: ItemDisplayType;
@@ -59,7 +57,6 @@ export interface ItemDisplayConfig {
       };
   size?: "sm" | "md" | "lg";
 }
-
 export interface ItemDisplayAction {
   id?: string;
   key?: string;

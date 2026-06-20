@@ -24,7 +24,6 @@ export interface LocalUser {
   /** Associated profile ID */
   profileId?: string;
 }
-
 /**
  * Response from offline authentication attempt
  */

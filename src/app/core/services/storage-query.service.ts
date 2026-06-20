@@ -1,7 +1,6 @@
 /* sys lib */
 import { Injectable, inject, signal, computed, Injector, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
-
 /* models */
 import {
   Todo,
@@ -14,23 +13,18 @@ import {
   Category,
 } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
-
 /* services */
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@entities/admin.model";
 import { ApiService } from "@services/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-
 /* utils */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
-
 import { BaseStorageService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
 import { ResponseStatus } from "@entities/response.model";
-
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
-
 @Injectable({ providedIn: "root" })
 export class StorageQueryService {
   private readonly _injector = inject(Injector);
@@ -39,7 +33,6 @@ export class StorageQueryService {
   private _adminService: AdminService | null = null;
   private _jwtTokenService: JwtTokenService | null = null;
   private _profileRequiredService: ProfileRequiredService | null = null;
-
   private readonly _loaded = signal(false);
   private readonly _loading = signal(false);
   private readonly _lastLoaded = signal<Date | null>(null);
@@ -55,7 +48,6 @@ export class StorageQueryService {
   private readonly _categoriesLoading = signal(false);
   private readonly _chatsLoading = signal(false);
   private readonly _commentsLoading = signal(false);
-
   private readonly _pagination = signal<Record<ChildType, PaginationState>>({
     todos: { ...DEFAULT_PAGINATION },
     tasks: { ...DEFAULT_PAGINATION },
@@ -64,87 +56,67 @@ export class StorageQueryService {
     comments: { ...DEFAULT_PAGINATION },
     chats: { ...DEFAULT_PAGINATION },
   });
-
   get loaded(): ReturnType<typeof this._loaded.asReadonly> {
     return this._loaded.asReadonly();
   }
-
   get loading(): ReturnType<typeof this._loading.asReadonly> {
     return this._loading.asReadonly();
   }
-
   get lastLoaded(): ReturnType<typeof this._lastLoaded.asReadonly> {
     return this._lastLoaded.asReadonly();
   }
-
   get allProfiles(): ReturnType<typeof this._allProfiles.asReadonly> {
     return this._allProfiles.asReadonly();
   }
-
   get user(): ReturnType<typeof this._user.asReadonly> {
     return this._user.asReadonly();
   }
-
   get dailyActivities(): ReturnType<typeof this._dailyActivities.asReadonly> {
     return this._dailyActivities.asReadonly();
   }
-
   get todosPagination(): PaginationState {
     return this._pagination().todos;
   }
-
   get tasksPagination(): PaginationState {
     return this._pagination().tasks;
   }
-
   get subtasksPagination(): PaginationState {
     return this._pagination().subtasks;
   }
-
   get commentsPagination(): PaginationState {
     return this._pagination().comments;
   }
-
   get chatsPagination(): PaginationState {
     return this._pagination().chats;
   }
-
   get hasMoreTodos(): boolean {
     return this._pagination().todos.hasMore;
   }
-
   get hasMoreTasks(): boolean {
     return this._pagination().tasks.hasMore;
   }
-
   get hasMoreSubtasks(): boolean {
     return this._pagination().subtasks.hasMore;
   }
-
   get hasMoreComments(): boolean {
     return this._pagination().comments.hasMore;
   }
-
   get hasMoreChats(): boolean {
     return this._pagination().chats.hasMore;
   }
-
   private get adminService(): AdminService {
     if (!this._adminService) this._adminService = this._injector.get(AdminService) as AdminService;
     return this._adminService;
   }
-
   private get apiService(): ApiService {
     if (!this._apiService) this._apiService = this._injector.get(ApiService) as ApiService;
     return this._apiService;
   }
-
   private get jwtTokenService(): JwtTokenService {
     if (!this._jwtTokenService)
       this._jwtTokenService = this._injector.get(JwtTokenService) as JwtTokenService;
     return this._jwtTokenService;
   }
-
   private get profileRequiredService(): ProfileRequiredService {
     if (!this._profileRequiredService)
       this._profileRequiredService = this._injector.get(
@@ -152,23 +124,18 @@ export class StorageQueryService {
       ) as ProfileRequiredService;
     return this._profileRequiredService;
   }
-
   private get activeTasks(): ReturnType<typeof computed<Task[]>> {
     return computed(() => this._entityService.tasks().filter((t) => !t.deleted_at));
   }
-
   private get activeSubtasks(): ReturnType<typeof computed<Subtask[]>> {
     return computed(() => this._entityService.subtasks().filter((s) => !s.deleted_at));
   }
-
   private get activeComments(): ReturnType<typeof computed<Comment[]>> {
     return computed(() => this._entityService.comments().filter((c) => !c.deleted_at));
   }
-
   private get activeChats(): ReturnType<typeof computed<Chat[]>> {
     return computed(() => this._entityService.chats().filter((c) => !c.deleted_at));
   }
-
   private get allActiveTodos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => {
       const allTodos = [
@@ -179,51 +146,39 @@ export class StorageQueryService {
       return deduplicateById(allTodos, { filterDeleted: true });
     });
   }
-
   get privateTodos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => this._entityService.privateTodos().filter((t) => !t.deleted_at));
   }
-
   get sharedTodos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => this._entityService.sharedTodos().filter((t) => !t.deleted_at));
   }
-
   get publicTodos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => this._entityService.publicTodos().filter((t) => !t.deleted_at));
   }
-
   get todos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() => this.allActiveTodos());
   }
-
   get tasks(): ReturnType<typeof computed<Task[]>> {
     return computed(() => this.activeTasks());
   }
-
   get subtasks(): ReturnType<typeof computed<Subtask[]>> {
     return computed(() => this.activeSubtasks());
   }
-
   get comments(): ReturnType<typeof computed<Comment[]>> {
     return computed(() => this.activeComments());
   }
-
   get chats(): ReturnType<typeof computed<Chat[]>> {
     return computed(() => this.activeChats());
   }
-
   get categories() {
     return this._entityService.categories.asReadonly();
   }
-
   get profiles() {
     return this._entityService.profiles.asReadonly();
   }
-
   get users() {
     return this._entityService.users.asReadonly();
   }
-
   get archivedTodos(): ReturnType<typeof computed<Todo[]>> {
     return computed(() =>
       [
@@ -233,39 +188,30 @@ export class StorageQueryService {
       ].filter((t) => t.deleted_at)
     );
   }
-
   get archivedTasks(): ReturnType<typeof computed<Task[]>> {
     return computed(() => this._entityService.tasks().filter((t) => t.deleted_at));
   }
-
   get archivedSubtasks(): ReturnType<typeof computed<Subtask[]>> {
     return computed(() => this._entityService.subtasks().filter((s) => s.deleted_at));
   }
-
   get todoMap(): ReturnType<typeof computed<Map<string, Todo>>> {
     return computed(() => new Map(this.allActiveTodos().map((t) => [t.id, t])));
   }
-
   get taskMap(): ReturnType<typeof computed<Map<string, Task>>> {
     return computed(() => new Map(this.activeTasks().map((t) => [t.id, t])));
   }
-
   get subtaskMap(): ReturnType<typeof computed<Map<string, Subtask>>> {
     return computed(() => new Map(this.activeSubtasks().map((s) => [s.id, s])));
   }
-
   get commentMap(): ReturnType<typeof computed<Map<string, Comment>>> {
     return computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
   }
-
   get tasksByTodoId(): ReturnType<typeof computed<Map<string, Task[]>>> {
     return computed(() => createGroupedMap(this.activeTasks(), (t) => t.todo_id));
   }
-
   get subtasksByTaskId(): ReturnType<typeof computed<Map<string, Subtask[]>>> {
     return computed(() => createGroupedMap(this.activeSubtasks(), (s) => s.task_id));
   }
-
   get commentsByTaskId(): ReturnType<typeof computed<Map<string, Comment[]>>> {
     return computed(() =>
       createGroupedMap(
@@ -275,7 +221,6 @@ export class StorageQueryService {
       )
     );
   }
-
   get commentsBySubtaskId(): ReturnType<typeof computed<Map<string, Comment[]>>> {
     return computed(() =>
       createGroupedMap(
@@ -285,7 +230,6 @@ export class StorageQueryService {
       )
     );
   }
-
   query(
     type: EntityType,
     filters?: {
@@ -317,14 +261,12 @@ export class StorageQueryService {
         return this._entityService.getSignal(type)?.() || [];
     }
   }
-
   find(type: EntityType, predicate: (item: any) => boolean): any | undefined {
     const signal = this._entityService.getSignal(type);
     if (!signal) return undefined;
     const items = signal();
     return items.find(predicate);
   }
-
   findById(type: EntityType, id: string): any | undefined {
     if (type === "users" || type === "profiles") return undefined;
     const signal = this._entityService.getSignal(type);
@@ -332,27 +274,21 @@ export class StorageQueryService {
     const items = signal();
     return items.find((e: any) => e.id === id);
   }
-
   create(type: EntityType, data: any): void {
     this._entityService.addEntity(type, data);
   }
-
   update(type: EntityType, data: any): void {
     this._entityService.updateEntity(type, data);
   }
-
   delete(type: EntityType, id: string): void {
     this._entityService.removeEntity(type, id);
   }
-
   bulkCreate(type: EntityType, items: any[]): void {
     items.forEach((item) => this._entityService.addEntity(type, item));
   }
-
   bulkUpdate(type: EntityType, items: any[]): void {
     items.forEach((item) => this._entityService.updateEntity(type, item));
   }
-
   private updatePagination(
     type: ChildType,
     skip: number,
@@ -364,15 +300,12 @@ export class StorageQueryService {
       [type]: { skip: skip + receivedCount, limit, hasMore: receivedCount >= limit },
     }));
   }
-
   resetPagination(type: ChildType): void {
     this._pagination.update((p) => ({ ...p, [type]: { ...DEFAULT_PAGINATION } }));
   }
-
   setHasMoreTodos(hasMore: boolean): void {
     this._pagination.update((p) => ({ ...p, todos: { ...p.todos, hasMore } }));
   }
-
   loadInitialData(type: string, limit: number): Observable<any> {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, 0, limit).subscribe({
@@ -386,7 +319,6 @@ export class StorageQueryService {
       });
     });
   }
-
   loadMoreData(type: string, skip: number): Observable<any> {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, skip, 10).subscribe({
@@ -400,17 +332,14 @@ export class StorageQueryService {
       });
     });
   }
-
   isCacheValid(cacheExpiryMs: number): boolean {
     if (this._loading()) return false;
     const last = this._lastLoaded();
     return last ? Date.now() - last.getTime() < cacheExpiryMs : false;
   }
-
   isLoading(): boolean {
     return this._loading();
   }
-
   isEntityLoading(
     entityType:
       | "todos"
@@ -441,31 +370,24 @@ export class StorageQueryService {
         return this._profileLoading();
     }
   }
-
   setLoaded(loaded: boolean): void {
     this._loaded.set(loaded);
   }
-
   setLoading(loading: boolean): void {
     this._loading.set(loading);
   }
-
   setLastLoaded(date: Date | null): void {
     this._lastLoaded.set(date);
   }
-
   setAllProfiles(profiles: Profile[]): void {
     this._allProfiles.set(profiles);
   }
-
   setUser(user: User | null): void {
     this._user.set(user);
   }
-
   setDailyActivities(activities: any[]): void {
     this._dailyActivities.set(activities);
   }
-
   setCollection(
     type: string,
     items: any,
@@ -517,7 +439,6 @@ export class StorageQueryService {
         break;
     }
   }
-
   private setArraySignal<T extends { id: string }>(
     signal: WritableSignal<T[]>,
     items: T[],
@@ -526,7 +447,6 @@ export class StorageQueryService {
     if (options?.append) signal.update((existing: T[]) => [...existing, ...items]);
     else signal.update((existing: T[]) => upsertEntityBulk(existing, items));
   }
-
   private storeTodos(
     visibility: "private" | "shared" | "public",
     items: Todo[],
@@ -578,7 +498,6 @@ export class StorageQueryService {
     if (nested.users.length) this.setCollection("users", nested.users, { append: options?.append });
     targetSignal.update((existing: Todo[]) => upsertEntityBulk(existing, todos));
   }
-
   private storeTodosMixed(
     items: Todo[],
     options?: { append?: boolean; resetPagination?: boolean }
@@ -596,7 +515,6 @@ export class StorageQueryService {
     if (sharedItems.length) this.storeTodos("shared", sharedItems, options);
     if (publicItems.length) this.storeTodos("public", publicItems, options);
   }
-
   getAdminDataWithRelations(): AdminDataWithRelations {
     const data = {
       todos: this._entityService.privateTodos(),
@@ -611,7 +529,6 @@ export class StorageQueryService {
     };
     return data as any;
   }
-
   loadAdminData(force: boolean = false): Observable<AdminDataWithRelations> {
     const hasAnyData =
       this._entityService.privateTodos().length > 0 ||
@@ -621,17 +538,14 @@ export class StorageQueryService {
     if (!force && this.isCacheValid(DEFAULT_TTL_MS)) return of(this.getAdminDataWithRelations());
     if (this._loading()) return of(this.getAdminDataWithRelations());
     this._loading.set(true);
-
     this.ensureTodosLoaded();
     this.ensureTasksLoaded();
     this.ensureSubtasksLoaded();
     this.ensureCategoriesLoaded();
     this.ensureChatsLoaded();
     this.ensureCommentsLoaded();
-
     return of(this.getAdminDataWithRelations());
   }
-
   ensureTodosLoaded(visibility: string = "private", limit: number = 10): void {
     const targetSignal =
       visibility === "private"
@@ -639,7 +553,6 @@ export class StorageQueryService {
         : visibility === "public"
           ? this._entityService.publicTodos
           : this._entityService.sharedTodos;
-
     console.debug("ensureTodosLoaded", {
       visibility,
       currentLength: targetSignal().length,
@@ -650,7 +563,6 @@ export class StorageQueryService {
             ? "publicTodos"
             : "sharedTodos",
     });
-
     if (targetSignal().length > 0 && visibility !== "all") {
       console.debug("ensureTodosLoaded SKIP", {
         visibility,
@@ -658,9 +570,7 @@ export class StorageQueryService {
       });
       return;
     }
-
     this._todosLoading.set(true);
-    console.debug("ensureTodosLoaded FETCHING", { visibility, limit });
     this.apiService.todos.getAll({ visibility, limit, load: ["user"] }).subscribe({
       next: (todos) => {
         console.debug("ensureTodosLoaded RECEIVED", {
@@ -677,15 +587,12 @@ export class StorageQueryService {
         targetSignal.set(todos);
         this.updatePagination("todos", 0, limit, todos.length);
       },
-      error: (err) => {
-        console.error("ensureTodosLoaded ERROR", err, { visibility });
-      },
+      error: (_err) => {},
       complete: () => {
         this._todosLoading.set(false);
       },
     });
   }
-
   ensureTasksLoaded(
     visibility: string = "private",
     limit: number = 10,
@@ -722,7 +629,6 @@ export class StorageQueryService {
         },
       });
   }
-
   ensureSubtasksLoaded(visibility: string = "private", limit: number = 10, taskId?: string): void {
     if (this._subtasksLoading()) return;
     if (!taskId && this._entityService.subtasks().length > 0) return;
@@ -738,13 +644,10 @@ export class StorageQueryService {
       },
     });
   }
-
   ensureCategoriesLoaded(visibility: string = "all", limit: number = 100): void {
     if (this._categoriesLoading()) return;
-
     const targetSignal = this.getCategoriesSignal(visibility);
     if (targetSignal().length > 0) return;
-
     this._categoriesLoading.set(true);
     this.apiService.categories.getAll({ visibility, limit }).subscribe({
       next: (categories) => {
@@ -763,7 +666,6 @@ export class StorageQueryService {
       },
     });
   }
-
   private getCategoriesSignal(visibility: string): WritableSignal<Category[]> {
     switch (visibility) {
       case "local":
@@ -774,7 +676,6 @@ export class StorageQueryService {
         return this._entityService.categories;
     }
   }
-
   ensureChatsLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._chatsLoading() || this._entityService.chats().length > 0) return;
     this._chatsLoading.set(true);
@@ -789,7 +690,6 @@ export class StorageQueryService {
       },
     });
   }
-
   ensureCommentsLoaded(visibility: string = "private", limit: number = 10): void {
     if (this._commentsLoading() || this._entityService.comments().length > 0) return;
     this._commentsLoading.set(true);
@@ -804,7 +704,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreTodos(todoId?: string): void {
     if (this._todosLoading()) return;
     const currentPage = Math.floor(this._pagination().todos.skip / 10);
@@ -828,7 +727,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreTasks(todoId?: string): void {
     if (this._tasksLoading()) return;
     const currentPage = Math.floor(this._pagination().tasks.skip / 10);
@@ -844,7 +742,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreSubtasks(taskId?: string): void {
     if (this._subtasksLoading()) return;
     const currentPage = Math.floor(this._pagination().subtasks.skip / 10);
@@ -860,7 +757,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreCategories(): void {
     if (this._categoriesLoading()) return;
     const currentPage = Math.floor(this._pagination().categories.skip / 10);
@@ -876,7 +772,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreChats(): void {
     if (this._chatsLoading()) return;
     const currentPage = Math.floor(this._pagination().chats.skip / 10);
@@ -892,7 +787,6 @@ export class StorageQueryService {
       },
     });
   }
-
   loadMoreComments(): void {
     if (this._commentsLoading()) return;
     const currentPage = Math.floor(this._pagination().comments.skip / 10);
@@ -908,9 +802,7 @@ export class StorageQueryService {
       },
     });
   }
-
   private _loadingTaskComments = new Set<string>();
-
   ensureTaskCommentsLoaded(
     taskId: string,
     visibility: string = "private",
@@ -940,9 +832,7 @@ export class StorageQueryService {
         },
       });
   }
-
   private _loadingSubtaskComments = new Set<string>();
-
   ensureSubtaskCommentsLoaded(
     subtaskId: string,
     visibility: string = "private",
@@ -972,56 +862,45 @@ export class StorageQueryService {
         },
       });
   }
-
   getTodosByVisibility(visibility?: string): Todo[] {
     if (!visibility || visibility === "all") return this.todos();
     if (visibility === "private") return this.privateTodos();
     if (visibility === "shared") return this.sharedTodos();
     return this.publicTodos();
   }
-
   getTodosWithNestedTasks(): Todo[] {
     return this.todos().map((t) => ({ ...t, tasks: this.tasksByTodoId().get(t.id) || [] }));
   }
-
   getTasksWithNestedSubtasks(): Task[] {
     return this.tasks().map((t) => ({ ...t, subtasks: this.subtasksByTaskId().get(t.id) || [] }));
   }
-
   getSubtasksWithNestedComments(): Subtask[] {
     return this.subtasks().map((s) => ({
       ...s,
       comments: this.commentsBySubtaskId().get(s.id) || [],
     }));
   }
-
   getUnreadChatCount(_todoId: string, userId: string): number {
     return (this.chats() as Chat[]).filter((c: Chat) => !c.read_by?.includes(userId)).length;
   }
-
   getUsername(userId: string): string {
     const user = this._entityService.users().find((u) => u.id === userId);
     return user?.username || "Unknown";
   }
-
   subtaskExists(id: string): boolean {
     return this._entityService.subtasks().some((s) => s.id === id);
   }
-
   subtaskCountByTaskId(task_id?: string) {
     return computed(
       () => this._entityService.subtasks().filter((s) => s.task_id === task_id).length
     );
   }
-
   isPrivateData(entity: any): boolean {
     return entity?.visibility === "private";
   }
-
   canAccessOffline(visibility: VisibilityFilter): boolean {
     return visibility === "private";
   }
-
   setCollectionByTable(table: string, data: any[], options?: { append?: boolean }): void {
     const map: Record<string, EntityType> = {
       categories: "categories",
@@ -1035,7 +914,6 @@ export class StorageQueryService {
     };
     if (map[table]) this.setCollection(map[table], data, options);
   }
-
   clearQueryState(): void {
     this._loaded.set(false);
     this._lastLoaded.set(null);
@@ -1051,7 +929,6 @@ export class StorageQueryService {
       chats: { ...DEFAULT_PAGINATION },
     });
   }
-
   ensureUserLoaded(): void {
     if (this._userLoading() || this._user()) return;
     this._userLoading.set(true);
@@ -1064,7 +941,6 @@ export class StorageQueryService {
     }
     this._userLoading.set(false);
   }
-
   ensureProfileLoaded(): void {
     if (this._profileLoading() || this._entityService.profiles()) return;
     this._profileLoading.set(true);
@@ -1080,7 +956,7 @@ export class StorageQueryService {
         next: (profiles) => {
           if (profiles && profiles.length > 0) {
             const profile = profiles[0];
-            this.setCollection("profiles", profile);
+            this.setCollection("profiles", [profile]);
             if ((profile as any).user) {
               this.setCollection("user", (profile as any).user);
             }
@@ -1096,7 +972,6 @@ export class StorageQueryService {
         },
       });
   }
-
   ensurePublicProfilesLoaded(): void {
     if (this._publicProfileLoading() || this._entityService.publicProfiles().length > 0) return;
     this._publicProfileLoading.set(true);

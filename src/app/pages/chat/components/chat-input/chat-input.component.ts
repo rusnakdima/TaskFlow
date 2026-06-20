@@ -3,7 +3,6 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { EmojiTab, ChatMessage } from "@entities/chat.model";
-
 @Component({
   selector: "app-chat-input",
   standalone: true,
@@ -22,7 +21,6 @@ export class ChatInputComponent {
   @Input() objectsEmojis: string[] = [];
   @Input() recentEmojisDefault: string[] = [];
   @Input() replyTo: ChatMessage | null = null;
-
   @Output() inputChange = new EventEmitter<string>();
   @Output() send = new EventEmitter<void>();
   @Output() keydown = new EventEmitter<KeyboardEvent>();
@@ -31,39 +29,30 @@ export class ChatInputComponent {
   @Output() toggleAttachmentMenu = new EventEmitter<void>();
   @Output() setEmojiTab = new EventEmitter<EmojiTab>();
   @Output() cancelReply = new EventEmitter<void>();
-
   onInputChange(value: string): void {
     this.inputChange.emit(value);
   }
-
   onSend(): void {
     this.send.emit();
   }
-
   onKeydown(event: KeyboardEvent): void {
     this.keydown.emit(event);
   }
-
   onEmojiSelect(emoji: string): void {
     this.emojiSelect.emit(emoji);
   }
-
   onToggleEmojiPicker(): void {
     this.toggleEmojiPicker.emit();
   }
-
   onToggleAttachmentMenu(): void {
     this.toggleAttachmentMenu.emit();
   }
-
   onSetEmojiTab(tab: EmojiTab): void {
     this.setEmojiTab.emit(tab);
   }
-
   onCancelReply(): void {
     this.cancelReply.emit();
   }
-
   get currentEmojis(): string[] {
     switch (this.activeEmojiTab) {
       case "recent":

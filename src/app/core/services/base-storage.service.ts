@@ -2,16 +2,13 @@ import { Injectable, WritableSignal } from "@angular/core";
 import { Observable } from "rxjs";
 import { EntityType, PaginationState } from "@entities/storage.model";
 import { ErrorHelper } from "./error.helper";
-
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
-
 @Injectable({ providedIn: "root" })
 export class BaseStorageService {
   protected isCacheValid(lastLoaded: Date | null, cacheExpiryMs: number = DEFAULT_TTL_MS): boolean {
     if (!lastLoaded) return false;
     return Date.now() - lastLoaded.getTime() < cacheExpiryMs;
   }
-
   ensureLoaded<T>(
     _entity: EntityType,
     targetSignal: WritableSignal<T[]>,
@@ -33,7 +30,6 @@ export class BaseStorageService {
       });
     });
   }
-
   loadMore<T>(
     _entity: EntityType,
     targetSignal: WritableSignal<T[]>,
@@ -57,7 +53,6 @@ export class BaseStorageService {
       });
     });
   }
-
   updatePagination(paginationState: PaginationState, receivedCount: number): PaginationState {
     return {
       skip: paginationState.skip + receivedCount,
@@ -65,7 +60,6 @@ export class BaseStorageService {
       hasMore: receivedCount >= paginationState.limit,
     };
   }
-
   resetPagination(): PaginationState {
     return { skip: 0, limit: 20, hasMore: true };
   }

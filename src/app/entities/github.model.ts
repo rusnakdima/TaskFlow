@@ -8,7 +8,6 @@ export interface GithubRepo {
   default_branch: string;
   updated_at: string;
 }
-
 export interface GithubIssue {
   id: number;
   number: number;
@@ -19,28 +18,24 @@ export interface GithubIssue {
   created_at: string;
   updated_at: string;
 }
-
 export interface GithubComment {
   id: number;
   body: string;
   html_url: string;
   created_at: string;
 }
-
 export interface GithubUser {
   id: number;
   login: string;
   avatar_url: string;
   html_url: string;
 }
-
 export interface GithubOAuthTokens {
   access_token: string;
   refresh_token: string;
   expires_in: number;
   token_type: string;
 }
-
 export interface GithubConnection {
   connected: boolean;
   username?: string;

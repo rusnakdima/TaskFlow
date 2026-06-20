@@ -1,5 +1,4 @@
 export type Visibility = "private" | "shared" | "public" | "all";
-
 export interface CrudOptions {
   visibility?: Visibility | string;
   offline?: boolean;
@@ -10,7 +9,6 @@ export interface CrudOptions {
   sort?: { [key: string]: number };
   page?: number;
 }
-
 export interface PaginatedOptions extends CrudOptions {
   limit?: number;
   skip?: number;
@@ -18,22 +16,18 @@ export interface PaginatedOptions extends CrudOptions {
   taskId?: string;
   load?: string | string[];
 }
-
 export interface PaginatedResult<T> {
   items: T[];
   hasMore: boolean;
 }
-
 export interface HasVisibility {
   visibility?: string;
   user_id?: string;
   assignees?: string[];
 }
-
 export interface HasId {
   id?: string;
 }
-
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -44,9 +38,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
-
 export type Operation = "getAll" | "get" | "create" | "update" | "updateAll" | "delete";
-
 export interface PaginationState {
   skip: number;
   limit: number;
