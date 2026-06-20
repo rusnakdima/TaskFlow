@@ -67,6 +67,7 @@ export class TodosListComponent {
   @Input() dragSourceIndex = 0;
   @Input() dragRef: any;
   @Input() isAllSelected = false;
+  @Input() canArchive = true;
   @Output() todoDeleted = new EventEmitter<{ id: string; isOwner: boolean; visibility?: string }>();
   @Output() todoArchived = new EventEmitter<string>();
   @Output() todoRestored = new EventEmitter<string>();

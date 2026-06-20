@@ -74,6 +74,7 @@
     [showBulkActions]="true"
     [todoPlaceholder]="todoPlaceholder"
     [isAllSelected]="isAllSelected()"
+    [canArchive]="canArchiveSelected()"
     (todoDeleted)="deleteTodoById($event.id, $event.visibility, $event.isOwner)"
     (todoArchived)="archiveTodoById($event)"
     (todoRestored)="restoreTodoById($event)"

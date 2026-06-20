@@ -73,6 +73,7 @@
     <app-bulk-actions
       [selectedCount]="selectedTodos().size"
       [isAllSelected]="isAllSelected"
+      [canArchive]="canArchive"
       mode="todos"
       (selectAllEvent)="selectAll.emit({ selectAll: !isAllSelected })"
       (softDeleteEvent)="bulkArchive.emit()"
