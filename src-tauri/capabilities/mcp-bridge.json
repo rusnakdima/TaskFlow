@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "mcp-bridge",
+  "description": "MCP Bridge capabilities for AI agent interaction",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "mcp-bridge:default",
+    "mcp-bridge:allow-execute-command",
+    "mcp-bridge:allow-execute-js",
+    "mcp-bridge:allow-capture-native-screenshot",
+    "mcp-bridge:allow-get-backend-state",
+    "mcp-bridge:allow-start-ipc-monitor",
+    "mcp-bridge:allow-stop-ipc-monitor",
+    "mcp-bridge:allow-emit-event",
+    "mcp-bridge:allow-get-ipc-events",
+    "mcp-bridge:allow-get-window-info",
+    "mcp-bridge:allow-list-windows",
+    "mcp-bridge:allow-report-ipc-event",
+    "mcp-bridge:allow-request-script-injection",
+    "mcp-bridge:allow-script-result"
+  ]
+}
