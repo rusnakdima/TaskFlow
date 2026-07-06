@@ -4,6 +4,7 @@ mod entities;
 mod errors;
 mod models;
 mod repositories;
+mod schema_data;
 mod services;
 mod utils;
 /* sys lib */
@@ -13,13 +14,7 @@ use tauri::{Manager, State};
 /* utils */
 use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
 /* commands */
-use commands::{
-  archive_command::{
-    get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete,
-  },
-  update_command::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
-};
-/* commands */
+use crate::commands::schema_commands::{get_taskflow_schema, save_taskflow_schema};
 use commands::{
   admin_command::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_restore_json,
@@ -28,6 +23,9 @@ use commands::{
     get_all_admin_paginated, get_all_from_json, get_tasks_by_month, hard_remove_data,
     import_private_to_local, import_to_local, soft_remove_data, sync_visibility_to_provider,
     upsert_to_json, upsert_to_mongo,
+  },
+  archive_command::{
+    get_all_archive_data, get_all_archive_paginated, permanent_delete, soft_delete,
   },
   auth_command::{
     change_password, check_token, disable_totp, enable_totp, get_user_security_status,
@@ -50,6 +48,7 @@ use commands::{
   },
   profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
+  schema_command::{delete_schema, get_all_schemas, get_schema, save_schema, SchemaState},
   stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
@@ -57,6 +56,7 @@ use commands::{
     change_todo_visibility, create_todo, delete_todo, get_todo, get_todo_permissions, get_todos,
     transfer_todo_ownership, update_todo, update_todo_permissions,
   },
+  update_command::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
 /* services */
 use services::{
@@ -76,6 +76,7 @@ use services::{
   profile_service::ProfileService,
   repository::service::RepositoryService,
   room_service::RoomService,
+  schema_service::SchemaService,
   statistics_service::StatisticsService,
   subtask_service::SubtaskService,
   task_service::TaskService,
@@ -241,6 +242,7 @@ pub struct AppState {
   pub data: DataState,
   pub chat: ChatState,
   pub system: SystemState,
+  pub schema: SchemaState,
 }
 pub struct ConfigState {
   pub config_helper: Arc<ConfigHelper>,
@@ -429,6 +431,7 @@ pub fn run() {
         json_provider.clone(),
         mongodb_provider.clone(),
       ));
+      let schema_state = SchemaState::new(json_provider.clone());
       app.manage(AppState {
         logger: Arc::new(()),
         config: ConfigState {
@@ -463,6 +466,7 @@ pub fn run() {
           profile_service,
           statistics_service,
         },
+        schema: schema_state,
       });
       Ok(())
     })
@@ -591,6 +595,12 @@ pub fn run() {
       get_categories,
       update_category,
       delete_category,
+      get_schema,
+      save_schema,
+      get_all_schemas,
+      delete_schema,
+      get_taskflow_schema,
+      save_taskflow_schema,
       crud_execute,
     ])
     .run(tauri::generate_context!())

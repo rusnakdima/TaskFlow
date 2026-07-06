@@ -44,6 +44,8 @@ pub mod entity_resolution_service;
 #[path = "github.service.rs"]
 pub mod github_service;
 pub mod profile;
+#[path = "schema_service.rs"]
+pub mod schema_service;
 pub mod statistics;
 #[path = "statistics.service.rs"]
 pub mod statistics_service;
