@@ -12,7 +12,7 @@ export class ErrorHandlerUtil {
   private extractMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
     if (typeof err === "object" && err !== null) {
-      const msg = (err as any).message;
+      const msg = "message" in err ? (err as { message?: unknown }).message : undefined;
       if (typeof msg === "string" && msg.length > 0) return msg;
       return JSON.stringify(err);
     }

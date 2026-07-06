@@ -299,7 +299,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
   },
 ];
 import { TaskStatus } from "@entities/generated/api.types";
-import { TodoPermission } from "@core/services/permission.service";
+import { TodoPermission } from "@tauri-front/shared";
 export const TableFieldColors = {
   boolean: { true: "text-green-600!", false: "text-gray-400!" },
   change: {

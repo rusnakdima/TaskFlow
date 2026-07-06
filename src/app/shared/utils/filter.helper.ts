@@ -28,7 +28,7 @@ export class FilterHelper {
   /**
    * Apply a single filter to an array
    */
-  static applyFilter<T>(data: T[], config: FilterConfig): T[] {
+  static applyFilter<T extends Record<string, unknown>>(data: T[], config: FilterConfig): T[] {
     const { field, value, operator = "contains" } = config;
     if (
       operator !== "isNull" &&
@@ -70,7 +70,7 @@ export class FilterHelper {
   /**
    * Apply multiple filters to an array
    */
-  static applyFilters<T>(data: T[], configs: FilterConfig[]): T[] {
+  static applyFilters<T extends Record<string, unknown>>(data: T[], configs: FilterConfig[]): T[] {
     return configs.reduce((filteredData, config) => {
       return FilterHelper.applyFilter(filteredData, config);
     }, data);
@@ -285,7 +285,10 @@ export class FilterHelper {
   /**
    * Admin-specific status filtering (uses TaskStatus enum logic)
    */
-  static filterAdminByStatus<T extends object>(data: T[], statusFilter: string): T[] {
+  static filterAdminByStatus<T extends Record<string, unknown>>(
+    data: T[],
+    statusFilter: string
+  ): T[] {
     if (statusFilter === "done") {
       return data.filter((item) =>
         [TaskStatus.COMPLETED, TaskStatus.SKIPPED].includes(

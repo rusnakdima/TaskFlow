@@ -1,6 +1,15 @@
 import { NetworkErrorHelper } from "./network-error.helper";
+
+interface NotifyServiceLike {
+  showError(message: string): void;
+}
+
 export class LoginErrorHelper {
-  static handleAuthError(error: unknown, notifyService: any, hasLocalUsers: boolean = false): void {
+  static handleAuthError(
+    error: unknown,
+    notifyService: NotifyServiceLike,
+    hasLocalUsers: boolean = false
+  ): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (NetworkErrorHelper.isNetworkError(error)) {
       if (hasLocalUsers) {
@@ -20,19 +29,23 @@ export class LoginErrorHelper {
   }
   static handleWebAuthnError(
     error: unknown,
-    notifyService: any,
+    notifyService: NotifyServiceLike,
     context: string = "authentication"
   ): void {
     const message = error instanceof Error ? error.message : "Operation failed";
     notifyService.showError(`${context} failed: ${message}`);
   }
-  static handleQrError(error: unknown, notifyService: any, context: string = "QR login"): void {
+  static handleQrError(
+    error: unknown,
+    notifyService: NotifyServiceLike,
+    context: string = "QR login"
+  ): void {
     const message = error instanceof Error ? error.message : String(error);
     notifyService.showError(`${context} failed: ${message}`);
   }
   static handleBiometricError(
     error: unknown,
-    notifyService: any,
+    notifyService: NotifyServiceLike,
     context: string = "Biometric authentication"
   ): void {
     const message = error instanceof Error ? error.message : String(error);

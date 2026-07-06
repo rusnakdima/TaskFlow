@@ -28,7 +28,7 @@ export type ItemDisplayType =
   | "badge-group"
   | "comment-toggle";
 import { TableField } from "./table-field.model";
-import { TodoPermission } from "@core/services/permission.service";
+import { TodoPermission } from "@tauri-front/shared";
 export interface ItemDisplayConfig {
   key: string;
   type: ItemDisplayType;

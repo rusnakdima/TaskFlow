@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { Observable } from "rxjs";
+import { firstValueFrom } from "rxjs";
 import { TauriApiService } from "@app/api/tauri-api.service";
 import { Response } from "@entities/response.model";
 
@@ -15,52 +15,60 @@ export interface CrudParams {
 export class CrudService {
   private api = inject(TauriApiService);
 
-  execute<T = unknown>(operation: string, entity: string, params: CrudParams = {}): Observable<T> {
-    return this.api.invoke<T>("crud_execute", {
-      operation,
-      entity,
-      id: params.id,
-      data: params.data,
-      filter: params.filter,
+  async execute<T = unknown>(
+    operation: string,
+    entity: string,
+    params: CrudParams = {}
+  ): Promise<T> {
+    return firstValueFrom(
+      this.api.invoke<Response<T>>("crud_execute", {
+        operation,
+        entity,
+        id: params.id,
+        data: params.data,
+        filter: params.filter,
+      })
+    ).then((response) => response as unknown as T);
+  }
+
+  async get<T = unknown>(entity: string, id: string): Promise<T | null> {
+    const result = await this.execute<{ data?: T }>("find", entity, { filter: { id } });
+    return result.data ?? null;
+  }
+
+  async getAll<T = unknown>(entity: string, filter?: unknown): Promise<T[]> {
+    const result = await this.execute<{ [key: string]: T[] }>("find", entity, {
+      filter: filter as Record<string, unknown>,
     });
+    return Object.values(result)[0] ?? [];
   }
 
-  get<T = unknown>(entity: string, id: string): Observable<T> {
-    return this.execute<T>("get", entity, { id });
+  async create<T = unknown>(entity: string, data: unknown): Promise<T> {
+    const result = await this.execute<{ data: T }>("create", entity, { data });
+    return result.data;
   }
 
-  getAll<T = unknown>(entity: string, filter?: unknown): Observable<T[]> {
-    return new Observable((subscriber) => {
-      this.api
-        .invoke<Response<{ [key: string]: T[] }>>("crud_execute", {
-          operation: "get_all",
-          entity,
-          filter,
-        })
-        .subscribe({
-          next: (response) => {
-            const values = Object.values(response?.data ?? {})[0] ?? [];
-            subscriber.next(values);
-            subscriber.complete();
-          },
-          error: (err) => subscriber.error(err),
-        });
-    });
+  async update<T = unknown>(entity: string, id: string, data: unknown): Promise<T> {
+    const result = await this.execute<{ data: T }>("update", entity, { id, data });
+    return result.data;
   }
 
-  create<T = unknown>(entity: string, data: unknown): Observable<T> {
-    return this.execute<T>("create", entity, { data });
+  async patch<T = unknown>(entity: string, id: string, data: unknown): Promise<T> {
+    const result = await this.execute<{ data: T }>("patch", entity, { id, data });
+    return result.data;
   }
 
-  update<T = unknown>(entity: string, id: string, data: unknown): Observable<T> {
-    return this.execute<T>("update", entity, { id, data });
+  async delete(entity: string, id: string): Promise<void> {
+    await this.execute("delete", entity, { id });
   }
 
-  patch<T = unknown>(entity: string, id: string, data: unknown): Observable<T> {
-    return this.execute<T>("patch", entity, { id, data });
+  async count(entity: string): Promise<number> {
+    const result = await this.execute<{ count: number }>("count", entity);
+    return result.count;
   }
 
-  delete(entity: string, id: string): Observable<void> {
-    return this.execute<void>("delete", entity, { id });
+  async exists(entity: string, id: string): Promise<boolean> {
+    const result = await this.execute<{ exists: boolean }>("exists", entity, { id });
+    return result.exists;
   }
 }

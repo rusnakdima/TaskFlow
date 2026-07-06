@@ -17,7 +17,7 @@ export class SortHelper {
   /**
    * Sort array by field
    */
-  static sortByField<T>(data: T[], config: SortConfig): T[] {
+  static sortByField<T extends Record<string, unknown>>(data: T[], config: SortConfig): T[] {
     if (!Array.isArray(data)) {
       return [];
     }
@@ -27,8 +27,8 @@ export class SortHelper {
       let bValue = ObjectHelper.getNestedValue(b, field);
       // Handle date fields
       if (SortHelper.isDateField(field)) {
-        aValue = aValue ? new Date(aValue).getTime() : 0;
-        bValue = bValue ? new Date(bValue).getTime() : 0;
+        aValue = aValue ? new Date(aValue as string | number | Date).getTime() : 0;
+        bValue = bValue ? new Date(bValue as string | number | Date).getTime() : 0;
       }
       // Handle null/undefined
       if (aValue == null && bValue == null) return 0;
@@ -39,9 +39,11 @@ export class SortHelper {
         aValue = aValue.toLowerCase();
         bValue = typeof bValue === "string" ? bValue.toLowerCase() : bValue;
       }
-      // Compare values
-      if (aValue < bValue) return order === "asc" ? -1 : 1;
-      if (aValue > bValue) return order === "asc" ? 1 : -1;
+      // Compare values (cast to string | number for type-safe comparison)
+      const cmpA = aValue as string | number;
+      const cmpB = bValue as string | number;
+      if (cmpA < cmpB) return order === "asc" ? -1 : 1;
+      if (cmpA > cmpB) return order === "asc" ? 1 : -1;
       return 0;
     });
   }

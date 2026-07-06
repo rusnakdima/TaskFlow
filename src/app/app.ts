@@ -1,10 +1,8 @@
 /* sys lib */
 import { CommonModule } from "@angular/common";
-import { Component, OnInit, OnDestroy, ViewChild, signal, computed, inject } from "@angular/core";
+import { Component, OnInit, OnDestroy, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
-/* materials */
-import { MatIconModule } from "@angular/material/icon";
 /* models */
 /* helpers */
 /* services */
@@ -14,31 +12,13 @@ import { ProfileRequiredService } from "@core/services/profile-required.service"
 import { AppStateService } from "@core/services/app-state.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
-/* components */
-import { WindowNotifyComponent } from "@components/window-notify/window-notify.component";
-import { ShortcutHelpComponent } from "@components/shortcut-help/shortcut-help.component";
-import { HeaderComponent } from "@components/header/header.component";
-import { FloatingBottomNavComponent } from "@components/floating-bottom-nav/floating-bottom-nav.component";
-import { CommandPaletteComponent } from "@components/command-palette/command-palette.component";
-import { BulkActionsComponent } from "@components/bulk-actions/bulk-actions.component";
-import { ConfirmDialogComponent } from "@components/confirm-dialog/confirm-dialog.component";
-import { PromptDialogComponent } from "@components/prompt-dialog/prompt-dialog.component";
+import { SchemaLoaderService } from "@services/schema-loader.service";
+import { SchemaRouterService, SchemaRouteViewerComponent, UiSchema } from "@tauri-front/shared";
+import { TauriApiService } from "@app/api/tauri-api.service";
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatIconModule,
-    WindowNotifyComponent,
-    ShortcutHelpComponent,
-    HeaderComponent,
-    FloatingBottomNavComponent,
-    CommandPaletteComponent,
-    BulkActionsComponent,
-    ConfirmDialogComponent,
-    PromptDialogComponent,
-  ],
+  imports: [CommonModule, RouterModule, SchemaRouteViewerComponent],
   templateUrl: "./app.html",
 })
 export class App implements OnInit, OnDestroy {
@@ -49,16 +29,16 @@ export class App implements OnInit, OnDestroy {
   private appStateService = inject(AppStateService);
   private mongoConnectionService = inject(MongoConnectionService);
   private storageService = inject(StorageService);
-  @ViewChild(ShortcutHelpComponent) shortcutHelp!: ShortcutHelpComponent;
-  @ViewChild(HeaderComponent) headerComponent!: HeaderComponent;
-  @ViewChild(CommandPaletteComponent) commandPalette!: CommandPaletteComponent;
-  @ViewChild(FloatingBottomNavComponent) floatingBottomNav!: FloatingBottomNavComponent;
+  private schemaLoader = inject(SchemaLoaderService);
+  private schemaRouter = inject(SchemaRouterService);
+  private api = inject(TauriApiService);
   url = signal<string>("");
   showComponents = signal<boolean>(true);
   showShell = computed(
     () => this.showComponents() && !this.profileRequiredService.profileRequiredMode()
   );
   showInfoBlock = this.appStateService.showInfoBlock;
+  schemaLoaded = signal<boolean>(false);
   private authRoutes = [
     "/login",
     "/signup",
@@ -67,15 +47,9 @@ export class App implements OnInit, OnDestroy {
     "/profile/manage",
   ];
   private connectionCheckInterval: ReturnType<typeof setInterval> | undefined;
-  ngOnInit(): void {
-    this.shortcutService.help$.subscribe(() => {
-      this.shortcutHelp?.show();
-    });
+  async ngOnInit(): Promise<void> {
     this.shortcutService.sync$.subscribe(() => {
       this.triggerSync();
-    });
-    this.shortcutService.focusSearch$.subscribe(() => {
-      this.commandPalette?.open();
     });
     this.updateShowComponents();
     this.authService.initializeSession(this.authRoutes);
@@ -93,7 +67,46 @@ export class App implements OnInit, OnDestroy {
       this.url.set(this.router.url.slice(0, lastIndex));
       this.updateShowComponents();
     });
+
+    // Load schema and initialize SDUI router
+    try {
+      const schema = await this.loadSchema();
+      if (schema) {
+        this.schemaRouter.setSchema(schema as any);
+        const initialRoute = this.getInitialRoute();
+        this.schemaRouter.navigate(initialRoute);
+        this.schemaLoaded.set(true);
+      }
+    } catch (e) {
+      console.error("[App] Failed to load schema:", e);
+    }
   }
+
+  private async loadSchema(): Promise<UiSchema | null> {
+    try {
+      const schema = await this.api.invokeWithArgs<UiSchema>("get_taskflow_schema", {});
+      return schema ?? null;
+    } catch (e) {
+      console.warn("[App] get_taskflow_schema failed, trying get_schema:", e);
+      return await this.schemaLoader.getSchema("taskflow");
+    }
+  }
+
+  private getInitialRoute(): string {
+    // Check if we're on an auth page
+    const currentPath = this.router.url.split("?")[0];
+    if (
+      currentPath === "/login" ||
+      currentPath === "/signup" ||
+      currentPath === "/reset-password" ||
+      currentPath === "/change-password" ||
+      currentPath.startsWith("/qr-login")
+    ) {
+      return currentPath;
+    }
+    return "/dashboard";
+  }
+
   private updateShowComponents(): void {
     const currentPath = this.router.url.split("?")[0];
     const isAuthPage = this.authRoutes.some((route) => currentPath.startsWith(route));
@@ -102,9 +115,8 @@ export class App implements OnInit, OnDestroy {
   /**
    * Trigger a manual synchronization
    */
-  triggerSync(silent: boolean = true): void {
-    // Silent by default for background syncs
-    this.headerComponent?.syncAll(silent);
+  triggerSync(): void {
+    // Sync is handled via schema commands in SDUI mode
   }
   ngOnDestroy(): void {
     if (this.connectionCheckInterval) {
