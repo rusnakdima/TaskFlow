@@ -4,7 +4,7 @@ import { StorageService } from "@services/storage.service";
 import { Observable, map } from "rxjs";
 import { Comment } from "@entities/generated/api.types";
 import { CommentPayload, MarkCommentsResult } from "@entities/comment-ext.model";
-import { ApiService, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@api/api.service";
 @Injectable({ providedIn: "root" })
 export class CommentService {
   private authService = inject(AuthService);

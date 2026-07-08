@@ -5,7 +5,7 @@ import { Router } from "@angular/router";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 @Injectable({
   providedIn: "root",
 })

@@ -2,7 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@entities/auth-forms.model";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { TotpSetupResult } from "@entities/security.model";
 @Injectable({
   providedIn: "root",

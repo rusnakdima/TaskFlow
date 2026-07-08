@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from "@angular/router";
 import { firstValueFrom, take } from "rxjs";
 /* services */
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { CrudOptions } from "@entities/api.model";
 import { StorageService } from "@services/storage.service";
 /**

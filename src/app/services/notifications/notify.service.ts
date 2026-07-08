@@ -4,7 +4,7 @@ import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 /* models */
 import { INotify, ResponseStatus } from "@entities/response.model";
 import { NotificationAction, NotificationSettings } from "@entities/notification.model";

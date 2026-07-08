@@ -3,7 +3,7 @@ import { ProjectTemplate, TemplateService, TemplateTask } from "./template.servi
 import { StorageService } from "@services/storage.service";
 import { Todo } from "@entities/generated/api.types";
 import { Observable, of } from "rxjs";
-import { ApiService, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@api/api.service";
 @Injectable({
   providedIn: "root",
 })

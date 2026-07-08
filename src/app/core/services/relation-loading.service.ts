@@ -2,7 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 /* services */
-import { ApiService, HasId } from "@services/api.service";
+import { ApiService, HasId } from "@api/api.service";
 import { RelationLoadingStats } from "@entities/relation.model";
 @Injectable({
   providedIn: "root",

@@ -1,4 +1,4 @@
-import { Visibility } from "@services/api.service";
+import { Visibility } from "@api/api.service";
 export const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 export const REQUEST_TTL_MS = 30 * 1000;
 export const SELECTION_TTL_MS = 10 * 60 * 1000;

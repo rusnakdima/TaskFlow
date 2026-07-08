@@ -4,7 +4,7 @@ import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@a
 import { lastValueFrom, of, Observable } from "rxjs";
 import { timeout, catchError } from "rxjs/operators";
 /* services */
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { AuthService } from "@services/auth/auth.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { StorageService } from "@services/storage.service";

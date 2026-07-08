@@ -16,7 +16,7 @@ import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entit
 /* services */
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@entities/admin.model";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 /* utils */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";

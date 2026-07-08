@@ -4,7 +4,7 @@ import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
 /* services */
 import { AdminService } from "@services/data/admin.service";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { AdminDataWithRelations } from "@core/services/admin-data.service";
 import { BaseAdminStorageService } from "./base-admin-storage.service";
 @Injectable({

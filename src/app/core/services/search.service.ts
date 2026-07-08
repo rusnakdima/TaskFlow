@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { Observable, Subject, debounceTime, distinctUntilChanged, switchMap, forkJoin } from "rxjs";
 import { takeUntil } from "rxjs/operators";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";

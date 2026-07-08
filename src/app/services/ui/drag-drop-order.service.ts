@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";

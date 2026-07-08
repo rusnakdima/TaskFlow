@@ -3,10 +3,10 @@ import { Observable, from, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
 import { Todo, Task, Subtask, Comment, Chat, User, Category } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
-import { ApiService, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 import { BaseStorageService } from "@core/services/storage-entity.service";
 import {
   upsertEntityBulk,
@@ -41,7 +41,7 @@ export class EntityStoreService {
   private readonly _apiService = inject(ApiService);
   private readonly _jwtTokenService = inject(JwtTokenService);
   private readonly _notifyService = inject(NotifyService);
-  private readonly tauriApi = inject(TauriApiService);
+  private readonly invoke = inject(InvokeWrapperService);
   private readonly _baseStorage = inject(BaseStorageService);
   /* ════════════════════════════════════════════════════════════════════════
      PROXIED SIGNALS FROM BASE STORAGE - Single source of truth
@@ -201,7 +201,7 @@ export class EntityStoreService {
     const previousState = this.getEntitySignal(type)();
     this.addEntity(type, data);
     return from(
-      this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
+      this.invoke.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
         data,
         id: (data as Record<string, unknown>)["id"],
@@ -271,7 +271,7 @@ export class EntityStoreService {
       )
     );
     return from(
-      this.tauriApi.invoke<Record<string, unknown>>("upsert_to_json", {
+      this.invoke.invoke<Record<string, unknown>>("upsert_to_json", {
         table: type,
         data: { ...data, id },
         id,
@@ -324,18 +324,18 @@ export class EntityStoreService {
         (item: Record<string, unknown>) => item["id"] !== id
       )
     );
-    return this.tauriApi
-      .invoke<Record<string, unknown>>("delete_from_json", { table: type, id })
-      .pipe(
-        tap(() => {
-          this._notifyService.showSuccess("Deleted successfully");
-        }),
-        catchError((error) => {
-          this.setEntitySignal(type, previousState);
-          this._notifyService.showError(`Failed to delete: ${error.message}`);
-          throw error;
-        })
-      );
+    return from(
+      this.invoke.invoke<Record<string, unknown>>("delete_from_json", { table: type, id })
+    ).pipe(
+      tap(() => {
+        this._notifyService.showSuccess("Deleted successfully");
+      }),
+      catchError((error) => {
+        this.setEntitySignal(type, previousState);
+        this._notifyService.showError(`Failed to delete: ${error.message}`);
+        throw error;
+      })
+    );
   }
   private deleteEntityCloud(type: EntityType, id: string): Observable<void> {
     const previousState = this.getEntitySignal(type)();
@@ -379,7 +379,7 @@ export class EntityStoreService {
     });
     if (targetDb === "local") {
       return from(
-        this.tauriApi.invoke<unknown[]>("batch_soft_delete_json", {
+        this.invoke.invoke<unknown[]>("batch_soft_delete_json", {
           table: type,
           ids,
         })
@@ -399,7 +399,7 @@ export class EntityStoreService {
     });
     if (targetDb === "local") {
       return from(
-        this.tauriApi.invoke<unknown[]>("batch_restore_json", {
+        this.invoke.invoke<unknown[]>("batch_restore_json", {
           table: type,
           ids,
         })
@@ -493,7 +493,7 @@ export class EntityStoreService {
     }
   }
   private loadTodosFromLocal(limit: number): Observable<Todo[]> {
-    return this.tauriApi.invoke<Todo[]>("get_all_from_json", { table: "todos", limit }).pipe(
+    return from(this.invoke.invoke<Todo[]>("get_all_from_json", { table: "todos", limit })).pipe(
       map((response: unknown) => {
         const todoResponse = response as Todo[] | { data: Todo[] };
         const todos = Array.isArray(todoResponse) ? todoResponse : todoResponse?.data;
@@ -558,22 +558,22 @@ export class EntityStoreService {
     }
   }
   private loadCategoriesFromLocal(limit: number): Observable<Category[]> {
-    return this.tauriApi
-      .invoke<Category[]>("get_all_from_json", { table: "categories", limit })
-      .pipe(
-        map((response: unknown) => {
-          const catResponse = response as Category[] | { data: Category[] };
-          const categories = Array.isArray(catResponse) ? catResponse : catResponse?.data;
-          if (categories && categories.length > 0) {
-            this.categories.update((existing) => upsertEntityBulk(existing, categories));
-            this.updatePagination("categories", 0, limit, categories.length);
-          }
-          return categories || [];
-        }),
-        catchError(() => {
-          return of([]);
-        })
-      );
+    return from(
+      this.invoke.invoke<Category[]>("get_all_from_json", { table: "categories", limit })
+    ).pipe(
+      map((response: unknown) => {
+        const catResponse = response as Category[] | { data: Category[] };
+        const categories = Array.isArray(catResponse) ? catResponse : catResponse?.data;
+        if (categories && categories.length > 0) {
+          this.categories.update((existing) => upsertEntityBulk(existing, categories));
+          this.updatePagination("categories", 0, limit, categories.length);
+        }
+        return categories || [];
+      }),
+      catchError(() => {
+        return of([]);
+      })
+    );
   }
   ensureCommentsLoaded(taskId?: string, visibility = "private", limit = 10): void {
     if (taskId && (this.commentsByTaskId().get(taskId)?.length ?? 0) > 0) return;

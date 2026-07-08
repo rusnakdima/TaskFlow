@@ -4,7 +4,7 @@ import { Injectable, inject } from "@angular/core";
 import { Todo, Task, Subtask, Comment, Chat } from "@entities/generated/api.types";
 /* services */
 import { StorageService } from "@services/storage.service";
-import { ApiService, CascadeResult } from "@services/api.service";
+import { ApiService, CascadeResult } from "@api/api.service";
 @Injectable({
   providedIn: "root",
 })

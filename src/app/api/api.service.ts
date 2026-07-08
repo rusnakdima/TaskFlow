@@ -1,9 +1,9 @@
 import { Injectable, inject, signal, Injector } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { map, catchError } from "rxjs/operators";
+import { InvokeWrapperService } from "@tauri-front/shared";
 
-import { ResponseStatus } from "@tauri-front/shared";
-import type { Response } from "@tauri-front/shared";
+import { ResponseStatus } from "@entities/response.model";
 import {
   Todo,
   Task,
@@ -18,7 +18,6 @@ import {
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { InvokeWrapperService } from "@tauri-front/shared";
 import {
   Visibility,
   CrudOptions,
@@ -28,7 +27,7 @@ import {
   PaginationState,
 } from "@entities/api.model";
 
-export { ApiError, Visibility, HasId } from "@entities/api.model";
+export { ApiError, Visibility, HasId, PaginationState } from "@entities/api.model";
 
 export interface EntityRoutes {
   get: string;
@@ -44,6 +43,10 @@ export interface CascadeResult {
   subtask_count: number;
   comment_count: number;
   chat_count: number;
+}
+
+export interface GetOptions {
+  visibility?: "public" | "private" | "all";
 }
 
 @Injectable({ providedIn: "root" })
@@ -196,9 +199,9 @@ export class ApiService {
       const offline = this.isOffline();
       const invokeArgs = { ...args, offline };
       this.invoke
-        .invoke<Response<T>>(command, invokeArgs)
-        .then((response: any) => {
-          if (response.status === ResponseStatus.Success) {
+        .invoke<{ status: ResponseStatus; data?: T; message?: string }>(command, invokeArgs)
+        .then((response) => {
+          if (response.status === ResponseStatus.SUCCESS) {
             subscriber.next(response.data as T);
             subscriber.complete();
           } else {
@@ -207,9 +210,11 @@ export class ApiService {
             );
           }
         })
-        .catch((err: any) => {
+        .catch((err: unknown) => {
           const errMsg =
-            err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
+            err && typeof err === "object" && "message" in err
+              ? String((err as { message?: unknown }).message)
+              : String(err);
           subscriber.error(new ApiError(errMsg, "network"));
         });
     });
@@ -221,15 +226,16 @@ export class ApiService {
     visibility?: string
   ): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
-      "batch_soft_delete_cascade",
-      {
-        table,
-        ids,
-        token,
-        visibility,
-      }
-    );
+    const response = await this.invoke.invoke<{
+      status: ResponseStatus;
+      data?: CascadeResult[];
+      message?: string;
+    }>("batch_soft_delete_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
     return response.data as CascadeResult[];
   }
 
@@ -239,29 +245,35 @@ export class ApiService {
     visibility?: string
   ): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
-      "batch_hard_delete_cascade",
-      {
-        table,
-        ids,
-        token,
-        visibility,
-      }
-    );
+    const response = await this.invoke.invoke<{
+      status: ResponseStatus;
+      data?: CascadeResult[];
+      message?: string;
+    }>("batch_hard_delete_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
     return response.data as CascadeResult[];
   }
 
-  async batchRestore(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
+  async batchRestore(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
-      "batch_restore_cascade",
-      {
-        table,
-        ids,
-        token,
-        visibility,
-      }
-    );
+    const response = await this.invoke.invoke<{
+      status: ResponseStatus;
+      data?: CascadeResult[];
+      message?: string;
+    }>("batch_restore_cascade", {
+      table,
+      ids,
+      token,
+      visibility,
+    });
     return response.data as CascadeResult[];
   }
 
@@ -276,24 +288,33 @@ export class ApiService {
   getTasksByMonth(year: number, month: number): Observable<{ tasks: unknown[] }> {
     const offline = !this.mongoConnectionService.isConnected();
     return from(
-      this.invoke.invoke<Response<{ tasks: unknown[] }>>("get_tasks_by_month", { year, month, offline })
+      this.invoke.invoke<{
+        status: ResponseStatus;
+        data?: { tasks: unknown[] };
+        message?: string;
+      }>("get_tasks_by_month", { year, month, offline })
     ).pipe(
-      map((response: any) => {
-        if (response.status === ResponseStatus.Success) {
+      map((response) => {
+        if (response.status === ResponseStatus.SUCCESS) {
           return response.data as { tasks: unknown[] };
         } else {
           throw new ApiError(response.message || "Failed to load tasks by month", "server");
         }
       }),
-      catchError((err: any) => {
-        throw new ApiError(err?.message || String(err), "network");
+      catchError((err: unknown) => {
+        throw new ApiError(
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message?: unknown }).message)
+            : String(err),
+          "network"
+        );
       })
     );
   }
 
-  initializeUserData(userId: string): Observable<Response<unknown>> {
+  initializeUserData(userId: string): Observable<unknown> {
     return from(
-      this.invoke.invoke<Response<unknown>>(
+      this.invoke.invoke<{ status: ResponseStatus; data?: unknown; message?: string }>(
         "initialize_user_data",
         this.toSnakeCase({ userId }) as Record<string, unknown>
       )
@@ -387,8 +408,8 @@ export class ApiService {
 
     if (params.filter) {
       const filter = { ...params.filter };
-      if (params.todoId) (filter as any).todo_id = params.todoId;
-      if (params.taskId) (filter as any).task_id = params.taskId;
+      if (params.todoId) (filter as Record<string, unknown>)["todo_id"] = params.todoId;
+      if (params.taskId) (filter as Record<string, unknown>)["task_id"] = params.taskId;
       args["filter"] = filter;
     }
 
@@ -423,10 +444,14 @@ export class ApiService {
     if (params.filter) args["filter"] = params.filter;
 
     return from(
-      this.invoke.invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
+      this.invoke.invoke<{
+        status: ResponseStatus;
+        data?: T;
+        message?: string;
+      }>(route, this.toSnakeCase(args) as Record<string, unknown>)
     ).pipe(
       map((response) => {
-        if (response.status === ResponseStatus.Success) {
+        if (response.status === ResponseStatus.SUCCESS) {
           return this.fromSnakeCase(response.data) as T;
         } else {
           throw new ApiError(response.message || `Failed: ${route}`, "server");
@@ -472,17 +497,21 @@ export class ApiService {
     if (params.limit !== undefined) args["limit"] = params.limit;
 
     const filter = params.filter ? { ...params.filter } : {};
-    if (params.todoId) (filter as any).todo_id = params.todoId;
-    if (params.taskId) (filter as any).task_id = params.taskId;
+    if (params.todoId) (filter as Record<string, unknown>)["todo_id"] = params.todoId;
+    if (params.taskId) (filter as Record<string, unknown>)["task_id"] = params.taskId;
     if (Object.keys(filter).length > 0) {
       args["filter"] = filter;
     }
 
     return from(
-      this.invoke.invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
+      this.invoke.invoke<{
+        status: ResponseStatus;
+        data?: T[];
+        message?: string;
+      }>(route, this.toSnakeCase(args) as Record<string, unknown>)
     ).pipe(
       map((response) => {
-        const items = Array.isArray(response) ? response : (response as any)?.data?.items || [];
+        const items = Array.isArray(response) ? response : (response as unknown as { data?: { items?: T[] } })?.data?.items || [];
         return this.fromSnakeCase(items) as T[];
       }),
       catchError((err: unknown) => {
@@ -494,6 +523,76 @@ export class ApiService {
       })
     );
   }
+
+  // ─── Table-based CRUD ───────────────────────────────────────────────────────
+
+  getPublicProfiles(): Observable<Profile[]> {
+    return this.profiles.getAll({ visibility: "public" });
+  }
+
+  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
+    return this.getEntityApi<T>(table).get(id, options.visibility);
+  }
+
+  getAll<T>(
+    table: string,
+    options: PaginatedOptions & { todoId?: string; taskId?: string } = { visibility: "all" }
+  ): Observable<T[]> {
+    return this.getEntityApi<T>(table).getAll(options);
+  }
+
+  create<T>(
+    table: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    return this.getEntityApi<T>(table).create(data, options.visibility);
+  }
+
+  update<T>(
+    table: string,
+    id: string,
+    data: Partial<T>,
+    options: CrudOptions = { visibility: "all" }
+  ): Observable<T> {
+    return this.getEntityApi<T>(table).update(id, data, options.visibility);
+  }
+
+  updateAll<T>(
+    table: string,
+    items: Partial<T>[],
+    options?: { visibility?: string; offline?: boolean }
+  ): Observable<T[]> {
+    return new Observable((subscriber) => {
+      Promise.all(
+        items.map((item) =>
+          (item as Record<string, unknown>)["id"]
+            ? this.getEntityApi<T>(table)
+                .update((item as Record<string, unknown>)["id"] as string, item, options?.visibility)
+                .toPromise()
+            : null
+        )
+      )
+        .then((responses) => {
+          const updatedItems = responses.filter((r) => r !== null) as T[];
+          subscriber.next(updatedItems);
+          subscriber.complete();
+        })
+        .catch((err: unknown) => {
+          const errMsg =
+            err && typeof err === "object" && "message" in err
+              ? String((err as { message?: unknown }).message)
+              : String(err);
+          subscriber.error(new ApiError(errMsg, "network"));
+        });
+    });
+  }
+
+  delete(table: string, id: string, options?: CrudOptions): Observable<void> {
+    return this.getEntityApi<void>(table).delete(id, options);
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
 
   private getCommand(table: string, operation: string): string {
     const routes: Record<string, Record<string, string>> = {
@@ -551,72 +650,6 @@ export class ApiService {
     return routes[table]?.[operation] || "";
   }
 
-  getPublicProfiles(): Observable<Profile[]> {
-    return this.profiles.getAll({ visibility: "public" });
-  }
-
-  get<T>(table: string, id: string, options: CrudOptions = { visibility: "all" }): Observable<T> {
-    return this.getEntityApi<T>(table).get(id, options.visibility);
-  }
-
-  getAll<T>(
-    table: string,
-    options: PaginatedOptions & { todoId?: string; taskId?: string } = { visibility: "all" }
-  ): Observable<T[]> {
-    return this.getEntityApi<T>(table).getAll(options);
-  }
-
-  create<T>(
-    table: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    return this.getEntityApi<T>(table).create(data, options.visibility);
-  }
-
-  update<T>(
-    table: string,
-    id: string,
-    data: Partial<T>,
-    options: CrudOptions = { visibility: "all" }
-  ): Observable<T> {
-    return this.getEntityApi<T>(table).update(id, data, options.visibility);
-  }
-
-  updateAll<T>(
-    table: string,
-    items: Partial<T>[],
-    options?: { visibility?: string; offline?: boolean }
-  ): Observable<T[]> {
-    return new Observable((subscriber) => {
-      Promise.all(
-        items.map((item) =>
-          (item as any).id
-            ? this.getEntityApi<T>(table)
-                .update((item as any).id, item, options?.visibility)
-                .toPromise()
-            : null
-        )
-      )
-        .then((responses) => {
-          const updatedItems = responses.filter((r) => r !== null) as T[];
-          subscriber.next(updatedItems);
-          subscriber.complete();
-        })
-        .catch((err) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as any).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
-        });
-    });
-  }
-
-  delete(table: string, id: string, options?: CrudOptions): Observable<void> {
-    return this.getEntityApi<void>(table).delete(id, options);
-  }
-
   private getEntityApi<T>(table: string): EntityApi<T> {
     switch (table) {
       case "todos":
@@ -670,7 +703,7 @@ export class ApiService {
     if (typeof obj === "object" && !(obj instanceof Date)) {
       return Object.fromEntries(
         Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
-          key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()),
+          key.replace(/_([a-z])/g, (_: string, letter: string) => letter.toUpperCase()),
           this.fromSnakeCase(value),
         ])
       );
@@ -681,49 +714,41 @@ export class ApiService {
 
 class EntityApi<T> {
   private static readonly ROUTE_TO_ENTITY: Record<string, string> = {
-    // Todos
     create_todo: "todos",
     get_todo: "todos",
     get_todos: "todos",
     update_todo: "todos",
     delete_todo: "todos",
-    // Tasks
     create_task: "tasks",
     get_task: "tasks",
     get_tasks: "tasks",
     update_task: "tasks",
     delete_task: "tasks",
-    // Subtasks
     create_subtask: "subtasks",
     get_subtask: "subtasks",
     get_subtasks: "subtasks",
     update_subtask: "subtasks",
     delete_subtask: "subtasks",
-    // Categories
     create_category: "categories",
     get_category: "categories",
     get_categories: "categories",
     update_category: "categories",
     delete_category: "categories",
-    // Profiles
     create_profile: "profiles",
     get_profile: "profiles",
     get_profiles: "profiles",
     update_profile: "profiles",
     delete_profile: "profiles",
-    // Comments
     create_comment: "comments",
     get_comment: "comments",
     get_comments: "comments",
     update_comment: "comments",
     delete_comment: "comments",
-    // Chats
     create_chat: "chats",
     get_chat: "chats",
     get_chats: "chats",
     update_chat: "chats",
     delete_chat: "chats",
-    // Users
     get_user: "users",
     get_users: "users",
   };
@@ -780,11 +805,11 @@ class EntityApi<T> {
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.create!, { data, visibility }).subscribe({
         next: (result: T) => {
-          this.api.storageService.modify(this.getEntityType("create") as any, "create", result);
+          this.api.storageService.modify(this.getEntityType("create") as never, "create", result);
           subscriber.next(result);
           subscriber.complete();
         },
-        error: (err: any) => subscriber.error(err),
+        error: (err: unknown) => subscriber.error(err),
       });
     });
   }
@@ -793,7 +818,7 @@ class EntityApi<T> {
     return new Observable((subscriber) => {
       this.api.crud<T>(this.routes.update!, { id, data, visibility }).subscribe({
         next: (result) => {
-          this.api.storageService.modify(this.getEntityType("update") as any, "update", result);
+          this.api.storageService.modify(this.getEntityType("update") as never, "update", result);
           subscriber.next(result);
           subscriber.complete();
         },
@@ -807,7 +832,7 @@ class EntityApi<T> {
     return new Observable((subscriber) => {
       this.api.crud<void>(this.routes.delete!, { id, visibility: options?.visibility }).subscribe({
         next: () => {
-          this.api.storageService.modify(entityType as any, "delete", { id });
+          this.api.storageService.modify(entityType as never, "delete", { id });
           subscriber.next();
           subscriber.complete();
         },
@@ -829,7 +854,7 @@ class EntityApi<T> {
         })
         .subscribe({
           next: () => {
-            this.api.storageService.modify(entityType as any, "delete", { id });
+            this.api.storageService.modify(entityType as never, "delete", { id });
             subscriber.next();
             subscriber.complete();
           },
@@ -910,11 +935,19 @@ class AdminApi {
     return this.api.invokeCommand("get_all_archive_paginated", { dataType, skip, limit });
   }
 
-  batchSoftDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
+  batchSoftDelete(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Observable<CascadeResult> {
     return this.api.batchSoftDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 
-  batchHardDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
+  batchHardDelete(
+    table: string,
+    ids: string[],
+    visibility?: string
+  ): Observable<CascadeResult> {
     return this.api.batchHardDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 

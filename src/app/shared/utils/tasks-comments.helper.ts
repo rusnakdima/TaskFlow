@@ -3,7 +3,7 @@ import { CommentService } from "@services/features/comment.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { AuthService } from "@services/auth/auth.service";
 import { StorageService } from "@services/storage.service";
-import { Visibility } from "@services/api.service";
+import { Visibility } from "@api/api.service";
 @Injectable({ providedIn: "root" })
 export class TasksCommentsHelper {
   private commentService = inject(CommentService);

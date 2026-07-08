@@ -10,7 +10,7 @@ import {
 } from "rxjs";
 import { tap, takeUntil } from "rxjs/operators";
 import { Profile } from "@entities/generated/api.types";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";

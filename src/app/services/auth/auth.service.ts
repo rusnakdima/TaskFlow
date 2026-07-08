@@ -9,7 +9,7 @@ import { PasswordReset } from "@entities/password-reset.model";
 import { NetworkErrorHelper } from "@helpers/network-error.helper";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 import { StorageService } from "@services/storage.service";

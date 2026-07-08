@@ -2,7 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
 import { ResponseStatus } from "@entities/response.model";
-import { ApiService, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@api/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
 import { ConfirmDialogService } from "@core/services/confirm-dialog.service";

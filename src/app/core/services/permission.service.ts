@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { Todo, Task, Subtask, Comment } from "@entities/generated/api.types";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { TodoPermissionLevel, PermissionCheckResult } from "@entities/entity-config.model";
 export enum TodoPermission {

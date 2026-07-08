@@ -6,7 +6,7 @@ import { TotpSetupResult } from "@entities/security.model";
 export { TotpSetupResult, UserSecurityStatus } from "@entities/security.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { AuthResponse } from "@entities/auth-forms.model";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 @Injectable({
   providedIn: "root",
 })

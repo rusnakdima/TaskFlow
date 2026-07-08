@@ -8,7 +8,7 @@ import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/ge
 import { EntityType, VisibilityFilter } from "@entities/storage.model";
 
 /* services */
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 
 /* child services */
 import { BaseStorageService, DEFAULT_PAGINATION } from "./storage-entity.service";

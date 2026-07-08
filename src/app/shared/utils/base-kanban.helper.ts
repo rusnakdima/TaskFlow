@@ -4,7 +4,7 @@ import { TaskStatus, Todo } from "@entities/generated/api.types";
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { NotifyService } from "@services/notifications/notify.service";
 import { KanbanDragDropService } from "@services/ui/kanban-drag-drop.service";
-import { ApiService, Visibility } from "@services/api.service";
+import { ApiService, Visibility } from "@api/api.service";
 export interface KanbanColumn {
   id: TaskStatus;
   label: string;

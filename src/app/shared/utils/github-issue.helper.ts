@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { GithubService } from "@services/github/github.service";
-import { ApiService } from "@services/api.service";
+import { ApiService } from "@api/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { Task, Todo } from "@entities/generated/api.types";
 @Injectable({
