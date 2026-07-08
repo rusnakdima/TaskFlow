@@ -24,8 +24,6 @@ pub mod profile_command;
 pub mod room_command;
 #[path = "schema.command.rs"]
 pub mod schema_command;
-#[path = "schema_commands.rs"]
-pub mod schema_commands;
 #[path = "stats.command.rs"]
 pub mod stats_command;
 #[path = "subtask.command.rs"]

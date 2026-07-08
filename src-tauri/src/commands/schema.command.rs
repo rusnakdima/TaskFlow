@@ -43,6 +43,34 @@ pub async fn delete_schema(
   state.schema_service.delete_schema(&id).await.map_err(|e| e)
 }
 
+use crate::models::response::Response;
+
+#[tauri::command]
+pub async fn get_ui_schema(
+  state: State<'_, SchemaState>,
+  id: String,
+) -> Result<Response<serde_json::Value>, String> {
+  let result = state.schema_service.get_schema(&id).await.map_err(|e| e)?;
+  let json_value: serde_json::Value = serde_json::to_value(result).map_err(|e| e.to_string())?;
+  Ok(Response::success(json_value, "Schema loaded"))
+}
+
+#[tauri::command]
+pub async fn save_ui_schema(
+  state: State<'_, SchemaState>,
+  id: String,
+  schema: serde_json::Value,
+) -> Result<Response<()>, String> {
+  let mut schema: UiSchema = serde_json::from_value(schema).map_err(|e| e.to_string())?;
+  schema.app.id = id;
+  state
+    .schema_service
+    .save_schema(schema)
+    .await
+    .map_err(|e| e)?;
+  Ok(Response::success((), "Schema saved"))
+}
+
 pub struct SchemaState {
   pub schema_service: Arc<SchemaService>,
 }

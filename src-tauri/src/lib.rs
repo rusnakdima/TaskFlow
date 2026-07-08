@@ -14,7 +14,6 @@ use tauri::{Manager, State};
 /* utils */
 use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
 /* commands */
-use crate::commands::schema_commands::{get_taskflow_schema, save_taskflow_schema};
 use commands::{
   admin_command::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_restore_json,
@@ -48,7 +47,10 @@ use commands::{
   },
   profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
-  schema_command::{delete_schema, get_all_schemas, get_schema, save_schema, SchemaState},
+  schema_command::{
+    delete_schema, get_all_schemas, get_schema, get_ui_schema, save_schema, save_ui_schema,
+    SchemaState,
+  },
   stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
@@ -599,8 +601,8 @@ pub fn run() {
       save_schema,
       get_all_schemas,
       delete_schema,
-      get_taskflow_schema,
-      save_taskflow_schema,
+      get_ui_schema,
+      save_ui_schema,
       crud_execute,
     ])
     .run(tauri::generate_context!())
