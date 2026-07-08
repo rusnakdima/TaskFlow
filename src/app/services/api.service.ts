@@ -1,7 +1,9 @@
 import { Injectable, inject, signal, Injector } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, from } from "rxjs";
+import { map, catchError } from "rxjs/operators";
 
-import { Response, ResponseStatus } from "@entities/response.model";
+import { ResponseStatus } from "@tauri-front/shared";
+import type { Response } from "@tauri-front/shared";
 import {
   Todo,
   Task,
@@ -16,7 +18,7 @@ import {
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 import {
   Visibility,
   CrudOptions,
@@ -49,7 +51,7 @@ export class ApiService {
   private mongoConnectionService = inject(MongoConnectionService);
   private _injector = inject(Injector);
   jwtTokenService = inject(JwtTokenService);
-  private tauriApi = inject(TauriApiService);
+  private invoke = inject(InvokeWrapperService);
 
   private _storageService: StorageService | null = null;
   get storageService(): StorageService {
@@ -193,10 +195,10 @@ export class ApiService {
     return new Observable((subscriber) => {
       const offline = this.isOffline();
       const invokeArgs = { ...args, offline };
-      this.tauriApi
-        .invokeAsync<Response<T>>(command, invokeArgs)
+      this.invoke
+        .invoke<Response<T>>(command, invokeArgs)
         .then((response: any) => {
-          if (response.status === ResponseStatus.SUCCESS) {
+          if (response.status === ResponseStatus.Success) {
             subscriber.next(response.data as T);
             subscriber.complete();
           } else {
@@ -219,7 +221,7 @@ export class ApiService {
     visibility?: string
   ): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.tauriApi.invokeAsync<Response<CascadeResult[]>>(
+    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
       "batch_soft_delete_cascade",
       {
         table,
@@ -237,7 +239,7 @@ export class ApiService {
     visibility?: string
   ): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.tauriApi.invokeAsync<Response<CascadeResult[]>>(
+    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
       "batch_hard_delete_cascade",
       {
         table,
@@ -251,7 +253,7 @@ export class ApiService {
 
   async batchRestore(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
-    const response = await this.tauriApi.invokeAsync<Response<CascadeResult[]>>(
+    const response = await this.invoke.invoke<Response<CascadeResult[]>>(
       "batch_restore_cascade",
       {
         table,
@@ -273,31 +275,28 @@ export class ApiService {
 
   getTasksByMonth(year: number, month: number): Observable<{ tasks: unknown[] }> {
     const offline = !this.mongoConnectionService.isConnected();
-    return new Observable((subscriber) => {
-      this.tauriApi
-        .invoke<Response<{ tasks: unknown[] }>>("get_tasks_by_month", { year, month, offline })
-        .subscribe({
-          next: (response) => {
-            if (response.status === ResponseStatus.SUCCESS) {
-              subscriber.next(response.data as { tasks: unknown[] });
-              subscriber.complete();
-            } else {
-              subscriber.error(
-                new ApiError(response.message || "Failed to load tasks by month", "server")
-              );
-            }
-          },
-          error: (err) => {
-            subscriber.error(new ApiError(err?.message || String(err), "network"));
-          },
-        });
-    });
+    return from(
+      this.invoke.invoke<Response<{ tasks: unknown[] }>>("get_tasks_by_month", { year, month, offline })
+    ).pipe(
+      map((response: any) => {
+        if (response.status === ResponseStatus.Success) {
+          return response.data as { tasks: unknown[] };
+        } else {
+          throw new ApiError(response.message || "Failed to load tasks by month", "server");
+        }
+      }),
+      catchError((err: any) => {
+        throw new ApiError(err?.message || String(err), "network");
+      })
+    );
   }
 
   initializeUserData(userId: string): Observable<Response<unknown>> {
-    return this.tauriApi.invoke<Response<unknown>>(
-      "initialize_user_data",
-      this.toSnakeCase({ userId }) as Record<string, unknown>
+    return from(
+      this.invoke.invoke<Response<unknown>>(
+        "initialize_user_data",
+        this.toSnakeCase({ userId }) as Record<string, unknown>
+      )
     );
   }
 
@@ -393,21 +392,18 @@ export class ApiService {
       args["filter"] = filter;
     }
 
-    return new Observable((subscriber) => {
-      this.tauriApi.invoke<T>(route, this.toSnakeCase(args) as Record<string, unknown>).subscribe({
-        next: (data) => {
-          subscriber.next(this.fromSnakeCase(data) as T);
-          subscriber.complete();
-        },
-        error: (err: unknown) => {
-          const errMsg =
-            err && typeof err === "object" && "message" in err
-              ? String((err as { message?: unknown }).message)
-              : String(err);
-          subscriber.error(new ApiError(errMsg, "network"));
-        },
-      });
-    });
+    return from(
+      this.invoke.invoke<T>(route, this.toSnakeCase(args) as Record<string, unknown>)
+    ).pipe(
+      map((data) => this.fromSnakeCase(data) as T),
+      catchError((err: unknown) => {
+        const errMsg =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message?: unknown }).message)
+            : String(err);
+        throw new ApiError(errMsg, "network");
+      })
+    );
   }
 
   crudByFilter<T>(
@@ -426,27 +422,24 @@ export class ApiService {
     if (params.load) args["load"] = JSON.stringify(params.load);
     if (params.filter) args["filter"] = params.filter;
 
-    return new Observable((subscriber) => {
-      this.tauriApi
-        .invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
-        .subscribe({
-          next: (response) => {
-            if (response.status === ResponseStatus.SUCCESS) {
-              subscriber.next(this.fromSnakeCase(response.data) as T);
-              subscriber.complete();
-            } else {
-              subscriber.error(new ApiError(response.message || `Failed: ${route}`, "server"));
-            }
-          },
-          error: (err: unknown) => {
-            const errMsg =
-              err && typeof err === "object" && "message" in err
-                ? String((err as { message?: unknown }).message)
-                : String(err);
-            subscriber.error(new ApiError(errMsg, "network"));
-          },
-        });
-    });
+    return from(
+      this.invoke.invoke<Response<T>>(route, this.toSnakeCase(args) as Record<string, unknown>)
+    ).pipe(
+      map((response) => {
+        if (response.status === ResponseStatus.Success) {
+          return this.fromSnakeCase(response.data) as T;
+        } else {
+          throw new ApiError(response.message || `Failed: ${route}`, "server");
+        }
+      }),
+      catchError((err: unknown) => {
+        const errMsg =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message?: unknown }).message)
+            : String(err);
+        throw new ApiError(errMsg, "network");
+      })
+    );
   }
 
   crudList<T>(
@@ -485,24 +478,21 @@ export class ApiService {
       args["filter"] = filter;
     }
 
-    return new Observable((subscriber) => {
-      this.tauriApi
-        .invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
-        .subscribe({
-          next: (response) => {
-            const items = Array.isArray(response) ? response : (response as any)?.data?.items || [];
-            subscriber.next(this.fromSnakeCase(items) as T[]);
-            subscriber.complete();
-          },
-          error: (err: unknown) => {
-            const errMsg =
-              err && typeof err === "object" && "message" in err
-                ? String((err as { message?: unknown }).message)
-                : String(err);
-            subscriber.error(new ApiError(errMsg, "network"));
-          },
-        });
-    });
+    return from(
+      this.invoke.invoke<Response<T[]>>(route, this.toSnakeCase(args) as Record<string, unknown>)
+    ).pipe(
+      map((response) => {
+        const items = Array.isArray(response) ? response : (response as any)?.data?.items || [];
+        return this.fromSnakeCase(items) as T[];
+      }),
+      catchError((err: unknown) => {
+        const errMsg =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message?: unknown }).message)
+            : String(err);
+        throw new ApiError(errMsg, "network");
+      })
+    );
   }
 
   private getCommand(table: string, operation: string): string {
