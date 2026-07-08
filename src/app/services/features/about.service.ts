@@ -1,12 +1,12 @@
 /* sys lib */
-import { Injectable, inject } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, firstValueFrom } from "rxjs";
+import { Observable, firstValueFrom, from } from "rxjs";
 /* env */
 import { environment } from "@env/environment";
 /* models */
 import { ResponseModel } from "@entities/response.model";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 interface GitHubRelease {
   tag_name: string;
   name: string;
@@ -17,8 +17,7 @@ interface GitHubRelease {
   providedIn: "root",
 })
 export class AboutService {
-  constructor(private http: HttpClient) {}
-  private tauriApi = inject(TauriApiService);
+  constructor(private http: HttpClient, private invoke: InvokeWrapperService) {}
   gitRepoName: string = environment.gitRepoName;
   githubUser: string = environment.githubUser;
   getDate(version: string): Observable<GitHubRelease> {
@@ -27,9 +26,7 @@ export class AboutService {
     );
   }
   async getBinaryNameFile<R>(version: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(
-      this.tauriApi.invoke<ResponseModel<R>>("getBinaryNameFile", { version })
-    );
+    return await this.invoke.invoke<ResponseModel<R>>("getBinaryNameFile", { version });
   }
   checkUpdate(): Observable<GitHubRelease> {
     return this.http.get<GitHubRelease>(
@@ -37,19 +34,15 @@ export class AboutService {
     );
   }
   async downloadUpdate<R>(version: string, nameFile: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(
-      this.tauriApi.invoke<ResponseModel<R>>("downloadUpdate", {
-        url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
-        fileName: nameFile,
-      })
-    );
+    return await this.invoke.invoke<ResponseModel<R>>("downloadUpdate", {
+      url: `https://github.com/${this.githubUser}/${this.gitRepoName}/releases/download/${version}/${nameFile}`,
+      fileName: nameFile,
+    });
   }
   async openFile<R>(path: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(this.tauriApi.invoke<ResponseModel<R>>("openFile", { path: path }));
+    return await this.invoke.invoke<ResponseModel<R>>("openFile", { path: path });
   }
   async installUpdate<R>(path: string): Promise<ResponseModel<R>> {
-    return await firstValueFrom(
-      this.tauriApi.invoke<ResponseModel<R>>("installUpdate", { installerPath: path })
-    );
+    return await this.invoke.invoke<ResponseModel<R>>("installUpdate", { installerPath: path });
   }
 }
