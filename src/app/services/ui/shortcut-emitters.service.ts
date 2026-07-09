@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, inject } from "@angular/core";
 import { ShortcutService } from "./shortcut.service";
 @Injectable({
   providedIn: "root",
@@ -13,7 +13,7 @@ export class ShortcutEmittersService {
   closeSignal = this._closeSignal.asReadonly();
   syncSignal = this._syncSignal.asReadonly();
   refreshSignal = this._refreshSignal.asReadonly();
-  constructor(private shortcutService: ShortcutService) {}
+  private shortcutService = inject(ShortcutService);
   emitSave(): void {
     this._saveSignal.set(++this._counter);
   }

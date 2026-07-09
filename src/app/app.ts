@@ -1,5 +1,4 @@
 /* sys lib */
-import { CommonModule } from "@angular/common";
 import { Component, OnInit, OnDestroy, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
@@ -19,7 +18,7 @@ import { Response } from "@app/entities/response.model";
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [CommonModule, RouterModule, SchemaRouteViewerComponent],
+  imports: [RouterModule, SchemaRouteViewerComponent],
   templateUrl: "./app.html",
 })
 export class App implements OnInit, OnDestroy {

@@ -3,6 +3,8 @@
     class="mx-auto min-h-[calc(100vh-72px-62px)] w-full max-w-7xl lg:px-6"
     [class.shell-visible]="showShell()"
   >
-    <lib-schema-route-viewer *ngIf="schemaLoaded()"></lib-schema-route-viewer>
+    @if (schemaLoaded()) {
+      <lib-schema-route-viewer></lib-schema-route-viewer>
+    }
   </main>
 </div>
