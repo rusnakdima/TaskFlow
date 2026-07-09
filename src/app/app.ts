@@ -14,7 +14,8 @@ import { MongoConnectionService } from "@core/services/mongo-connection.service"
 import { StorageService } from "@services/storage.service";
 import { SchemaLoaderService } from "@services/schema-loader.service";
 import { SchemaRouterService, SchemaRouteViewerComponent, UiSchema } from "@tauri-front/shared";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { invoke } from "@tauri-apps/api/core";
+import { Response } from "@app/entities/response.model";
 @Component({
   selector: "app-root",
   standalone: true,
@@ -31,7 +32,6 @@ export class App implements OnInit, OnDestroy {
   private storageService = inject(StorageService);
   private schemaLoader = inject(SchemaLoaderService);
   private schemaRouter = inject(SchemaRouterService);
-  private api = inject(TauriApiService);
   url = signal<string>("");
   showComponents = signal<boolean>(true);
   showShell = computed(
@@ -83,11 +83,16 @@ export class App implements OnInit, OnDestroy {
   }
 
   private async loadSchema(): Promise<UiSchema | null> {
+    // Use canonical get_ui_schema (data-first, returns Option<UiSchema>)
     try {
-      const schema = await this.api.invokeWithArgs<UiSchema>("get_taskflow_schema", {});
-      return schema ?? null;
+      const response = await invoke<Response<UiSchema>>("get_ui_schema", { id: "taskflow" });
+      if (response.data) {
+        return response.data;
+      }
+      // Schema not found — fall back to TaskFlow-specific get_schema (creates default)
+      return await this.schemaLoader.getSchema("taskflow");
     } catch (e) {
-      console.warn("[App] get_taskflow_schema failed, trying get_schema:", e);
+      console.warn("[App] get_ui_schema failed, trying get_schema:", e);
       return await this.schemaLoader.getSchema("taskflow");
     }
   }

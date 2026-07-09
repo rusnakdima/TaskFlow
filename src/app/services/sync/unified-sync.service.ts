@@ -15,7 +15,7 @@ import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@core/services/sync-progress.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { EntityStoreService } from "@core/services/entity-store.service";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 @Injectable({
   providedIn: "root",
 })
@@ -39,7 +39,7 @@ export class UnifiedSyncService implements OnDestroy {
     message: "Ready to sync",
   });
   private entityStore = inject(EntityStoreService);
-  private tauriApi = inject(TauriApiService);
+  private invoke = inject(InvokeWrapperService);
   constructor(
     private jwtTokenService: JwtTokenService,
     private notifyService: NotifyService,
@@ -190,7 +190,7 @@ export class UnifiedSyncService implements OnDestroy {
     }
   }
   private async processOperation(op: QueuedOperation): Promise<void> {
-    await this.tauriApi.invokeAsync("process_queued_operation", {
+    await this.invoke.invoke("process_queued_operation", {
       operation: op.operation,
       table: op.table,
       data: op.data,
@@ -226,7 +226,7 @@ export class UnifiedSyncService implements OnDestroy {
     this.syncIntervalId = window.setInterval(async () => {
       if (this.isOnline() && userId) {
         try {
-          await this.tauriApi.invokeAsync("sync_data", { userId });
+          await this.invoke.invoke("sync_data", { userId });
         } catch (error) {}
       }
     }, this.DEFAULT_SYNC_INTERVAL);
@@ -293,7 +293,7 @@ export class UnifiedSyncService implements OnDestroy {
           data: null as unknown as R,
         };
       }
-      const result = await this.tauriApi.invokeAsync<Response<R>>("import_to_local", {
+      const result = await this.invoke.invoke<Response<R>>("import_to_local", {
         userId,
         token,
       });
@@ -364,7 +364,7 @@ export class UnifiedSyncService implements OnDestroy {
         };
       }
       this.updateProgress({ progress: 50, message: "Downloading data from cloud..." });
-      const result = await this.tauriApi.invokeAsync<Response<R>>("import_to_local", {
+      const result = await this.invoke.invoke<Response<R>>("import_to_local", {
         userId: userId,
         token,
       });
@@ -430,7 +430,7 @@ export class UnifiedSyncService implements OnDestroy {
         };
       }
       this.updateProgress({ progress: 50, message: "Uploading data to cloud..." });
-      const result = await this.tauriApi.invokeAsync<Response<R>>("export_to_cloud", {
+      const result = await this.invoke.invoke<Response<R>>("export_to_cloud", {
         userId: userId,
         token,
       });
@@ -508,12 +508,12 @@ export class UnifiedSyncService implements OnDestroy {
         }
       }
       if (batchRecords["todos"].length > 0) {
-        await this.tauriApi.invokeAsync("batch_upsert_to_mongo", {
+        await this.invoke.invoke("batch_upsert_to_mongo", {
           records: batchRecords,
         });
       }
       this.updateProgress({ progress: 80, message: "Importing private data from cloud..." });
-      const result = await this.tauriApi.invokeAsync<Response<R>>("import_private_to_local", {
+      const result = await this.invoke.invoke<Response<R>>("import_private_to_local", {
         userId: userId,
         token,
       });
@@ -626,7 +626,7 @@ export class UnifiedSyncService implements OnDestroy {
             data: null,
           } as Response<any>;
         }
-        const result = await this.tauriApi.invokeAsync<Response<any>>("import_to_local", {
+        const result = await this.invoke.invoke<Response<any>>("import_to_local", {
           userId,
           token,
         });
@@ -653,7 +653,7 @@ export class UnifiedSyncService implements OnDestroy {
             data: null,
           } as Response<any>;
         }
-        const result = await this.tauriApi.invokeAsync<Response<any>>("export_to_cloud", {
+        const result = await this.invoke.invoke<Response<any>>("export_to_cloud", {
           userId,
           token,
         });

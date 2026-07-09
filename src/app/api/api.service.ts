@@ -258,11 +258,7 @@ export class ApiService {
     return response.data as CascadeResult[];
   }
 
-  async batchRestore(
-    table: string,
-    ids: string[],
-    visibility?: string
-  ): Promise<CascadeResult[]> {
+  async batchRestore(table: string, ids: string[], visibility?: string): Promise<CascadeResult[]> {
     const token = this.jwtTokenService.getToken();
     const response = await this.invoke.invoke<{
       status: ResponseStatus;
@@ -511,7 +507,9 @@ export class ApiService {
       }>(route, this.toSnakeCase(args) as Record<string, unknown>)
     ).pipe(
       map((response) => {
-        const items = Array.isArray(response) ? response : (response as unknown as { data?: { items?: T[] } })?.data?.items || [];
+        const items = Array.isArray(response)
+          ? response
+          : (response as unknown as { data?: { items?: T[] } })?.data?.items || [];
         return this.fromSnakeCase(items) as T[];
       }),
       catchError((err: unknown) => {
@@ -568,7 +566,11 @@ export class ApiService {
         items.map((item) =>
           (item as Record<string, unknown>)["id"]
             ? this.getEntityApi<T>(table)
-                .update((item as Record<string, unknown>)["id"] as string, item, options?.visibility)
+                .update(
+                  (item as Record<string, unknown>)["id"] as string,
+                  item,
+                  options?.visibility
+                )
                 .toPromise()
             : null
         )
@@ -935,19 +937,11 @@ class AdminApi {
     return this.api.invokeCommand("get_all_archive_paginated", { dataType, skip, limit });
   }
 
-  batchSoftDelete(
-    table: string,
-    ids: string[],
-    visibility?: string
-  ): Observable<CascadeResult> {
+  batchSoftDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
     return this.api.batchSoftDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 
-  batchHardDelete(
-    table: string,
-    ids: string[],
-    visibility?: string
-  ): Observable<CascadeResult> {
+  batchHardDelete(table: string, ids: string[], visibility?: string): Observable<CascadeResult> {
     return this.api.batchHardDelete(table, ids, visibility) as unknown as Observable<CascadeResult>;
   }
 

@@ -35,12 +35,14 @@ export class AdminService {
   ): Promise<ResponseModel<void>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
-      from(this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
-        table,
-        id,
-        token,
-        visibility,
-      }))
+      from(
+        this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
+          table,
+          id,
+          token,
+          visibility,
+        })
+      )
     );
   }
   async permanentlyDeleteRecordLocal(
@@ -50,12 +52,14 @@ export class AdminService {
   ): Promise<ResponseModel<void>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
-      from(this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
-        table,
-        id,
-        token,
-        visibility,
-      }))
+      from(
+        this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
+          table,
+          id,
+          token,
+          visibility,
+        })
+      )
     );
   }
   async toggleDeleteStatus(
@@ -66,13 +70,15 @@ export class AdminService {
   ): Promise<ResponseModel<boolean>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
-      from(this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
-        table,
-        id,
-        token,
-        todoId,
-        visibility,
-      }))
+      from(
+        this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
+          table,
+          id,
+          token,
+          todoId,
+          visibility,
+        })
+      )
     );
   }
   async toggleDeleteStatusLocal(
@@ -83,31 +89,37 @@ export class AdminService {
   ): Promise<ResponseModel<boolean>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
-      from(this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
-        table,
-        id,
-        token,
-        todoId,
-        visibility,
-      }))
+      from(
+        this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
+          table,
+          id,
+          token,
+          todoId,
+          visibility,
+        })
+      )
     );
   }
   getAdminDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(this.invoke.invoke<Response<R>>("get_all_admin_paginated", {
-      dataType: type,
-      skip,
-      limit,
-      token,
-    }));
+    return from(
+      this.invoke.invoke<Response<R>>("get_all_admin_paginated", {
+        dataType: type,
+        skip,
+        limit,
+        token,
+      })
+    );
   }
   getArchiveDataPaginated<R>(type: string, skip: number, limit: number): Observable<Response<R>> {
     const token = this.jwtTokenService.getToken();
-    return from(this.invoke.invoke<Response<R>>("get_all_archive_paginated", {
-      dataType: type,
-      skip,
-      limit,
-      token,
-    }));
+    return from(
+      this.invoke.invoke<Response<R>>("get_all_archive_paginated", {
+        dataType: type,
+        skip,
+        limit,
+        token,
+      })
+    );
   }
 }

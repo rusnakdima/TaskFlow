@@ -1,10 +1,10 @@
 /* sys lib */
 import { Injectable, signal, inject, computed } from "@angular/core";
-import { Observable, of, throwError } from "rxjs";
+import { Observable, of, throwError, from } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 export interface ConnectionState {
   isConnected: boolean;
   lastChecked: Date | null;
@@ -15,7 +15,7 @@ export interface ConnectionState {
 })
 export class MongoConnectionService {
   private notifyService = inject(NotifyService);
-  private tauriApi = inject(TauriApiService);
+  private invoke = inject(InvokeWrapperService);
   private readonly connectionState = signal<ConnectionState>({
     isConnected: false,
     lastChecked: null,
@@ -36,7 +36,7 @@ export class MongoConnectionService {
     }
     this.connectionState.update((s) => ({ ...s, checking: true }));
     return new Observable<boolean>((subscriber) => {
-      this.tauriApi.invoke<boolean>("check_mongodb_connection").subscribe({
+      from(this.invoke.invoke<boolean>("check_mongodb_connection")).subscribe({
         next: (isConnected: boolean) => {
           this.connectionState.set({
             isConnected,

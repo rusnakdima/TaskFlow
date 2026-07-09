@@ -17,7 +17,10 @@ interface GitHubRelease {
   providedIn: "root",
 })
 export class AboutService {
-  constructor(private http: HttpClient, private invoke: InvokeWrapperService) {}
+  constructor(
+    private http: HttpClient,
+    private invoke: InvokeWrapperService
+  ) {}
   gitRepoName: string = environment.gitRepoName;
   githubUser: string = environment.githubUser;
   getDate(version: string): Observable<GitHubRelease> {

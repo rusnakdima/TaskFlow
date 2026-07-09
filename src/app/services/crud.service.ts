@@ -1,6 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { firstValueFrom } from "rxjs";
-import { TauriApiService } from "@app/api/tauri-api.service";
+import { InvokeWrapperService } from "@tauri-front/shared";
 import { Response } from "@entities/response.model";
 
 export interface CrudParams {
@@ -13,22 +12,21 @@ export interface CrudParams {
   providedIn: "root",
 })
 export class CrudService {
-  private api = inject(TauriApiService);
+  private invoke = inject(InvokeWrapperService);
 
   async execute<T = unknown>(
     operation: string,
     entity: string,
     params: CrudParams = {}
   ): Promise<T> {
-    return firstValueFrom(
-      this.api.invoke<Response<T>>("crud_execute", {
-        operation,
-        entity,
-        id: params.id,
-        data: params.data,
-        filter: params.filter,
-      })
-    ).then((response) => response as unknown as T);
+    const response = await this.invoke.invoke<Response<T>>("crud_execute", {
+      operation,
+      entity,
+      id: params.id,
+      data: params.data,
+      filter: params.filter,
+    });
+    return response as unknown as T;
   }
 
   async get<T = unknown>(entity: string, id: string): Promise<T | null> {
