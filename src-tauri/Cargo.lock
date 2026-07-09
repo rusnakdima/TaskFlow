@@ -3243,6 +3243,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 [[package]]
 name = "nosql_orm"
 version = "0.9.0"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#756a681f151a6388413cf6b5d66f4476d26e8321"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -3251,28 +3252,7 @@ dependencies = [
  "futures",
  "futures-util",
  "mongodb 2.8.2",
- "nosql_orm_derive 0.1.0",
- "rand 0.8.6",
- "regex",
- "ring",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "nosql_orm"
-version = "0.9.0"
-source = "git+https://github.com/rusnakdima/nosql_orm.git?branch=main#756a681f151a6388413cf6b5d66f4476d26e8321"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "chrono",
- "deadpool",
- "nosql_orm_derive 0.1.0 (git+https://github.com/rusnakdima/nosql_orm.git?branch=main)",
+ "nosql_orm_derive",
  "rand 0.8.6",
  "regex",
  "ring",
@@ -3287,21 +3267,7 @@ dependencies = [
 [[package]]
 name = "nosql_orm_derive"
 version = "0.1.0"
-dependencies = [
- "chrono",
- "proc-macro2",
- "quote",
- "regex",
- "serde_json",
- "syn 2.0.117",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "nosql_orm_derive"
-version = "0.1.0"
-source = "git+https://github.com/rusnakdima/nosql_orm.git?branch=main#756a681f151a6388413cf6b5d66f4476d26e8321"
+source = "git+https://github.com/rusnakdima/nosql_orm?branch=main#756a681f151a6388413cf6b5d66f4476d26e8321"
 dependencies = [
  "chrono",
  "proc-macro2",
@@ -5686,7 +5652,7 @@ dependencies = [
  "image",
  "jsonwebtoken",
  "mongodb 3.7.0",
- "nosql_orm 0.9.0",
+ "nosql_orm",
  "open",
  "paste",
  "qrcode",
@@ -6015,7 +5981,7 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "chrono",
- "nosql_orm 0.9.0 (git+https://github.com/rusnakdima/nosql_orm.git?branch=main)",
+ "nosql_orm",
  "petgraph",
  "proc-macro2",
  "quote",

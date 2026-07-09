@@ -45,8 +45,11 @@ tauri-plugin-mcp-bridge = "0.11"
 tauri-plugin-shell = "2"
 paste = "1.0"
 
-nosql_orm = { path = "../../nosql_orm", features = ["json", "mongo", "query_cache", "validators"] }
+nosql_orm = { git = "https://github.com/rusnakdima/nosql_orm", branch = "main", features = ["json", "mongo", "query_cache", "validators"] }
 tauri-shared = { path = "../../tauri-shared", features = ["algorithms"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("tauri"))'] }
 
 [features]
 default = ["custom-protocol", "embedded_env"]

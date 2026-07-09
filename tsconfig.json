@@ -44,8 +44,7 @@
       "@constants/*": ["./src/app/shared/utils/*"],
       "@validators/*": ["./src/app/shared/*"],
       "@utils/*": ["./src/app/shared/utils/*"],
-      "@shared/*": ["./src/app/shared/*"],
-      "@tauri-shared/*": ["../_shared/*"]
+      "@shared/*": ["./src/app/shared/*"]
     }
   },
   "angularCompilerOptions": {
