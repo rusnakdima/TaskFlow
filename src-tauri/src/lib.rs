@@ -434,6 +434,7 @@ pub fn run() {
         mongodb_provider.clone(),
       ));
       let schema_state = SchemaState::new(json_provider.clone());
+      app.manage(json_provider.clone());
       app.manage(AppState {
         logger: Arc::new(()),
         config: ConfigState {
