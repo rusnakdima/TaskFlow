@@ -38,7 +38,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-opener": "^2.5.4",
-    "@tauri-front/shared": "file:../../Web/tauri-front-shared/projects/shared/dist",
+    "@tauri-front/shared": "file:../tauri-front-shared/projects/shared/dist",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "cropperjs": "1",
