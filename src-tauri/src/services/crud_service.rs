@@ -31,7 +31,7 @@ impl CrudService {
           .await
           .map_err(|e| e.to_string())?;
         match result {
-          Some(data) => Ok(Response::success("Found", data)),
+          Some(data) => Ok(Response::success(data, "Found")),
           None => Ok(Response::not_found(entity)),
         }
       }
@@ -41,7 +41,7 @@ impl CrudService {
           .find_all(entity)
           .await
           .map_err(|e| e.to_string())?;
-        Ok(Response::success("Found", Value::Array(results)))
+        Ok(Response::success(Value::Array(results), "Found"))
       }
       "create" | "save" => {
         let data = data.ok_or("Data required for create")?;
@@ -90,7 +90,7 @@ impl CrudService {
           .count(entity, None)
           .await
           .map_err(|e| e.to_string())?;
-        Ok(Response::success("Count", serde_json::json!(count)))
+        Ok(Response::success(serde_json::json!(count), "Count"))
       }
       "exists" => {
         let id = id.ok_or("ID required for exists")?;
@@ -100,8 +100,8 @@ impl CrudService {
           .await
           .map_err(|e| e.to_string())?;
         Ok(Response::success(
-          if exists { "Exists" } else { "Not found" },
           serde_json::json!(exists),
+          if exists { "Exists" } else { "Not found" },
         ))
       }
       _ => Err(format!("Unknown operation: {}", operation)),

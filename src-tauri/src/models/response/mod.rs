@@ -6,7 +6,7 @@ mod tests {
   use super::*;
   #[test]
   fn test_response_success() {
-    let resp = Response::success("OK", serde_json::json!({"id": 1}));
+    let resp = Response::success(serde_json::json!({"id": 1}), "OK");
     assert_eq!(resp.status, Status::Success);
     assert_eq!(resp.message, "OK");
   }

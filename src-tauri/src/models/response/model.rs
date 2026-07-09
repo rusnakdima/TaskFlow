@@ -23,7 +23,7 @@ pub struct Response<T = Value> {
   pub data: T,
 }
 impl<T> Response<T> {
-  pub fn success(message: impl Into<String>, data: T) -> Self {
+  pub fn success(data: T, message: impl Into<String>) -> Self {
     Self {
       status: Status::Success,
       message: message.into(),

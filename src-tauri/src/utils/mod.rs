@@ -21,8 +21,6 @@ pub mod profile;
 pub mod qr;
 #[path = "relation-stripper.helper.rs"]
 pub mod relation_stripper;
-#[path = "response.utils.rs"]
-pub mod response;
 #[path = "response.helper.rs"]
 pub mod response_helper;
 #[path = "security.helper.rs"]
