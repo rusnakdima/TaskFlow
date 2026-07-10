@@ -1,6 +1,5 @@
 export { TableFieldFactory } from "./table-field.factory";
 export { Common } from "./common.helper";
-export { DateHelper } from "./date.helper";
 export { FilterHelper } from "./filter.helper";
 export { SortHelper } from "./sort.helper";
 export { BulkActionHelper } from "./bulk-action.helper";
