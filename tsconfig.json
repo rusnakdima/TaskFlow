@@ -3,6 +3,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
+    "ignoreDeprecations": "6.0",
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -18,12 +19,11 @@
     "declaration": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
     "useDefineForClassFields": false,
-    "lib": ["ES2022", "dom"],
     "paths": {
       "@helpers/*": ["./src/app/shared/utils/*"],
       "@entities/*": ["./src/app/entities/*"],
@@ -44,7 +44,9 @@
       "@constants/*": ["./src/app/shared/utils/*"],
       "@validators/*": ["./src/app/shared/*"],
       "@utils/*": ["./src/app/shared/utils/*"],
-      "@shared/*": ["./src/app/shared/*"]
+      "@shared/*": ["./src/app/shared/*"],
+      "@tauri-front/shared": ["../tauri-front-shared/projects/shared/dist"],
+      "@tauri-front/shared/*": ["../tauri-front-shared/projects/shared/dist/*"]
     }
   },
   "angularCompilerOptions": {
