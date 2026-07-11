@@ -1,31 +1,23 @@
 /* sys lib */
-import { ApplicationConfig, APP_INITIALIZER } from "@angular/core";
+import { ApplicationConfig, provideAppInitializer, inject } from "@angular/core";
+import { provideUnifiedApp } from "@tauri-front/shared";
 import { provideRouter } from "@angular/router";
-import { provideHttpClient } from "@angular/common/http";
-import { provideAnimations } from "@angular/platform-browser/animations";
 /* app */
 import { routes } from "@app/app.routes";
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
-function initializeDataSync(dataSyncService: UnifiedSyncService) {
-  return async () => {
-    const timeoutMs = 10000;
-    const timeoutPromise = new Promise<void>((_, reject) => {
-      setTimeout(() => reject(new Error("Tauri init timeout")), timeoutMs);
-    });
-    const initPromise = dataSyncService.initTauriListeners();
-    return Promise.race([initPromise, timeoutPromise]).catch((_err) => {});
-  };
-}
+
 export const appConfig: ApplicationConfig = {
   providers: [
+    ...provideUnifiedApp({
+      enableAnimations: true,
+      enableHttpClient: true,
+      enableBrowserErrorListeners: true,
+      enableZoneChangeDetection: true,
+    }),
     provideRouter(routes),
-    provideAnimations(),
-    provideHttpClient(),
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeDataSync,
-      deps: [UnifiedSyncService],
-      multi: true,
-    },
+    provideAppInitializer(() => {
+      const sync = inject(UnifiedSyncService);
+      sync.initTauriListeners();
+    }),
   ],
 };

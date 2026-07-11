@@ -1,5 +1,5 @@
 /* sys lib */
-import { Injectable, OnDestroy, inject, signal } from "@angular/core";
+import { Injectable, OnDestroy, signal } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
 import { Observable, of, Subject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
@@ -38,13 +38,13 @@ export class UnifiedSyncService implements OnDestroy {
     currentStep: "complete",
     message: "Ready to sync",
   });
-  private entityStore = inject(EntityStoreService);
-  private invoke = inject(InvokeWrapperService);
   constructor(
     private jwtTokenService: JwtTokenService,
     private notifyService: NotifyService,
     private syncProgressService: SyncProgressService,
-    private mongoConnectionService: MongoConnectionService
+    private mongoConnectionService: MongoConnectionService,
+    private entityStore: EntityStoreService,
+    private invoke: InvokeWrapperService
   ) {
     this.loadQueueFromStorage();
     this.initNetworkListeners();
