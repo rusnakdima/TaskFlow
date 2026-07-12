@@ -1,9 +1,9 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject, signal } from "@angular/core";
 /* services */
 import { StorageService } from "@services/storage.service";
 import { NotifyService } from "@services/notifications/notify.service";
-/* models */
+/* app */
 import { Conflict, ConflictResolution } from "@entities/conflict.model";
 const CONFLICT_TTL_MS = 10 * 60 * 1000;
 const MAX_CONFLICTS_SIZE = 100;

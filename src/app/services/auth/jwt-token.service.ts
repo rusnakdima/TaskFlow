@@ -1,7 +1,7 @@
-/* sys lib */
+/* angular */
 import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
-/* models */
+/* app */
 import { User } from "@entities/generated/api.types";
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";

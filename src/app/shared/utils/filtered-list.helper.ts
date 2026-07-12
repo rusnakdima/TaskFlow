@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 /* helpers */
 import { FilterHelper } from "@helpers/filter.helper";
 import { SortHelper } from "@helpers/sort.helper";

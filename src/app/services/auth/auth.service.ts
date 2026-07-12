@@ -1,8 +1,8 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 import { tap, take } from "rxjs/operators";
-/* models */
+/* app */
 import { LoginForm, SignupForm, AuthResponse } from "@entities/auth-forms.model";
 import { PasswordReset } from "@entities/password-reset.model";
 /* helpers */

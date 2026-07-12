@@ -1,7 +1,7 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
 
-/* models */
+/* app */
 import {
   Todo,
   Task,

@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";

@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { TaskStatus } from "@entities/generated/api.types";
 import { AdminFilterState } from "@entities/admin-table.model";
 /* helpers */

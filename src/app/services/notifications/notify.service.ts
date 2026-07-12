@@ -1,12 +1,16 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject, signal, OnDestroy, DestroyRef, Injector } from "@angular/core";
 import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
-/* models */
-import { INotify, ResponseStatus } from "@entities/response.model";
+/* app */
+import { ResponseStatus } from "@tauri-front/shared";
+interface INotify {
+  status: ResponseStatus;
+  message: string;
+}
 import { NotificationAction, NotificationSettings } from "@entities/notification.model";
 const DEFAULT_SETTINGS: NotificationSettings = {
   chatVolume: 50,
@@ -129,19 +133,19 @@ export class NotifyService implements OnDestroy {
    * Show a success toast notification
    */
   showSuccess(message: string) {
-    this.showNotify(ResponseStatus.SUCCESS, message);
+    this.showNotify(ResponseStatus.Success, message);
   }
   /**
    * Show an info toast notification
    */
   showInfo(message: string) {
-    this.showNotify(ResponseStatus.INFO, message);
+    this.showNotify(ResponseStatus.Info, message);
   }
   /**
    * Show a warning toast notification
    */
   showWarning(message: string) {
-    this.showNotify(ResponseStatus.WARNING, message);
+    this.showNotify(ResponseStatus.Warning, message);
   }
   /**
    * Show an error toast notification
@@ -159,7 +163,7 @@ export class NotifyService implements OnDestroy {
         message = JSON.stringify(message);
       }
     }
-    this.showNotify(ResponseStatus.ERROR, message as string);
+    this.showNotify(ResponseStatus.Error, message as string);
   }
   // ==================== SETTINGS METHODS ====================
   private loadSettings(): void {

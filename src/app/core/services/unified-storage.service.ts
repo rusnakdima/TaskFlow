@@ -1,9 +1,9 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
-/* models */
+/* app */
 import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter } from "@entities/storage.model";
 

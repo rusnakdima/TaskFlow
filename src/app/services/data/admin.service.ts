@@ -1,8 +1,8 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom, from } from "rxjs";
-/* models */
-import { Response, ResponseModel } from "@entities/response.model";
+/* app */
+import { Response } from "@tauri-front/shared";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
 import { InvokeWrapperService } from "@tauri-front/shared";
@@ -32,11 +32,11 @@ export class AdminService {
     table: string,
     id: string,
     visibility?: string
-  ): Promise<ResponseModel<void>> {
+  ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
       from(
-        this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
+        this.invoke.invoke<Response<void>>("permanent_delete", {
           table,
           id,
           token,
@@ -49,11 +49,11 @@ export class AdminService {
     table: string,
     id: string,
     visibility: string = "private"
-  ): Promise<ResponseModel<void>> {
+  ): Promise<Response<void>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
       from(
-        this.invoke.invoke<ResponseModel<void>>("permanent_delete", {
+        this.invoke.invoke<Response<void>>("permanent_delete", {
           table,
           id,
           token,
@@ -67,11 +67,11 @@ export class AdminService {
     id: string,
     todoId: string,
     visibility?: string
-  ): Promise<ResponseModel<boolean>> {
+  ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
       from(
-        this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
+        this.invoke.invoke<Response<boolean>>("soft_delete", {
           table,
           id,
           token,
@@ -86,11 +86,11 @@ export class AdminService {
     id: string,
     todoId: string = "",
     visibility: string = "private"
-  ): Promise<ResponseModel<boolean>> {
+  ): Promise<Response<boolean>> {
     const token = this.jwtTokenService.getToken();
     return await firstValueFrom(
       from(
-        this.invoke.invoke<ResponseModel<boolean>>("soft_delete", {
+        this.invoke.invoke<Response<boolean>>("soft_delete", {
           table,
           id,
           token,

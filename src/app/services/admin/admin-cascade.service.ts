@@ -1,6 +1,6 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
-/* models */
+/* app */
 import { Todo, Task, Subtask, Comment, Chat } from "@entities/generated/api.types";
 /* services */
 import { StorageService } from "@services/storage.service";

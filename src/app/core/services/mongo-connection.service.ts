@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { Injectable, signal, inject, computed } from "@angular/core";
 import { Observable, of, throwError, from } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";

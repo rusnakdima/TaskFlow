@@ -1,7 +1,7 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable } from "rxjs";
-/* models */
+/* app */
 import { TotpSetupResult } from "@entities/security.model";
 export { TotpSetupResult, UserSecurityStatus } from "@entities/security.model";
 import { JwtTokenService } from "@services/auth/jwt-token.service";

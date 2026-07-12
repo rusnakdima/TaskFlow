@@ -1,5 +1,5 @@
-/* sys lib */
-/* models */
+/* angular */
+/* app */
 import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
 /* helpers */
 import { calculatePercentage } from "@shared/utils/percentage.util";

@@ -1,8 +1,8 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { AdminService } from "@services/data/admin.service";
-import { ResponseStatus } from "@entities/response.model";
+import { ResponseStatus } from "@tauri-front/shared";
 import { AdminDataWithRelations, LoadDataOptions } from "@entities/admin.model";
 export { AdminDataWithRelations } from "@entities/admin.model";
 @Injectable({
@@ -17,7 +17,7 @@ export class AdminDataService {
     return new Observable<AdminDataWithRelations>((subscriber) => {
       this.adminService.getAllAdminData<AdminDataWithRelations>().subscribe({
         next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS && response.data) {
+          if (response.status === ResponseStatus.Success && response.data) {
             subscriber.next(response.data as AdminDataWithRelations);
             subscriber.complete();
           } else {

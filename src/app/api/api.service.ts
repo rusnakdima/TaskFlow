@@ -3,7 +3,7 @@ import { Observable, from } from "rxjs";
 import { map, catchError } from "rxjs/operators";
 import { InvokeWrapperService } from "@tauri-front/shared";
 
-import { ResponseStatus } from "@entities/response.model";
+import { ResponseStatus } from "@tauri-front/shared";
 import {
   Todo,
   Task,
@@ -201,7 +201,7 @@ export class ApiService {
       this.invoke
         .invoke<{ status: ResponseStatus; data?: T; message?: string }>(command, invokeArgs)
         .then((response) => {
-          if (response.status === ResponseStatus.SUCCESS) {
+          if (response.status === ResponseStatus.Success) {
             subscriber.next(response.data as T);
             subscriber.complete();
           } else {
@@ -291,7 +291,7 @@ export class ApiService {
       }>("get_tasks_by_month", { year, month, offline })
     ).pipe(
       map((response) => {
-        if (response.status === ResponseStatus.SUCCESS) {
+        if (response.status === ResponseStatus.Success) {
           return response.data as { tasks: unknown[] };
         } else {
           throw new ApiError(response.message || "Failed to load tasks by month", "server");
@@ -447,7 +447,7 @@ export class ApiService {
       }>(route, this.toSnakeCase(args) as Record<string, unknown>)
     ).pipe(
       map((response) => {
-        if (response.status === ResponseStatus.SUCCESS) {
+        if (response.status === ResponseStatus.Success) {
           return this.fromSnakeCase(response.data) as T;
         } else {
           throw new ApiError(response.message || `Failed: ${route}`, "server");

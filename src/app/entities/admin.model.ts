@@ -1,4 +1,4 @@
-import { ResponseStatus } from "./response.model";
+import { ResponseStatus } from "@tauri-front/shared";
 import { TableItem } from "@shared/models/api.types";
 export interface AdminDataWithRelations {
   data?: TableItem;

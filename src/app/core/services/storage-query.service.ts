@@ -1,7 +1,13 @@
-/* sys lib */
+/**
+ * Local StorageQueryService — kept instead of using @tauri-front/shared's StorageQueryService.
+ * Reason: 957-line domain state management service with full CRUD, pagination, computed
+ * derived data (grouped maps, filtered views), API data loading with pagination, and
+ * profile/user management. The library version is a simple 51-line in-memory filter utility.
+ */
+/* angular */
 import { Injectable, inject, signal, computed, Injector, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
-/* models */
+/* app */
 import {
   Todo,
   Task,
@@ -22,7 +28,7 @@ import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
 import { BaseStorageService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
-import { ResponseStatus } from "@entities/response.model";
+import { ResponseStatus } from "@tauri-front/shared";
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 @Injectable({ providedIn: "root" })
@@ -310,7 +316,7 @@ export class StorageQueryService {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, 0, limit).subscribe({
         next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS && response.data) {
+          if (response.status === ResponseStatus.Success && response.data) {
             subscriber.next(response);
             subscriber.complete();
           } else subscriber.error(new Error(response.message || "Failed to load data"));
@@ -323,7 +329,7 @@ export class StorageQueryService {
     return new Observable((subscriber) => {
       this.adminService.getAdminDataPaginated(type, skip, 10).subscribe({
         next: (response) => {
-          if (response.status === ResponseStatus.SUCCESS && response.data) {
+          if (response.status === ResponseStatus.Success && response.data) {
             subscriber.next(response);
             subscriber.complete();
           } else subscriber.error(new Error(response.message || "Failed to load more data"));

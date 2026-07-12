@@ -1,8 +1,8 @@
-/* sys lib */
+/* angular */
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-/* models */
+/* app */
 import { Chat } from "@entities/generated/api.types";
 import { ConversationItem, ChatMessage } from "@entities/chat.model";
 /* base */

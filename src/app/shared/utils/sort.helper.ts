@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 /* helpers */
 import { ObjectHelper } from "@helpers/object.helper";
 /**

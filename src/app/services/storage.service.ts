@@ -1,8 +1,8 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject, signal, computed, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 /* services */
-/* models */
+/* app */
 import { Todo, User, Profile, Room } from "@entities/generated/api.types";
 import { Task, TaskStatus } from "@entities/generated/api.types";
 import { Subtask } from "@entities/generated/api.types";

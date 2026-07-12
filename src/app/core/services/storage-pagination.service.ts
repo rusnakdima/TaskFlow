@@ -1,6 +1,6 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
-/* models */
+/* app */
 import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
 import { VisibilityFilter, ChildType } from "@entities/storage.model";
 /* base */

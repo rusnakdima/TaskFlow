@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, RouterStateSnapshot, CanActivateFn } from "@angular/router";
 /* services */

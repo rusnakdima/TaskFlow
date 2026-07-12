@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { take } from "rxjs/operators";
 import { Router } from "@angular/router";

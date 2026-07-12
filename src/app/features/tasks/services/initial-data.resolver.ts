@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from "@angular/router";
 import { lastValueFrom, of, Observable } from "rxjs";

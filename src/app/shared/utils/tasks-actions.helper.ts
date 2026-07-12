@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
-import { ResponseStatus } from "@entities/response.model";
+import { ResponseStatus } from "@tauri-front/shared";
 import { ApiService, Visibility } from "@api/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
@@ -60,7 +60,7 @@ export class TasksActionsHelper {
     if (!confirmed) return;
     if (isOfflineFn()) {
       const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId, todoId);
-      if (response.status === ResponseStatus.SUCCESS) {
+      if (response.status === ResponseStatus.Success) {
         this.notifyService.showSuccess("Task archived successfully");
         updateTasksFn((tasks) => tasks.filter((t) => t.id !== taskId));
       } else {
@@ -325,7 +325,7 @@ export class TasksActionsHelper {
     let errorCount = 0;
     for (const taskId of selectedIdsArr) {
       const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-      if (response.status === ResponseStatus.SUCCESS) {
+      if (response.status === ResponseStatus.Success) {
         successCount++;
       } else {
         errorCount++;
@@ -356,7 +356,7 @@ export class TasksActionsHelper {
     let errorCount = 0;
     for (const taskId of selectedIds) {
       const response = await this.adminService.toggleDeleteStatusLocal("tasks", taskId);
-      if (response.status === ResponseStatus.SUCCESS) {
+      if (response.status === ResponseStatus.Success) {
         successCount++;
       } else {
         errorCount++;

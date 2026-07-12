@@ -1,6 +1,6 @@
-/* sys lib */
+/* angular */
 import { signal } from "@angular/core";
-/* models */
+/* app */
 import {
   Todo,
   Task,

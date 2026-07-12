@@ -1,11 +1,11 @@
-/* sys lib */
+/* angular */
 import { Injectable, OnDestroy, signal } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
 import { Observable, of, Subject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-/* models */
-import { Response, ResponseStatus } from "@entities/response.model";
+/* app */
+import { Response, ResponseStatus } from "@tauri-front/shared";
 import { QueuedOperation, SyncProgress } from "@entities/sync.model";
 /* helpers */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
@@ -267,7 +267,7 @@ export class UnifiedSyncService implements OnDestroy {
         });
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "MongoDB is not connected. Working offline.",
           data: null as unknown as R,
         };
@@ -279,7 +279,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - no token",
           data: null as unknown as R,
         };
@@ -288,7 +288,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("Invalid or expired session. Please log in again.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
@@ -297,7 +297,7 @@ export class UnifiedSyncService implements OnDestroy {
         userId,
         token,
       });
-      if (result.status === ResponseStatus.SUCCESS) {
+      if (result.status === ResponseStatus.Success) {
         this.updateProgress({
           currentStep: "complete",
           progress: 100,
@@ -338,7 +338,7 @@ export class UnifiedSyncService implements OnDestroy {
         );
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "MongoDB is not connected. Working offline.",
           data: null as unknown as R,
         };
@@ -349,7 +349,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - no token",
           data: null as unknown as R,
         };
@@ -358,7 +358,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("Invalid or expired session. Please log in again.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
@@ -368,7 +368,7 @@ export class UnifiedSyncService implements OnDestroy {
         userId: userId,
         token,
       });
-      if (result.status === ResponseStatus.SUCCESS) {
+      if (result.status === ResponseStatus.Success) {
         this.updateProgress({ progress: 100, message: "Import complete" });
         this.notifyService.showSuccess("Data imported successfully from cloud");
       } else {
@@ -404,7 +404,7 @@ export class UnifiedSyncService implements OnDestroy {
         );
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "MongoDB is not connected. Working offline.",
           data: null as unknown as R,
         };
@@ -415,7 +415,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("No authentication token found. Please log in.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - no token",
           data: null as unknown as R,
         };
@@ -424,7 +424,7 @@ export class UnifiedSyncService implements OnDestroy {
         this.notifyService.showError("Invalid or expired session. Please log in again.");
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated - invalid token",
           data: null as unknown as R,
         };
@@ -434,7 +434,7 @@ export class UnifiedSyncService implements OnDestroy {
         userId: userId,
         token,
       });
-      if (result.status === ResponseStatus.SUCCESS) {
+      if (result.status === ResponseStatus.Success) {
         this.updateProgress({ progress: 100, message: "Export complete" });
         this.notifyService.showSuccess("Data exported successfully to cloud");
       } else {
@@ -474,7 +474,7 @@ export class UnifiedSyncService implements OnDestroy {
         );
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "MongoDB is not connected. Working offline.",
           data: null as unknown as R,
         };
@@ -484,7 +484,7 @@ export class UnifiedSyncService implements OnDestroy {
       if (!token || !userId) {
         this.setSyncing(false);
         return {
-          status: ResponseStatus.ERROR,
+          status: ResponseStatus.Error,
           message: "Not authenticated",
           data: null as unknown as R,
         };
@@ -517,7 +517,7 @@ export class UnifiedSyncService implements OnDestroy {
         userId: userId,
         token,
       });
-      if (result.status === ResponseStatus.SUCCESS) {
+      if (result.status === ResponseStatus.Success) {
         this.updateProgress({ progress: 100, message: "Private sync complete" });
       }
       return result;
@@ -555,7 +555,7 @@ export class UnifiedSyncService implements OnDestroy {
           this.syncProgressService.reset();
           this.setSyncing(false);
           return {
-            status: ResponseStatus.ERROR,
+            status: ResponseStatus.Error,
             message: "MongoDB is not connected. Working offline.",
             data: null as unknown as R,
           };
@@ -567,7 +567,7 @@ export class UnifiedSyncService implements OnDestroy {
         });
         this.syncProgressService.updateProgress(10, "Exporting to cloud...");
         const exportResult = await this.exportToCloud<R>();
-        if (exportResult.status !== ResponseStatus.SUCCESS) {
+        if (exportResult.status !== ResponseStatus.Success) {
           this.updateProgress({
             currentStep: "error",
             progress: 50,
@@ -584,7 +584,7 @@ export class UnifiedSyncService implements OnDestroy {
         });
         this.syncProgressService.updateProgress(55, "Importing from cloud...");
         const importResult = await this.importToLocal<R>();
-        if (importResult.status === ResponseStatus.SUCCESS) {
+        if (importResult.status === ResponseStatus.Success) {
           this.updateProgress({
             currentStep: "complete",
             progress: 100,
@@ -614,14 +614,14 @@ export class UnifiedSyncService implements OnDestroy {
         const userId = this.getUserId();
         if (!token) {
           return {
-            status: ResponseStatus.ERROR,
+            status: ResponseStatus.Error,
             message: "Not authenticated - no token",
             data: null,
           } as Response<any>;
         }
         if (!userId) {
           return {
-            status: ResponseStatus.ERROR,
+            status: ResponseStatus.Error,
             message: "Not authenticated - invalid token",
             data: null,
           } as Response<any>;
@@ -641,14 +641,14 @@ export class UnifiedSyncService implements OnDestroy {
         const userId = this.getUserId();
         if (!token) {
           return {
-            status: ResponseStatus.ERROR,
+            status: ResponseStatus.Error,
             message: "Not authenticated - no token",
             data: null,
           } as Response<any>;
         }
         if (!userId) {
           return {
-            status: ResponseStatus.ERROR,
+            status: ResponseStatus.Error,
             message: "Not authenticated - invalid token",
             data: null,
           } as Response<any>;
