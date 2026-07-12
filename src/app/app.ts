@@ -64,10 +64,12 @@ export class App implements OnInit, OnDestroy {
       this.updateShowComponents();
     });
 
-    void this.setup.setup('taskflow', {
-      initialRoute: this.getInitialRoute(),
-      autoRegisterRoutes: false,
-    }).then(() => this.schemaLoaded.set(true));
+    void this.setup
+      .setup("taskflow", {
+        initialRoute: this.getInitialRoute(),
+        autoRegisterRoutes: false,
+      })
+      .then(() => this.schemaLoaded.set(true));
   }
 
   private getInitialRoute(): string {

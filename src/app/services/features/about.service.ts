@@ -7,7 +7,11 @@ import { environment } from "@env/environment";
 /* app */
 import { Response } from "@tauri-front/shared";
 import { InvokeWrapperService } from "@tauri-front/shared";
-import { AboutService as LibraryAboutService, UpdateService, type UpdateInfo } from "@tauri-front/shared";
+import {
+  AboutService as LibraryAboutService,
+  UpdateService,
+  type UpdateInfo,
+} from "@tauri-front/shared";
 
 interface GitHubRelease {
   tag_name: string;
@@ -65,9 +69,13 @@ export class AboutService extends LibraryAboutService {
    * Download and install the latest update using the shared UpdateService.
    */
   async downloadAndInstall(
-    onProgress?: (p: { bytes_downloaded: number; total_bytes: number; progress_pct: number }) => void,
+    onProgress?: (p: {
+      bytes_downloaded: number;
+      total_bytes: number;
+      progress_pct: number;
+    }) => void
   ): Promise<void> {
-    const release = await firstValueFrom(this.checkUpdate() as any) as GitHubRelease;
+    const release = (await firstValueFrom(this.checkUpdate() as any)) as GitHubRelease;
 
     const latestVersion = release.tag_name.startsWith("v")
       ? release.tag_name.slice(1)
