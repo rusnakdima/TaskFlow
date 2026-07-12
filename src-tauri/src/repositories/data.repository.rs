@@ -35,7 +35,8 @@ impl DataProvider {
       DataProvider::Both(json, mongo) => {
         let local =
           DatabaseProvider::find_many(json.as_ref(), table, filter, skip, limit, sort_by, sort_asc)
-            .await?;
+            .await
+            .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
         let cloud = DatabaseProvider::find_many(
           mongo.as_ref(),
           table,
@@ -45,7 +46,8 @@ impl DataProvider {
           sort_by,
           sort_asc,
         )
-        .await?;
+        .await
+        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
         Ok(local.into_iter().chain(cloud).collect())
       }
     }

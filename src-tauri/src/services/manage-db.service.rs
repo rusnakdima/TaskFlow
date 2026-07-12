@@ -44,7 +44,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -53,7 +53,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -71,7 +71,7 @@ impl ManageDbService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     let docs = mongo
       .find_many(&data_type, None, Some(skip), Some(limit), None, true)
@@ -79,12 +79,12 @@ impl ManageDbService {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error getting paginated {} data: {}", data_type, e),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", docs.len(), data_type),
-      data: crate::utils::common::convert_data_to_object(&docs),
+      data: Some(crate::utils::common::convert_data_to_object(&docs)),
     })
   }
   pub async fn get_all_data_for_archive(&self) -> Result<ResponseModel, ResponseModel> {
@@ -94,7 +94,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -103,7 +103,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -119,7 +119,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -132,7 +132,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -148,7 +148,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -161,7 +161,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -176,7 +176,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -185,7 +185,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -201,7 +201,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -210,7 +210,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -225,7 +225,7 @@ impl ManageDbService {
         return Err(ResponseModel {
           status: ResponseStatus::Error,
           message: "Lock poisoned".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })
       }
     };
@@ -234,7 +234,7 @@ impl ManageDbService {
       None => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -299,7 +299,7 @@ impl ManageDbService {
         year,
         month
       ),
-      data: crate::utils::common::convert_data_to_object(&result_map),
+      data: Some(crate::utils::common::convert_data_to_object(&result_map)),
     })
   }
   pub async fn import_to_local(&self, user_id: String) -> Result<ResponseModel, ResponseModel> {
@@ -329,7 +329,7 @@ impl ManageDbService {
       } else {
         format!("Failed to upsert {} to {}", id, table)
       },
-      data: serde_json::Value::String(id),
+      data: Some(serde_json::Value::String(id)),
     })
   }
   pub async fn upsert_to_mongo(
@@ -346,7 +346,7 @@ impl ManageDbService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     let result = self.db_backup.upsert_to_mongo(&mongo, &table, data).await;
     Ok(ResponseModel {
@@ -360,7 +360,7 @@ impl ManageDbService {
       } else {
         format!("Failed to upsert {} to MongoDB {}", id, table)
       },
-      data: serde_json::Value::String(id),
+      data: Some(serde_json::Value::String(id)),
     })
   }
   pub async fn batch_upsert_to_mongo(
@@ -375,7 +375,7 @@ impl ManageDbService {
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "MongoDB not available".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     let mut total_count = 0;
     let mut success_count = 0;
@@ -405,10 +405,10 @@ impl ManageDbService {
         "Batch upserted {}/{} records to MongoDB",
         success_count, total_count
       ),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "total": total_count,
         "success": success_count
-      }),
+      })),
     })
   }
   pub async fn delete_from_json(
@@ -428,7 +428,7 @@ impl ManageDbService {
       } else {
         format!("Failed to delete {} from {}", id, table)
       },
-      data: serde_json::Value::String(id),
+      data: Some(serde_json::Value::String(id)),
     })
   }
   pub async fn batch_soft_delete_json(
@@ -451,7 +451,7 @@ impl ManageDbService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Soft deleted {} records from {}", success_count, table),
-      data: serde_json::json!({ "count": success_count }),
+      data: Some(serde_json::json!({ "count": success_count })),
     })
   }
   pub async fn batch_restore_json(
@@ -474,7 +474,7 @@ impl ManageDbService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Restored {} records in {}", success_count, table),
-      data: serde_json::json!({ "count": success_count }),
+      data: Some(serde_json::json!({ "count": success_count })),
     })
   }
   pub async fn get_all_from_json(
@@ -490,7 +490,7 @@ impl ManageDbService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", items.len(), table),
-      data: crate::utils::common::convert_data_to_object(&items),
+      data: Some(crate::utils::common::convert_data_to_object(&items)),
     })
   }
   pub async fn import_private_to_local(

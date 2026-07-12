@@ -106,11 +106,11 @@ impl AuthTotpService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP setup initiated".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "qr_code": qr_code,
         "secret": secret_lower,
         "recovery_codes": recovery_codes
-      }),
+      })),
     })
   }
   pub async fn enable_totp(
@@ -166,11 +166,11 @@ impl AuthTotpService {
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "TOTP verified".to_string(),
-            data: serde_json::json!({
+            data: Some(serde_json::json!({
               "token": token,
               "needsProfile": needs_profile,
               "profile": profile
-            }),
+            })),
           });
         }
         Err(e) => return Err(e),
@@ -233,10 +233,10 @@ impl AuthTotpService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "TOTP QR code generated".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "qr_code": qr_code,
         "secret": user.totp_secret
-      }),
+      })),
     })
   }
   async fn find_user(&self, username: &str) -> Result<UserEntity, ResponseModel> {

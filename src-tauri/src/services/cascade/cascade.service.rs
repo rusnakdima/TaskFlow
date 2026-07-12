@@ -218,7 +218,11 @@ impl CascadeService {
           .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-        if let Some(task) = provider.find_by_id("tasks", id).await? {
+        if let Some(task) = provider
+          .find_by_id("tasks", id)
+          .await
+          .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+        {
           if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
             affected_todo_ids.push(todo_id.to_string());
           }
@@ -230,9 +234,17 @@ impl CascadeService {
           .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
           .await
           .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
-        if let Some(subtask) = provider.find_by_id("subtasks", id).await? {
+        if let Some(subtask) = provider
+          .find_by_id("subtasks", id)
+          .await
+          .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+        {
           if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
-            if let Some(task) = provider.find_by_id("tasks", task_id).await? {
+            if let Some(task) = provider
+              .find_by_id("tasks", task_id)
+              .await
+              .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+            {
               if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
                 affected_todo_ids.push(todo_id.to_string());
               }

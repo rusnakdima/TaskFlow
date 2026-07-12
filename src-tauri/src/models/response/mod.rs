@@ -1,5 +1,4 @@
 mod model;
-pub use model::{err_response, err_response_formatted, success_response};
 pub use model::{Response, ResponseModel, ResponseStatus, Status};
 #[cfg(test)]
 mod tests {

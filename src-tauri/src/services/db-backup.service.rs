@@ -178,7 +178,7 @@ impl DbBackupService {
       .lock()
       .unwrap()
       .clone()
-      .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?;
+      .ok_or_else(|| err_response("MongoDB not available"))?;
     let mut imported_count = 0;
     imported_count += self
       .import_table_by_id(&mongo, "users", &user_id, false)
@@ -204,7 +204,7 @@ impl DbBackupService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Imported {} records", imported_count),
-      data: serde_json::json!(imported_count),
+      data: Some(serde_json::json!(imported_count)),
     })
   }
   pub async fn export_table(
@@ -407,10 +407,10 @@ impl DbBackupService {
       let guard = self
         .mongodb_provider
         .lock()
-        .map_err(|_| ResponseModel::from("Lock poisoned".to_string()))?;
+        .map_err(|_| err_response("Lock poisoned"))?;
       guard
         .clone()
-        .ok_or_else(|| ResponseModel::from("MongoDB not available".to_string()))?
+        .ok_or_else(|| err_response("MongoDB not available"))?
     };
     let mut exported_count = 0;
     exported_count += self
@@ -437,7 +437,7 @@ impl DbBackupService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Exported {} records", exported_count),
-      data: serde_json::json!(exported_count),
+      data: Some(serde_json::json!(exported_count)),
     })
   }
   pub async fn check_mongodb_connection_async(&self) -> bool {

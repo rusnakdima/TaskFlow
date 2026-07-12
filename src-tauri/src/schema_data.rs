@@ -1,6 +1,6 @@
 use crate::services::schema_service::{
-  AppConfig, AppSettings, CanvasElement, ComponentDef, DataBinding, GridPosition, I18nConfig,
-  Layout, LayoutSlot, LocaleMap, ModuleDef, Page, PageMeta, ServiceDef, UiSchema,
+  AppConfig, AppSettings, CanvasElement, ComponentDef, GridPosition, I18nConfig, Layout,
+  LayoutSlot, LocaleMap, Page, PageMeta, ServiceDef, UiSchema,
 };
 use std::collections::HashMap;
 

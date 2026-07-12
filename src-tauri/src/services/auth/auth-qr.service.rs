@@ -90,11 +90,11 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR code generated".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
           "token": token,
           "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
-      }),
+      })),
     })
   }
   pub async fn approve_qr_token(
@@ -179,15 +179,15 @@ impl QrAuthService {
         Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Status retrieved".to_string(),
-          data: response_data,
+          data: Some(response_data),
         })
       }
       Err(_) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "Status retrieved".to_string(),
-        data: serde_json::json!({
+        data: Some(serde_json::json!({
             "status": "expired"
-        }),
+        })),
       }),
     }
   }
@@ -227,11 +227,11 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR code generated for desktop login".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
           "token": token,
           "qrCode": qr_code,
           "expiresAt": now + QR_TOKEN_TTL_SECS
-      }),
+      })),
     })
   }
   pub async fn toggle_qr_login(
@@ -402,12 +402,12 @@ impl QrAuthService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "QR login successful".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "token": jwt_token,
         "needsProfile": needs_profile,
         "profile": profile,
         "userId": user_id
-      }),
+      })),
     })
   }
 }

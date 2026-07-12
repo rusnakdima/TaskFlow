@@ -37,12 +37,12 @@ impl ActivityStorage {
       Ok(daily_activities) => Ok(ResponseModel {
         status: ResponseStatus::Success,
         message: "".to_string(),
-        data: convert_data_to_array(&daily_activities),
+        data: Some(convert_data_to_array(&daily_activities)),
       }),
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't get a list of daily activities! {}", error),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -79,7 +79,7 @@ impl ActivityStorage {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't create daily activity! {}", error),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }
@@ -131,7 +131,7 @@ impl ActivityStorage {
       Err(error) => Err(ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Couldn't update daily activity! {}", error),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       }),
     }
   }

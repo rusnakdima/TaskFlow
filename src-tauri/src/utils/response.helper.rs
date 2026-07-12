@@ -1,25 +1,16 @@
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::models::response::{Response, ResponseModel};
 /// Creates an error response with the given message
 pub fn err_response(message: &str) -> ResponseModel {
-  ResponseModel {
-    status: ResponseStatus::Error,
-    message: message.to_string(),
-    data: serde_json::Value::String("".to_string()),
-  }
+  Response::error(message)
 }
 /// Creates an error response with a formatted message
 pub fn err_response_formatted(prefix: &str, error: &str) -> ResponseModel {
-  ResponseModel {
-    status: ResponseStatus::Error,
-    message: format!("{}: {}", prefix, error),
-    data: serde_json::Value::String("".to_string()),
-  }
+  Response::error(format!("{}: {}", prefix, error))
 }
 /// Creates a success response with data
 pub fn success_response<T: serde::Serialize>(data: T) -> ResponseModel {
-  ResponseModel {
-    status: ResponseStatus::Success,
-    message: "Operation successful".to_string(),
-    data: serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
-  }
+  Response::success(
+    serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
+  )
 }

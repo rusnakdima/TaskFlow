@@ -135,12 +135,14 @@ impl StatisticsService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Statistics retrieved successfully".to_string(),
-      data: serde_json::to_value(StatisticsResponseModel {
-        statistics,
-        chart_data,
-        detailed_metrics,
-      })
-      .unwrap(),
+      data: Some(
+        serde_json::to_value(StatisticsResponseModel {
+          statistics,
+          chart_data,
+          detailed_metrics,
+        })
+        .unwrap(),
+      ),
     })
   }
   async fn get_daily_activities_filtered(

@@ -53,7 +53,7 @@ impl AuthPasswordService {
       .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     user.temporary_code = code.clone();
     user.code_expires_at = expiration;
-    let email_service = EmailProvider::from_config(config)?;
+    let email_service = EmailProvider::from_config(config).map_err(|e| err_response(&e))?;
     email_service
       .send_password_reset_code(&email, &code)
       .await
@@ -73,7 +73,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Verification code sent to your email".to_string(),
-      data: serde_json::Value::String("".to_string()),
+      data: Some(serde_json::Value::String("".to_string())),
     })
   }
   pub async fn verify_code(
@@ -101,7 +101,7 @@ impl AuthPasswordService {
           return Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Code verified successfully".to_string(),
-            data: serde_json::Value::String("".to_string()),
+            data: Some(serde_json::Value::String("".to_string())),
           });
         }
       }
@@ -148,7 +148,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password reset successfully. Please login again.".to_string(),
-      data: serde_json::Value::String("".to_string()),
+      data: Some(serde_json::Value::String("".to_string())),
     })
   }
   pub async fn change_password(
@@ -202,7 +202,7 @@ impl AuthPasswordService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Password changed successfully. Please login again.".to_string(),
-      data: serde_json::Value::String("".to_string()),
+      data: Some(serde_json::Value::String("".to_string())),
     })
   }
 }

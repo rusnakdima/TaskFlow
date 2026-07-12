@@ -48,14 +48,14 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Error getting data for {}: {}", table, e),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?;
       all_data.insert(table.to_string(), docs);
     }
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Archive data retrieved successfully from local database".to_string(),
-      data: convert_data_to_object(&all_data),
+      data: Some(convert_data_to_object(&all_data)),
     })
   }
   pub async fn get_archive_data_paginated(
@@ -71,12 +71,12 @@ impl AdminManager {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Error getting paginated {} data: {}", data_type, e),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Retrieved {} {} records", docs.len(), data_type),
-      data: convert_data_to_object(&docs),
+      data: Some(convert_data_to_object(&docs)),
     })
   }
   pub async fn get_all_data_for_admin(&self) -> Result<ResponseModel, ResponseModel> {
@@ -98,14 +98,14 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Error getting data for {}: {}", table, e),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?;
       all_data.insert(table.to_string(), docs);
     }
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Admin data retrieved successfully from MongoDB".to_string(),
-      data: convert_data_to_object(&all_data),
+      data: Some(convert_data_to_object(&all_data)),
     })
   }
   pub async fn permanently_delete_record(
@@ -139,7 +139,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted".to_string(),
-      data: serde_json::Value::String(id),
+      data: Some(serde_json::Value::String(id)),
     })
   }
   pub async fn permanently_delete_record_local(
@@ -158,7 +158,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Record and all children permanently deleted from local database".to_string(),
-      data: serde_json::Value::String(id),
+      data: Some(serde_json::Value::String(id)),
     })
   }
   pub async fn toggle_delete_status(
@@ -176,12 +176,12 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Record not found in local database: {}", e),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?
         .ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
           message: "Record not found".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?
     } else {
       self
@@ -191,12 +191,12 @@ impl AdminManager {
         .map_err(|e| ResponseModel {
           status: ResponseStatus::Error,
           message: format!("Record not found in MongoDB: {}", e),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?
         .ok_or_else(|| ResponseModel {
           status: ResponseStatus::Error,
           message: "Record not found".to_string(),
-          data: serde_json::Value::String("".to_string()),
+          data: Some(serde_json::Value::String("".to_string())),
         })?
     };
     let is_deleted = record
@@ -232,7 +232,7 @@ impl AdminManager {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: format!("Record delete status toggled to {}", !is_deleted),
-      data: serde_json::Value::Bool(!is_deleted),
+      data: Some(serde_json::Value::Bool(!is_deleted)),
     })
   }
   pub async fn toggle_delete_status_local(
@@ -247,12 +247,12 @@ impl AdminManager {
       .map_err(|e| ResponseModel {
         status: ResponseStatus::Error,
         message: format!("Record not found in local database: {}", e),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?
       .ok_or_else(|| ResponseModel {
         status: ResponseStatus::Error,
         message: "Record not found".to_string(),
-        data: serde_json::Value::String("".to_string()),
+        data: Some(serde_json::Value::String("".to_string())),
       })?;
     let is_deleted = record
       .get("deleted_at")
@@ -276,7 +276,7 @@ impl AdminManager {
         "Record delete status toggled to {} in local database",
         !is_deleted
       ),
-      data: serde_json::Value::Bool(!is_deleted),
+      data: Some(serde_json::Value::Bool(!is_deleted)),
     })
   }
 }

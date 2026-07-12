@@ -70,7 +70,7 @@ pub fn validate_user_owns_data(
     return Err(ResponseModel {
       status: ResponseStatus::Error,
       message: "Unauthorized: Cannot access another user's data".to_string(),
-      data: serde_json::Value::String("".to_string()),
+      data: Some(serde_json::Value::String("".to_string())),
     });
   }
   Ok(())
@@ -122,7 +122,7 @@ pub async fn validate_admin_role(
     return Err(ResponseModel {
       status: ResponseStatus::Error,
       message: "Forbidden: Admin access required".to_string(),
-      data: serde_json::Value::String("".to_string()),
+      data: Some(serde_json::Value::String("".to_string())),
     });
   }
   Ok(())

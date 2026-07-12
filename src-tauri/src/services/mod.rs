@@ -26,8 +26,6 @@ pub mod task_service;
 #[path = "todo.service.rs"]
 pub mod todo_service;
 // Special services (not CRUD)
-#[path = "about.service.rs"]
-pub mod about_service;
 pub mod auth;
 #[path = "auth.service.rs"]
 pub mod auth_service;

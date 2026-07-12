@@ -143,12 +143,12 @@ impl AuthRegisterService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "User registered successfully".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "token": token,
         "needsProfile": true,
         "profile": new_profile,
         "user_id": user_id
-      }),
+      })),
     })
   }
 }

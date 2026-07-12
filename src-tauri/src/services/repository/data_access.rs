@@ -1069,7 +1069,8 @@ impl RepositoryService {
         github_issue_id,
         comment_content,
       )
-      .await?;
+      .await
+      .map_err(|e| err_response(&e))?;
     let mut updated_record = comment_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert(
@@ -1167,7 +1168,8 @@ impl RepositoryService {
         task_title,
         &issue_body,
       )
-      .await?;
+      .await
+      .map_err(|e| err_response(&e))?;
     let mut updated_record = task_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert("github_issue_id".to_string(), serde_json::json!(issue.id));
@@ -2223,21 +2225,23 @@ async fn fix_todo_counts_if_needed(
     };
   }
   let refreshed = match provider {
-    DataProvider::Json(p) => {
-      p.find_many("todos", Some(&filter), None, None, None, true)
-        .await?
-    }
-    DataProvider::Mongo(p) => {
-      p.find_many("todos", Some(&filter), None, None, None, true)
-        .await?
-    }
+    DataProvider::Json(p) => p
+      .find_many("todos", Some(&filter), None, None, None, true)
+      .await
+      .map_err(|e| err_response_formatted("Database error", &e.to_string()))?,
+    DataProvider::Mongo(p) => p
+      .find_many("todos", Some(&filter), None, None, None, true)
+      .await
+      .map_err(|e| err_response_formatted("Database error", &e.to_string()))?,
     DataProvider::Both(json, mongo) => {
       let local = json
         .find_many("todos", Some(&filter), None, None, None, true)
-        .await?;
+        .await
+        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
       let cloud = mongo
         .find_many("todos", Some(&filter), None, None, None, true)
-        .await?;
+        .await
+        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
       merge_documents(local, cloud)
     }
   };

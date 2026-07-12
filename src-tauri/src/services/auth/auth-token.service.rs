@@ -123,7 +123,7 @@ impl AuthTokenService {
           Ok(ResponseModel {
             status: ResponseStatus::Success,
             message: "Token is valid".to_string(),
-            data: response_data,
+            data: Some(response_data),
           })
         }
         Ok(None) => {
@@ -158,7 +158,7 @@ impl AuthTokenService {
             return Ok(ResponseModel {
               status: ResponseStatus::Success,
               message: "Token is valid (local fallback)".to_string(),
-              data: response_data,
+              data: Some(response_data),
             });
           }
           Err(err_response(&format!(
@@ -188,7 +188,7 @@ impl AuthTokenService {
         return Ok(ResponseModel {
           status: ResponseStatus::Success,
           message: "Token is valid (local)".to_string(),
-          data: response_data,
+          data: Some(response_data),
         });
       }
       Err(err_response(

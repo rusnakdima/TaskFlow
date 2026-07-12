@@ -79,10 +79,10 @@ impl AuthLoginService {
     Ok(ResponseModel {
       status: ResponseStatus::Success,
       message: "Login successful".to_string(),
-      data: serde_json::json!({
+      data: Some(serde_json::json!({
         "token": token,
         "profile": profile
-      }),
+      })),
     })
   }
 }

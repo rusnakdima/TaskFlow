@@ -172,13 +172,13 @@ impl SchemaService {
         Ok(Response {
           status: Status::Success,
           message: "Schema found".to_string(),
-          data: value,
+          data: Some(value),
         })
       }
       None => Ok(Response {
         status: Status::NotFound,
         message: format!("Schema {} not found", id),
-        data: Value::Null,
+        data: Some(Value::Null),
       }),
     }
   }
@@ -210,7 +210,7 @@ impl SchemaService {
     Ok(Response {
       status: Status::Success,
       message: "Schema saved".to_string(),
-      data,
+      data: Some(data),
     })
   }
 
@@ -230,7 +230,7 @@ impl SchemaService {
     Ok(Response {
       status: Status::Success,
       message: format!("Found {} schemas", schemas.len()),
-      data: value,
+      data: Some(value),
     })
   }
 
@@ -244,7 +244,7 @@ impl SchemaService {
     Ok(Response {
       status: Status::Success,
       message: format!("Schema {} deleted", id),
-      data: Value::Null,
+      data: Some(Value::Null),
     })
   }
 
