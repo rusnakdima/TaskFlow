@@ -1,6 +1,6 @@
-/* sys lib */
+/* angular */
 import { Routes } from "@angular/router";
-/* guards */
+/* app */
 import { canActivateAuth } from "@guards/auth.guard";
 
 export const routes: Routes = [

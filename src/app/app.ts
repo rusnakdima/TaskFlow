@@ -1,17 +1,18 @@
-/* sys lib */
+/* angular */
 import { Component, OnInit, OnDestroy, signal, computed, inject } from "@angular/core";
 import { Router, RouterModule, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
-/* models */
-/* helpers */
-/* services */
+
+/* library */
+import { SchemaRouteViewerComponent, SchemaSetupService } from "@tauri-front/shared";
+
+/* app */
 import { AuthService } from "@services/auth/auth.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
 import { ProfileRequiredService } from "@core/services/profile-required.service";
 import { AppStateService } from "@core/services/app-state.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 import { StorageService } from "@services/storage.service";
-import { SchemaRouteViewerComponent, SchemaSetupService } from "@tauri-front/shared";
 @Component({
   selector: "app-root",
   standalone: true,

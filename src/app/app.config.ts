@@ -1,4 +1,4 @@
-/* sys lib */
+/* angular */
 import { ApplicationConfig, provideAppInitializer, inject } from "@angular/core";
 import { provideUnifiedApp } from "@tauri-front/shared";
 import { provideRouter } from "@angular/router";
