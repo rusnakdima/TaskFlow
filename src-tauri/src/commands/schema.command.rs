@@ -1,8 +1,5 @@
 // Re-export types from schema_service for use by Tauri commands
-pub use crate::services::schema_service::{
-  AppConfig, AppSettings, CanvasElement, ComponentDef, DataBinding, GridPosition, I18nConfig,
-  Layout, LayoutSlot, LocaleMap, ModuleDef, Page, PageMeta, ServiceDef, UiSchema,
-};
+pub use crate::services::schema_service::UiSchema;
 
 use crate::models::response::ResponseModel;
 use crate::services::schema_service::SchemaService;
@@ -52,7 +49,7 @@ pub async fn get_ui_schema(
 ) -> Result<Response<serde_json::Value>, String> {
   let result = state.schema_service.get_schema(&id).await.map_err(|e| e)?;
   let json_value: serde_json::Value = serde_json::to_value(result).map_err(|e| e.to_string())?;
-  Ok(Response::success(json_value, "Schema loaded"))
+  Ok(Response::success(json_value, Some("Schema loaded")))
 }
 
 #[tauri::command]
@@ -68,7 +65,7 @@ pub async fn save_ui_schema(
     .save_schema(schema)
     .await
     .map_err(|e| e)?;
-  Ok(Response::success((), "Schema saved"))
+  Ok(Response::success((), Some("Schema saved")))
 }
 
 pub struct SchemaState {

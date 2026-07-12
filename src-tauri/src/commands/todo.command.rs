@@ -41,7 +41,7 @@ pub async fn change_todo_visibility(
     .await
     .map_err(|e| err_response(&e.message))?;
   let doc = match existing.data {
-    serde_json::Value::Object(obj) => obj,
+    Some(serde_json::Value::Object(obj)) => obj,
     _ => return Err(err_response("Invalid response format")),
   };
   let doc_value = serde_json::to_value(&doc).unwrap_or_default();
@@ -193,7 +193,7 @@ pub async fn get_todo_permissions(
     .await;
   let doc = match response {
     Ok(resp) => match resp.data {
-      serde_json::Value::Object(obj) => obj,
+      Some(serde_json::Value::Object(obj)) => obj,
       _ => return Err(err_response("Invalid response format")),
     },
     Err(e) => return Err(err_response(&e.message)),

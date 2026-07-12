@@ -32,7 +32,5 @@ pub mod subtask_command;
 pub mod task_command;
 #[path = "todo.command.rs"]
 pub mod todo_command;
-#[path = "update.command.rs"]
-pub mod update_command;
 #[path = "user.command.rs"]
 pub mod user_command;

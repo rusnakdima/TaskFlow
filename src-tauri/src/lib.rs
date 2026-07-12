@@ -47,10 +47,7 @@ use commands::{
   },
   profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
-  schema_command::{
-    delete_schema, get_all_schemas, get_schema, get_ui_schema, save_schema, save_ui_schema,
-    SchemaState,
-  },
+  schema_command::{delete_schema, get_all_schemas, get_schema, save_schema, SchemaState},
   stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
@@ -58,11 +55,9 @@ use commands::{
     change_todo_visibility, create_todo, delete_todo, get_todo, get_todo_permissions, get_todos,
     transfer_todo_ownership, update_todo, update_todo_permissions,
   },
-  update_command::{downloadUpdate, getBinaryNameFile, getCurrentVersion, installUpdate, openFile},
 };
 /* services */
 use services::{
-  about_service::AboutService,
   activity_monitor_service::ActivityMonitorService,
   auth::{auth_data_sync::AuthDataSyncService, auth_qr::QrAuthService, auth_totp::AuthTotpService},
   auth_service::AuthService,
@@ -78,13 +73,14 @@ use services::{
   profile_service::ProfileService,
   repository::service::RepositoryService,
   room_service::RoomService,
-  schema_service::SchemaService,
   statistics_service::StatisticsService,
   subtask_service::SubtaskService,
   task_service::TaskService,
   todo_service::TodoService,
   user::user_sync::UserSyncService,
 };
+/* tauri_shared */
+use tauri_shared::commands::schema_commands::{get_ui_schema, save_ui_schema};
 /* nosql_orm */
 use crate::models::response::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
@@ -272,7 +268,6 @@ pub struct ChatState {
   pub room_service: Arc<RoomService>,
 }
 pub struct SystemState {
-  pub about_service: Arc<AboutService>,
   pub manage_db_service: Arc<ManageDbService>,
   pub notification_service: Arc<NotificationService>,
   pub profile_service: Arc<ProfileService>,
@@ -328,7 +323,6 @@ pub fn run() {
         }
       };
       let activity_log_helper = Arc::new(ActivityLogHelper::new(json_provider.clone()));
-      let about_service = Arc::new(AboutService::new(config_helper.name_app.clone()));
       let profile_service = Arc::new(ProfileService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
@@ -463,7 +457,6 @@ pub fn run() {
           room_service,
         },
         system: SystemState {
-          about_service,
           manage_db_service,
           notification_service,
           profile_service,
@@ -571,11 +564,6 @@ pub fn run() {
       remove_message_reaction,
       delete_room_messages,
       hard_delete_room_messages,
-      getBinaryNameFile,
-      downloadUpdate,
-      openFile,
-      installUpdate,
-      getCurrentVersion,
       sync_data,
       change_todo_visibility,
       get_todo_permissions,
@@ -605,6 +593,10 @@ pub fn run() {
       get_ui_schema,
       save_ui_schema,
       crud_execute,
+      tauri_shared::check_for_update_command,
+      tauri_shared::download_update_command,
+      tauri_shared::install_update_command,
+      tauri_shared::get_current_version,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {

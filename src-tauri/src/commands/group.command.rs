@@ -140,7 +140,7 @@ pub async fn ensure_rooms_for_groups(
     .get_all("all", Some(filter), Some(0), Some(1000))
     .await?;
   let groups = match &groups_result.data {
-    serde_json::Value::Array(arr) => arr.clone(),
+    Some(serde_json::Value::Array(arr)) => arr.clone(),
     _ => vec![],
   };
   let mut created_count = 0;
@@ -163,7 +163,7 @@ pub async fn ensure_rooms_for_groups(
     }
     let existing_room = state.chat.room_service.get_by_room(room_id).await?;
     let room_exists = match &existing_room.data {
-      serde_json::Value::Object(obj) => !obj.is_empty(),
+      Some(serde_json::Value::Object(obj)) => !obj.is_empty(),
       _ => false,
     };
     if room_exists {

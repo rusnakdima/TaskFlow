@@ -144,10 +144,10 @@ pub async fn batch_soft_delete_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
-    data: serde_json::json!(results
+    data: Some(serde_json::json!(results
       .into_iter()
       .map(|r| serde_json::to_value(r).unwrap_or_default())
-      .collect::<Vec<_>>()),
+      .collect::<Vec<_>>())),
   })
 }
 #[tauri::command]
@@ -191,10 +191,10 @@ pub async fn batch_hard_delete_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records processed", results.len()),
-    data: serde_json::json!(results
+    data: Some(serde_json::json!(results
       .into_iter()
       .map(|r| serde_json::to_value(r).unwrap_or_default())
-      .collect::<Vec<_>>()),
+      .collect::<Vec<_>>())),
   })
 }
 #[tauri::command]
@@ -265,10 +265,10 @@ pub async fn batch_restore_cascade(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: format!("{} records restored", results.len()),
-    data: serde_json::json!(results
+    data: Some(serde_json::json!(results
       .into_iter()
       .map(|r| serde_json::to_value(r).unwrap_or_default())
-      .collect::<Vec<_>>()),
+      .collect::<Vec<_>>())),
   })
 }
 #[tauri::command]
@@ -316,7 +316,7 @@ pub async fn check_mongodb_connection(
     } else {
       "MongoDB is not connected".to_string()
     },
-    data: serde_json::Value::Bool(is_connected),
+    data: Some(serde_json::Value::Bool(is_connected)),
   })
 }
 #[tauri::command(rename_all = "snake_case")]
@@ -400,7 +400,7 @@ pub async fn sync_visibility_to_provider(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Visibility synced".to_string(),
-    data: serde_json::Value::String("".to_string()),
+    data: Some(serde_json::Value::String("".to_string())),
   })
 }
 #[tauri::command]
@@ -412,7 +412,7 @@ pub async fn cleanup_non_private_from_json(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Cleanup completed".to_string(),
-    data: serde_json::Value::String("".to_string()),
+    data: Some(serde_json::Value::String("".to_string())),
   })
 }
 #[tauri::command]

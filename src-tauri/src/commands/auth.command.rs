@@ -125,10 +125,10 @@ pub async fn get_user_security_status(
   Ok(ResponseModel {
     status: ResponseStatus::Success,
     message: "Security status retrieved".to_string(),
-    data: serde_json::json!({
+    data: Some(serde_json::json!({
       "totp_enabled": user.totp_enabled,
       "qr_login_enabled": user.qr_login_enabled,
-    }),
+    })),
   })
 }
 #[tauri::command]
