@@ -33,7 +33,7 @@
     "@angular/forms": "22",
     "@angular/material": "~22.0.4",
     "@angular/platform-browser": "22",
-    "@angular/platform-browser-dynamic": "^21.2.18",
+    "@angular/platform-browser-dynamic": "^22.0.6",
     "@angular/router": "22",
     "@auth0/angular-jwt": "^5.2.0",
     "@tailwindcss/postcss": "^4.1.18",
