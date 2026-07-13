@@ -75,7 +75,10 @@ describe("store-helpers", () => {
   describe("updateEntityInArray", () => {
     it("should update entity fields by id", async () => {
       const { updateEntityInArray } = await getHelpers();
-      const entities = [{ id: "1", name: "old" }, { id: "2", name: "also old" }];
+      const entities = [
+        { id: "1", name: "old" },
+        { id: "2", name: "also old" },
+      ];
       const result = updateEntityInArray(entities, "1", { name: "new" });
       expect(result[0].name).toBe("new");
       expect(result[1].name).toBe("also old");
@@ -145,7 +148,11 @@ describe("store-helpers", () => {
   describe("groupByKey", () => {
     it("should group entities by key function", async () => {
       const { groupByKey } = await getHelpers();
-      const entities = [{ id: "1", type: "a" }, { id: "2", type: "b" }, { id: "3", type: "a" }];
+      const entities = [
+        { id: "1", type: "a" },
+        { id: "2", type: "b" },
+        { id: "3", type: "a" },
+      ];
       const result = groupByKey(entities, (e: any) => e.type);
       expect(result.get("a")).toHaveLength(2);
       expect(result.get("b")).toHaveLength(1);
@@ -174,7 +181,10 @@ describe("store-helpers", () => {
   describe("batchUpdateEntities", () => {
     it("should apply batch updates to matching entities", async () => {
       const { batchUpdateEntities } = await getHelpers();
-      const entities = [{ id: "1", name: "a" }, { id: "2", name: "b" }];
+      const entities = [
+        { id: "1", name: "a" },
+        { id: "2", name: "b" },
+      ];
       const updates = new Map([["1", { name: "updated" }]]);
       const result = batchUpdateEntities(entities, updates);
       expect(result[0].name).toBe("updated");
@@ -196,7 +206,9 @@ describe("store-helpers", () => {
     it("should compare only specified fields", async () => {
       const { entitiesEqual } = await getHelpers();
       expect(
-        entitiesEqual({ id: "1", name: "a", extra: "x" }, { id: "1", name: "b", extra: "y" }, ["name"])
+        entitiesEqual({ id: "1", name: "a", extra: "x" }, { id: "1", name: "b", extra: "y" }, [
+          "name",
+        ])
       ).toBe(false);
     });
   });
@@ -217,7 +229,7 @@ describe("store-helpers", () => {
 });
 
 describe("auth.validators", () => {
-  const mockControl = (value: unknown) => ({ value } as any);
+  const mockControl = (value: unknown) => ({ value }) as any;
 
   describe("minLengthValidator", () => {
     it("should return null for value meeting minimum length", async () => {
