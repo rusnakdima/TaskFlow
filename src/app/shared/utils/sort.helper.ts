@@ -1,6 +1,5 @@
 /* angular */
-/* helpers */
-import { ObjectHelper } from "@helpers/object.helper";
+import { getNestedValue } from "@tauri-front/shared";
 /**
  * Sort configuration interface
  */
@@ -23,8 +22,8 @@ export class SortHelper {
     }
     const { field, order } = config;
     return [...data].sort((a: T, b: T) => {
-      let aValue = ObjectHelper.getNestedValue(a, field);
-      let bValue = ObjectHelper.getNestedValue(b, field);
+      let aValue = getNestedValue(a, field);
+      let bValue = getNestedValue(b, field);
       // Handle date fields
       if (SortHelper.isDateField(field)) {
         aValue = aValue ? new Date(aValue as string | number | Date).getTime() : 0;

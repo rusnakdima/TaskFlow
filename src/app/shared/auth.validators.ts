@@ -1,5 +1,5 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from "@angular/forms";
-import { Common } from "@helpers/common.helper";
+import { isValidEmail } from "@tauri-front/shared";
 export function minLengthValidator(minLength: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     if (control.value && control.value.length < minLength) {
@@ -23,7 +23,7 @@ export function passwordMismatchValidator(passwordFieldName: string = "password"
 export function emailValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const email = control.value;
-    if (email && !Common.isValidEmail(email)) {
+    if (email && !isValidEmail(email)) {
       return { invalidEmail: true };
     }
     return null;

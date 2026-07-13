@@ -1,5 +1,4 @@
 export { TableFieldFactory } from "./table-field.factory";
-export { Common } from "./common.helper";
 export { FilterHelper } from "./filter.helper";
 export { SortHelper } from "./sort.helper";
 export { BulkActionHelper } from "./bulk-action.helper";
@@ -9,7 +8,6 @@ export { NetworkErrorHelper } from "./network-error.helper";
 export { TokenStorageHelper } from "./token-storage.helper";
 export { LoginCompletionHelper } from "./login-completion.helper";
 export { LoginErrorHelper } from "./login-error.helper";
-export { ObjectHelper } from "./object.helper";
 export { FilteredListHelper } from "./filtered-list.helper";
 export { GithubIssueHelper } from "./github-issue.helper";
 export {

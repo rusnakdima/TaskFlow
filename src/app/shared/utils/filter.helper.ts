@@ -1,8 +1,7 @@
 /* angular */
 import { TaskStatus } from "@entities/generated/api.types";
 import { AdminFilterState } from "@entities/admin-table.model";
-/* helpers */
-import { ObjectHelper } from "@helpers/object.helper";
+import { getNestedValue } from "@tauri-front/shared";
 /**
  * Filter configuration interface
  */
@@ -40,7 +39,7 @@ export class FilterHelper {
       return data;
     }
     return data.filter((item: T) => {
-      const itemValue = ObjectHelper.getNestedValue(item, field);
+      const itemValue = getNestedValue(item, field);
       if (operator === "isNull") {
         return itemValue == null || itemValue === "";
       }
