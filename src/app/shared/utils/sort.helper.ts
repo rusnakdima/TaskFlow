@@ -1,4 +1,4 @@
-/* angular */
+/* library */
 import { getNestedValue } from "@tauri-front/shared";
 /**
  * Sort configuration interface

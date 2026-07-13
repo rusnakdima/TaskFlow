@@ -4,14 +4,15 @@ import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
 /* library */
 import { ResponseStatus } from "@tauri-front/shared";
-/* services */
+/* app:services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
+/* app:models */
+import { NotificationAction, NotificationSettings } from "@entities/notification.model";
 interface INotify {
   status: ResponseStatus;
   message: string;
 }
-import { NotificationAction, NotificationSettings } from "@entities/notification.model";
 const DEFAULT_SETTINGS: NotificationSettings = {
   chatVolume: 50,
   commentVolume: 50,

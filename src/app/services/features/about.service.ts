@@ -2,8 +2,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-/* app:other */
-import { environment } from "@env/environment";
 /* library */
 import {
   Response,
@@ -12,6 +10,8 @@ import {
   UpdateService,
   type UpdateInfo,
 } from "@tauri-front/shared";
+/* app:other */
+import { environment } from "@env/environment";
 
 interface GitHubRelease {
   tag_name: string;

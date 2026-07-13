@@ -1,4 +1,6 @@
+/* angular */
 import { AbstractControl, ValidationErrors, ValidatorFn } from "@angular/forms";
+/* library */
 import { isValidEmail } from "@tauri-front/shared";
 export function minLengthValidator(minLength: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {

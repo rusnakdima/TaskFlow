@@ -1,7 +1,8 @@
-/* angular */
+/* library */
+import { getNestedValue } from "@tauri-front/shared";
+/* app:models */
 import { TaskStatus } from "@entities/generated/api.types";
 import { AdminFilterState } from "@entities/admin-table.model";
-import { getNestedValue } from "@tauri-front/shared";
 /**
  * Filter configuration interface
  */

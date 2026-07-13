@@ -1,3 +1,7 @@
+/* library */
+import { TodoPermission } from "@tauri-front/shared";
+/* app:other */
+import { TableField } from "./table-field.model";
 export type ItemDisplayType =
   | "title"
   | "description"
@@ -27,8 +31,6 @@ export type ItemDisplayType =
   | "deleted-badge"
   | "badge-group"
   | "comment-toggle";
-import { TableField } from "./table-field.model";
-import { TodoPermission } from "@tauri-front/shared";
 export interface ItemDisplayConfig {
   key: string;
   type: ItemDisplayType;

@@ -1,5 +1,10 @@
-/* library */
+/* app:other */
 import { TodoPermission } from "@tauri-front/shared";
+/* app:models */
+import { FilterConfig } from "@entities/filter-config.model";
+import { ItemDisplayConfig } from "@entities/item-display.model";
+import { TaskStatus } from "@entities/generated/api.types";
+import { Todo, Task, Subtask } from "@entities/generated/api.types";
 
 export const LOG_BUFFER_SIZE = 100;
 export const LOG_FLUSH_INTERVAL = 5000;
@@ -177,7 +182,6 @@ export const RECENT_EMOJIS_DEFAULT = [
   "💯",
   "🙏",
 ];
-import { FilterConfig } from "@entities/filter-config.model";
 export const FILTER_CONFIGS: FilterConfig[] = [
   {
     key: "deletedFilter",
@@ -301,7 +305,6 @@ export const FILTER_CONFIGS: FilterConfig[] = [
     dataType: ["todos", "tasks", "subtasks"],
   },
 ];
-import { TaskStatus } from "@entities/generated/api.types";
 export const TableFieldColors = {
   boolean: { true: "text-green-600!", false: "text-gray-400!" },
   change: {
@@ -599,8 +602,6 @@ export const TABLE_BUTTON_COLORS = {
   delete: "text-red-600! hover:text-red-700! dark:text-red-400! dark:hover:text-red-300!",
   default: "text-gray-500! hover:text-gray-700! dark:text-gray-400! dark:hover:text-gray-200!",
 } as const;
-import { ItemDisplayConfig } from "@entities/item-display.model";
-import { Todo, Task, Subtask } from "@entities/generated/api.types";
 export const DEFAULT_ACTIONS = [
   TABLE_ACTIONS.EDIT,
   TABLE_ACTIONS.DELETE,

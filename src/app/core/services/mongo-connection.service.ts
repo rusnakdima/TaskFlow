@@ -4,7 +4,7 @@ import { Observable, of, throwError, from } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";
 /* library */
 import { InvokeWrapperService } from "@tauri-front/shared";
-/* services */
+/* app:services */
 import { NotifyService } from "@services/notifications/notify.service";
 export interface ConnectionState {
   isConnected: boolean;

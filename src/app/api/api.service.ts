@@ -1,9 +1,14 @@
+/* angular */
 import { Injectable, inject, signal, Injector } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { map, catchError } from "rxjs/operators";
-import { InvokeWrapperService } from "@tauri-front/shared";
-
-import { ResponseStatus } from "@tauri-front/shared";
+/* library */
+import { InvokeWrapperService, ResponseStatus } from "@tauri-front/shared";
+/* app:services */
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
+import { StorageService } from "@services/storage.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+/* app:models */
 import {
   Todo,
   Task,
@@ -15,9 +20,6 @@ import {
   User,
   Group,
 } from "@entities/generated/api.types";
-import { MongoConnectionService } from "@core/services/mongo-connection.service";
-import { StorageService } from "@services/storage.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
 import {
   Visibility,
   CrudOptions,

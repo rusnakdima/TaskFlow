@@ -5,6 +5,7 @@ import { Observable, of } from "rxjs";
 import { ResponseStatus } from "@tauri-front/shared";
 /* app:services */
 import { AdminService } from "@services/data/admin.service";
+/* app:models */
 import { AdminDataWithRelations, LoadDataOptions } from "@entities/admin.model";
 
 export { AdminDataWithRelations } from "@entities/admin.model";

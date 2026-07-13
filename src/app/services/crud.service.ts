@@ -1,6 +1,7 @@
+/* angular */
 import { Injectable, inject } from "@angular/core";
-import { InvokeWrapperService } from "@tauri-front/shared";
-import { Response } from "@tauri-front/shared";
+/* library */
+import { InvokeWrapperService, Response } from "@tauri-front/shared";
 
 export interface CrudParams {
   id?: string;

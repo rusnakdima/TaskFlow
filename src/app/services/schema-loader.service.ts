@@ -1,8 +1,8 @@
+/* angular */
 import { Injectable, inject } from "@angular/core";
-import { InvokeWrapperService } from "@tauri-front/shared";
 import { invoke } from "@tauri-apps/api/core";
-import { UiSchema } from "@tauri-front/shared";
-import { Response } from "@tauri-front/shared";
+/* library */
+import { InvokeWrapperService, Response, UiSchema } from "@tauri-front/shared";
 
 @Injectable({ providedIn: "root" })
 export class SchemaLoaderService {

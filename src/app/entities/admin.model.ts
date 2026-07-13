@@ -1,4 +1,6 @@
+/* library */
 import { ResponseStatus } from "@tauri-front/shared";
+/* app:other */
 import { TableItem } from "@shared/models/api.types";
 export interface AdminDataWithRelations {
   data?: TableItem;
