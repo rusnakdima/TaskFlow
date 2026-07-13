@@ -38,7 +38,7 @@ import {
   createGroupedMap,
   upsertEntityBulk,
 } from "@store/utils/store-helpers";
-import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/index";
+import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 @Injectable({ providedIn: "root" })
 export class StorageService {

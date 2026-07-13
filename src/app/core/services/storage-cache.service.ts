@@ -2,7 +2,7 @@
 import { Injectable, signal, computed } from "@angular/core";
 
 /* app:other */
-import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
+import { DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
 
 const MAX_CACHE_SIZE = 100;
 @Injectable({ providedIn: "root" })
