@@ -2,9 +2,10 @@
 import { Injectable, signal, inject, computed } from "@angular/core";
 import { Observable, of, throwError, from } from "rxjs";
 import { switchMap, catchError } from "rxjs/operators";
+/* library */
+import { InvokeWrapperService } from "@tauri-front/shared";
 /* services */
 import { NotifyService } from "@services/notifications/notify.service";
-import { InvokeWrapperService } from "@tauri-front/shared";
 export interface ConnectionState {
   isConnected: boolean;
   lastChecked: Date | null;

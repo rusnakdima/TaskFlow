@@ -1,7 +1,10 @@
+/* angular */
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
-import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
+/* library */
 import { ResponseStatus } from "@tauri-front/shared";
+/* app */
+import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
 import { ApiService, Visibility } from "@api/api.service";
 import { AdminService } from "@services/data/admin.service";
 import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";

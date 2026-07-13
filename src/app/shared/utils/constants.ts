@@ -1,3 +1,6 @@
+/* library */
+import { TodoPermission } from "@tauri-front/shared";
+
 export const LOG_BUFFER_SIZE = 100;
 export const LOG_FLUSH_INTERVAL = 5000;
 export const SMILEYS_EMOJIS = [
@@ -299,7 +302,6 @@ export const FILTER_CONFIGS: FilterConfig[] = [
   },
 ];
 import { TaskStatus } from "@entities/generated/api.types";
-import { TodoPermission } from "@tauri-front/shared";
 export const TableFieldColors = {
   boolean: { true: "text-green-600!", false: "text-gray-400!" },
   change: {

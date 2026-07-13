@@ -2,11 +2,11 @@
 import { Injectable, inject, signal, OnDestroy, DestroyRef, Injector } from "@angular/core";
 import { interval, Subject, takeUntil } from "rxjs";
 import { firstValueFrom } from "rxjs";
+/* library */
+import { ResponseStatus } from "@tauri-front/shared";
 /* services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
-/* app */
-import { ResponseStatus } from "@tauri-front/shared";
 interface INotify {
   status: ResponseStatus;
   message: string;

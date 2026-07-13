@@ -1,11 +1,11 @@
 /* angular */
 import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom, from } from "rxjs";
+/* library */
+import { Response, InvokeWrapperService } from "@tauri-front/shared";
 /* app */
-import { Response } from "@tauri-front/shared";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
-import { InvokeWrapperService } from "@tauri-front/shared";
 @Injectable({
   providedIn: "root",
 })

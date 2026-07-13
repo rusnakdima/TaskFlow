@@ -1,11 +1,14 @@
+/* angular */
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { catchError, map, tap } from "rxjs/operators";
+/* library */
+import { Response } from "@tauri-front/shared";
+/* app */
 import { GithubRepo, GithubConnection } from "@entities/github.model";
 import { NotifyService } from "@services/notifications/notify.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { ApiService } from "@api/api.service";
-import { Response } from "@tauri-front/shared";
 interface GithubOAuthResult {
   username: string;
   user_id: string;
