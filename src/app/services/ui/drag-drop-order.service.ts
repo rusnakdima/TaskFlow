@@ -5,6 +5,7 @@ import { CdkDragDrop } from "@angular/cdk/drag-drop";
 import { Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 import { OrderCalculationService, Orderable } from "./order-calculation.service";
+import { capitalize } from "@tauri-front/shared";
 @Injectable({
   providedIn: "root",
 })
@@ -79,7 +80,7 @@ export class DragDropOrderService {
       .pipe(
         tap(() => {
           this.updatingOrders.delete(operationKey);
-          this.notifyService.showSuccess(`${this.capitalize(entityType)} order updated`);
+          this.notifyService.showSuccess(`${capitalize(entityType)} order updated`);
         }),
         catchError((err) => {
           this.updatingOrders.delete(operationKey);
@@ -87,8 +88,5 @@ export class DragDropOrderService {
           throw err;
         })
       );
-  }
-  private capitalize(s: string): string {
-    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 }

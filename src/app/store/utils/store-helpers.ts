@@ -5,6 +5,7 @@
  */
 import { WritableSignal } from "@angular/core";
 import { computed, Signal } from "@angular/core";
+export { findById } from "@tauri-front/shared";
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
  */
@@ -33,12 +34,6 @@ export function deduplicateAndFilterDeleted<
   },
 >(entities: T[]): T[] {
   return deduplicateById(entities, { filterDeleted: true });
-}
-/**
- * Find entity by ID from an array
- */
-export function findById<T extends { id: string }>(entities: T[], id: string): T | undefined {
-  return entities.find((entity) => entity.id === id);
 }
 /**
  * Find entities by parent ID

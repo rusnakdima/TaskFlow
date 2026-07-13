@@ -1,3 +1,5 @@
+import { truncate } from "@tauri-front/shared";
+
 const SENSITIVE_KEYS = [
   "password",
   "confirmPassword",
@@ -38,11 +40,7 @@ function partialEmail(email: string): string {
   if (localPart.length <= 1) return "[REDACTED]";
   return `${localPart[0]}***${domain}`;
 }
-function truncateString(str: string, maxLength: number): string {
-  if (!str || typeof str !== "string") return "[REDACTED]";
-  if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength) + "...";
-}
+
 function sanitizeValue(key: string, value: unknown): unknown {
   if (isSensitiveKey(key)) {
     return "[REDACTED]";
@@ -54,7 +52,7 @@ function sanitizeValue(key: string, value: unknown): unknown {
     if (isEmailKey(key)) {
       return partialEmail(value);
     }
-    return truncateString(value, MAX_STRING_LENGTH);
+    return truncate(value, MAX_STRING_LENGTH, "...");
   }
   if (typeof value === "number" || typeof value === "boolean") {
     return value;
