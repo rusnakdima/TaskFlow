@@ -2,12 +2,12 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
-/* env */
+/* app:other */
 import { environment } from "@env/environment";
-/* app */
-import { Response } from "@tauri-front/shared";
-import { InvokeWrapperService } from "@tauri-front/shared";
+/* library */
 import {
+  Response,
+  InvokeWrapperService,
   AboutService as LibraryAboutService,
   UpdateService,
   type UpdateInfo,

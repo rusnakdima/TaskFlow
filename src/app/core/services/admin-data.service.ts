@@ -3,9 +3,10 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, of } from "rxjs";
 /* library */
 import { ResponseStatus } from "@tauri-front/shared";
-/* app */
+/* app:services */
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations, LoadDataOptions } from "@entities/admin.model";
+
 export { AdminDataWithRelations } from "@entities/admin.model";
 @Injectable({
   providedIn: "root",

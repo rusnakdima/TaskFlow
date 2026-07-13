@@ -6,13 +6,15 @@ import { filter } from "rxjs/operators";
 /* library */
 import { SchemaRouteViewerComponent, SchemaSetupService } from "@tauri-front/shared";
 
-/* app */
+/* app:services */
+import { StorageService } from "@services/storage.service";
 import { AuthService } from "@services/auth/auth.service";
 import { ShortcutService } from "@services/ui/shortcut.service";
-import { ProfileRequiredService } from "@core/services/profile-required.service";
+
+/* app:core */
 import { AppStateService } from "@core/services/app-state.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
-import { StorageService } from "@services/storage.service";
+import { ProfileRequiredService } from "@core/services/profile-required.service";
 @Component({
   selector: "app-root",
   standalone: true,

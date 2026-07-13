@@ -6,16 +6,16 @@ import { firstValueFrom } from "rxjs";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 /* library */
 import { Response, ResponseStatus, InvokeWrapperService } from "@tauri-front/shared";
-/* app */
+/* app:models */
 import { QueuedOperation, SyncProgress } from "@entities/sync.model";
-/* helpers */
+/* app:other */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
-/* services */
+/* app:services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { EntityStoreService } from "@core/services/entity-store.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { SyncProgressService } from "@core/services/sync-progress.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
-import { EntityStoreService } from "@core/services/entity-store.service";
 @Injectable({
   providedIn: "root",
 })

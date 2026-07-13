@@ -1,19 +1,27 @@
 /* angular */
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
+
 /* library */
 import { ResponseStatus } from "@tauri-front/shared";
-/* app */
+
+/* app:models */
+import { TableFieldActionButton } from "@entities/table-field.model";
 import { Task, TaskStatus, Todo } from "@entities/generated/api.types";
-import { ApiService, Visibility } from "@api/api.service";
-import { AdminService } from "@services/data/admin.service";
-import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
-import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
-import { NotifyService } from "@services/notifications/notify.service";
+
+/* app:services */
+import { ApiService } from "@api/api.service";
 import { GithubService } from "@services/github/github.service";
+import { AdminService } from "@services/data/admin.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { BulkActionHelper, BulkOperationResult } from "@helpers/bulk-action.helper";
+
+/* app:core */
+import { ConfirmDialogService } from "@core/services/confirm-dialog.service";
+
+/* app:other */
 import { BaseItemHelper } from "@helpers/base-item.helper";
 import { TABLE_ACTIONS } from "@shared/utils/constants";
-import { TableFieldActionButton } from "@entities/table-field.model";
 @Injectable({ providedIn: "root" })
 export class TasksActionsHelper {
   private requestService = inject(ApiService);

@@ -1,7 +1,7 @@
 /* angular */
 import { Injectable, signal, computed } from "@angular/core";
 
-/* app */
+/* app:other */
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
 
 const MAX_CACHE_SIZE = 100;

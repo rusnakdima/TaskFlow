@@ -1,9 +1,9 @@
 /* angular */
 import { Injectable } from "@angular/core";
 import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
-/* app */
-import { Task, TaskStatus } from "@entities/generated/api.types";
+/* app:models */
 import { KanbanColumn } from "@entities/drag-drop.model";
+import { Task, TaskStatus } from "@entities/generated/api.types";
 export interface KanbanItem {
   id: string;
   status: TaskStatus;

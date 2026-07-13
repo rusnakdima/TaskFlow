@@ -4,11 +4,12 @@ import { Observable, of } from "rxjs";
 import { catchError, map, tap } from "rxjs/operators";
 /* library */
 import { Response } from "@tauri-front/shared";
-/* app */
+/* app:models */
 import { GithubRepo, GithubConnection } from "@entities/github.model";
-import { NotifyService } from "@services/notifications/notify.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
+/* app:services */
 import { ApiService } from "@api/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { NotifyService } from "@services/notifications/notify.service";
 interface GithubOAuthResult {
   username: string;
   user_id: string;

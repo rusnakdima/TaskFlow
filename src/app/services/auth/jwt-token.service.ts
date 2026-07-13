@@ -1,9 +1,9 @@
 /* angular */
 import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
-/* app */
+/* app:models */
 import { User } from "@entities/generated/api.types";
-/* helpers */
+/* app:other */
 import { TokenStorageHelper } from "@helpers/token-storage.helper";
 @Injectable({
   providedIn: "root",

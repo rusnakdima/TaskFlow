@@ -2,10 +2,11 @@
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-/* app */
+/* app:models */
 import { Chat } from "@entities/generated/api.types";
 import { ConversationItem, ChatMessage } from "@entities/chat.model";
-/* base */
+
+/* app:other */
 import { BaseStorageService } from "./storage-entity.service";
 @Injectable({ providedIn: "root" })
 export class StorageChatService extends BaseStorageService {

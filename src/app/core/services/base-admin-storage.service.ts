@@ -1,6 +1,11 @@
 /* angular */
 import { signal } from "@angular/core";
-/* app */
+/* app:services */
+import { BaseStorageService } from "./base-storage.service";
+import { StorageSignalMap } from "@entities/storage-signal-map.model";
+import { AdminDataWithRelations } from "@core/services/admin-data.service";
+
+/* app:models */
 import {
   Todo,
   Task,
@@ -11,10 +16,6 @@ import {
   Category,
   Profile,
 } from "@entities/generated/api.types";
-/* services */
-import { BaseStorageService } from "./base-storage.service";
-import { StorageSignalMap } from "@entities/storage-signal-map.model";
-import { AdminDataWithRelations } from "@core/services/admin-data.service";
 export abstract class BaseAdminStorageService extends BaseStorageService {
   // Common data signals
   todosSignal = signal<Todo[]>([]);

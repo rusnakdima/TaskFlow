@@ -1,7 +1,13 @@
 /* angular */
 import { Injectable, inject, signal, computed, WritableSignal } from "@angular/core";
 
-/* app */
+/* app:services */
+import { ApiService } from "@api/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { NotifyService } from "@services/notifications/notify.service";
+import { MongoConnectionService } from "@core/services/mongo-connection.service";
+
+/* app:models */
 import {
   Todo,
   Task,
@@ -16,13 +22,7 @@ import {
 import { EntityType, ChildType, PaginationState } from "@entities/storage.model";
 import { ConversationItem, ChatMessage } from "@entities/chat.model";
 
-/* services */
-import { ApiService } from "@api/api.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { NotifyService } from "@services/notifications/notify.service";
-import { MongoConnectionService } from "@core/services/mongo-connection.service";
-
-/* utils */
+/* app:store */
 import {
   updateEntityInSignal,
   removeEntityFromSignal,

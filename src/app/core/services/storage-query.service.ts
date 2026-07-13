@@ -3,7 +3,7 @@ import { Injectable, inject, signal, computed, Injector, WritableSignal } from "
 import { Observable, of } from "rxjs";
 /* library */
 import { ResponseStatus } from "@tauri-front/shared";
-/* app */
+/* app:models */
 import {
   Todo,
   Task,
@@ -15,13 +15,17 @@ import {
   Category,
 } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
-/* services */
+
+/* app:services */
 import { AdminService } from "@services/data/admin.service";
 import { AdminDataWithRelations } from "@entities/admin.model";
 import { ApiService } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-/* utils */
+
+/* app:store */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
+
+/* app:other */
 import { BaseStorageService } from "./storage-entity.service";
 import { ProfileRequiredService } from "./profile-required.service";
 const DEFAULT_TTL_MS = 5 * 60 * 1000;

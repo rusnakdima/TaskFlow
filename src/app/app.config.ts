@@ -1,10 +1,15 @@
 /* angular */
 import { ApplicationConfig, provideAppInitializer, inject } from "@angular/core";
-import { provideUnifiedApp } from "@tauri-front/shared";
 import { provideRouter } from "@angular/router";
-/* app */
-import { routes } from "@app/app.routes";
+
+/* library */
+import { provideUnifiedApp } from "@tauri-front/shared";
+
+/* app:services */
 import { UnifiedSyncService } from "@services/sync/unified-sync.service";
+
+/* app:other */
+import { routes } from "@app/app.routes";
 
 export const appConfig: ApplicationConfig = {
   providers: [

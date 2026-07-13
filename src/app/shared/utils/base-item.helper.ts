@@ -1,9 +1,8 @@
-/* angular */
-/* app */
+/* app:models */
 import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
-/* helpers */
+
+/* app:other */
 import { calculatePercentage } from "@shared/utils/percentage.util";
-/* constants */
 import {
   PRIORITY_COLORS,
   STATUS_COLORS,

@@ -3,19 +3,17 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, from } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 
-/* app */
+/* app:models */
 import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter } from "@entities/storage.model";
 
-/* services */
+/* app:services */
 import { ApiService } from "@api/api.service";
 
-/* child services */
+/* app:other */
 import { BaseStorageService, DEFAULT_PAGINATION } from "./storage-entity.service";
 import { StoragePaginationService } from "./storage-pagination.service";
 import { StorageChatService } from "./storage-chat.service";
-
-/* utils */
 
 @Injectable({ providedIn: "root" })
 export class UnifiedStorageService {

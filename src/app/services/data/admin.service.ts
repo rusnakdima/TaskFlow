@@ -3,9 +3,9 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, firstValueFrom, from } from "rxjs";
 /* library */
 import { Response, InvokeWrapperService } from "@tauri-front/shared";
-/* app */
-import { JwtTokenService } from "@services/auth/jwt-token.service";
+/* app:services */
 import { ApiService } from "@api/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
 @Injectable({
   providedIn: "root",
 })

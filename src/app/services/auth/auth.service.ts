@@ -1,19 +1,20 @@
 /* angular */
-import { Injectable, inject, Injector } from "@angular/core";
+/* angular */
 import { Observable } from "rxjs";
+import { Injectable, inject, Injector } from "@angular/core";
 import { tap, take } from "rxjs/operators";
-/* app */
-import { LoginForm, SignupForm, AuthResponse } from "@entities/auth-forms.model";
-import { PasswordReset } from "@entities/password-reset.model";
-/* helpers */
-import { NetworkErrorHelper } from "@helpers/network-error.helper";
-/* services */
+import { Router } from "@angular/router";
+/* app:services */
+import { StorageService } from "@services/storage.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
-import { ApiService } from "@api/api.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
-import { StorageService } from "@services/storage.service";
-import { Router } from "@angular/router";
+/* app:models */
+import { LoginForm, SignupForm, AuthResponse } from "@entities/auth-forms.model";
+import { PasswordReset } from "@entities/password-reset.model";
+/* app:other */
+import { ApiService } from "@api/api.service";
+import { NetworkErrorHelper } from "@helpers/network-error.helper";
 // ARCHITECTURAL NOTE: AuthService is a god service that handles authentication, user management,
 // token handling, and profile operations. Future refactoring should split these responsibilities
 // into dedicated services (AuthService → AuthService + TokenService + UserService).

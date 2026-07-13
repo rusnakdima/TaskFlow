@@ -1,11 +1,13 @@
 /* angular */
 import { Injectable, inject } from "@angular/core";
-/* app */
+/* app:models */
 import { Todo, Task, Subtask, Comment, Chat, Category, Room } from "@entities/generated/api.types";
 import { VisibilityFilter, ChildType } from "@entities/storage.model";
-/* base */
+
+/* app:other */
 import { BaseStorageService } from "./storage-entity.service";
-/* utils */
+
+/* app:store */
 import { upsertEntityBulk } from "@store/utils/store-helpers";
 @Injectable({ providedIn: "root" })
 export class StoragePaginationService {

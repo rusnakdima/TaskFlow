@@ -1,6 +1,7 @@
 /* angular */
 import { Routes } from "@angular/router";
-/* app */
+
+/* app:other */
 import { canActivateAuth } from "@guards/auth.guard";
 
 export const routes: Routes = [

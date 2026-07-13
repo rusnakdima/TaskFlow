@@ -4,13 +4,17 @@ import { Observable, from, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
 /* library */
 import { InvokeWrapperService } from "@tauri-front/shared";
-/* app */
-import { Todo, Task, Subtask, Comment, Chat, User, Category } from "@entities/generated/api.types";
-import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
+/* app:services */
 import { ApiService, Visibility } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { BaseStorageService } from "@core/services/storage-entity.service";
+
+/* app:models */
+import { Todo, Task, Subtask, Comment, Chat, User, Category } from "@entities/generated/api.types";
+import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
+
+/* app:store */
 import {
   upsertEntityBulk,
   updateEntityInSignal,
