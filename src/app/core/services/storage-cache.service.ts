@@ -1,13 +1,9 @@
-/**
- * Local StorageCacheService — kept instead of using @tauri-front/shared's StorageCacheService.
- * Reason: Maintains three separate sub-caches (chats, tasks, reactive) with custom eviction
- * logic that strips domain-specific key prefixes (e.g. "tasks_|chats_by_todo_"). The library
- * version has a single generic TTL cache map.
- */
 /* angular */
 import { Injectable, signal, computed } from "@angular/core";
-/* utils */
+
+/* app */
 import { DEFAULT_CACHE_TTL_MS } from "@helpers/index";
+
 const MAX_CACHE_SIZE = 100;
 @Injectable({ providedIn: "root" })
 export class StorageCacheService {

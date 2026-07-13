@@ -1,9 +1,3 @@
-/**
- * Local StorageQueryService — kept instead of using @tauri-front/shared's StorageQueryService.
- * Reason: 957-line domain state management service with full CRUD, pagination, computed
- * derived data (grouped maps, filtered views), API data loading with pagination, and
- * profile/user management. The library version is a simple 51-line in-memory filter utility.
- */
 /* angular */
 import { Injectable, inject, signal, computed, Injector, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
