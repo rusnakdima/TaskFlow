@@ -5,20 +5,9 @@
  */
 import { WritableSignal } from "@angular/core";
 import { computed, Signal } from "@angular/core";
-import { deduplicateById as sharedDeduplicateById } from "@tauri-front/shared";
+import { deduplicateById } from "@tauri-front/shared";
 
-/**
- * Deduplicate entities by ID, keeping the most recently updated version
- * Wraps the shared deduplicateById with filterDeleted support
- */
-export function deduplicateById<
-  T extends { id: string; updated_at?: string | null; deleted_at?: string | null },
->(entities: T[], options?: { filterDeleted?: boolean }): T[] {
-  if (options?.filterDeleted) {
-    return sharedDeduplicateById(entities.filter((e) => !e.deleted_at));
-  }
-  return sharedDeduplicateById(entities);
-}
+export { deduplicateById };
 export function deduplicateAndFilterDeleted<
   T extends {
     id: string;
@@ -82,7 +71,7 @@ export function createSortedView<T>(
  */
 export function mergeAndDeduplicate<T extends { id: string }>(...arrays: T[][]): T[] {
   const all = arrays.flat();
-  return sharedDeduplicateById(all);
+  return deduplicateById(all);
 }
 /**
  * Check if entity exists in array by ID
