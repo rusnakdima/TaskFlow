@@ -34,10 +34,10 @@ import { MongoConnectionService } from "@core/services/mongo-connection.service"
 /* app:other */
 import {
   deduplicateById,
-  groupByKey,
   createGroupedMap,
   upsertEntityBulk,
 } from "@store/utils/store-helpers";
+import { groupByKey } from "@tauri-front/shared";
 import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 @Injectable({ providedIn: "root" })

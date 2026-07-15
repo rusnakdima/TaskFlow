@@ -2,7 +2,7 @@
 import { Injectable, inject } from "@angular/core";
 import { take } from "rxjs/operators";
 import { Router } from "@angular/router";
-/* services */
+/* app:services */
 import { JwtTokenService } from "@services/auth/jwt-token.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { ApiService } from "@api/api.service";

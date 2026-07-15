@@ -5,26 +5,19 @@
  */
 import { WritableSignal } from "@angular/core";
 import { computed, Signal } from "@angular/core";
-export { findById } from "@tauri-front/shared";
+import { deduplicateById as sharedDeduplicateById } from "@tauri-front/shared";
+
 /**
  * Deduplicate entities by ID, keeping the most recently updated version
+ * Wraps the shared deduplicateById with filterDeleted support
  */
 export function deduplicateById<
   T extends { id: string; updated_at?: string | null; deleted_at?: string | null },
 >(entities: T[], options?: { filterDeleted?: boolean }): T[] {
-  const map = new Map<string, T>();
-  for (const entity of entities) {
-    if (options?.filterDeleted && entity.deleted_at) continue;
-    const existing = map.get(entity.id);
-    if (!existing) {
-      map.set(entity.id, entity);
-    } else if (entity.updated_at && existing.updated_at) {
-      if (new Date(entity.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-        map.set(entity.id, entity);
-      }
-    }
+  if (options?.filterDeleted) {
+    return sharedDeduplicateById(entities.filter((e) => !e.deleted_at));
   }
-  return Array.from(map.values());
+  return sharedDeduplicateById(entities);
 }
 export function deduplicateAndFilterDeleted<
   T extends {
@@ -89,24 +82,13 @@ export function createSortedView<T>(
  */
 export function mergeAndDeduplicate<T extends { id: string }>(...arrays: T[][]): T[] {
   const all = arrays.flat();
-  return deduplicateById(all);
+  return sharedDeduplicateById(all);
 }
 /**
  * Check if entity exists in array by ID
  */
 export function existsById<T extends { id: string }>(entities: T[], id: string): boolean {
   return entities.some((entity) => entity.id === id);
-}
-export function groupByKey<T, K>(entities: T[], keyFn: (entity: T) => K): Map<K, T[]> {
-  const map = new Map<K, T[]>();
-  for (const entity of entities) {
-    const key = keyFn(entity);
-    if (!map.has(key)) {
-      map.set(key, []);
-    }
-    map.get(key)!.push(entity);
-  }
-  return map;
 }
 export function createGroupedMap<T, K>(
   entities: T[],
@@ -127,23 +109,6 @@ export function createGroupedMap<T, K>(
 }
 export function createEntityLookupMap<T extends { id: string }>(entities: T[]): Map<string, T> {
   return new Map(entities.map((e) => [e.id, e]));
-}
-export function applyUpdate<T extends { id: string }>(entity: T, updates: Partial<T>): T {
-  return { ...entity, ...updates };
-}
-export function upsertEntity<T extends { id: string }>(
-  entities: T[],
-  entity: T,
-  updateExisting = true
-): T[] {
-  const index = entities.findIndex((e) => e.id === entity.id);
-  if (index === -1) {
-    return [entity, ...entities];
-  }
-  if (updateExisting) {
-    return entities.map((e) => (e.id === entity.id ? { ...e, ...entity } : e));
-  }
-  return entities;
 }
 export function addEntityToSignal<T extends { id: string }>(
   signal: WritableSignal<T[]>,
@@ -207,12 +172,6 @@ export function batchUpdateEntities<T extends { id: string }>(
     const entityUpdates = updates.get(entity.id);
     return entityUpdates ? { ...entity, ...entityUpdates } : entity;
   });
-}
-/**
- * Deep clone an entity (for immutable updates)
- */
-export function deepCloneEntity<T>(entity: T): T {
-  return JSON.parse(JSON.stringify(entity));
 }
 /**
  * Compare two entities for equality

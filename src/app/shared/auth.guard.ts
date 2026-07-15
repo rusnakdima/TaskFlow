@@ -1,7 +1,7 @@
 /* angular */
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRouteSnapshot, RouterStateSnapshot, CanActivateFn } from "@angular/router";
-/* services */
+/* app:services */
 import { AuthService } from "@services/auth/auth.service";
 import { UserValidationService } from "@services/auth/user-validation.service";
 @Injectable({

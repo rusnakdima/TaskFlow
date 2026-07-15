@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "@tauri-front/shared/styles";
 @plugin "flowbite/plugin";
 @variant dark (&:where(.dark, .dark *));
 @variant light (&:where(.light, .light *));

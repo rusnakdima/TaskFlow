@@ -1,92 +1,65 @@
 /* angular */
-import { Injectable, signal, computed } from "@angular/core";
+import { Injectable, computed } from "@angular/core";
+/* library */
+import { StorageCacheService as LibStorageCacheService } from "@tauri-front/shared";
 
-/* app:other */
-import { DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
-
-const MAX_CACHE_SIZE = 100;
+/**
+ * TaskFlow-specific cache service extending the shared library's StorageCacheService.
+ * Adds domain-specific cache accessors (chat, tasks) while reusing the library's
+ * TTL cache, reactive cache, timestamp tracking, and eviction logic.
+ */
 @Injectable({ providedIn: "root" })
-export class StorageCacheService {
-  private readonly _reactiveCache = new Map<string, ReturnType<typeof computed<any>>>();
-  private readonly _chatCache = new Map<string, ReturnType<typeof computed<any>>>();
-  private readonly _tasksCache = new Map<string, ReturnType<typeof computed<any>>>();
-  private readonly _cacheTimestamps = new Map<string, number>();
-  readonly cacheInvalidated = signal(false);
-  get reactiveCache(): Map<string, ReturnType<typeof computed<any>>> {
-    return this._reactiveCache;
-  }
-  get chatCache(): Map<string, ReturnType<typeof computed<any>>> {
-    return this._chatCache;
-  }
-  get tasksCache(): Map<string, ReturnType<typeof computed<any>>> {
-    return this._tasksCache;
-  }
+export class StorageCacheService extends LibStorageCacheService {
+  // Domain-specific cache accessors (convenience wrappers around library methods)
+
   hasReactiveCache(key: string): boolean {
-    return this._reactiveCache.has(key);
+    return this.hasCachedData(key);
   }
-  getReactiveCache(key: string): ReturnType<typeof computed<any>> | undefined {
-    return this._reactiveCache.get(key);
+
+  override getReactiveCache(key: string): any {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (super.getReactiveCache as any)(key);
   }
-  setReactiveCache(key: string, value: ReturnType<typeof computed<any>>): void {
-    this._reactiveCache.set(key, value);
+
+  override setReactiveCache(key: string, value: any): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (super.setReactiveCache as any)(key, value);
   }
+
   hasChatCache(key: string): boolean {
-    return this._chatCache.has(key);
+    return this.hasCachedData(`chat:${key}`);
   }
+
   getChatCache(key: string): ReturnType<typeof computed<any>> | undefined {
-    return this._chatCache.get(key);
+    return this.getReactiveCache(`chat:${key}`) as ReturnType<typeof computed<any>> | undefined;
   }
-  setChatCache(key: string, value: ReturnType<typeof computed<any>>): void {
-    this._chatCache.set(key, value);
+
+  setChatCache(key: string, value: any): void {
+    this.setReactiveCache(`chat:${key}`, value);
   }
+
   hasTasksCache(key: string): boolean {
-    return this._tasksCache.has(key);
+    return this.hasCachedData(`tasks:${key}`);
   }
+
   getTasksCache(key: string): ReturnType<typeof computed<any>> | undefined {
-    return this._tasksCache.get(key);
+    return this.getReactiveCache(`tasks:${key}`) as ReturnType<typeof computed<any>> | undefined;
   }
-  setTasksCache(key: string, value: ReturnType<typeof computed<any>>): void {
-    this._tasksCache.set(key, value);
+
+  setTasksCache(key: string, value: any): void {
+    this.setReactiveCache(`tasks:${key}`, value);
   }
-  getCacheTimestamp(key: string): number | undefined {
-    return this._cacheTimestamps.get(key);
-  }
-  setCacheTimestamp(key: string, timestamp: number): void {
-    this._cacheTimestamps.set(key, timestamp);
-  }
-  isCacheValid(key: string, ttlMs: number = DEFAULT_CACHE_TTL_MS): boolean {
-    const timestamp = this._cacheTimestamps.get(key);
-    if (!timestamp) return false;
-    return Date.now() - timestamp < ttlMs;
-  }
-  isCacheFull(): boolean {
-    return this._chatCache.size >= MAX_CACHE_SIZE || this._tasksCache.size >= MAX_CACHE_SIZE;
-  }
-  evictOldestCache(): void {
-    const sortedKeys = Array.from(this._cacheTimestamps.entries())
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, 10)
-      .map(([key]) => key);
-    for (const key of sortedKeys) {
-      const id = key.replace(/^(tasks|chats)_by_todo_/, "");
-      this._chatCache.delete(id);
-      this._tasksCache.delete(id);
-      this._cacheTimestamps.delete(key);
-    }
-  }
-  invalidateCache(): void {
-    this._chatCache.clear();
-    this._tasksCache.clear();
-    this._cacheTimestamps.clear();
-    this._reactiveCache.clear();
+
+  // Invalidate all domain-specific caches
+
+  override invalidateCache(): void {
+    this.invalidateAll();
     this.cacheInvalidated.set(true);
     setTimeout(() => this.cacheInvalidated.set(false), 0);
   }
-  clearAll(): void {
-    this._chatCache.clear();
-    this._tasksCache.clear();
-    this._cacheTimestamps.clear();
-    this._reactiveCache.clear();
+
+  override clearAll(): void {
+    this.invalidateAll();
     this.cacheInvalidated.set(true);
     setTimeout(() => this.cacheInvalidated.set(false), 0);
   }

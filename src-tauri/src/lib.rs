@@ -307,7 +307,7 @@ pub fn run() {
         .path()
         .app_data_dir()
         .expect("Failed to get app data directory. Ensure app is properly initialized.");
-      let json_db_path = app_data_dir.join(&config_helper.json_db_name);
+      let json_db_path = app_data_dir.clone();
       std::fs::create_dir_all(&json_db_path).ok();
       let json_provider = tauri::async_runtime::block_on(JsonProvider::new(&json_db_path))
         .expect("Failed to create JSON provider");
