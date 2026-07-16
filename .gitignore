@@ -49,3 +49,5 @@ Thumbs.db
 *.sh
 
 .continue
+# Angular cache (nested)
+**/.angular/
