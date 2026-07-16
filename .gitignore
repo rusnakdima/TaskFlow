@@ -51,3 +51,6 @@ Thumbs.db
 .continue
 # Angular cache (nested)
 **/.angular/
+
+# Schemas (temporary dev files)
+/schemas/
