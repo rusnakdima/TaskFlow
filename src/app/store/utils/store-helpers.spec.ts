@@ -1,10 +1,26 @@
-import { describe, it, expect } from "vitest";
-import { 
-  findByParentId, 
-  updateEntityInArray, 
-  addEntityToArray, 
-  upsertEntityBulk, 
-  deduplicateAndFilterDeleted 
+import { describe, it, expect, vi } from "vitest";
+/* Mock @tauri-front/shared BEFORE the import to prevent SchemaRouteViewerComponent
+   static initializer from running (it requires SchemaRouterService which isn't initialized) */
+vi.mock("@tauri-front/shared", () => ({
+  deduplicateById: (arr: unknown[], opts?: { filterDeleted?: boolean }) => {
+    const seen = new Set<string>();
+    const result: unknown[] = [];
+    for (const item of arr as any[]) {
+      if (opts?.filterDeleted && item.deleted_at != null) continue;
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        result.push(item);
+      }
+    }
+    return result;
+  },
+}));
+import {
+  findByParentId,
+  updateEntityInArray,
+  addEntityToArray,
+  upsertEntityBulk,
+  deduplicateAndFilterDeleted
 } from "./store-helpers";
 import { deduplicateById } from "@tauri-front/shared";
 
