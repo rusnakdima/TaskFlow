@@ -347,14 +347,7 @@ export class StorageQueryService {
   }
   isEntityLoading(
     entityType:
-      | "todos"
-      | "tasks"
-      | "subtasks"
-      | "categories"
-      | "chats"
-      | "comments"
-      | "user"
-      | "profile"
+      "todos" | "tasks" | "subtasks" | "categories" | "chats" | "comments" | "user" | "profile"
   ): boolean {
     switch (entityType) {
       case "todos":

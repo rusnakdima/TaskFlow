@@ -9,8 +9,12 @@ const _hoistedState = vi.hoisted(() => {
   let globalVersion = 0;
   return {
     map,
-    register: (token: any, instance: any) => { map.set(token, instance); },
-    bumpVersion: () => { globalVersion++; },
+    register: (token: any, instance: any) => {
+      map.set(token, instance);
+    },
+    bumpVersion: () => {
+      globalVersion++;
+    },
     getVersion: () => globalVersion,
   };
 });
@@ -30,7 +34,9 @@ const cascadeServiceInstance = vi.hoisted(() => ({
 
 // Create Injector instance directly (not a vi.hoisted mock)
 const injectorInstance = {
-  get(token: any) { return injectionMap.get(token); },
+  get(token: any) {
+    return injectionMap.get(token);
+  },
 };
 // Register Injector so inject(Injector) returns a working injector
 registerInjection("Injector" as any, injectorInstance);
@@ -62,14 +68,25 @@ vi.mock("@helpers/timestamp.helper", () => ({
 
 /* ── mock entity types ── */
 vi.mock("@entities/generated/api.types", () => ({
-  Todo: Object, User: Object, Profile: Object, Room: Object,
-  Task: Object, TaskStatus: { PENDING: "pending" },
-  Subtask: Object, Comment: Object, Chat: Object,
+  Todo: Object,
+  User: Object,
+  Profile: Object,
+  Room: Object,
+  Task: Object,
+  TaskStatus: { PENDING: "pending" },
+  Subtask: Object,
+  Comment: Object,
+  Chat: Object,
 }));
 
 vi.mock("@entities/storage.model", () => ({
-  EntityType: "", VisibilityFilter: "", Operation: "",
-  ChatOperation: "", ParentType: "", ChildType: "", PaginationState: {},
+  EntityType: "",
+  VisibilityFilter: "",
+  Operation: "",
+  ChatOperation: "",
+  ParentType: "",
+  ChildType: "",
+  PaginationState: {},
 }));
 
 vi.mock("@entities/storage-signal-map.model", () => ({
@@ -86,12 +103,21 @@ vi.mock("@angular/core", () => {
     const sig: any = () => value;
     Object.defineProperty(sig, "value", {
       get: () => value,
-      set: (v: unknown) => { value = v; },
+      set: (v: unknown) => {
+        value = v;
+      },
     });
-    sig.set = vi.fn((v: unknown) => { value = v; _hoistedState.bumpVersion(); });
-    sig.update = vi.fn((fn: (v: unknown) => unknown) => { value = fn(value); });
+    sig.set = vi.fn((v: unknown) => {
+      value = v;
+      _hoistedState.bumpVersion();
+    });
+    sig.update = vi.fn((fn: (v: unknown) => unknown) => {
+      value = fn(value);
+    });
     sig.asReadonly = () => ({
-      get value() { return value; },
+      get value() {
+        return value;
+      },
     });
     return sig;
   };
@@ -127,7 +153,10 @@ vi.mock("@angular/core", () => {
     sig.update = vi.fn((u: (v: unknown) => unknown) => {
       cached = u(cached);
     });
-    sig.markStale = () => { init = false; cached = undefined; };
+    sig.markStale = () => {
+      init = false;
+      cached = undefined;
+    };
     return sig;
   };
   return {
@@ -141,7 +170,9 @@ vi.mock("@angular/core", () => {
     Injector: class {
       // Store the lookup fn in a plain property so it survives vi.clearAllMocks()
       private _get: (token: any) => unknown = _hoistedState.map.get.bind(_hoistedState.map);
-      get(token: any) { return this._get(token); }
+      get(token: any) {
+        return this._get(token);
+      }
     },
     NgModule: () => (target: new (...args: unknown[]) => unknown) => target,
     Component: () => (target: new (...args: unknown[]) => unknown) => target,
@@ -172,12 +203,21 @@ vi.mock("@core/services/storage-entity.service", () => {
     const sig: any = () => value;
     Object.defineProperty(sig, "value", {
       get: () => value,
-      set: (v: unknown) => { value = v; },
+      set: (v: unknown) => {
+        value = v;
+      },
     });
-    sig.set = vi.fn((v: unknown) => { value = v; _hoistedState.bumpVersion(); });
-    sig.update = vi.fn((fn: (v: unknown) => unknown) => { value = fn(value); });
+    sig.set = vi.fn((v: unknown) => {
+      value = v;
+      _hoistedState.bumpVersion();
+    });
+    sig.update = vi.fn((fn: (v: unknown) => unknown) => {
+      value = fn(value);
+    });
     sig.asReadonly = () => ({
-      get value() { return value; },
+      get value() {
+        return value;
+      },
     });
     return sig;
   };
@@ -197,7 +237,7 @@ vi.mock("@core/services/storage-entity.service", () => {
     privateTodos = mkSignal([]);
     sharedTodos = mkSignal([]);
     publicTodos = mkSignal([]);
-    clearEntitySignals = function(this: any) {
+    clearEntitySignals = function (this: any) {
       this.todos.set([]);
       this.tasks.set([]);
       this.subtasks.set([]);
@@ -206,21 +246,31 @@ vi.mock("@core/services/storage-entity.service", () => {
       this.categories.set([]);
       this.profiles.set([]);
     };
-    addEntity = function(this: any, entityName: string, data: Record<string, unknown>) {
+    addEntity = function (this: any, entityName: string, data: Record<string, unknown>) {
       const signalMap: Record<string, any> = {
-        todos: this.todos, tasks: this.tasks, subtasks: this.subtasks,
-        comments: this.comments, chats: this.chats, categories: this.categories,
-        profiles: this.profiles, users: this.users,
+        todos: this.todos,
+        tasks: this.tasks,
+        subtasks: this.subtasks,
+        comments: this.comments,
+        chats: this.chats,
+        categories: this.categories,
+        profiles: this.profiles,
+        users: this.users,
       };
       const sig = signalMap[entityName];
       if (!sig) return;
       sig.set([...sig(), data]);
     };
-    updateEntity = function(this: any, entityName: string, data: Record<string, unknown>) {
+    updateEntity = function (this: any, entityName: string, data: Record<string, unknown>) {
       const signalMap: Record<string, any> = {
-        todos: this.todos, tasks: this.tasks, subtasks: this.subtasks,
-        comments: this.comments, chats: this.chats, categories: this.categories,
-        profiles: this.profiles, users: this.users,
+        todos: this.todos,
+        tasks: this.tasks,
+        subtasks: this.subtasks,
+        comments: this.comments,
+        chats: this.chats,
+        categories: this.categories,
+        profiles: this.profiles,
+        users: this.users,
       };
       const sig = signalMap[entityName];
       if (!sig) return;
@@ -234,11 +284,16 @@ vi.mock("@core/services/storage-entity.service", () => {
       Object.assign(items[idx], changes);
       sig.set([...items]);
     };
-    removeEntity = function(this: any, entityName: string, id: string) {
+    removeEntity = function (this: any, entityName: string, id: string) {
       const signalMap: Record<string, any> = {
-        todos: this.todos, tasks: this.tasks, subtasks: this.subtasks,
-        comments: this.comments, chats: this.chats, categories: this.categories,
-        profiles: this.profiles, users: this.users,
+        todos: this.todos,
+        tasks: this.tasks,
+        subtasks: this.subtasks,
+        comments: this.comments,
+        chats: this.chats,
+        categories: this.categories,
+        profiles: this.profiles,
+        users: this.users,
       };
       const sig = signalMap[entityName];
       if (!sig) return;
@@ -263,9 +318,19 @@ vi.mock("@core/services/storage-cache.service", () => {
   const mkSignal = (initial: unknown) => {
     let value = initial;
     const sig: any = () => value;
-    Object.defineProperty(sig, "value", { get: () => value, set: (v: unknown) => { value = v; } });
-    sig.set = vi.fn((v: unknown) => { value = v; _hoistedState.bumpVersion(); });
-    sig.update = vi.fn((fn: (v: unknown) => unknown) => { value = fn(value); });
+    Object.defineProperty(sig, "value", {
+      get: () => value,
+      set: (v: unknown) => {
+        value = v;
+      },
+    });
+    sig.set = vi.fn((v: unknown) => {
+      value = v;
+      _hoistedState.bumpVersion();
+    });
+    sig.update = vi.fn((fn: (v: unknown) => unknown) => {
+      value = fn(value);
+    });
     return sig;
   };
   class StorageCacheService {
@@ -294,9 +359,19 @@ vi.mock("@core/services/storage-query.service", () => {
   const mkSignal = (initial: unknown) => {
     let value = initial;
     const sig: any = () => value;
-    Object.defineProperty(sig, "value", { get: () => value, set: (v: unknown) => { value = v; } });
-    sig.set = vi.fn((v: unknown) => { value = v; _hoistedState.bumpVersion(); });
-    sig.update = vi.fn((fn: (v: unknown) => unknown) => { value = fn(value); });
+    Object.defineProperty(sig, "value", {
+      get: () => value,
+      set: (v: unknown) => {
+        value = v;
+      },
+    });
+    sig.set = vi.fn((v: unknown) => {
+      value = v;
+      _hoistedState.bumpVersion();
+    });
+    sig.update = vi.fn((fn: (v: unknown) => unknown) => {
+      value = fn(value);
+    });
     return sig;
   };
   class StorageQueryService {
@@ -391,7 +466,11 @@ vi.mock("@services/notifications/notify.service", () => {
 /* ── mock store utils ── */
 vi.mock("@store/utils/store-helpers", () => {
   // real createGroupedMap implementation for mock
-  const realCreateGroupedMap = (arr: any[], keyFn: (item: any) => string, filterFn?: (item: any) => boolean) => {
+  const realCreateGroupedMap = (
+    arr: any[],
+    keyFn: (item: any) => string,
+    filterFn?: (item: any) => boolean
+  ) => {
     const map = new Map<string, any[]>();
     arr.forEach((item) => {
       if (filterFn && !filterFn(item)) return;
@@ -403,8 +482,9 @@ vi.mock("@store/utils/store-helpers", () => {
   };
   return {
     deduplicateById: vi.fn((arr: unknown[]) => arr),
-    createGroupedMap: vi.fn((arr: unknown[], keyFn: (item: any) => string, filterFn?: (item: any) => boolean) =>
-      realCreateGroupedMap(arr as any[], keyFn, filterFn)
+    createGroupedMap: vi.fn(
+      (arr: unknown[], keyFn: (item: any) => string, filterFn?: (item: any) => boolean) =>
+        realCreateGroupedMap(arr as any[], keyFn, filterFn)
     ),
     upsertEntityBulk: vi.fn((existing: unknown[], newOnes: unknown[]) => [...existing, ...newOnes]),
   };
@@ -423,24 +503,38 @@ import { NotifyService } from "@services/notifications/notify.service";
 /* ── Test helpers ── */
 function makeTask(id: string, todo_id: string, overrides: Record<string, unknown> = {}) {
   return {
-    id, todo_id, title: `Task ${id}`, status: "pending",
-    deleted_at: null, created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z",
+    id,
+    todo_id,
+    title: `Task ${id}`,
+    status: "pending",
+    deleted_at: null,
+    created_at: "2024-01-01T00:00:00.000Z",
+    updated_at: "2024-01-01T00:00:00.000Z",
     ...overrides,
   };
 }
 
 function makeSubtask(id: string, task_id: string, overrides: Record<string, unknown> = {}) {
   return {
-    id, task_id, title: `Subtask ${id}`,
-    deleted_at: null, created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z",
+    id,
+    task_id,
+    title: `Subtask ${id}`,
+    deleted_at: null,
+    created_at: "2024-01-01T00:00:00.000Z",
+    updated_at: "2024-01-01T00:00:00.000Z",
     ...overrides,
   };
 }
 
 function makeComment(id: string, task_id: string, overrides: Record<string, unknown> = {}) {
   return {
-    id, task_id, subtask_id: null, content: `Comment ${id}`,
-    deleted_at: null, created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z",
+    id,
+    task_id,
+    subtask_id: null,
+    content: `Comment ${id}`,
+    deleted_at: null,
+    created_at: "2024-01-01T00:00:00.000Z",
+    updated_at: "2024-01-01T00:00:00.000Z",
     ...overrides,
   };
 }
@@ -471,7 +565,7 @@ function createService(overrides?: {
     entityService as any,
     cacheService as any,
     queryService as any,
-    mongo as any,
+    mongo as any
   );
 }
 
@@ -616,7 +710,7 @@ describe("StorageService – task operations", () => {
       service.removeRecordWithCascade("tasks", "t1", "2024-06-01T00:00:00.000Z");
       // Task is soft-deleted: removed from active tasks, but still in the signal array
       const archived = service.archivedTasks();
-      expect(archived.find(t => (t as any).id === "t1")).toBeDefined();
+      expect(archived.find((t) => (t as any).id === "t1")).toBeDefined();
     });
   });
 
@@ -626,7 +720,7 @@ describe("StorageService – task operations", () => {
       service.updateRecordDeleteStatusWithCascade("tasks", "t1", true);
       // Task is soft-deleted: not in active tasks, but in the signal array with deleted_at set
       const archived = service.archivedTasks();
-      expect(archived.find(t => (t as any).id === "t1")).toBeDefined();
+      expect(archived.find((t) => (t as any).id === "t1")).toBeDefined();
     });
 
     it("should restore task when deletedAt=false", () => {
@@ -653,10 +747,7 @@ describe("StorageService – task operations", () => {
   describe("archivedTasks", () => {
     it("should include only deleted tasks", () => {
       const service = createService({
-        tasks: [
-          makeTask("t1", "todo1"),
-          makeTask("t2", "todo1", { deleted_at: "2024-01-01" }),
-        ],
+        tasks: [makeTask("t1", "todo1"), makeTask("t2", "todo1", { deleted_at: "2024-01-01" })],
       });
       const archived = service.archivedTasks();
       expect(archived).toHaveLength(1);

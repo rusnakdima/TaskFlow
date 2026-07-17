@@ -20,7 +20,7 @@ import {
   updateEntityInArray,
   addEntityToArray,
   upsertEntityBulk,
-  deduplicateAndFilterDeleted
+  deduplicateAndFilterDeleted,
 } from "./store-helpers";
 import { deduplicateById } from "@tauri-front/shared";
 
@@ -83,7 +83,11 @@ describe("store-helpers", () => {
 
   describe("deduplicateById", () => {
     it("should deduplicate by id", () => {
-      const dupes = [{ id: "1", name: "A" }, { id: "1", name: "B" }, { id: "2", name: "C" }];
+      const dupes = [
+        { id: "1", name: "A" },
+        { id: "1", name: "B" },
+        { id: "2", name: "C" },
+      ];
       const result = deduplicateById(dupes);
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("1");

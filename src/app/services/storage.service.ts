@@ -32,11 +32,7 @@ import { StorageQueryService } from "@core/services/storage-query.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 /* app:other */
-import {
-  deduplicateById,
-  createGroupedMap,
-  upsertEntityBulk,
-} from "@store/utils/store-helpers";
+import { deduplicateById, createGroupedMap, upsertEntityBulk } from "@store/utils/store-helpers";
 import { groupByKey } from "@tauri-front/shared";
 import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
