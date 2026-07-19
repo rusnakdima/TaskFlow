@@ -11,12 +11,7 @@ mod tests {
   }
   #[test]
   fn test_response_error() {
-    let resp: Response<()> = Response::error(Status::NotFound, "Not found");
-    assert_eq!(resp.status, Status::NotFound);
-  }
-  #[test]
-  fn test_response_model_backward_compat() {
-    let rm = ResponseModel::new_false("error");
-    assert_eq!(rm.status, ResponseStatus::Error);
+    let resp: Response<()> = Response::error("Not found");
+    assert_eq!(resp.status, Status::Error);
   }
 }

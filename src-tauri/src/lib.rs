@@ -4,7 +4,6 @@ mod entities;
 mod errors;
 mod models;
 mod repositories;
-mod schema_data;
 mod services;
 mod utils;
 /* sys lib */
@@ -47,7 +46,10 @@ use commands::{
   },
   profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
-  schema_command::{delete_schema, get_all_schemas, get_schema, save_schema, SchemaState},
+  schema_command::{
+    delete_schema, get_all_schemas, get_schema, get_ui_schema, save_schema, save_ui_schema,
+    SchemaState,
+  },
   stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
@@ -80,7 +82,6 @@ use services::{
   user::user_sync::UserSyncService,
 };
 /* tauri_shared */
-use tauri_shared::commands::schema_commands::{get_ui_schema, save_ui_schema};
 /* nosql_orm */
 use crate::models::response::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};

@@ -247,8 +247,4 @@ impl SchemaService {
       data: Some(Value::Null),
     })
   }
-
-  pub fn create_default_taskflow_schema() -> UiSchema {
-    crate::schema_data::get_taskflow_schema()
-  }
 }

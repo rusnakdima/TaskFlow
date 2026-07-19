@@ -1,1 +1,1 @@
-pub mod app_error;
+pub use tauri_shared::AppError;
