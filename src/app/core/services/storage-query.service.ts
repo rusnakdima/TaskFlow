@@ -3,6 +3,11 @@ import { Injectable, inject, signal, computed, Injector, WritableSignal } from "
 import { Observable, of } from "rxjs";
 /* library */
 import { ResponseStatus } from "@tauri-front/shared";
+/* app:services */
+import { ApiService } from "@api/api.service";
+import { JwtTokenService } from "@services/auth/jwt-token.service";
+import { AdminService } from "@services/data/admin.service";
+import { AdminDataWithRelations } from "@entities/admin.model";
 /* app:models */
 import {
   Todo,
@@ -15,12 +20,6 @@ import {
   Category,
 } from "@entities/generated/api.types";
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
-
-/* app:services */
-import { AdminService } from "@services/data/admin.service";
-import { AdminDataWithRelations } from "@entities/admin.model";
-import { ApiService } from "@api/api.service";
-import { JwtTokenService } from "@services/auth/jwt-token.service";
 
 /* app:store */
 import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
@@ -347,7 +346,14 @@ export class StorageQueryService {
   }
   isEntityLoading(
     entityType:
-      "todos" | "tasks" | "subtasks" | "categories" | "chats" | "comments" | "user" | "profile"
+      | "todos"
+      | "tasks"
+      | "subtasks"
+      | "categories"
+      | "chats"
+      | "comments"
+      | "user"
+      | "profile"
   ): boolean {
     switch (entityType) {
       case "todos":

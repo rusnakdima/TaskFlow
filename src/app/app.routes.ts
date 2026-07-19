@@ -1,6 +1,9 @@
 /* angular */
 import { Routes } from "@angular/router";
 
+// TaskFlow uses HYBRID ROUTING: auth pages are Angular Router (guarded),
+// app pages are SchemaRouter-driven. This is intentional.
+
 /* app:other */
 import { canActivateAuth } from "@guards/auth.guard";
 

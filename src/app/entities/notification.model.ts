@@ -11,14 +11,8 @@ export interface NotificationAction {
   subtask_id?: string;
   comment_id?: string;
   chat_id?: string;
-  label?: string;
-  icon?: string;
-  callback?: () => void;
 }
 export interface NotificationSettings {
-  duration?: number;
-  position?: "top" | "bottom" | "center";
-  maxVisible?: number;
   enableSounds?: boolean;
   chatVolume?: number;
   commentVolume?: number;

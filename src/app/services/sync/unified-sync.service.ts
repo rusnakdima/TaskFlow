@@ -1,7 +1,7 @@
 /* angular */
 import { Injectable, OnDestroy, signal } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
-import { Observable, of, Subject, from } from "rxjs";
+import { Observable, Subject, from } from "rxjs";
 import { firstValueFrom } from "rxjs";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 /* library */
@@ -139,10 +139,7 @@ export class UnifiedSyncService implements OnDestroy {
     };
     return mapping[collection] || collection;
   }
-  onDbChange(collection: string): Observable<any> {
-    const subject = this.dbChangeSubjects.get(collection);
-    return subject ? subject.asObservable() : of();
-  }
+
   queueOperation(
     operation: "create" | "update" | "delete",
     table: string,
@@ -698,6 +695,3 @@ export class UnifiedSyncService implements OnDestroy {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
-// Aliases for backwards compatibility with old imports
-export const DataSyncService = UnifiedSyncService;
-export const SyncService = UnifiedSyncService;
