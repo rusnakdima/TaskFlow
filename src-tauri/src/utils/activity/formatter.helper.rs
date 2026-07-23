@@ -1,5 +1,5 @@
 use crate::entities::daily_activity_entity::DailyActivityModel;
-use crate::utils::percentage::calculate_percentage;
+use tauri_shared::ValidationAlgorithm;
 pub struct ActivityFormatter;
 impl ActivityFormatter {
   pub fn calculate_total_activity(activity: &DailyActivityModel) -> i32 {
@@ -16,6 +16,6 @@ impl ActivityFormatter {
       + activity.subtasks_deleted
   }
   pub fn calculate_productivity_score(activity: &DailyActivityModel) -> i32 {
-    calculate_percentage(activity.completed_tasks, activity.total_tasks)
+    ValidationAlgorithm::calculate_percentage(activity.completed_tasks, activity.total_tasks)
   }
 }

@@ -4,7 +4,7 @@ use nosql_orm::query::Filter;
 use serde_json::{to_value, Value};
 /* helpers */
 use crate::utils::common::convert_data_to_array;
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 /* providers */
 use nosql_orm::providers::JsonProvider;
 /* entities */
@@ -55,7 +55,7 @@ impl ActivityStorage {
         "user_id": user_id,
         "date": date
     }))
-    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let existing = self
       .json_provider
       .find_many("daily_activities", Some(&filter), None, None, None, false)
@@ -73,7 +73,7 @@ impl ActivityStorage {
     };
     let model: DailyActivityModel = create_model.into();
     let record: Value =
-      to_value(&model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
+      to_value(&model).map_err(|e| Response::error(&format!("Serialization error: {}", e)))?;
     match self.json_provider.insert("daily_activities", record).await {
       Ok(_) => Ok(model),
       Err(error) => Err(ResponseModel {
@@ -120,8 +120,8 @@ impl ActivityStorage {
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_else(|| now.to_rfc3339()),
     };
-    let record: Value =
-      to_value(&update_model).map_err(|e| err_response(&format!("Serialization error: {}", e)))?;
+    let record: Value = to_value(&update_model)
+      .map_err(|e| Response::error(&format!("Serialization error: {}", e)))?;
     match self
       .json_provider
       .update("daily_activities", &activity_id, record)

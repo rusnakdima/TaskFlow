@@ -6,11 +6,11 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 /* models */
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
-use crate::models::response::{ResponseModel, ResponseStatus};
-use crate::utils::response_helper::err_response;
+use crate::models::response::ResponseModel;
 use bcrypt::{hash, DEFAULT_COST};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use tauri_shared::response::Response;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
   pub id: String,
@@ -18,6 +18,7 @@ pub struct Claims {
   pub role: Option<String>,
   pub exp: usize,
 }
+#[allow(dead_code)]
 impl Claims {
   pub fn extract_user_id(&self) -> &str {
     &self.id
@@ -31,7 +32,8 @@ impl Claims {
 }
 #[allow(dead_code)]
 pub fn hash_password(password: &str) -> Result<String, ResponseModel> {
-  hash(password, DEFAULT_COST).map_err(|e| err_response(&format!("Error hashing password: {}", e)))
+  hash(password, DEFAULT_COST)
+    .map_err(|e| Response::error(&format!("Error hashing password: {}", e)))
 }
 pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, ResponseModel> {
   let token_data = decode::<Claims>(
@@ -41,7 +43,7 @@ pub fn extract_user_from_token(token: &str, jwt_secret: &str) -> Result<String, 
   )
   .map_err(|e| {
     let _ = e;
-    err_response("Invalid token")
+    Response::error("Invalid token")
   })?;
   Ok(token_data.claims.id)
 }
@@ -53,12 +55,12 @@ pub fn extract_profile_from_token(token: &str, jwt_secret: &str) -> Result<Strin
   )
   .map_err(|e| {
     let _ = e;
-    err_response("Invalid token")
+    Response::error("Invalid token")
   })?;
   token_data
     .claims
     .profile_id
-    .ok_or_else(|| err_response("Profile ID not found in token"))
+    .ok_or_else(|| Response::error("Profile ID not found in token"))
 }
 pub fn validate_user_owns_data(
   token: &str,
@@ -67,11 +69,9 @@ pub fn validate_user_owns_data(
 ) -> Result<(), ResponseModel> {
   let authenticated_user_id = extract_user_from_token(token, jwt_secret)?;
   if authenticated_user_id != user_id {
-    return Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: "Unauthorized: Cannot access another user's data".to_string(),
-      data: Some(serde_json::Value::String("".to_string())),
-    });
+    return Err(Response::error(
+      "Unauthorized: Cannot access another user's data",
+    ));
   }
   Ok(())
 }
@@ -84,7 +84,7 @@ pub async fn validate_admin_role(
   let user_id = extract_user_from_token(token, jwt_secret)?;
   let table_name = TableModelType::User.table_name();
   let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "id": user_id }))
-    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
   let user_val = match timeout(
     Duration::from_secs(3),
     json_provider.find_many(table_name, Some(&filter), None, None, None, true),
@@ -104,26 +104,24 @@ pub async fn validate_admin_role(
   let user_val = match user_val {
     Some(v) => v,
     None => {
-      let mongo =
-        mongodb_provider.ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
+      let mongo = mongodb_provider
+        .ok_or_else(|| Response::error("User not found and MongoDB unavailable"))?;
       let mut users = timeout(
         Duration::from_secs(5),
         mongo.find_many(table_name, Some(&filter), None, None, None, true),
       )
       .await
-      .map_err(|_| err_response("Database timeout"))?
-      .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-      users.pop().ok_or_else(|| err_response("User not found"))?
+      .map_err(|_| Response::error("Database timeout"))?
+      .map_err(|e| Response::error(&format!("Database error: {}", e)))?;
+      users
+        .pop()
+        .ok_or_else(|| Response::error("User not found"))?
     }
   };
   let user: UserEntity = serde_json::from_value(user_val)
-    .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))?;
   if user.role != "admin" {
-    return Err(ResponseModel {
-      status: ResponseStatus::Error,
-      message: "Forbidden: Admin access required".to_string(),
-      data: Some(serde_json::Value::String("".to_string())),
-    });
+    return Err(Response::error("Forbidden: Admin access required"));
   }
   Ok(())
 }
@@ -134,7 +132,7 @@ pub async fn find_user_by_username(
 ) -> Result<UserEntity, ResponseModel> {
   let table_name = TableModelType::User.table_name();
   let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "username": username }))
-    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
   let user_val = match timeout(
     Duration::from_secs(3),
     json_provider.find_many(table_name, Some(&filter), None, None, None, true),
@@ -154,18 +152,20 @@ pub async fn find_user_by_username(
   let user_val = match user_val {
     Some(v) => v,
     None => {
-      let mongo =
-        mongodb_provider.ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
+      let mongo = mongodb_provider
+        .ok_or_else(|| Response::error("User not found and MongoDB unavailable"))?;
       let mut users = timeout(
         Duration::from_secs(5),
         mongo.find_many(table_name, Some(&filter), None, None, None, true),
       )
       .await
-      .map_err(|_| err_response("Database timeout"))?
-      .map_err(|e| err_response(&format!("Database error: {}", e)))?;
-      users.pop().ok_or_else(|| err_response("User not found"))?
+      .map_err(|_| Response::error("Database timeout"))?
+      .map_err(|e| Response::error(&format!("Database error: {}", e)))?;
+      users
+        .pop()
+        .ok_or_else(|| Response::error("User not found"))?
     }
   };
   serde_json::from_value::<UserEntity>(user_val)
-    .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))
+    .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))
 }
