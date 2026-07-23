@@ -1,4 +1,5 @@
 /* sys lib */
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 // Import all model types
 use crate::entities::{
@@ -14,7 +15,10 @@ use crate::entities::{
 };
 use nosql_orm::prelude::apply_timestamps;
 use nosql_orm::validators::Validate as OrmValidate;
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+use ts_rs::TS;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub enum TableModelType {
   #[default]
   Todo,

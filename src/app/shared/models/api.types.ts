@@ -1,8 +1,3 @@
-export interface ApiResponse<T> {
-  status: "success" | "error";
-  message: string;
-  data: T;
-}
 export interface PaginationParams {
   offset?: number;
   limit?: number;

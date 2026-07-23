@@ -2,7 +2,7 @@
 import { Task, TaskStatus, Subtask } from "@entities/generated/api.types";
 
 /* app:other */
-import { calculatePercentage } from "@shared/utils/percentage.util";
+import { calculatePercentage } from "@tauri-front/shared";
 import {
   PRIORITY_COLORS,
   STATUS_COLORS,

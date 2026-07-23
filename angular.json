@@ -56,19 +56,7 @@
               "src/assets"
             ],
             "styles": [
-              "@tauri-front/shared/styles/themes/m3/tokens.css",
-              "@tauri-front/shared/styles/themes/m3/components.css",
-              "@tauri-front/shared/styles/themes/glassmorphism/tokens.css",
-              "@tauri-front/shared/styles/themes/glassmorphism/components.css",
-              "@tauri-front/shared/styles/themes/neumorphism/tokens.css",
-              "@tauri-front/shared/styles/themes/neumorphism/components.css",
-              "@tauri-front/shared/styles/themes/claymorphism/tokens.css",
-              "@tauri-front/shared/styles/themes/claymorphism/components.css",
-              "@tauri-front/shared/styles/themes/brutalism/tokens.css",
-              "@tauri-front/shared/styles/themes/brutalism/components.css",
-              "@tauri-front/shared/styles/themes/skeuomorphism/tokens.css",
-              "@tauri-front/shared/styles/themes/skeuomorphism/components.css",
-              "@tauri-front/shared/styles/ui-system.css"
+              "src/styles.css"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [

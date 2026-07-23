@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[timestamp]
 #[index("user_id", 1)]
 #[index("date", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyActivityModel {
   pub id: Option<String>,
   pub user_id: String,

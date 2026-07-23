@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("profiles")]
 #[one_to_one("user", "users", "user_id")]
 #[timestamp]
 #[index("user_id", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileEntity {
   pub id: Option<String>,
   pub name: String,

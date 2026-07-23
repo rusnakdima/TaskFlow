@@ -3,11 +3,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("rooms")]
 #[soft_delete]
 #[timestamp]
 #[index("room", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct RoomEntity {
   pub id: Option<String>,
   pub name: Option<String>,

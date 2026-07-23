@@ -1,11 +1,15 @@
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+use ts_rs::TS;
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub enum TodoPermission {
   VIEWER,
   EDITOR,
   MODERATOR,
   OWNER,
 }
+#[allow(dead_code)]
 impl TodoPermission {
   pub fn from_str(role: &str) -> Self {
     match role.to_lowercase().as_str() {

@@ -90,7 +90,7 @@
         "node_modules/@tauri-front/shared/*"
       ]
     },
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "6.0"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

@@ -34,7 +34,8 @@ import { StorageQueryService } from "@core/services/storage-query.service";
 import { NotifyService } from "@services/notifications/notify.service";
 import { MongoConnectionService } from "@core/services/mongo-connection.service";
 /* app:other */
-import { deduplicateById, createGroupedMap, upsertEntityBulk } from "@store/utils/store-helpers";
+import { deduplicateById, upsertEntityBulk } from "@store/utils/store-helpers";
+import { mergePreservingFields } from "@core/services/storage.helper";
 import { TimestampHelper, DEFAULT_CACHE_TTL_MS } from "@helpers/timestamp.helper";
 const DEFAULT_PAGINATION: PaginationState = { skip: 0, limit: 20, hasMore: true };
 @Injectable({ providedIn: "root" })
@@ -123,22 +124,18 @@ export class StorageService {
   readonly taskMap = computed(() => new Map(this.activeTasks().map((t) => [t.id, t])));
   readonly subtaskMap = computed(() => new Map(this.activeSubtasks().map((s) => [s.id, s])));
   readonly commentMap = computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
-  readonly tasksByTodoId = computed(() => createGroupedMap(this.activeTasks(), (t) => t.todo_id));
-  readonly subtasksByTaskId = computed(() =>
-    createGroupedMap(this.activeSubtasks(), (s) => s.task_id)
-  );
+  readonly tasksByTodoId = computed(() => groupByKey(this.activeTasks(), (t) => t.todo_id));
+  readonly subtasksByTaskId = computed(() => groupByKey(this.activeSubtasks(), (s) => s.task_id));
   readonly commentsByTaskId = computed(() =>
-    createGroupedMap(
-      this.activeComments(),
-      (c) => c.task_id,
-      (c) => !!c.task_id
+    groupByKey(
+      this.activeComments().filter((c) => !!c.task_id),
+      (c) => c.task_id as string
     )
   );
   readonly commentsBySubtaskId = computed(() =>
-    createGroupedMap(
-      this.activeComments(),
-      (c) => c.subtask_id,
-      (c) => !!c.subtask_id
+    groupByKey(
+      this.activeComments().filter((c) => !!c.subtask_id),
+      (c) => c.subtask_id as string
     )
   );
   get todosPagination() {
@@ -638,7 +635,7 @@ export class StorageService {
     if (table === "tasks" || table === "subtasks") {
       const existing = this.get(table as EntityType, result.id);
       if (existing) {
-        const merged = this.mergePreservingFields(
+        const merged = mergePreservingFields(
           result,
           existing,
           table === "tasks" ? ["comments", "subtasks"] : ["comments"]
@@ -664,20 +661,6 @@ export class StorageService {
         if (item?.id) this.modify(table as EntityType, "update", item);
       });
     }
-  }
-  private mergePreservingFields<T extends Record<string, any>>(
-    incoming: T,
-    existing: T,
-    fields: string[]
-  ): T {
-    const result: any = { ...incoming };
-    fields.forEach((field) => {
-      const inc = incoming[field];
-      const ext = existing[field];
-      if (inc !== undefined && inc !== null) result[field] = inc;
-      else if (ext) result[field] = ext;
-    });
-    return result as T;
   }
   invalidateCache(): void {
     this._queryService.setLoaded(false);

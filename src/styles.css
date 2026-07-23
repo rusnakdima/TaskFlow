@@ -1,8 +1,27 @@
-@import "@tauri-front/shared/styles";
+/* TailwindCSS v4 */
+@import "tailwindcss";
+
+/* Flowbite CSS */
+@import "flowbite/dist/flowbite.min.css";
+
+/* MDI Font */
+@import "@mdi/font/css/materialdesignicons.min.css";
+
+/* All 7 themes from shared library - dynamically selected via data-theme attribute */
+@import "@tauri-front/shared/styles/themes/index.css";
+
+/* UI System styles */
+@import "@tauri-front/shared/styles/ui-system.css";
+
+/* M3 semantic token utility classes */
+@import "@tauri-front/shared/styles/m3-tokens.css";
+
+/* Scan Flowbite source for classes */
+@source "../node_modules/flowbite";
+
 @plugin "flowbite/plugin";
 @variant dark (&:where(.dark, .dark *));
 @variant light (&:where(.light, .light *));
-@source "../node_modules/flowbite";
 
 @theme {
   --colors-primary: #6366f1;

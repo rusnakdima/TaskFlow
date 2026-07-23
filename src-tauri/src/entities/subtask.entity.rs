@@ -11,6 +11,7 @@ use crate::utils::common::format_date;
 #[soft_delete]
 #[timestamp]
 #[one_to_many("comments", "comments", "subtask_id", "Cascade")]
+#[serde(rename_all = "camelCase")]
 pub struct SubtaskEntity {
   pub id: Option<String>,
   #[validate(required)]

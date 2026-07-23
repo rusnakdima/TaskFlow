@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("comments")]
 #[many_to_one("user", "users", "user_id")]
 #[many_to_one("task", "tasks", "task_id")]
@@ -13,6 +13,7 @@ use nosql_orm::Validate;
 #[timestamp]
 #[soft_delete]
 #[index("user_id", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct CommentEntity {
   pub id: Option<String>,
   pub user_id: String,

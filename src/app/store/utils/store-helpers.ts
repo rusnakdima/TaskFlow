@@ -5,9 +5,9 @@
  */
 import { WritableSignal } from "@angular/core";
 import { computed, Signal } from "@angular/core";
-import { deduplicateById } from "@tauri-front/shared";
+import { deduplicateById, upsertEntityBulk } from "@tauri-front/shared";
 
-export { deduplicateById };
+export { deduplicateById, upsertEntityBulk };
 export function deduplicateAndFilterDeleted<
   T extends {
     id: string;
@@ -79,23 +79,6 @@ export function mergeAndDeduplicate<T extends { id: string }>(...arrays: T[][]):
 export function existsById<T extends { id: string }>(entities: T[], id: string): boolean {
   return entities.some((entity) => entity.id === id);
 }
-export function createGroupedMap<T, K>(
-  entities: T[],
-  keyFn: (entity: T) => K | undefined,
-  filterFn?: (entity: T) => boolean
-): Map<K, T[]> {
-  const map = new Map<K, T[]>();
-  for (const entity of filterFn ? entities.filter(filterFn) : entities) {
-    const key = keyFn(entity);
-    if (key !== undefined) {
-      if (!map.has(key)) {
-        map.set(key, []);
-      }
-      map.get(key)!.push(entity);
-    }
-  }
-  return map;
-}
 export function createEntityLookupMap<T extends { id: string }>(entities: T[]): Map<string, T> {
   return new Map(entities.map((e) => [e.id, e]));
 }
@@ -119,17 +102,6 @@ export function updateEntityInSignal<T extends { id: string }>(
   updates: Partial<T>
 ): void {
   signal.update((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
-}
-export function upsertEntityBulk<T extends { id: string }>(
-  entities: T[],
-  newEntities: T[],
-  updateExisting = true
-): T[] {
-  const entityMap = new Map(entities.map((e) => [e.id, e]));
-  for (const entity of newEntities) {
-    entityMap.set(entity.id, updateExisting ? { ...entityMap.get(entity.id), ...entity } : entity);
-  }
-  return Array.from(entityMap.values());
 }
 export function addEntityBulkToSignal<T extends { id: string }>(
   signal: WritableSignal<T[]>,

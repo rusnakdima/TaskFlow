@@ -1,7 +1,9 @@
 /* sys lib */
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+use ts_rs::TS;
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct StatisticsModel {
   pub total_tasks: i32,
   pub completion_rate: i32,
@@ -12,43 +14,49 @@ pub struct StatisticsModel {
   pub previous_average_time: i32,
   pub previous_productivity_score: i32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct CompletionTrendItem {
   pub label: String,
   pub value: i32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyActivityItem {
   pub day_name: String,
   pub activity: i32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct CategoryItem {
   pub name: String,
   pub count: i32,
   pub percentage: i32,
   pub color: String,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct ChartDataModel {
   pub completion_trend: Vec<CompletionTrendItem>,
   pub categories: Vec<CategoryItem>,
   pub daily_activity: Vec<DailyActivityItem>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct DetailedMetricModel {
   pub name: String,
   pub current: String,
   pub previous: String,
   pub change: i32,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct StatisticsResponseModel {
   pub statistics: StatisticsModel,
   pub chart_data: ChartDataModel,

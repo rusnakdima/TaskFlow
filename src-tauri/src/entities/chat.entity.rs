@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use nosql_orm::{Model, Validate};
 /* crate */
 use crate::entities::user_entity::UserEntity;
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("chats")]
 #[soft_delete]
 #[timestamp]
@@ -13,6 +13,7 @@ use crate::entities::user_entity::UserEntity;
 #[many_to_many("read_by_users", "users", "read_by")]
 #[index("room_id", 1)]
 #[index("sender_id", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatEntity {
   pub id: Option<String>,
   pub room_id: String,

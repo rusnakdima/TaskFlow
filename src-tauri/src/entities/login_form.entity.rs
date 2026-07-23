@@ -1,8 +1,10 @@
 /* sys lib */
 use nosql_orm::Validate;
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize, Validate)]
-#[serde(rename_all = "snake_case")]
+use ts_rs::TS;
+#[derive(Debug, Serialize, Deserialize, Validate, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginForm {
   #[validate(not_empty)]
   pub username: String,

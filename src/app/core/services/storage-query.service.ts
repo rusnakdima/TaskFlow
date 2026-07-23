@@ -2,7 +2,7 @@
 import { Injectable, inject, signal, computed, Injector, WritableSignal } from "@angular/core";
 import { Observable, of } from "rxjs";
 /* library */
-import { ResponseStatus } from "@tauri-front/shared";
+import { ResponseStatus, groupByKey } from "@tauri-front/shared";
 /* app:services */
 import { ApiService } from "@api/api.service";
 import { JwtTokenService } from "@services/auth/jwt-token.service";
@@ -22,7 +22,7 @@ import {
 import { EntityType, VisibilityFilter, ChildType, PaginationState } from "@entities/storage.model";
 
 /* app:store */
-import { deduplicateById, upsertEntityBulk, createGroupedMap } from "@store/utils/store-helpers";
+import { deduplicateById, upsertEntityBulk } from "@store/utils/store-helpers";
 
 /* app:other */
 import { BaseStorageService } from "./storage-entity.service";
@@ -211,26 +211,24 @@ export class StorageQueryService {
     return computed(() => new Map(this.activeComments().map((c) => [c.id, c])));
   }
   get tasksByTodoId(): ReturnType<typeof computed<Map<string, Task[]>>> {
-    return computed(() => createGroupedMap(this.activeTasks(), (t) => t.todo_id));
+    return computed(() => groupByKey(this.activeTasks(), (t) => t.todo_id));
   }
   get subtasksByTaskId(): ReturnType<typeof computed<Map<string, Subtask[]>>> {
-    return computed(() => createGroupedMap(this.activeSubtasks(), (s) => s.task_id));
+    return computed(() => groupByKey(this.activeSubtasks(), (s) => s.task_id));
   }
   get commentsByTaskId(): ReturnType<typeof computed<Map<string, Comment[]>>> {
     return computed(() =>
-      createGroupedMap(
-        this.activeComments(),
-        (c) => c.task_id as string,
-        (c) => !!c.task_id
+      groupByKey(
+        this.activeComments().filter((c) => !!c.task_id),
+        (c) => c.task_id as string
       )
     );
   }
   get commentsBySubtaskId(): ReturnType<typeof computed<Map<string, Comment[]>>> {
     return computed(() =>
-      createGroupedMap(
-        this.activeComments(),
-        (c) => c.subtask_id as string,
-        (c) => !!c.subtask_id
+      groupByKey(
+        this.activeComments().filter((c) => !!c.subtask_id),
+        (c) => c.subtask_id as string
       )
     );
   }

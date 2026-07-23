@@ -1,13 +1,7 @@
-import "@tauri-front/shared";
-import { loadStyleVariant } from "@tauri-front/shared";
-import { provideZoneChangeDetection } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
+import { AppComponent } from "@app/app";
 import { appConfig } from "@app/app.config";
-import { App } from "@app/app";
 
-loadStyleVariant("material-design-v3").then(() => {
-  bootstrapApplication(App, {
-    ...appConfig,
-    providers: [provideZoneChangeDetection(), ...appConfig.providers],
-  }).catch((_err) => {});
-});
+import "@tauri-front/shared";
+
+bootstrapApplication(AppComponent, appConfig).catch((err) => console.error(err));

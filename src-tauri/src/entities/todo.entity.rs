@@ -20,6 +20,7 @@ use crate::utils::common::format_date;
 #[index("priority", 1)]
 #[index("visibility", 1)]
 #[index("github_repo_id", 1)]
+#[serde(rename_all = "camelCase")]
 #[frontend_exclude("tasks", "user")]
 pub struct TodoEntity {
   pub id: Option<String>,

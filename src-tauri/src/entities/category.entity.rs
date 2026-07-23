@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("categories")]
 #[many_to_one("user", "users", "user_id")]
 #[soft_delete]
 #[timestamp]
 #[index("user_id", 1)]
 #[index("visibility", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct CategoryEntity {
   pub id: Option<String>,
   pub title: String,

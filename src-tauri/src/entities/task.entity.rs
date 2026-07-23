@@ -7,7 +7,9 @@ use crate::utils::common::format_date;
 /* nosql_orm */
 use nosql_orm::Model;
 use nosql_orm::Validate;
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use ts_rs::TS;
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub enum TaskStatus {
   #[serde(rename = "pending")]
   Pending,
@@ -36,6 +38,7 @@ impl Display for TaskStatus {
 #[one_to_many("subtasks", "subtasks", "task_id", "Cascade")]
 #[one_to_many("comments", "comments", "task_id", "Cascade")]
 #[index("todo_id", 1)]
+#[serde(rename_all = "camelCase")]
 #[frontend_exclude("todo")]
 pub struct TaskEntity {
   pub id: Option<String>,

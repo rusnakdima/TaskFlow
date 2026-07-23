@@ -286,11 +286,6 @@ export interface RegisterRequest {
   username: string;
   password: string;
 }
-export interface ApiResponse<T> {
-  status: ResponseStatus;
-  message: string;
-  data: T;
-}
 export interface TodoListResponse {
   items: Todo[];
   page: number;

@@ -10,6 +10,7 @@ use nosql_orm::{Model, Validate};
 #[soft_delete]
 #[timestamp]
 #[many_to_one("profile", "profiles", "profile_id")]
+#[serde(rename_all = "camelCase")]
 #[frontend_exclude(
   "password",
   "totp_secret",

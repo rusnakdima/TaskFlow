@@ -3,12 +3,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 /* nosql_orm */
 use nosql_orm::{Model, Validate};
-#[derive(Debug, Clone, Serialize, Deserialize, Model)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize, Model, Validate)]
 #[table_name("groups")]
 #[soft_delete]
 #[timestamp]
 #[index("owner_id", 1)]
 #[index("room_id", 1)]
+#[serde(rename_all = "camelCase")]
 pub struct GroupEntity {
   pub id: Option<String>,
   pub name: String,
@@ -24,6 +26,7 @@ pub struct GroupEntity {
   #[serde(default)]
   pub deleted_at: Option<DateTime<Utc>>,
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct GroupCreateModel {
   #[validate(required)]
