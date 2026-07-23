@@ -8,7 +8,7 @@ use crate::repositories::data_provider::DataProvider;
 /* entities */
 use crate::models::response::ResponseModel;
 /* helpers */
-use crate::utils::response_helper::{err_response, success_response};
+use tauri_shared::response::Response;
 pub struct NotificationService {
   json_provider: JsonProvider,
   mongodb_provider: Option<Arc<MongoProvider>>,
@@ -26,7 +26,7 @@ impl NotificationService {
     } else {
       match self.mongodb_provider.as_ref() {
         Some(p) => Ok(DataProvider::Mongo(p.clone())),
-        None => Err(err_response("MongoDB not available")),
+        None => Err(Response::error("MongoDB not available")),
       }
     }
   }
@@ -37,7 +37,7 @@ impl NotificationService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let doc = provider.insert("notifications", data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, Some("Operation successful")))
   }
   pub async fn get_by_user(
     &self,
@@ -51,7 +51,10 @@ impl NotificationService {
     let docs = provider
       .find_many("notifications", Some(&filter), skip, limit, None, true)
       .await?;
-    Ok(success_response(docs))
+    Ok(Response::success(
+      serde_json::json!(docs),
+      Some("Operation successful"),
+    ))
   }
   pub async fn mark_as_read(
     &self,
@@ -61,7 +64,7 @@ impl NotificationService {
     let provider = self.get_provider(visibility)?;
     let update = json!({ "read": true });
     let doc = provider.patch("notifications", id, update).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, Some("Operation successful")))
   }
   pub async fn mark_all_as_read(
     &self,
@@ -86,12 +89,18 @@ impl NotificationService {
         }
       }
     }
-    Ok(success_response(serde_json::Value::Array(vec![])))
+    Ok(Response::success(
+      serde_json::Value::Array(vec![]),
+      Some("Operation successful"),
+    ))
   }
   pub async fn delete(&self, id: &str, visibility: &str) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let _ = provider.delete("notifications", id).await;
-    Ok(success_response(serde_json::json!(id.to_string())))
+    Ok(Response::success(
+      serde_json::json!(id.to_string()),
+      Some("Operation successful"),
+    ))
   }
   pub async fn clear_all(
     &self,
@@ -108,6 +117,9 @@ impl NotificationService {
         let _ = provider.delete("notifications", id).await;
       }
     }
-    Ok(success_response(serde_json::Value::Array(vec![])))
+    Ok(Response::success(
+      serde_json::Value::Array(vec![]),
+      Some("Operation successful"),
+    ))
   }
 }

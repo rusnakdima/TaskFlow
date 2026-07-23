@@ -1,8 +1,8 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
-use crate::utils::response_helper::{err_response, success_response};
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct GroupService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
@@ -25,31 +25,34 @@ impl GroupService {
       .json_provider
       .find_by_id("groups", id)
       .await?
-      .ok_or_else(|| err_response("Group not found"))?;
-    Ok(success_response(doc))
+      .ok_or_else(|| Response::error("Group not found"))?;
+    Ok(Response::success(doc, None))
   }
   pub async fn get_by_room_id(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = self
       .json_provider
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
       .await?;
     if !docs.is_empty() {
-      return Ok(success_response(docs.into_iter().next().unwrap()));
+      return Ok(Response::success(docs.into_iter().next().unwrap(), None));
     }
     if let Some(mongo) = self.get_mongo_provider() {
       let mongo_docs = mongo
         .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
         .await?;
       if !mongo_docs.is_empty() {
-        return Ok(success_response(mongo_docs.into_iter().next().unwrap()));
+        return Ok(Response::success(
+          mongo_docs.into_iter().next().unwrap(),
+          None,
+        ));
       }
     }
-    return Err(err_response("Group not found"));
+    return Err(Response::error("Group not found"));
   }
   pub async fn get_all(
     &self,
@@ -61,7 +64,7 @@ impl GroupService {
     let filter_opt = if let Some(f) = filter {
       Some(
         nosql_orm::query::Filter::from_json(&f)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       )
     } else {
       None
@@ -85,7 +88,7 @@ impl GroupService {
         }
       }
     }
-    Ok(success_response(all_docs))
+    Ok(Response::success(serde_json::json!(all_docs), None))
   }
   pub async fn create(
     &self,
@@ -94,7 +97,7 @@ impl GroupService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut create_data = data;
     create_data["created_at"] = serde_json::json!(now);
@@ -127,19 +130,19 @@ impl GroupService {
         });
         let mongo_room = self
           .get_mongo_provider()
-          .ok_or_else(|| err_response("MongoDB not available"))?;
+          .ok_or_else(|| Response::error("MongoDB not available"))?;
         let room_doc = mongo_room.insert("rooms", room_data).await?;
         if let DataProvider::Json(p) = json_provider {
           let _ = p.insert("rooms", room_doc).await;
         }
       }
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
@@ -148,7 +151,7 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn add_members(
     &self,
@@ -157,11 +160,11 @@ impl GroupService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = mongo
       .find_many("groups", filter_opt.as_ref(), None, Some(1), None, true)
@@ -169,7 +172,7 @@ impl GroupService {
     let existing = docs
       .first()
       .cloned()
-      .ok_or_else(|| err_response("Group not found"))?;
+      .ok_or_else(|| Response::error("Group not found"))?;
     let group_id = existing
       .get("id")
       .and_then(|v| v.as_str())
@@ -196,7 +199,7 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", group_id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn remove_members(
     &self,
@@ -205,11 +208,11 @@ impl GroupService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing = mongo
       .find_by_id("groups", id)
       .await?
-      .ok_or_else(|| err_response("Group not found"))?;
+      .ok_or_else(|| Response::error("Group not found"))?;
     let mut members: Vec<String> = existing
       .get("member_ids")
       .and_then(|v| v.as_array())
@@ -228,12 +231,12 @@ impl GroupService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("groups", id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let is_1on1 = id.starts_with("dm_");
     let existing = if is_1on1 {
       None
@@ -241,7 +244,7 @@ impl GroupService {
       let by_id_filter = json!({ "id": id });
       let by_id_filter_opt = Some(
         nosql_orm::query::Filter::from_json(&by_id_filter)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       );
       let docs = mongo
         .find_many(
@@ -271,7 +274,7 @@ impl GroupService {
       let by_room_filter = json!({ "room_id": id });
       let by_room_filter_opt = Some(
         nosql_orm::query::Filter::from_json(&by_room_filter)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       );
       let docs = mongo
         .find_many(
@@ -294,7 +297,7 @@ impl GroupService {
           .unwrap_or("");
         (d_id.to_string(), r_id.to_string())
       } else {
-        return Err(err_response("Group not found"));
+        return Err(Response::error("Group not found"));
       }
     };
     self.cascade_delete_room(&room_id).await?;
@@ -305,12 +308,12 @@ impl GroupService {
         let _ = p.delete("groups", &doc_id).await;
       }
     }
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), None))
   }
   async fn cascade_delete_room(&self, room_id: &str) -> Result<(), ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     if room_id.is_empty() {
       return Ok(());
     }
@@ -383,7 +386,7 @@ impl GroupService {
   pub async fn hard_delete_cascade(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_obj = nosql_orm::query::Filter::from_json(&filter)
-      .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
     let group_opt = if let Some(mongo) = self.get_mongo_provider() {
       mongo
         .find_many("groups", Some(&filter_obj), None, Some(1), None, true)
@@ -403,7 +406,7 @@ impl GroupService {
       json_docs
         .into_iter()
         .next()
-        .ok_or_else(|| err_response("Group not found"))?
+        .ok_or_else(|| Response::error("Group not found"))?
     };
     let actual_room_id = group
       .get("room_id")
@@ -492,9 +495,12 @@ impl GroupService {
         }
       }
     }
-    Ok(success_response(json!({
-      "room_id": actual_room_id,
-      "deleted": true
-    })))
+    Ok(Response::success(
+      json!({
+        "room_id": actual_room_id,
+        "deleted": true
+      }),
+      None,
+    ))
   }
 }

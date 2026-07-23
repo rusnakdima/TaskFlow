@@ -13,7 +13,7 @@ use crate::repositories::mongodb_provider::MongoProvider;
 use crate::entities::profile_entity::ProfileEntity;
 use crate::models::response::ResponseModel;
 /* helpers */
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileSyncStatus {
   InBoth,
@@ -38,7 +38,7 @@ impl ProfileSyncUnifiedService {
     match profile_val {
       Some(val) => {
         let profile = serde_json::from_value::<ProfileEntity>(val)
-          .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
+          .map_err(|e| Response::error(&format!("Failed to parse profile: {}", e)))?;
         Ok(Some(profile))
       }
       None => Ok(None),
@@ -47,7 +47,7 @@ impl ProfileSyncUnifiedService {
   pub async fn get_profile_value(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
     let table_name = "profiles";
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     // Step 1: Check JSON first (fast, works offline)
     if let Ok(mut profiles) = self
       .json_provider
@@ -109,7 +109,7 @@ impl ProfileSyncUnifiedService {
   }
   pub async fn profile_exists_in_json(&self, user_id: &str) -> bool {
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)));
+      .map_err(|e| Response::<()>::error(&format!("Filter error: {}", e)));
     match filter {
       Ok(f) => self
         .json_provider
@@ -123,7 +123,7 @@ impl ProfileSyncUnifiedService {
   pub async fn profile_exists_in_mongo(&self, user_id: &str) -> bool {
     if let Some(mongo) = &self.mongodb_provider {
       let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
-        .map_err(|e| err_response(&format!("Filter error: {}", e)));
+        .map_err(|e| Response::<()>::error(&format!("Filter error: {}", e)));
       match filter {
         Ok(f) => mongo
           .find_many("profiles", Some(&f), None, None, None, false)
@@ -138,41 +138,41 @@ impl ProfileSyncUnifiedService {
   }
   async fn get_profile_from_json(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let profiles = self
       .json_provider
       .find_many("profiles", Some(&filter), None, None, None, false)
       .await
-      .map_err(|e| err_response(&format!("Failed to get profile from JSON: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to get profile from JSON: {}", e)))?;
     Ok(profiles.into_iter().next())
   }
   async fn get_profile_from_mongo(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let filter = nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let profiles = mongo
       .find_many("profiles", Some(&filter), None, None, None, false)
       .await
-      .map_err(|e| err_response(&format!("Failed to get profile from MongoDB: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to get profile from MongoDB: {}", e)))?;
     Ok(profiles.into_iter().next())
   }
   pub async fn sync_profile_to_mongo_by_user(&self, user_id: &str) -> Result<(), ResponseModel> {
     let profile_data = self
       .get_profile_from_json(user_id)
       .await?
-      .ok_or_else(|| err_response("Profile not found in JSON"))?;
+      .ok_or_else(|| Response::error("Profile not found in JSON"))?;
     let profile_id = profile_data
       .get("id")
       .and_then(|v| v.as_str())
-      .ok_or_else(|| err_response("Profile data missing id"))?
+      .ok_or_else(|| Response::error("Profile data missing id"))?
       .to_string();
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing = mongo
       .find_by_id("profiles", &profile_id)
       .await
@@ -182,12 +182,12 @@ impl ProfileSyncUnifiedService {
       mongo
         .update("profiles", &profile_id, profile_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to update profile in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to update profile in MongoDB: {}", e)))?;
     } else {
       mongo
         .insert("profiles", profile_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to insert profile in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to insert profile in MongoDB: {}", e)))?;
     }
     Ok(())
   }
@@ -195,11 +195,11 @@ impl ProfileSyncUnifiedService {
     let profile_data = self
       .get_profile_from_mongo(user_id)
       .await?
-      .ok_or_else(|| err_response("Profile not found in MongoDB"))?;
+      .ok_or_else(|| Response::error("Profile not found in MongoDB"))?;
     let profile_id = profile_data
       .get("id")
       .and_then(|v| v.as_str())
-      .ok_or_else(|| err_response("Profile data missing id"))?
+      .ok_or_else(|| Response::error("Profile data missing id"))?
       .to_string();
     let existing = self
       .json_provider
@@ -212,13 +212,13 @@ impl ProfileSyncUnifiedService {
         .json_provider
         .update("profiles", &profile_id, profile_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to update profile in JSON: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to update profile in JSON: {}", e)))?;
     } else {
       self
         .json_provider
         .insert("profiles", profile_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to insert profile in JSON: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to insert profile in JSON: {}", e)))?;
     }
     Ok(())
   }
@@ -230,12 +230,12 @@ impl ProfileSyncUnifiedService {
   }
   pub async fn create_profile_in_json(&self, profile: &ProfileEntity) -> Result<(), ResponseModel> {
     let profile_val = serde_json::to_value(profile)
-      .map_err(|e| err_response(&format!("Failed to serialize profile: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize profile: {}", e)))?;
     self
       .json_provider
       .insert("profiles", profile_val)
       .await
-      .map_err(|e| err_response(&format!("Failed to create profile in JSON: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to create profile in JSON: {}", e)))?;
     Ok(())
   }
   pub async fn export_profile_to_mongo(
@@ -245,13 +245,13 @@ impl ProfileSyncUnifiedService {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let profile_val = serde_json::to_value(profile)
-      .map_err(|e| err_response(&format!("Failed to serialize profile: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize profile: {}", e)))?;
     let profile_id = profile
       .id
       .as_ref()
-      .ok_or_else(|| err_response("Profile id is required"))?;
+      .ok_or_else(|| Response::error("Profile id is required"))?;
     let existing = mongo
       .find_by_id("profiles", profile_id)
       .await
@@ -261,12 +261,12 @@ impl ProfileSyncUnifiedService {
       mongo
         .update("profiles", profile_id, profile_val)
         .await
-        .map_err(|e| err_response(&format!("Failed to update profile in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to update profile in MongoDB: {}", e)))?;
     } else {
       mongo
         .insert("profiles", profile_val)
         .await
-        .map_err(|e| err_response(&format!("Failed to insert profile in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to insert profile in MongoDB: {}", e)))?;
     }
     Ok(())
   }

@@ -16,7 +16,7 @@ use crate::entities::{
 };
 use crate::models::response::ResponseModel;
 /* helpers */
-use crate::utils::config::ConfigHelper;
+use tauri_shared::env::EnvConfig;
 #[derive(Clone)]
 pub struct AuthService {
   pub token_service: Arc<AuthTokenService>,
@@ -78,7 +78,7 @@ impl AuthService {
   pub async fn request_password_reset(
     &self,
     email: String,
-    config: &ConfigHelper,
+    config: &EnvConfig,
   ) -> Result<ResponseModel, ResponseModel> {
     self
       .password_service

@@ -1,6 +1,6 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 pub struct BaseCrudService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
@@ -20,7 +20,7 @@ impl BaseCrudService {
     } else {
       match self.mongo_provider.clone() {
         Some(p) => Ok(p),
-        None => Err(err_response(
+        None => Err(Response::error(
           "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
         )),
       }
@@ -29,6 +29,7 @@ impl BaseCrudService {
   pub fn get_json_provider(&self) -> &DataProvider {
     &self.json_provider
   }
+  #[allow(dead_code)]
   pub fn get_mongo_provider(&self) -> Option<&DataProvider> {
     self.mongo_provider.as_ref()
   }

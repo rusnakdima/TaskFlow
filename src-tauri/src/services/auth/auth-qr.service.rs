@@ -1,11 +1,7 @@
 use super::auth_token::AuthTokenService;
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
 use crate::models::response::{ResponseModel, ResponseStatus};
-use crate::utils::{
-  profile::check_profile_exists,
-  qr,
-  response_helper::{err_response, success_response},
-};
+use crate::utils::{profile::check_profile_exists, qr};
 use data_encoding::BASE64URL;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
@@ -15,6 +11,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
+use tauri_shared::response::Response;
 const QR_TOKEN_TTL_SECS: i64 = 90;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QrToken {
@@ -72,7 +69,7 @@ impl QrAuthService {
       completed: false,
     };
     let qr_token_json = serde_json::to_value(&qr_token)
-      .map_err(|e| err_response(&format!("Failed to serialize token: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize token: {}", e)))?;
     // QR login is cross-device, so MongoDB is primary store
     if let Some(ref mongo_provider) = self.mongodb_provider {
       let _ = mongo_provider
@@ -104,10 +101,10 @@ impl QrAuthService {
   ) -> Result<ResponseModel, ResponseModel> {
     let qr_token = self.find_qr_token(token).await?;
     if qr_token.approved {
-      return Err(err_response("QR code already approved"));
+      return Err(Response::error("QR code already approved"));
     }
     if qr_token.expires_at < chrono::Utc::now().timestamp() {
-      return Err(err_response("QR code has expired"));
+      return Err(Response::error("QR code has expired"));
     }
     let now = chrono::Utc::now().timestamp();
     let mut updated_token = qr_token.clone();
@@ -123,7 +120,10 @@ impl QrAuthService {
       }
     }
     self.save_qr_token(&updated_token).await?;
-    Ok(success_response("QR code approved"))
+    Ok(Response::success(
+      serde_json::json!("QR code approved"),
+      None,
+    ))
   }
   async fn find_user_id_by_username(&self, username: &str) -> Option<String> {
     let table_name = TableModelType::User.table_name();
@@ -211,7 +211,7 @@ impl QrAuthService {
       completed: false,
     };
     let qr_token_json = serde_json::to_value(&qr_token)
-      .map_err(|e| err_response(&format!("Failed to serialize token: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize token: {}", e)))?;
     if let Some(ref mongo_provider) = self.mongodb_provider {
       let _ = mongo_provider
         .insert("qr_tokens", qr_token_json.clone())
@@ -239,11 +239,14 @@ impl QrAuthService {
     _username: &str,
     enabled: bool,
   ) -> Result<ResponseModel, ResponseModel> {
-    Ok(success_response(if enabled {
-      "QR login enabled"
-    } else {
-      "QR login disabled"
-    }))
+    Ok(Response::success(
+      serde_json::json!(if enabled {
+        "QR login enabled"
+      } else {
+        "QR login disabled"
+      }),
+      None,
+    ))
   }
   fn generate_token(&self) -> String {
     let bytes: [u8; 32] = rand::thread_rng().gen();
@@ -275,11 +278,11 @@ impl QrAuthService {
         }
       }
     }
-    Err(err_response("Token not found"))
+    Err(Response::error("Token not found"))
   }
   async fn save_qr_token(&self, token: &QrToken) -> Result<(), ResponseModel> {
     let token_val = serde_json::to_value(token)
-      .map_err(|e| err_response(&format!("Failed to serialize token: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize token: {}", e)))?;
     // QR login is cross-device, so MongoDB is primary store
     if let Some(ref mongo_provider) = self.mongodb_provider {
       let _ = mongo_provider
@@ -328,18 +331,18 @@ impl QrAuthService {
     // Verify QR token is approved
     let qr_token = self.find_qr_token(token).await?;
     if qr_token.completed {
-      return Err(err_response("QR code already used"));
+      return Err(Response::error("QR code already used"));
     }
     if !qr_token.approved {
-      return Err(err_response("QR code not yet approved"));
+      return Err(Response::error("QR code not yet approved"));
     }
     if qr_token.expires_at < chrono::Utc::now().timestamp() {
-      return Err(err_response("QR code has expired"));
+      return Err(Response::error("QR code has expired"));
     }
     let user_id = qr_token
       .user_id
       .clone()
-      .ok_or_else(|| err_response("QR token has no user_id"))?;
+      .ok_or_else(|| Response::error("QR token has no user_id"))?;
     // Try local JSON database first - find by user_id
     let table_name = TableModelType::User.table_name();
     let user_val = match self.json_provider.find_by_id(table_name, &user_id).await {
@@ -354,22 +357,22 @@ impl QrAuthService {
       let mongo = self
         .mongodb_provider
         .as_ref()
-        .ok_or_else(|| err_response("User not found and MongoDB unavailable"))?;
+        .ok_or_else(|| Response::error("User not found and MongoDB unavailable"))?;
       match mongo.find_by_id(table_name, &user_id).await {
         Ok(Some(user)) => user,
         Ok(None) => {
-          return Err(err_response(&format!(
+          return Err(Response::error(&format!(
             "User '{}' not found in database",
             user_id
           )));
         }
         Err(e) => {
-          return Err(err_response(&format!("Database error: {}", e)));
+          return Err(Response::error(&format!("Database error: {}", e)));
         }
       }
     };
     let user = serde_json::from_value::<UserEntity>(user_val.clone())
-      .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))?;
     let _username = user.username.clone();
     // Generate JWT token
     let profile_id = if user.profile_id.is_empty() {

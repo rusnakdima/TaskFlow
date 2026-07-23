@@ -2,10 +2,10 @@ use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::collection_metadata::add_collection_metadata;
 use crate::utils::load_param::parse_load_param;
-use crate::utils::response_helper::{err_response, success_response};
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::relations::RelationLoader;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct RoomService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
@@ -28,14 +28,14 @@ impl RoomService {
       .json_provider
       .find_by_id("rooms", id)
       .await?
-      .ok_or_else(|| err_response("Room not found"))?;
-    Ok(success_response(doc))
+      .ok_or_else(|| Response::error("Room not found"))?;
+    Ok(Response::success(doc, None))
   }
   pub async fn get_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = self
       .json_provider
@@ -49,7 +49,7 @@ impl RoomService {
       )
       .await?;
     if let Some(doc) = docs.first() {
-      return Ok(success_response(doc.clone()));
+      return Ok(Response::success(doc.clone(), None));
     }
     if let Some(mongo) = self.get_mongo_provider() {
       let docs = mongo
@@ -63,10 +63,10 @@ impl RoomService {
         )
         .await?;
       if let Some(doc) = docs.first() {
-        return Ok(success_response(doc.clone()));
+        return Ok(Response::success(doc.clone(), None));
       }
     }
-    Ok(success_response(serde_json::Value::Null))
+    Ok(Response::success(serde_json::Value::Null, None))
   }
   pub async fn get_all(
     &self,
@@ -79,7 +79,7 @@ impl RoomService {
     let filter_opt = if let Some(f) = filter {
       Some(
         nosql_orm::query::Filter::from_json(&f)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       )
     } else {
       None
@@ -136,12 +136,12 @@ impl RoomService {
         }
       }
     }
-    Ok(success_response(all_docs))
+    Ok(Response::success(serde_json::json!(all_docs), None))
   }
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut create_data = data;
     create_data["created_at"] = serde_json::json!(now);
@@ -151,12 +151,12 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("rooms", doc.clone()).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn update(&self, room_id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
@@ -165,7 +165,7 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("rooms", room_id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn add_participants(
     &self,
@@ -174,11 +174,11 @@ impl RoomService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing = mongo
       .find_by_id("rooms", room_id)
       .await?
-      .ok_or_else(|| err_response("Room not found"))?;
+      .ok_or_else(|| Response::error("Room not found"))?;
     let mut participant_ids: Vec<String> = existing
       .get("participant_ids")
       .and_then(|v| v.as_array())
@@ -201,7 +201,7 @@ impl RoomService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("rooms", room_id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn find_or_create_dm_room(
     &self,
@@ -212,7 +212,7 @@ impl RoomService {
   ) -> Result<Value, ResponseModel> {
     let filter = json!({ "room": room_id });
     let filter_obj = nosql_orm::query::Filter::from_json(&filter)
-      .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
     if let Some(mongo) = self.get_mongo_provider() {
       let existing = mongo
         .find_many("rooms", Some(&filter_obj), None, Some(1), None, true)
@@ -236,16 +236,16 @@ impl RoomService {
       }
       return Ok(doc);
     }
-    Err(err_response("MongoDB not available"))
+    Err(Response::error("MongoDB not available"))
   }
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let filter = json!({ "room": id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = mongo
       .find_many("rooms", filter_opt.as_ref(), None, Some(1), None, true)
@@ -253,7 +253,7 @@ impl RoomService {
     let existing = docs
       .first()
       .cloned()
-      .ok_or_else(|| err_response("Room not found"))?;
+      .ok_or_else(|| Response::error("Room not found"))?;
     let doc_id = existing.get("id").and_then(|v| v.as_str()).unwrap_or(id);
     let chat_filter = json!({ "room_id": id });
     if let Ok(chat_filter_obj) = nosql_orm::query::Filter::from_json(&chat_filter) {
@@ -291,6 +291,6 @@ impl RoomService {
       let _ = p.delete("rooms", doc_id).await;
     }
     let _ = mongo.delete("rooms", doc_id).await;
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), None))
   }
 }

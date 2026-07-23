@@ -4,13 +4,14 @@ use crate::entities::task_entity::TaskEntity;
 use crate::entities::todo_entity::TodoEntity;
 use crate::models::response::ResponseModel;
 use crate::services::activity_monitor_service::ActivityMonitorService;
-use crate::utils::response_helper::err_response_formatted;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::relations::WithRelations;
 use std::collections::HashSet;
 use std::sync::Arc;
+use tauri_shared::algorithms::sanitization::sanitize_for_mongo;
+use tauri_shared::response::Response;
 #[derive(Default, serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct CascadeResult {
   pub todo_count: u64,
@@ -48,19 +49,7 @@ impl CascadeResult {
     result
   }
 }
-fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
-  if let serde_json::Value::Object(obj) = value {
-    let mut filtered = serde_json::Map::new();
-    for (k, v) in obj.iter() {
-      if !k.starts_with('$') {
-        filtered.insert(k.clone(), sanitize_for_mongo_replacement(v.clone()));
-      }
-    }
-    serde_json::Value::Object(filtered)
-  } else {
-    value
-  }
-}
+
 pub struct CascadeService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -104,7 +93,7 @@ impl CascadeService {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     self.soft_delete_cascade(mongo.as_ref(), table, id).await
   }
   pub async fn soft_delete_cascade<P>(
@@ -124,28 +113,28 @@ impl CascadeService {
         cascade
           .soft_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade soft delete failed: {}", e)))?;
       }
       "tasks" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .soft_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade soft delete failed: {}", e)))?;
       }
       "subtasks" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .soft_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade soft delete failed: {}", e)))?;
       }
       "comments" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .soft_delete_cascade::<CommentEntity>(id, &CommentEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade soft delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade soft delete failed: {}", e)))?;
       }
       "chats" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -156,10 +145,10 @@ impl CascadeService {
         let _ = cascade.soft_delete("categories", id).await;
       }
       _ => {
-        return Err(err_response_formatted(
-          "Unknown table for cascade soft delete",
-          table,
-        ));
+        return Err(Response::error(&format!(
+          "Unknown table for cascade soft delete: {}",
+          table
+        )));
       }
     }
     if let Some(ref activity_monitor) = self.activity_monitor {
@@ -189,7 +178,7 @@ impl CascadeService {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     self.restore_cascade(mongo.as_ref(), table, id).await
   }
   pub async fn restore_cascade<P>(
@@ -210,18 +199,18 @@ impl CascadeService {
         cascade
           .restore_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut restored)
           .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade restore failed: {}", e)))?;
       }
       "tasks" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .restore_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut restored)
           .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade restore failed: {}", e)))?;
         if let Some(task) = provider
           .find_by_id("tasks", id)
           .await
-          .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+          .map_err(|e| Response::error(format!("Database error: {}", e)))?
         {
           if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
             affected_todo_ids.push(todo_id.to_string());
@@ -233,17 +222,17 @@ impl CascadeService {
         cascade
           .restore_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut restored)
           .await
-          .map_err(|e| err_response_formatted("Cascade restore failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade restore failed: {}", e)))?;
         if let Some(subtask) = provider
           .find_by_id("subtasks", id)
           .await
-          .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+          .map_err(|e| Response::error(format!("Database error: {}", e)))?
         {
           if let Some(task_id) = subtask.get("task_id").and_then(|v| v.as_str()) {
             if let Some(task) = provider
               .find_by_id("tasks", task_id)
               .await
-              .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+              .map_err(|e| Response::error(format!("Database error: {}", e)))?
             {
               if let Some(todo_id) = task.get("todo_id").and_then(|v| v.as_str()) {
                 affected_todo_ids.push(todo_id.to_string());
@@ -260,7 +249,7 @@ impl CascadeService {
             serde_json::json!({ "deleted_at": serde_json::Value::Null }),
           )
           .await
-          .map_err(|e| err_response_formatted("Patch comment failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Patch comment failed: {}", e)))?;
       }
       "chats" => {
         let cascade = CascadeManager::new(provider.clone());
@@ -271,10 +260,10 @@ impl CascadeService {
         let _ = cascade.restore("categories", id).await;
       }
       _ => {
-        return Err(err_response_formatted(
-          "Unknown table for cascade restore",
-          table,
-        ));
+        return Err(Response::error(&format!(
+          "Unknown table for cascade restore: {}",
+          table
+        )));
       }
     }
     let mut result = CascadeResult::from_deleted_ids(&restored);
@@ -299,7 +288,7 @@ impl CascadeService {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response_formatted("MongoDB not available", ""))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     self
       .permanent_delete_cascade(mongo.as_ref(), table, id)
       .await
@@ -340,38 +329,39 @@ impl CascadeService {
         cascade
           .hard_delete_cascade::<TodoEntity>(id, &TodoEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade delete failed: {}", e)))?;
       }
       "tasks" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .hard_delete_cascade::<TaskEntity>(id, &TaskEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade delete failed: {}", e)))?;
       }
       "subtasks" => {
         let cascade = CascadeManager::new(provider.clone());
         cascade
           .hard_delete_cascade::<SubtaskEntity>(id, &SubtaskEntity::relations(), &mut deleted)
           .await
-          .map_err(|e| err_response_formatted("Cascade delete failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Cascade delete failed: {}", e)))?;
       }
       "comments" => {
         provider
           .delete("comments", id)
           .await
-          .map_err(|e| err_response_formatted("Delete comment failed", &e.to_string()))?;
+          .map_err(|e| Response::error(format!("Delete comment failed: {}", e)))?;
       }
       "categories" | "chats" | "users" | "profiles" => {
-        provider.delete(table, id).await.map_err(|e| {
-          err_response_formatted(&format!("Delete {} failed", table), &e.to_string())
-        })?;
+        provider
+          .delete(table, id)
+          .await
+          .map_err(|_e| Response::error(format!("Delete {} failed", table)))?;
       }
       _ => {
-        return Err(err_response_formatted(
-          "Unknown table for cascade delete",
-          table,
-        ));
+        return Err(Response::error(&format!(
+          "Unknown table for cascade delete: {}",
+          table
+        )));
       }
     }
     if let Some(ref activity_monitor) = self.activity_monitor {
@@ -419,18 +409,19 @@ impl CascadeService {
         .find_by_id(table, id)
         .await
         .map_err(|e| {
-          err_response_formatted(
-            "Sync to JSON failed",
-            &format!("Failed to fetch from Mongo: {}", e),
-          )
+          Response::error(&format!(
+            "Sync to JSON failed: Failed to fetch from Mongo: {}",
+            e
+          ))
         })?
         .ok_or_else(|| {
-          err_response_formatted(
-            "Sync to JSON failed",
-            &format!("Entity {} not found in Mongo", id),
-          )
+          Response::error(&format!(
+            "Sync to JSON failed: Entity {} not found in Mongo",
+            id
+          ))
         })?;
-      let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
+      let mut sanitized_entity = entity.clone();
+      sanitize_for_mongo(&mut sanitized_entity);
       match self.json_provider.find_by_id(table, id).await {
         Ok(Some(_)) => {
           self
@@ -438,10 +429,10 @@ impl CascadeService {
             .update(table, id, sanitized_entity)
             .await
             .map_err(|e| {
-              err_response_formatted(
-                "Sync to JSON failed",
-                &format!("Failed to update JSON: {}", e),
-              )
+              Response::error(&format!(
+                "Sync to JSON failed: Failed to update JSON: {}",
+                e
+              ))
             })?;
         }
         Ok(None) => {
@@ -450,17 +441,17 @@ impl CascadeService {
             .insert(table, sanitized_entity)
             .await
             .map_err(|e| {
-              err_response_formatted(
-                "Sync to JSON failed",
-                &format!("Failed to insert to JSON: {}", e),
-              )
+              Response::error(&format!(
+                "Sync to JSON failed: Failed to insert to JSON: {}",
+                e
+              ))
             })?;
         }
         Err(e) => {
-          return Err(err_response_formatted(
-            "Sync to JSON failed",
-            &format!("Failed to check JSON: {}", e),
-          ));
+          return Err(Response::error(&format!(
+            "Sync to JSON failed: Failed to check JSON: {}",
+            e
+          )));
         }
       }
     }
@@ -477,43 +468,44 @@ impl CascadeService {
         .find_by_id(table, id)
         .await
         .map_err(|e| {
-          err_response_formatted(
-            "Cascade sync to MongoDB failed",
-            &format!("Failed to fetch from JSON: {}", e),
-          )
+          Response::error(&format!(
+            "Cascade sync to MongoDB failed: Failed to fetch from JSON: {}",
+            e
+          ))
         })?
         .ok_or_else(|| {
-          err_response_formatted(
-            "Cascade sync to MongoDB failed",
-            &format!("Entity {} not found in JSON", id),
-          )
+          Response::error(&format!(
+            "Cascade sync to MongoDB failed: Entity {} not found in JSON",
+            id
+          ))
         })?;
-      let sanitized_entity = sanitize_for_mongo_replacement(entity.clone());
+      let mut sanitized_entity = entity.clone();
+      sanitize_for_mongo(&mut sanitized_entity);
       match mongo.find_by_id(table, id).await {
         Ok(Some(_)) => {
           mongo
             .update(table, id, sanitized_entity)
             .await
             .map_err(|e| {
-              err_response_formatted(
-                "Cascade sync to MongoDB failed",
-                &format!("Failed to update in MongoDB: {}", e),
-              )
+              Response::error(&format!(
+                "Cascade sync to MongoDB failed: Failed to update in MongoDB: {}",
+                e
+              ))
             })?;
         }
         Ok(None) => {
           mongo.insert(table, sanitized_entity).await.map_err(|e| {
-            err_response_formatted(
-              "Cascade sync to MongoDB failed",
-              &format!("Failed to insert to MongoDB: {}", e),
-            )
+            Response::error(&format!(
+              "Cascade sync to MongoDB failed: Failed to insert to MongoDB: {}",
+              e
+            ))
           })?;
         }
         Err(e) => {
-          return Err(err_response_formatted(
-            "Cascade sync to MongoDB failed",
-            &format!("Failed to check MongoDB: {}", e),
-          ));
+          return Err(Response::error(&format!(
+            "Cascade sync to MongoDB failed: Failed to check MongoDB: {}",
+            e
+          )));
         }
       }
     }
@@ -737,7 +729,8 @@ impl CascadeService {
     let Some(entity) = entity_opt else {
       return Ok(());
     };
-    let sanitized = sanitize_for_mongo_replacement(entity);
+    let mut sanitized = entity;
+    sanitize_for_mongo(&mut sanitized);
     if target_provider == "Mongo" {
       if let Some(ref mongo) = self.mongodb_provider {
         match mongo.find_by_id(table, id).await {

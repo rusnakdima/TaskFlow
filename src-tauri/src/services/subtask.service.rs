@@ -3,9 +3,9 @@ use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use crate::utils::cascade::soft_delete_cascade_all;
-use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct SubtaskService {
   base: BaseCrudService,
 }
@@ -24,7 +24,7 @@ impl SubtaskService {
       .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
-      .ok_or_else(|| err_response("Subtask not found"))?;
+      .ok_or_else(|| Response::error("Subtask not found"))?;
     let task_id = doc.get("task_id").and_then(|v| v.as_str()).unwrap_or("");
     let visibility = get_visibility(&doc);
     if !task_id.is_empty() {
@@ -41,7 +41,7 @@ impl SubtaskService {
             .await?
           {
             if !PermissionService::can_view_todo(&todo, user_id) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to view this subtask",
               ));
             }
@@ -49,7 +49,7 @@ impl SubtaskService {
         }
       }
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn get_all(
     &self,
@@ -66,7 +66,7 @@ impl SubtaskService {
         "todos",
         Some(
           &nosql_orm::query::Filter::from_json(&todos_filter)
-            .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+            .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
         ),
         None,
         None,
@@ -79,7 +79,7 @@ impl SubtaskService {
       .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
       .collect();
     if todo_ids.is_empty() {
-      return Ok(success_response(serde_json::Value::Array(vec![])));
+      return Ok(Response::success(serde_json::Value::Array(vec![]), None));
     }
     let tasks_filter = json!({
       "todo_id": { "$in": todo_ids }
@@ -89,7 +89,7 @@ impl SubtaskService {
         "tasks",
         Some(
           &nosql_orm::query::Filter::from_json(&tasks_filter)
-            .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+            .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
         ),
         None,
         None,
@@ -102,7 +102,7 @@ impl SubtaskService {
       .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
       .collect();
     if task_ids.is_empty() {
-      return Ok(success_response(serde_json::Value::Array(vec![])));
+      return Ok(Response::success(serde_json::Value::Array(vec![]), None));
     }
     let mut subtask_filter = json!({
       "task_id": { "$in": task_ids }
@@ -114,12 +114,12 @@ impl SubtaskService {
     }
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&subtask_filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = provider
       .find_many("subtasks", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(docs))
+    Ok(Response::success(serde_json::json!(docs), None))
   }
   pub async fn create(
     &self,
@@ -135,7 +135,7 @@ impl SubtaskService {
         if !todo_id.is_empty() {
           if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
             if !PermissionService::can_add_task_to_todo(&todo, user_id) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to add subtasks to this todo",
               ));
             }
@@ -144,7 +144,7 @@ impl SubtaskService {
       }
     }
     let doc = provider.insert("subtasks", data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn update(
     &self,
@@ -157,7 +157,7 @@ impl SubtaskService {
       .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
-      .ok_or_else(|| err_response("Subtask not found"))?;
+      .ok_or_else(|| Response::error("Subtask not found"))?;
     let visibility = get_visibility(&existing);
     let provider = self.get_provider(visibility)?;
     let task_id = existing
@@ -170,7 +170,7 @@ impl SubtaskService {
         if !todo_id.is_empty() {
           if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
             if !PermissionService::can_edit_subtask(&existing, &task, &todo, user_id) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to edit this subtask",
               ));
             }
@@ -179,7 +179,7 @@ impl SubtaskService {
       }
     }
     let doc = provider.patch("subtasks", id, data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
@@ -187,7 +187,7 @@ impl SubtaskService {
       .get_json_provider()
       .find_by_id("subtasks", id)
       .await?
-      .ok_or_else(|| err_response("Subtask not found"))?;
+      .ok_or_else(|| Response::error("Subtask not found"))?;
     let visibility = get_visibility(&existing);
     let provider = self.get_provider(visibility)?;
     let task_id = existing
@@ -200,7 +200,7 @@ impl SubtaskService {
         if !todo_id.is_empty() {
           if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
             if !PermissionService::can_delete_subtask(&existing, &task, &todo, user_id) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to delete this subtask",
               ));
             }
@@ -209,6 +209,6 @@ impl SubtaskService {
       }
     }
     let _ = soft_delete_cascade_all(&provider, "subtasks", id).await;
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), None))
   }
 }

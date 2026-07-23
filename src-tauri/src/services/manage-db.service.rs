@@ -1,12 +1,12 @@
 use crate::models::response::{ResponseModel, ResponseStatus};
 use crate::services::db_backup::DbBackupService;
 use crate::services::{admin_manager::AdminManager, cascade::CascadeService};
-use crate::utils::response_helper::err_response;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use serde_json::Value;
 use std::sync::Arc;
 use std::sync::Mutex;
+use tauri_shared::response::Response;
 pub struct ManageDbService {
   pub json_provider: JsonProvider,
   mongodb_provider: Mutex<Option<Arc<MongoProvider>>>,
@@ -265,7 +265,7 @@ impl ManageDbService {
             { "start_date": { "$lte": &start_of_month }, "end_date": { "$gte": &end_of_month } }
         ]
     }))
-    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let mut all_tasks: Vec<Value> = Vec::new();
     if !offline {
       let mongo_option = match self.mongodb_provider.lock() {

@@ -13,7 +13,7 @@ use crate::repositories::mongodb_provider::MongoProvider;
 /* entities */
 use crate::models::response::ResponseModel;
 /* helpers */
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum UserSyncStatus {
   InBoth,
@@ -58,34 +58,34 @@ impl UserSyncService {
       .json_provider
       .find_by_id("users", user_id)
       .await
-      .map_err(|e| err_response(&format!("Failed to get user from JSON: {}", e)))
+      .map_err(|e| Response::error(&format!("Failed to get user from JSON: {}", e)))
   }
   pub async fn get_user_from_mongo(&self, user_id: &str) -> Result<Option<Value>, ResponseModel> {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     mongo
       .find_by_id("users", user_id)
       .await
-      .map_err(|e| err_response(&format!("Failed to get user from MongoDB: {}", e)))
+      .map_err(|e| Response::error(&format!("Failed to get user from MongoDB: {}", e)))
   }
   async fn upsert_to_mongo(&self, user_id: &str, user_data: Value) -> Result<(), ResponseModel> {
     let mongo = self
       .mongodb_provider
       .as_ref()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing = mongo.find_by_id("users", user_id).await.ok().flatten();
     if existing.is_some() {
       mongo
         .update("users", user_id, user_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to update user in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to update user in MongoDB: {}", e)))?;
     } else {
       mongo
         .insert("users", user_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to insert user in MongoDB: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to insert user in MongoDB: {}", e)))?;
     }
     Ok(())
   }
@@ -93,7 +93,7 @@ impl UserSyncService {
     let user_id = user_data
       .get("id")
       .and_then(|v| v.as_str())
-      .ok_or_else(|| err_response("User data missing id"))?
+      .ok_or_else(|| Response::error("User data missing id"))?
       .to_string();
     let existing = self
       .json_provider
@@ -106,13 +106,13 @@ impl UserSyncService {
         .json_provider
         .update("users", &user_id, user_data.clone())
         .await
-        .map_err(|e| err_response(&format!("Failed to update user in JSON: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to update user in JSON: {}", e)))?;
     } else {
       self
         .json_provider
         .insert("users", user_data)
         .await
-        .map_err(|e| err_response(&format!("Failed to insert user in JSON: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Failed to insert user in JSON: {}", e)))?;
     }
     Ok(())
   }
@@ -120,14 +120,14 @@ impl UserSyncService {
     let user_data = self
       .get_user_from_json(user_id)
       .await?
-      .ok_or_else(|| err_response("User not found in JSON"))?;
+      .ok_or_else(|| Response::error("User not found in JSON"))?;
     self.upsert_to_mongo(user_id, user_data).await
   }
   pub async fn sync_user_to_json(&self, user_id: &str) -> Result<(), ResponseModel> {
     let user_data = self
       .get_user_from_mongo(user_id)
       .await?
-      .ok_or_else(|| err_response("User not found in MongoDB"))?;
+      .ok_or_else(|| Response::error("User not found in MongoDB"))?;
     self.upsert_to_json(user_data).await
   }
   pub async fn ensure_user_in_both(&self, user_id: &str) -> Result<UserSyncStatus, ResponseModel> {

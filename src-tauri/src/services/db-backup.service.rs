@@ -1,6 +1,5 @@
 use crate::models::response::{ResponseModel, ResponseStatus};
 use crate::utils::common::filter_deleted;
-use crate::utils::response_helper::err_response;
 use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
@@ -8,6 +7,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
+use tauri_shared::response::Response;
 pub struct DbBackupService {
   json_provider: JsonProvider,
   #[allow(dead_code)]
@@ -98,7 +98,7 @@ impl DbBackupService {
     let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
       Ok(f) => f,
       Err(e) => {
-        err_response(&format!("Filter error: {}", e));
+        let _ = Response::<()>::error(&format!("Filter error: {}", e));
         return 0;
       }
     };
@@ -133,7 +133,7 @@ impl DbBackupService {
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
         Err(e) => {
-          err_response(&format!("Filter error: {}", e));
+          let _ = Response::<()>::error(&format!("Filter error: {}", e));
           return 0;
         }
       };
@@ -153,8 +153,8 @@ impl DbBackupService {
         ) {
           Ok(f) => f,
           Err(e) => {
-            err_response(&format!("Filter error: {}", e));
-            continue;
+            let _ = Response::<()>::error(&format!("Filter error: {}", e));
+            return 0;
           }
         };
         if let Ok(items) = mongo
@@ -178,7 +178,7 @@ impl DbBackupService {
       .lock()
       .unwrap()
       .clone()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let mut imported_count = 0;
     imported_count += self
       .import_table_by_id(&mongo, "users", &user_id, false)
@@ -240,7 +240,7 @@ impl DbBackupService {
     let filter = match nosql_orm::query::Filter::from_json(&serde_json::json!({ field: user_id })) {
       Ok(f) => f,
       Err(e) => {
-        err_response(&format!("Filter error: {}", e));
+        let _ = Response::<()>::error(&format!("Filter error: {}", e));
         return 0;
       }
     };
@@ -276,7 +276,7 @@ impl DbBackupService {
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
         Err(e) => {
-          err_response(&format!("Filter error: {}", e));
+          let _ = Response::<()>::error(&format!("Filter error: {}", e));
           return 0;
         }
       };
@@ -297,7 +297,7 @@ impl DbBackupService {
         ) {
           Ok(f) => f,
           Err(e) => {
-            err_response(&format!("Filter error: {}", e));
+            let _ = Response::<()>::error(&format!("Filter error: {}", e));
             continue;
           }
         };
@@ -328,7 +328,7 @@ impl DbBackupService {
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
         Err(e) => {
-          err_response(&format!("Filter error: {}", e));
+          let _ = Response::<()>::error(&format!("Filter error: {}", e));
           return 0;
         }
       };
@@ -369,7 +369,7 @@ impl DbBackupService {
       match nosql_orm::query::Filter::from_json(&serde_json::json!({ "user_id": user_id })) {
         Ok(f) => f,
         Err(e) => {
-          err_response(&format!("Filter error: {}", e));
+          let _ = Response::<()>::error(&format!("Filter error: {}", e));
           return 0;
         }
       };
@@ -407,10 +407,10 @@ impl DbBackupService {
       let guard = self
         .mongodb_provider
         .lock()
-        .map_err(|_| err_response("Lock poisoned"))?;
+        .map_err(|_| Response::error("Lock poisoned"))?;
       guard
         .clone()
-        .ok_or_else(|| err_response("MongoDB not available"))?
+        .ok_or_else(|| Response::error("MongoDB not available"))?
     };
     let mut exported_count = 0;
     exported_count += self

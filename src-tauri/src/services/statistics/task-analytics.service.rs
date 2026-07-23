@@ -1,8 +1,8 @@
 use crate::entities::statistics_entity::{DetailedMetricModel, StatisticsModel};
-use crate::utils::percentage::calculate_percentage;
 use chrono::DateTime;
 use nosql_orm::aggregation::{AggregationPipeline, GroupStage};
 use serde_json::Value;
+use tauri_shared::ValidationAlgorithm;
 pub struct TaskAnalytics;
 impl TaskAnalytics {
   pub async fn calculate_average_task_time(tasks: &[Value]) -> i32 {
@@ -46,13 +46,13 @@ impl TaskAnalytics {
     previous_tasks: &[Value],
   ) -> StatisticsModel {
     let (total_tasks, completed_tasks) = Self::compute_activity_totals(daily_activities).await;
-    let completion_rate = calculate_percentage(completed_tasks, total_tasks);
+    let completion_rate = ValidationAlgorithm::calculate_percentage(completed_tasks, total_tasks);
     let average_task_time = Self::calculate_average_task_time(tasks).await;
     let productivity_score = Self::compute_productivity_score(daily_activities).await;
     let (previous_total_tasks, previous_completed_tasks) =
       Self::compute_activity_totals(previous_daily_activities).await;
     let previous_completion_rate =
-      calculate_percentage(previous_completed_tasks, previous_total_tasks);
+      ValidationAlgorithm::calculate_percentage(previous_completed_tasks, previous_total_tasks);
     let previous_average_time = Self::calculate_average_task_time(previous_tasks).await;
     let previous_productivity_score =
       Self::compute_productivity_score(previous_daily_activities).await;

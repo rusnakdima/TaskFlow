@@ -15,8 +15,8 @@ use crate::entities::{
 };
 use crate::models::response::{ResponseModel, ResponseStatus};
 /* helpers */
-use crate::utils::response_helper::err_response;
 use crate::utils::timestamp::get_current_datetime;
+use tauri_shared::response::Response;
 #[derive(Clone)]
 pub struct AuthRegisterService {
   pub json_provider: JsonProvider,
@@ -49,27 +49,27 @@ impl AuthRegisterService {
             { "username": username }
         ]
     }))
-    .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let existing = self
       .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&format!("Error checking user: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Error checking user: {}", e)))?;
     if !existing.is_empty() {
-      return Err(err_response("User already exists"));
+      return Err(Response::error("User already exists"));
     }
     // Check MongoDB for existing user (required check when MongoDB is available)
     if let Some(mongo) = &self.mongodb_provider {
       let existing_mongo = mongo
         .find_many(table_name, Some(&filter), None, None, None, false)
         .await
-        .map_err(|e| err_response(&format!("Error checking user in cloud: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Error checking user in cloud: {}", e)))?;
       if !existing_mongo.is_empty() {
-        return Err(err_response("User already exists in cloud"));
+        return Err(Response::error("User already exists in cloud"));
       }
     }
     let hashed_password = hash(password, DEFAULT_COST)
-      .map_err(|e| err_response(&format!("Error hashing password: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Error hashing password: {}", e)))?;
     let now = get_current_datetime();
     let user_id = nosql_orm::utils::generate_id();
     let profile_id = nosql_orm::utils::generate_id();
@@ -124,16 +124,16 @@ impl AuthRegisterService {
       github_username: String::new(),
     };
     let user_val = serde_json::to_value(&new_user)
-      .map_err(|e| err_response(&format!("Failed to serialize user: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Failed to serialize user: {}", e)))?;
     self
       .json_provider
       .insert(table_name, user_val.clone())
       .await
-      .map_err(|e| err_response(&format!("Error creating user in JSON: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Error creating user in JSON: {}", e)))?;
     if let Some(mongo) = self.mongodb_provider.as_ref() {
       if let Err(e) = mongo.insert(table_name, user_val.clone()).await {
         eprintln!("Failed to sync user to MongoDB: {:?}", e);
-        return Err(err_response("Failed to complete registration"));
+        return Err(Response::error("Failed to complete registration"));
       }
     }
     let token =

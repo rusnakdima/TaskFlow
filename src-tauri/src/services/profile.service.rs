@@ -141,22 +141,22 @@ impl ProfileService {
     profile_data: Value,
   ) -> Result<ResponseModel, ResponseModel> {
     use crate::entities::table_entity::validate_model;
-    use crate::utils::response_helper::{err_response, err_response_formatted, success_response};
     use crate::utils::user_sync;
+    use tauri_shared::response::Response;
     let validated_profile = validate_model("profiles", &profile_data, true, None)
-      .map_err(|e| err_response_formatted("Profile validation failed", &e))?;
+      .map_err(|e| Response::error(format!("Profile validation failed: {}", e)))?;
     let user_id = validated_profile
       .get("user_id")
       .and_then(|v| v.as_str())
       .unwrap_or_default()
       .to_string();
     if user_id.is_empty() {
-      return Err(err_response("Invalid profile data: userId is required"));
+      return Err(Response::error("Invalid profile data: userId is required"));
     }
     if let Ok(existing_profiles) = self.json_provider.find_all("profiles").await {
       for profile in existing_profiles {
         if profile.get("user_id").and_then(|v| v.as_str()) == Some(&user_id) {
-          return Ok(success_response(profile));
+          return Ok(Response::success(profile, None));
         }
       }
     }
@@ -164,9 +164,7 @@ impl ProfileService {
       .json_provider
       .insert("profiles", validated_profile.clone())
       .await
-      .map_err(|e| {
-        err_response_formatted("Error creating profile in local store", &e.to_string())
-      })?;
+      .map_err(|e| Response::error(format!("Error creating profile in local store: {}", e)))?;
     let profile_id = created_profile
       .get("id")
       .and_then(|v| v.as_str())
@@ -183,7 +181,7 @@ impl ProfileService {
     if self.mongodb_provider.is_some() {
       let _ = self.sync_profile_to_cloud(profile_id).await;
     }
-    Ok(success_response(created_profile))
+    Ok(Response::success(created_profile, None))
   }
 }
 /// Compare timestamps to determine if cloud should be updated

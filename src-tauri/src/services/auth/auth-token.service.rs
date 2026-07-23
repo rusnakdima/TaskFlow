@@ -13,7 +13,7 @@ use crate::services::auth::auth_data_sync::AuthDataSyncService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 /* helpers */
 use crate::utils::auth::Claims;
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 #[derive(Clone)]
 pub struct AuthTokenService {
   pub json_provider: JsonProvider,
@@ -72,7 +72,7 @@ impl AuthTokenService {
       &claims,
       &EncodingKey::from_secret(self.jwt_secret.as_ref()),
     )
-    .map_err(|e| err_response(&format!("Token generation failed: {}", e)))
+    .map_err(|e| Response::error(&format!("Token generation failed: {}", e)))
   }
   pub async fn check_token(&self, token: String) -> Result<ResponseModel, ResponseModel> {
     let token_data = decode::<Claims>(
@@ -80,7 +80,7 @@ impl AuthTokenService {
       &DecodingKey::from_secret(self.jwt_secret.as_ref()),
       &Validation::default(),
     )
-    .map_err(|e| err_response(&format!("Invalid token: {}", e)))?;
+    .map_err(|e| Response::error(&format!("Invalid token: {}", e)))?;
     let user_id = token_data.claims.id;
     let table_name = TableModelType::User.table_name();
     // If MongoDB is available, check it FIRST to detect deleted users
@@ -88,7 +88,7 @@ impl AuthTokenService {
       match mongo_provider.find_by_id(table_name, &user_id).await {
         Ok(Some(user_val)) => {
           let user: UserEntity = serde_json::from_value(user_val.clone())
-            .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+            .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))?;
           // Sync user to local database for future offline use
           let _ = self
             .json_provider
@@ -136,15 +136,15 @@ impl AuthTokenService {
           {
             // User exists locally but not in cloud - clean up local data
             let _ = self.cleanup_user_data_from_json(&user_id).await;
-            return Err(err_response("User session invalid - please login again"));
+            return Err(Response::error("User session invalid - please login again"));
           }
-          Err(err_response("User not found"))
+          Err(Response::error("User not found"))
         }
         Err(e) => {
           // MongoDB error - fall back to JSON if available
           if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
             let user: UserEntity = serde_json::from_value(user_val.clone())
-              .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+              .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))?;
             let profile = self
               .profile_sync_service
               .get_profile(&user_id)
@@ -161,7 +161,7 @@ impl AuthTokenService {
               data: Some(response_data),
             });
           }
-          Err(err_response(&format!(
+          Err(Response::error(&format!(
             "User not found (MongoDB error: {}): Trying JSON also failed",
             e
           )))
@@ -171,7 +171,7 @@ impl AuthTokenService {
       // No MongoDB available - check local JSON only (offline mode)
       if let Ok(Some(user_val)) = self.json_provider.find_by_id(table_name, &user_id).await {
         let user: UserEntity = serde_json::from_value(user_val.clone())
-          .map_err(|e| err_response(&format!("Failed to parse user: {}", e)))?;
+          .map_err(|e| Response::error(&format!("Failed to parse user: {}", e)))?;
         if let Some(sync_service) = &self.auth_data_sync_service {
           let _ = sync_service.on_user_login(&user_id).await;
         }
@@ -191,7 +191,7 @@ impl AuthTokenService {
           data: Some(response_data),
         });
       }
-      Err(err_response(
+      Err(Response::error(
         "User not found in local database and MongoDB unavailable",
       ))
     }
@@ -268,7 +268,7 @@ impl AuthTokenService {
       }
     } else {
       // Profile doesn't exist anywhere - user needs to create one
-      return Err(err_response(
+      return Err(Response::error(
         "Profile not found - please create your profile",
       ));
     }

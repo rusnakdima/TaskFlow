@@ -3,7 +3,7 @@ use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use crate::models::response::ResponseModel;
-use crate::utils::response_helper::err_response_formatted;
+use tauri_shared::response::Response;
 use super::{CascadeResult, CascadeService};
 impl CascadeService {
   pub async fn sync_todo_with_children(
@@ -228,22 +228,8 @@ impl CascadeService {
     let Some(entity) = entity_opt else {
       return Ok(());
     };
-    let sanitized = {
-      fn sanitize_for_mongo_replacement(value: serde_json::Value) -> serde_json::Value {
-        if let serde_json::Value::Object(obj) = value {
-          let mut filtered = serde_json::Map::new();
-          for (k, v) in obj.iter() {
-            if !k.starts_with('$') {
-              filtered.insert(k.clone(), sanitize_for_mongo_replacement(v.clone()));
-            }
-          }
-          serde_json::Value::Object(filtered)
-        } else {
-          value
-        }
-      }
-      sanitize_for_mongo_replacement(entity)
-    };
+    let mut sanitized = entity.clone();
+    tauri_shared::algorithms::sanitize_for_mongo(&mut sanitized);
     if target_provider == "Mongo" {
       if let Some(ref mongo) = self.mongodb_provider {
         match mongo.find_by_id(table, id).await {

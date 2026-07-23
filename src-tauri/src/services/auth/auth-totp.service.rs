@@ -12,10 +12,8 @@ use nosql_orm::repository::Repository;
 use crate::entities::{profile_entity::ProfileEntity, user_entity::UserEntity};
 use crate::models::response::{ResponseModel, ResponseStatus};
 /* helpers */
-use crate::utils::{
-  qr,
-  response_helper::{err_response, err_response_formatted, success_response},
-};
+use crate::utils::qr;
+use tauri_shared::response::Response;
 /* services */
 use super::auth_token::AuthTokenService;
 #[derive(Clone)]
@@ -120,10 +118,10 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
     if user.totp_secret.is_empty() {
-      return Err(err_response("TOTP not setup. Please setup TOTP first."));
+      return Err(Response::error("TOTP not setup. Please setup TOTP first."));
     }
     if !self.verify_totp_code(&user.totp_secret, code).await {
-      return Err(err_response("Invalid TOTP code"));
+      return Err(Response::error("Invalid TOTP code"));
     }
     self
       .update_totp_settings(
@@ -133,7 +131,10 @@ impl AuthTotpService {
         user.recovery_codes.clone(),
       )
       .await?;
-    Ok(success_response("TOTP enabled successfully"))
+    Ok(Response::success(
+      serde_json::json!("TOTP enabled successfully"),
+      None,
+    ))
   }
   pub async fn verify_login_totp(
     &self,
@@ -142,16 +143,16 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
     if !user.totp_enabled {
-      return Err(err_response("TOTP not enabled for this user"));
+      return Err(Response::error("TOTP not enabled for this user"));
     }
     if user.totp_secret.is_empty() {
-      return Err(err_response(
+      return Err(Response::error(
         "TOTP secret not found. Please setup TOTP again.",
       ));
     }
     let verified = self.verify_totp_code(&user.totp_secret, code).await;
     if !verified {
-      return Err(err_response("Invalid TOTP code"));
+      return Err(Response::error("Invalid TOTP code"));
     }
     if let Some(ref ts) = self.token_service {
       let profile = self.check_profile_exists(user.id()).await.ok().flatten();
@@ -176,7 +177,7 @@ impl AuthTotpService {
         Err(e) => return Err(e),
       }
     }
-    Ok(success_response("TOTP verified"))
+    Ok(Response::success(serde_json::json!("TOTP verified"), None))
   }
   pub async fn disable_totp(
     &self,
@@ -185,15 +186,18 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
     if !user.totp_enabled || user.totp_secret.is_empty() {
-      return Err(err_response("TOTP is not enabled or not properly setup"));
+      return Err(Response::error("TOTP is not enabled or not properly setup"));
     }
     if !self.verify_totp_code(&user.totp_secret, code).await {
-      return Err(err_response("Invalid TOTP code"));
+      return Err(Response::error("Invalid TOTP code"));
     }
     self
       .update_totp_settings(username, false, "", Vec::new())
       .await?;
-    Ok(success_response("TOTP disabled successfully"))
+    Ok(Response::success(
+      serde_json::json!("TOTP disabled successfully"),
+      None,
+    ))
   }
   pub async fn use_recovery_code(
     &self,
@@ -202,7 +206,7 @@ impl AuthTotpService {
   ) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
     if !user.totp_enabled {
-      return Err(err_response("TOTP is not enabled"));
+      return Err(Response::error("TOTP is not enabled"));
     }
     let mut new_recovery_codes = user.recovery_codes.clone();
     if let Some(pos) = new_recovery_codes.iter().position(|c| c == code) {
@@ -212,20 +216,23 @@ impl AuthTotpService {
         ..user
       };
       self.save_user(&updated_user).await?;
-      Ok(success_response("Recovery code accepted"))
+      Ok(Response::success(
+        serde_json::json!("Recovery code accepted"),
+        None,
+      ))
     } else {
-      Err(err_response("Invalid recovery code"))
+      Err(Response::error("Invalid recovery code"))
     }
   }
   pub async fn init_totp_qr_login(&self, username: &str) -> Result<ResponseModel, ResponseModel> {
     let user = self.find_user(username).await?;
     if !user.totp_enabled {
-      return Err(err_response(
+      return Err(Response::error(
         "TOTP is not enabled for this user. Please enable TOTP in settings first.",
       ));
     }
     if user.totp_secret.is_empty() {
-      return Err(err_response(
+      return Err(Response::error(
         "TOTP secret not found. Please setup TOTP first.",
       ));
     }
@@ -252,14 +259,14 @@ impl AuthTotpService {
     user_repo_json
       .update(user.clone())
       .await
-      .map_err(|e| err_response_formatted("JSON update failed", &e.to_string()))?;
+      .map_err(|e| Response::error(format!("JSON update failed: {}", e)))?;
     if let Some(mongo) = &self.mongodb_provider {
       let user_repo_mongo =
         Repository::<UserEntity, nosql_orm::providers::MongoProvider>::new(mongo.as_ref().clone());
       user_repo_mongo
         .update(user.clone())
         .await
-        .map_err(|e| err_response_formatted("Mongo update failed", &e.to_string()))?;
+        .map_err(|e| Response::error(format!("Mongo update failed: {}", e)))?;
     }
     Ok(())
   }
@@ -293,7 +300,7 @@ impl AuthTotpService {
     {
       if let Some(profile_val) = profiles.pop() {
         let profile: ProfileEntity = serde_json::from_value(profile_val)
-          .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
+          .map_err(|e| Response::error(&format!("Failed to parse profile: {}", e)))?;
         return Ok(Some(profile));
       }
     }
@@ -304,7 +311,7 @@ impl AuthTotpService {
       {
         if let Some(profile_val) = profiles.pop() {
           let profile: ProfileEntity = serde_json::from_value(profile_val)
-            .map_err(|e| err_response(&format!("Failed to parse profile: {}", e)))?;
+            .map_err(|e| Response::error(&format!("Failed to parse profile: {}", e)))?;
           return Ok(Some(profile));
         }
       }

@@ -3,9 +3,10 @@ use crate::repositories::data_provider::DataProvider;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;
 use crate::services::permission_service::PermissionService;
-use crate::utils::{response_helper::err_response, security::security_projection};
+use crate::utils::security::security_projection;
 use nosql_orm::query::Filter;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 #[derive(PartialEq)]
 pub enum DataSource {
   Local,
@@ -41,7 +42,7 @@ pub fn get_provider_for_table(
     DataSource::Cloud => mongodb_provider
       .as_ref()
       .ok_or_else(|| {
-        err_response(
+        Response::error(
           "MongoDB not available - cannot create shared/team records. Please connect to the internet or change todo visibility to private.",
         )
       })

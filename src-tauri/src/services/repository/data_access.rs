@@ -14,11 +14,8 @@ use crate::services::entity_resolution_service::EntityResolutionService;
 use crate::services::permission_service::PermissionService;
 use crate::services::profile_service::ProfileService;
 use crate::utils::{
-  load_param::parse_load_param,
-  relation_stripper::strip_relation_fields,
-  response_helper::{err_response, err_response_formatted, success_response},
-  security::security_projection,
-  user_sync,
+  load_param::parse_load_param, relation_stripper::strip_relation_fields,
+  security::security_projection, user_sync,
 };
 use nosql_orm::cache::QueryCache;
 use nosql_orm::provider::DatabaseProvider;
@@ -28,6 +25,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::Instant;
 use tauri::Emitter;
+use tauri_shared::response::Response;
 pub struct RepositoryService {
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
@@ -143,7 +141,7 @@ impl RepositoryService {
           DataSource::Local => ProviderType::Json,
           _ => ProviderType::Mongo,
         };
-        let id_str = id.ok_or_else(|| err_response("ID required for sync"))?;
+        let id_str = id.ok_or_else(|| Response::error("ID required for sync"))?;
         self
           .handle_sync_to_provider(table, id_str, target, visibility)
           .await
@@ -155,7 +153,10 @@ impl RepositoryService {
           )
           .await
       }
-      _ => Err(err_response(&format!("Unknown operation: {}", operation))),
+      _ => Err(Response::error(&format!(
+        "Unknown operation: {}",
+        operation
+      ))),
     }
   }
   async fn handle_get_all(
@@ -301,7 +302,10 @@ impl RepositoryService {
       filter_out_deleted(docs)
     };
     let _ = start.elapsed();
-    Ok(success_response(apply_projection_recursive(docs)))
+    Ok(Response::success(
+      serde_json::json!(apply_projection_recursive(docs)),
+      None,
+    ))
   }
   async fn handle_search(
     &self,
@@ -359,7 +363,7 @@ impl RepositoryService {
               if let Some(f) = filter.as_ref() {
                 if let Some(fuid) = f.get("user_id").and_then(|v| v.as_str()) {
                   if fuid != uid {
-                    return Err(err_response("Unauthorized: user_id mismatch"));
+                    return Err(Response::error("Unauthorized: user_id mismatch"));
                   }
                 }
               }
@@ -547,7 +551,10 @@ impl RepositoryService {
       filter_out_deleted(docs)
     };
     let _ = start.elapsed();
-    Ok(success_response(apply_projection_recursive(docs)))
+    Ok(Response::success(
+      serde_json::json!(apply_projection_recursive(docs)),
+      None,
+    ))
   }
   async fn handle_get(
     &self,
@@ -586,7 +593,7 @@ impl RepositoryService {
           } else {
             if let Some(f) = &filter {
               let filter_obj = nosql_orm::query::Filter::from_json(f)
-                .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+                .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
               let json_docs = json
                 .find_many(&table, Some(&filter_obj), None, None, None, true)
                 .await
@@ -599,12 +606,14 @@ impl RepositoryService {
               if combined.len() == 1 {
                 combined
               } else if combined.is_empty() {
-                return Err(err_response("Document not found"));
+                return Err(Response::error("Document not found"));
               } else {
-                return Err(err_response("Multiple documents found, use getAll instead"));
+                return Err(Response::error(
+                  "Multiple documents found, use getAll instead",
+                ));
               }
             } else {
-              return Err(err_response("Document not found"));
+              return Err(Response::error("Document not found"));
             }
           }
         }
@@ -613,7 +622,7 @@ impl RepositoryService {
           None => {
             if let Some(f) = &filter {
               let filter_obj = nosql_orm::query::Filter::from_json(f)
-                .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+                .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
               provider
                 .find_many(&table, Some(&filter_obj), None, None, None, true)
                 .await?
@@ -622,33 +631,37 @@ impl RepositoryService {
               if visibility_str == "private" {
                 if let Some(mongo) = mongo_provider {
                   match mongo.find_by_id(&table, id_val).await {
-                    Ok(Some(d)) => return Ok(success_response(serde_json::json!(d))),
+                    Ok(Some(d)) => return Ok(Response::success(serde_json::json!(d), None)),
                     _ => {}
                   }
                 }
               }
-              return Err(err_response("Document not found"));
+              return Err(Response::error("Document not found"));
             } else {
-              return Err(err_response("Document not found"));
+              return Err(Response::error("Document not found"));
             }
           }
         },
       }
     } else if let Some(f) = &filter {
       let filter_obj = nosql_orm::query::Filter::from_json(f)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
       let filter_docs = provider
         .find_many(&table, Some(&filter_obj), None, None, None, true)
         .await?;
       if filter_docs.len() == 1 {
         filter_docs
       } else if filter_docs.is_empty() {
-        return Err(err_response("Document not found"));
+        return Err(Response::error("Document not found"));
       } else {
-        return Err(err_response("Multiple documents found, use getAll instead"));
+        return Err(Response::error(
+          "Multiple documents found, use getAll instead",
+        ));
       }
     } else {
-      return Err(err_response("ID or filter is required for get operation"));
+      return Err(Response::error(
+        "ID or filter is required for get operation",
+      ));
     };
     let load_paths = parse_load_param(load);
     let docs = if !load_paths.is_empty() {
@@ -707,7 +720,7 @@ impl RepositoryService {
       if let Some(user) = &user_id {
         for doc in &projected {
           if !PermissionService::can_view_todo(doc, user) {
-            return Err(err_response(
+            return Err(Response::error(
               "Unauthorized: You do not have permission to view this todo",
             ));
           }
@@ -717,14 +730,18 @@ impl RepositoryService {
     let _ = start.elapsed();
     if id.is_some() {
       if !projected.is_empty() {
-        Ok(success_response(projected.into_iter().next().ok_or_else(
-          || err_response("Document not found after projection"),
-        )?))
+        Ok(Response::success(
+          projected
+            .into_iter()
+            .next()
+            .ok_or_else(|| Response::error("Document not found after projection"))?,
+          None,
+        ))
       } else {
-        Err(err_response("Document not found after projection"))
+        Err(Response::error("Document not found after projection"))
       }
     } else {
-      Ok(success_response(serde_json::json!(projected)))
+      Ok(Response::success(serde_json::json!(projected), None))
     }
   }
   async fn handle_create(
@@ -735,7 +752,7 @@ impl RepositoryService {
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    let mut data_val = data.ok_or_else(|| err_response("Data required for create"))?;
+    let mut data_val = data.ok_or_else(|| Response::error("Data required for create"))?;
     let mut visibility_str = if visibility.is_some() {
       resolve_visibility_for_offline(visibility)
     } else if let Some(serde_json::Value::String(vis_from_data)) = data_val.get("visibility") {
@@ -868,7 +885,7 @@ impl RepositoryService {
             let todo = provider.find_by_id("todos", &todo_id).await.ok().flatten();
             if let Some(todo) = todo {
               if !PermissionService::can_add_task_to_todo(&todo, uid) {
-                return Err(err_response(
+                return Err(Response::error(
                   "Unauthorized: You do not have permission to add content to this todo",
                 ));
               }
@@ -884,7 +901,7 @@ impl RepositoryService {
                   let permission = PermissionService::get_todo_permission(&todo, uid);
                   if permission.map(|p| p.can_create_comment()).unwrap_or(false) {
                   } else {
-                    return Err(err_response(
+                    return Err(Response::error(
                       "Unauthorized: You do not have permission to add comments to this todo",
                     ));
                   }
@@ -896,7 +913,7 @@ impl RepositoryService {
       }
     }
     let validated_data = validate_model(&table, &data_val, true, Some(visibility_str.clone()))
-      .map_err(|e| err_response_formatted("Validation failed", &e))?;
+      .map_err(|e| Response::error(format!("Validation failed: {}", e)))?;
     let created_record = provider.insert(&table, validated_data).await?;
     self.cache_service.invalidate_collection(&table).await;
     if table == "profiles" {
@@ -1005,7 +1022,7 @@ impl RepositoryService {
     let response_doc = projection.apply_recursive(&final_record);
     let _ = start.elapsed();
     self.emit_db_change_event("created", &table, &response_doc);
-    Ok(success_response(serde_json::json!(response_doc)))
+    Ok(Response::success(serde_json::json!(response_doc), None))
   }
   async fn handle_github_sync_comment(
     &self,
@@ -1070,7 +1087,7 @@ impl RepositoryService {
         comment_content,
       )
       .await
-      .map_err(|e| err_response(&e))?;
+      .map_err(|e| Response::error(&e))?;
     let mut updated_record = comment_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert(
@@ -1169,7 +1186,7 @@ impl RepositoryService {
         &issue_body,
       )
       .await
-      .map_err(|e| err_response(&e))?;
+      .map_err(|e| Response::error(&e))?;
     let mut updated_record = task_record.clone();
     if let Some(obj) = updated_record.as_object_mut() {
       obj.insert("github_issue_id".to_string(), serde_json::json!(issue.id));
@@ -1209,12 +1226,12 @@ impl RepositoryService {
       .json_provider
       .find_many(table_name, Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&format!("Database error: {}", e)))?
+      .map_err(|e| Response::error(&format!("Database error: {}", e)))?
       .into_iter()
       .next()
-      .ok_or_else(|| err_response("User not found"))?;
-    let user: crate::entities::user_entity::UserEntity =
-      serde_json::from_value(user_val).map_err(|e| err_response(&format!("Parse error: {}", e)))?;
+      .ok_or_else(|| Response::error("User not found"))?;
+    let user: crate::entities::user_entity::UserEntity = serde_json::from_value(user_val)
+      .map_err(|e| Response::error(&format!("Parse error: {}", e)))?;
     Ok(user.github_access_token)
   }
   async fn get_subtasks_for_task(
@@ -1240,10 +1257,10 @@ impl RepositoryService {
     visibility: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    let data_val = data.ok_or_else(|| err_response("Data required for updateAll"))?;
+    let data_val = data.ok_or_else(|| Response::error("Data required for updateAll"))?;
     let raw_records = data_val
       .as_array()
-      .ok_or_else(|| err_response("Data must be an array for updateAll"))?
+      .ok_or_else(|| Response::error("Data must be an array for updateAll"))?
       .clone();
     let mut validated_records: Vec<Value> = Vec::with_capacity(raw_records.len());
     let visibility_str = resolve_visibility_for_offline(visibility.clone());
@@ -1255,7 +1272,7 @@ impl RepositoryService {
     )?;
     for record in raw_records {
       let validated = validate_model(&table, &record, false, visibility.clone())
-        .map_err(|e| err_response_formatted("Validation failed in updateAll", &e))?;
+        .map_err(|e| Response::error(format!("Validation failed in updateAll: {}", e)))?;
       if let Some(id) = validated.get("id").and_then(|v| v.as_str()) {
         if let Ok(Some(existing)) = provider.find_by_id(&table, id).await {
           let mut validated_with_immutable = validated;
@@ -1275,7 +1292,10 @@ impl RepositoryService {
     }
     let projected_records = apply_projection_recursive(validated_records);
     let _ = start.elapsed();
-    Ok(success_response(serde_json::json!(projected_records)))
+    Ok(Response::success(
+      serde_json::json!(projected_records),
+      None,
+    ))
   }
   async fn handle_update(
     &self,
@@ -1286,10 +1306,10 @@ impl RepositoryService {
     user_id: Option<String>,
   ) -> Result<ResponseModel, ResponseModel> {
     let _start = Instant::now();
-    let id_str = id.ok_or_else(|| err_response("ID required for update"))?;
-    let data_val = data.ok_or_else(|| err_response("Data required for update"))?;
+    let id_str = id.ok_or_else(|| Response::error("ID required for update"))?;
+    let data_val = data.ok_or_else(|| Response::error("Data required for update"))?;
     let validated_data = validate_model(&table, &data_val, false, visibility.clone())
-      .map_err(|e| err_response_formatted("Validation failed", &e))?;
+      .map_err(|e| Response::error(format!("Validation failed: {}", e)))?;
     let new_visibility = validated_data
       .get("visibility")
       .and_then(|v| v.as_str())
@@ -1321,19 +1341,19 @@ impl RepositoryService {
             }
           }
           (
-            found_record.ok_or_else(|| err_response("Document not found"))?,
+            found_record.ok_or_else(|| Response::error("Document not found"))?,
             found_provider.unwrap_or(DataProvider::Json(Arc::new(self.json_provider.clone()))),
           )
         }
       };
     let uid = user_id.as_deref().unwrap_or("");
     let permission_denied = || {
-      Err(err_response(
+      Err(Response::error(
         "Unauthorized: You do not have permission to update this record",
       ))
     };
     let permission_denied_todo = || {
-      Err(err_response(
+      Err(Response::error(
         "Unauthorized: You do not have permission to update this todo",
       ))
     };
@@ -1385,7 +1405,7 @@ impl RepositoryService {
       }
       "categories" => {
         if !uid.is_empty() && !PermissionService::can_edit_category(&existing_record, uid) {
-          return Err(err_response(
+          return Err(Response::error(
             "Unauthorized: You do not have permission to update this category",
           ));
         }
@@ -1408,8 +1428,7 @@ impl RepositoryService {
       for (k, v) in update_obj {
         merged.insert(k.clone(), v.clone());
       }
-      serde_json::to_value(merged)
-        .map_err(|e| err_response_formatted("Merge failed", &e.to_string()))?
+      serde_json::to_value(merged).map_err(|e| Response::error(format!("Merge failed: {}", e)))?
     } else {
       validated_data.clone()
     };
@@ -1574,7 +1593,7 @@ impl RepositoryService {
       .await;
     let projection = security_projection();
     let response_doc = projection.apply_recursive(&updated_record);
-    Ok(success_response(serde_json::json!(response_doc)))
+    Ok(Response::success(serde_json::json!(response_doc), None))
   }
   async fn handle_delete(
     &self,
@@ -1585,7 +1604,7 @@ impl RepositoryService {
     is_permanent: bool,
   ) -> Result<ResponseModel, ResponseModel> {
     let start = Instant::now();
-    let id_str = id.ok_or_else(|| err_response("ID required for delete"))?;
+    let id_str = id.ok_or_else(|| Response::error("ID required for delete"))?;
     let visibility_str = resolve_visibility_for_offline(visibility);
     let provider = get_provider_for_table(
       &self.json_provider,
@@ -1599,7 +1618,7 @@ impl RepositoryService {
         match table.as_str() {
           "todos" => {
             if !PermissionService::can_delete_todo(&existing, uid) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to delete this todo",
               ));
             }
@@ -1619,7 +1638,7 @@ impl RepositoryService {
               };
               if let Some(todo) = found_todo {
                 if !PermissionService::can_delete_task(&existing, &todo, uid) {
-                  return Err(err_response(
+                  return Err(Response::error(
                     "Unauthorized: You do not have permission to delete this task",
                   ));
                 }
@@ -1637,7 +1656,7 @@ impl RepositoryService {
               .await
               {
                 if !PermissionService::can_delete_subtask(&existing, &todo.0, &todo.1, uid) {
-                  return Err(err_response(
+                  return Err(Response::error(
                     "Unauthorized: You do not have permission to delete this subtask",
                   ));
                 }
@@ -1646,7 +1665,7 @@ impl RepositoryService {
           }
           "categories" => {
             if !PermissionService::can_delete_category(&existing, uid) {
-              return Err(err_response(
+              return Err(Response::error(
                 "Unauthorized: You do not have permission to delete this category",
               ));
             }
@@ -1788,7 +1807,7 @@ impl RepositoryService {
       .await;
     let _ = start.elapsed();
     self.emit_db_change_event("deleted", &table, &serde_json::json!({"id": id_str}));
-    Ok(success_response(serde_json::json!(id_str.clone())))
+    Ok(Response::success(serde_json::json!(id_str.clone()), None))
   }
   async fn handle_soft_delete_cascade(
     &self,
@@ -1830,7 +1849,7 @@ impl RepositoryService {
         .sync_entity_to_json(&table, &id)
         .await?;
     }
-    Ok(success_response(serde_json::json!(id)))
+    Ok(Response::success(serde_json::json!(id), None))
   }
   async fn build_filter_for_table(
     &self,
@@ -2184,7 +2203,10 @@ async fn load_relations_unified<P: DatabaseProvider + Clone>(
       if err_msg.contains("Unknown relation") {
         return Ok(docs);
       }
-      Err(err_response_formatted("Relation loading failed", &err_msg))
+      Err(Response::error(&format!(
+        "Relation loading failed: {}",
+        err_msg
+      )))
     }
   }
 }
@@ -2228,20 +2250,20 @@ async fn fix_todo_counts_if_needed(
     DataProvider::Json(p) => p
       .find_many("todos", Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| err_response_formatted("Database error", &e.to_string()))?,
+      .map_err(|e| Response::error(format!("Database error: {}", e)))?,
     DataProvider::Mongo(p) => p
       .find_many("todos", Some(&filter), None, None, None, true)
       .await
-      .map_err(|e| err_response_formatted("Database error", &e.to_string()))?,
+      .map_err(|e| Response::error(format!("Database error: {}", e)))?,
     DataProvider::Both(json, mongo) => {
       let local = json
         .find_many("todos", Some(&filter), None, None, None, true)
         .await
-        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
+        .map_err(|e| Response::error(format!("Database error: {}", e)))?;
       let cloud = mongo
         .find_many("todos", Some(&filter), None, None, None, true)
         .await
-        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
+        .map_err(|e| Response::error(format!("Database error: {}", e)))?;
       merge_documents(local, cloud)
     }
   };

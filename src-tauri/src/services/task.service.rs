@@ -3,9 +3,9 @@ use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use crate::utils::cascade::soft_delete_cascade_all;
-use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct TaskService {
   base: BaseCrudService,
 }
@@ -24,7 +24,7 @@ impl TaskService {
       .get_json_provider()
       .find_by_id("tasks", id)
       .await?
-      .ok_or_else(|| err_response("Task not found"))?;
+      .ok_or_else(|| Response::error("Task not found"))?;
     let todo_id = doc.get("todo_id").and_then(|v| v.as_str()).unwrap_or("");
     let visibility = get_visibility(&doc);
     if !todo_id.is_empty() {
@@ -34,13 +34,13 @@ impl TaskService {
         .await?
       {
         if !PermissionService::can_view_todo(&todo, user_id) {
-          return Err(err_response(
+          return Err(Response::error(
             "Unauthorized: You do not have permission to view this task",
           ));
         }
       }
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn get_all(
     &self,
@@ -57,7 +57,7 @@ impl TaskService {
         "todos",
         Some(
           &nosql_orm::query::Filter::from_json(&todos_filter)
-            .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+            .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
         ),
         None,
         None,
@@ -70,7 +70,7 @@ impl TaskService {
       .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
       .collect();
     if todo_ids.is_empty() {
-      return Ok(success_response(serde_json::Value::Array(vec![])));
+      return Ok(Response::success(serde_json::Value::Array(vec![]), None));
     }
     let mut task_filter = json!({
       "todo_id": { "$in": todo_ids }
@@ -82,12 +82,12 @@ impl TaskService {
     }
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&task_filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = provider
       .find_many("tasks", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(docs))
+    Ok(Response::success(serde_json::json!(docs), None))
   }
   pub async fn create(
     &self,
@@ -100,14 +100,14 @@ impl TaskService {
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_add_task_to_todo(&todo, user_id) {
-          return Err(err_response(
+          return Err(Response::error(
             "Unauthorized: You do not have permission to add tasks to this todo",
           ));
         }
       }
     }
     let doc = provider.insert("tasks", data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn update(
     &self,
@@ -120,7 +120,7 @@ impl TaskService {
       .get_json_provider()
       .find_by_id("tasks", id)
       .await?
-      .ok_or_else(|| err_response("Task not found"))?;
+      .ok_or_else(|| Response::error("Task not found"))?;
     let visibility = get_visibility(&existing);
     let provider = self.get_provider(visibility)?;
     let todo_id = existing
@@ -130,14 +130,14 @@ impl TaskService {
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_edit_task(&existing, &todo, user_id) {
-          return Err(err_response(
+          return Err(Response::error(
             "Unauthorized: You do not have permission to edit this task",
           ));
         }
       }
     }
     let doc = provider.patch("tasks", id, data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
@@ -145,7 +145,7 @@ impl TaskService {
       .get_json_provider()
       .find_by_id("tasks", id)
       .await?
-      .ok_or_else(|| err_response("Task not found"))?;
+      .ok_or_else(|| Response::error("Task not found"))?;
     let visibility = get_visibility(&existing);
     let provider = self.get_provider(visibility)?;
     let todo_id = existing
@@ -155,13 +155,13 @@ impl TaskService {
     if !todo_id.is_empty() {
       if let Some(todo) = provider.find_by_id("todos", todo_id).await? {
         if !PermissionService::can_delete_task(&existing, &todo, user_id) {
-          return Err(err_response(
+          return Err(Response::error(
             "Unauthorized: You do not have permission to delete this task",
           ));
         }
       }
     }
     let _ = soft_delete_cascade_all(&provider, "tasks", id).await;
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), None))
   }
 }

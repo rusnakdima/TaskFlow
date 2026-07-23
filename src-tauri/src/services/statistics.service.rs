@@ -8,7 +8,7 @@ use nosql_orm::providers::JsonProvider;
 use crate::entities::statistics_entity::StatisticsResponseModel;
 use crate::models::response::{ResponseModel, ResponseStatus};
 /* helpers */
-use crate::utils::response_helper::err_response;
+use tauri_shared::response::Response;
 /* statistics modules */
 use crate::services::statistics::{
   category_statistics::CategoryStatistics, chart_generator::ChartGenerator,
@@ -42,7 +42,7 @@ impl StatisticsService {
       .get_daily_activities_filtered(&user_id, &prev_start_naive, &prev_end_naive)
       .await;
     let todos_filter = Filter::from_json(&json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let todos: Vec<Value> = self
       .json_provider
       .find_many("todos", Some(&todos_filter), None, None, None, true)
@@ -100,7 +100,7 @@ impl StatisticsService {
       .cloned()
       .collect();
     let user_id_filter = Filter::from_json(&json!({ "user_id": user_id }))
-      .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
     let categories: Vec<Value> = self
       .json_provider
       .find_many("categories", Some(&user_id_filter), None, None, None, true)

@@ -3,9 +3,9 @@ use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;
 use crate::utils::cascade::soft_delete_cascade_all;
-use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct CategoryService {
   base: BaseCrudService,
 }
@@ -24,13 +24,13 @@ impl CategoryService {
       .get_json_provider()
       .find_by_id("categories", id)
       .await?
-      .ok_or_else(|| err_response("Category not found"))?;
+      .ok_or_else(|| Response::error("Category not found"))?;
     if !PermissionService::can_view_category(&doc, user_id) {
-      return Err(err_response(
+      return Err(Response::error(
         "Unauthorized: You do not have permission to view this category",
       ));
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, Some("Operation successful")))
   }
   pub async fn get_all(
     &self,
@@ -49,18 +49,21 @@ impl CategoryService {
       });
       Some(
         nosql_orm::query::Filter::from_json(&combined)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       )
     } else {
       Some(
         nosql_orm::query::Filter::from_json(&permission_filter)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       )
     };
     let docs = provider
       .find_many("categories", final_filter.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(docs))
+    Ok(Response::success(
+      serde_json::json!(docs),
+      Some("Operation successful"),
+    ))
   }
   pub async fn create(
     &self,
@@ -69,7 +72,7 @@ impl CategoryService {
   ) -> Result<ResponseModel, ResponseModel> {
     let provider = self.get_provider(visibility)?;
     let doc = provider.insert("categories", data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, Some("Operation successful")))
   }
   pub async fn update(
     &self,
@@ -82,16 +85,16 @@ impl CategoryService {
       .get_json_provider()
       .find_by_id("categories", id)
       .await?
-      .ok_or_else(|| err_response("Category not found"))?;
+      .ok_or_else(|| Response::error("Category not found"))?;
     if !PermissionService::can_edit_category(&existing, user_id) {
-      return Err(err_response(
+      return Err(Response::error(
         "Unauthorized: You do not have permission to edit this category",
       ));
     }
     let stored_visibility = get_visibility(&existing);
     let provider = self.get_provider(stored_visibility)?;
     let doc = provider.patch("categories", id, data).await?;
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let existing = self
@@ -99,15 +102,15 @@ impl CategoryService {
       .get_json_provider()
       .find_by_id("categories", id)
       .await?
-      .ok_or_else(|| err_response("Category not found"))?;
+      .ok_or_else(|| Response::error("Category not found"))?;
     if !PermissionService::can_delete_category(&existing, user_id) {
-      return Err(err_response(
+      return Err(Response::error(
         "Unauthorized: You do not have permission to delete this category",
       ));
     }
     let stored_visibility = get_visibility(&existing);
     let provider = self.get_provider(stored_visibility)?;
     let _ = soft_delete_cascade_all(&provider, "categories", id).await;
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), Some("Operation successful")))
   }
 }

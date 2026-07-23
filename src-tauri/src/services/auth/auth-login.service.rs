@@ -12,7 +12,8 @@ use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 use crate::entities::login_form_entity::LoginForm;
 use crate::models::response::{ResponseModel, ResponseStatus};
 /* helpers */
-use crate::utils::{auth::find_user_by_username, response_helper::err_response};
+use crate::utils::auth::find_user_by_username;
+use tauri_shared::response::Response;
 #[derive(Clone)]
 pub struct AuthLoginService {
   pub json_provider: JsonProvider,
@@ -47,9 +48,9 @@ impl AuthLoginService {
     )
     .await?;
     let valid = verify(password, &user.password)
-      .map_err(|e| err_response(&format!("Error verifying password: {}", e)))?;
+      .map_err(|e| Response::error(&format!("Error verifying password: {}", e)))?;
     if !valid {
-      return Err(err_response("Invalid password"));
+      return Err(Response::error("Invalid password"));
     }
     let user_id = user.id().to_string();
     let profile = self

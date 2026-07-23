@@ -1,10 +1,10 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
-use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
+use tauri_shared::response::Response;
 pub struct ChatService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,
@@ -27,8 +27,8 @@ impl ChatService {
       .json_provider
       .find_by_id("chats", id)
       .await?
-      .ok_or_else(|| err_response("Chat not found"))?;
-    Ok(success_response(doc))
+      .ok_or_else(|| Response::error("Chat not found"))?;
+    Ok(Response::success(doc, None))
   }
   pub async fn get_by_room(
     &self,
@@ -39,7 +39,7 @@ impl ChatService {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let docs = self
       .json_provider
@@ -106,7 +106,7 @@ impl ChatService {
       }
       enriched_docs.push(enriched);
     }
-    Ok(success_response(enriched_docs))
+    Ok(Response::success(serde_json::json!(enriched_docs), None))
   }
   pub async fn get_all(
     &self,
@@ -120,14 +120,14 @@ impl ChatService {
     let provider = if use_json {
       self.json_provider.clone()
     } else {
-      self.mongo_provider.clone().ok_or_else(|| err_response(
+      self.mongo_provider.clone().ok_or_else(|| Response::error(
         "MongoDB not available - cannot access shared/team records. Please connect to the internet or change visibility to private.",
       ))?
     };
     let filter_opt = if let Some(f) = filter {
       Some(
         nosql_orm::query::Filter::from_json(&f)
-          .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+          .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
       )
     } else {
       None
@@ -135,12 +135,12 @@ impl ChatService {
     let docs = provider
       .find_many("chats", filter_opt.as_ref(), skip, limit, None, true)
       .await?;
-    Ok(success_response(docs))
+    Ok(Response::success(serde_json::json!(docs), None))
   }
   pub async fn create(&self, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut create_data = data;
     create_data["created_at"] = serde_json::json!(now);
@@ -150,12 +150,12 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.insert("chats", doc.clone()).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn update(&self, id: &str, data: Value) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let mut update_data = data;
     update_data["updated_at"] = serde_json::json!(now);
@@ -164,16 +164,16 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn mark_read(&self, id: &str, user_id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing: Value = mongo
       .find_by_id("chats", id)
       .await?
-      .ok_or_else(|| err_response("Chat not found"))?;
+      .ok_or_else(|| Response::error("Chat not found"))?;
     let mut read_by: Vec<String> = existing
       .get("read_by")
       .and_then(|v| v.as_array())
@@ -194,16 +194,16 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let existing: Value = mongo
       .find_by_id("chats", id)
       .await?
-      .ok_or_else(|| err_response("Chat not found"))?;
+      .ok_or_else(|| Response::error("Chat not found"))?;
     let _visibility = get_visibility(&existing);
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "deleted_at": now, "updated_at": now });
@@ -214,18 +214,21 @@ impl ChatService {
       let _ = cascade.soft_delete("chats", id).await;
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(json!({})))
+    Ok(Response::success(json!({}), None))
   }
   pub async fn hard_delete(&self, id: &str) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let _ = mongo.delete("chats", id).await;
     let json_provider = self.get_json_provider();
     if let DataProvider::Json(p) = json_provider {
       let _ = p.delete("chats", id).await;
     }
-    Ok(success_response(json!({ "id": id, "deleted": true })))
+    Ok(Response::success(
+      json!({ "id": id, "deleted": true }),
+      None,
+    ))
   }
   pub async fn edit_message(
     &self,
@@ -234,7 +237,7 @@ impl ChatService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "content": content, "updated_at": now, "is_edited": true });
     let doc: Value = mongo.patch("chats", id, update_data.clone()).await?;
@@ -242,7 +245,7 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn add_reaction(
     &self,
@@ -252,11 +255,11 @@ impl ChatService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let chat = mongo
       .find_by_id("chats", message_id)
       .await?
-      .ok_or_else(|| err_response("Message not found"))?;
+      .ok_or_else(|| Response::error("Message not found"))?;
     let mut reactions = chat
       .get("reactions")
       .and_then(|v| v.as_array())
@@ -293,7 +296,7 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", message_id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn remove_reaction(
     &self,
@@ -303,11 +306,11 @@ impl ChatService {
   ) -> Result<ResponseModel, ResponseModel> {
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let chat = mongo
       .find_by_id("chats", message_id)
       .await?
-      .ok_or_else(|| err_response("Message not found"))?;
+      .ok_or_else(|| Response::error("Message not found"))?;
     let reactions = chat
       .get("reactions")
       .and_then(|v| v.as_array())
@@ -342,17 +345,17 @@ impl ChatService {
     if let DataProvider::Json(p) = json_provider {
       let _ = p.patch("chats", message_id, update_data).await;
     }
-    Ok(success_response(doc))
+    Ok(Response::success(doc, None))
   }
   pub async fn delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let update_data = json!({ "deleted_at": now, "updated_at": now });
     let docs: Vec<serde_json::Value> = mongo
@@ -385,19 +388,20 @@ impl ChatService {
         }
       }
     }
-    Ok(success_response(
+    Ok(Response::success(
       json!({ "room_id": room_id, "deleted": true }),
+      None,
     ))
   }
   pub async fn hard_delete_by_room(&self, room_id: &str) -> Result<ResponseModel, ResponseModel> {
     let filter = json!({ "room_id": room_id });
     let filter_opt = Some(
       nosql_orm::query::Filter::from_json(&filter)
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?,
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?,
     );
     let mongo = self
       .get_mongo_provider()
-      .ok_or_else(|| err_response("MongoDB not available"))?;
+      .ok_or_else(|| Response::error("MongoDB not available"))?;
     let docs: Vec<serde_json::Value> = mongo
       .find_many("chats", filter_opt.as_ref(), None, None, None, true)
       .await
@@ -426,8 +430,9 @@ impl ChatService {
         }
       }
     }
-    Ok(success_response(
+    Ok(Response::success(
       json!({ "room_id": room_id, "deleted": true }),
+      None,
     ))
   }
 }

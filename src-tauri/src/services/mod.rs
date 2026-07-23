@@ -4,8 +4,6 @@ pub mod base_crud_service;
 pub mod category_service;
 #[path = "chat.service.rs"]
 pub mod chat_service;
-#[path = "crud_service.rs"]
-pub mod crud_service;
 #[path = "db-backup.service.rs"]
 pub mod db_backup;
 #[path = "group.service.rs"]
