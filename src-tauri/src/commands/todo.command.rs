@@ -5,11 +5,11 @@ crud_route!(create_todo, "todos", "create");
 crud_route!(update_todo, "todos", "update");
 crud_route!(delete_todo, "todos", "delete");
 use crate::models::response::ResponseModel;
-use crate::utils::response_helper::{err_response, success_response};
 use crate::utils::visibility::get_visibility;
 use crate::AppState;
 use std::collections::HashMap;
 use tauri::State;
+use tauri_shared::response::Response;
 #[tauri::command(rename_all = "snake_case")]
 pub async fn change_todo_visibility(
   state: State<'_, AppState>,
@@ -19,7 +19,7 @@ pub async fn change_todo_visibility(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::utils::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let existing = state
@@ -39,16 +39,18 @@ pub async fn change_todo_visibility(
       None,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let doc = match existing.data {
     Some(serde_json::Value::Object(obj)) => obj,
-    _ => return Err(err_response("Invalid response format")),
+    _ => return Err(Response::error("Invalid response format")),
   };
   let doc_value = serde_json::to_value(&doc).unwrap_or_default();
   let old_visibility = get_visibility(&doc_value);
   if old_visibility == new_visibility.as_str() {
-    return Ok(success_response(
-      serde_json::json!({ "message": "Visibility unchanged" }),
+    return Ok(Response::success(
+      serde_json::to_value(serde_json::json!({ "message": "Visibility unchanged" }))
+        .unwrap_or(serde_json::Value::Null),
+      Some("Operation successful"),
     ));
   }
   let update_data = serde_json::json!({ "visibility": new_visibility });
@@ -69,7 +71,7 @@ pub async fn change_todo_visibility(
       None,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let source_provider = match old_visibility {
     "private" => "Json",
     _ => "Mongo",
@@ -89,10 +91,12 @@ pub async fn change_todo_visibility(
         false,
       )
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
   }
-  Ok(success_response(
-    serde_json::json!({ "message": "Visibility changed successfully" }),
+  Ok(Response::success(
+    serde_json::to_value(serde_json::json!({ "message": "Visibility changed successfully" }))
+      .unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
   ))
 }
 #[tauri::command(rename_all = "snake_case")]
@@ -104,7 +108,7 @@ pub async fn update_todo_permissions(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::utils::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let response_model = state
@@ -124,9 +128,10 @@ pub async fn update_todo_permissions(
       None,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
-  Ok(success_response(
-    serde_json::to_value(response_model).unwrap_or_default(),
+    .map_err(|e| Response::error(&e.message))?;
+  Ok(Response::success(
+    serde_json::to_value(response_model).unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
   ))
 }
 #[tauri::command(rename_all = "snake_case")]
@@ -138,7 +143,7 @@ pub async fn transfer_todo_ownership(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::utils::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let response_model = state
@@ -158,9 +163,10 @@ pub async fn transfer_todo_ownership(
       None,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
-  Ok(success_response(
-    serde_json::to_value(response_model).unwrap_or_default(),
+    .map_err(|e| Response::error(&e.message))?;
+  Ok(Response::success(
+    serde_json::to_value(response_model).unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
   ))
 }
 #[tauri::command(rename_all = "snake_case")]
@@ -171,7 +177,7 @@ pub async fn get_todo_permissions(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = crate::utils::auth::extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let response = state
@@ -194,9 +200,9 @@ pub async fn get_todo_permissions(
   let doc = match response {
     Ok(resp) => match resp.data {
       Some(serde_json::Value::Object(obj)) => obj,
-      _ => return Err(err_response("Invalid response format")),
+      _ => return Err(Response::error("Invalid response format")),
     },
-    Err(e) => return Err(err_response(&e.message)),
+    Err(e) => return Err(Response::error(&e.message)),
   };
   let assignee_roles: HashMap<String, String> = doc
     .get("assignee_roles")
@@ -210,7 +216,9 @@ pub async fn get_todo_permissions(
         .collect()
     })
     .unwrap_or_default();
-  Ok(success_response(
-    serde_json::json!({ "assignee_roles": assignee_roles }),
+  Ok(Response::success(
+    serde_json::to_value(serde_json::json!({ "assignee_roles": assignee_roles }))
+      .unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
   ))
 }

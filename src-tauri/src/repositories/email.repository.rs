@@ -1,11 +1,12 @@
 use crate::entities::email_config::EmailConfig;
-use crate::utils::config::ConfigHelper;
+use tauri_shared::env::EnvConfig;
 #[derive(Clone)]
 pub struct EmailProvider {
+  #[allow(dead_code)]
   config: EmailConfig,
 }
 impl EmailProvider {
-  pub fn from_config(config: &ConfigHelper) -> Result<Self, String> {
+  pub fn from_config(config: &EnvConfig) -> Result<Self, String> {
     let email_config = EmailConfig {
       smtp_username: config.smtp_username.clone(),
       smtp_password: config.smtp_password.clone(),

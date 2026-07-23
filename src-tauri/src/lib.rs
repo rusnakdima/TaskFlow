@@ -1,6 +1,7 @@
 /* imports */
 mod commands;
-mod entities;
+mod domain;
+pub mod entities;
 mod errors;
 mod models;
 mod repositories;
@@ -11,8 +12,11 @@ use crate::repositories::data_provider::DataProvider;
 use std::sync::Arc;
 use tauri::{Manager, State};
 /* utils */
-use crate::utils::{activity_log::ActivityLogHelper, config::ConfigHelper};
+use crate::utils::activity_log::ActivityLogHelper;
+use tauri_shared::algorithms::AlgorithmRegistry;
+use tauri_shared::env::EnvConfig;
 /* commands */
+use crate::commands::stats_command;
 use commands::{
   admin_command::{
     batch_hard_delete_cascade, batch_restore_cascade, batch_restore_json,
@@ -37,7 +41,6 @@ use commands::{
   category_command::{
     create_category, delete_category, get_categories, get_category, update_category,
   },
-  crud_command::crud_execute,
   group_command::{
     add_group_members, add_message_reaction, create_group, delete_group, delete_group_cascade,
     delete_message, delete_room_messages, edit_message, ensure_rooms_for_groups, get_group_by_room,
@@ -48,9 +51,7 @@ use commands::{
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
   schema_command::{
     delete_schema, get_all_schemas, get_schema, get_ui_schema, save_schema, save_ui_schema,
-    SchemaState,
   },
-  stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
   todo_command::{
@@ -66,7 +67,6 @@ use services::{
   cascade::{CascadeService, CountService},
   category_service::CategoryService,
   chat_service::ChatService,
-  crud_service::CrudService,
   entity_resolution_service::EntityResolutionService,
   group_service::GroupService,
   manage_db_service::ManageDbService,
@@ -82,6 +82,8 @@ use services::{
   user::user_sync::UserSyncService,
 };
 /* tauri_shared */
+use tauri_shared::crud::service::CrudService;
+use tauri_shared::storage::{setup_schema_system, SchemaConfig, SchemaSyncState};
 /* nosql_orm */
 use crate::models::response::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
@@ -123,7 +125,7 @@ async fn search_data(
   use crate::utils::auth::extract_user_from_token;
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .ok();
   let filter = if !query.is_empty() {
@@ -241,10 +243,9 @@ pub struct AppState {
   pub data: DataState,
   pub chat: ChatState,
   pub system: SystemState,
-  pub schema: SchemaState,
 }
 pub struct ConfigState {
-  pub config_helper: Arc<ConfigHelper>,
+  pub env_config: EnvConfig,
   pub json_provider: JsonProvider,
   pub mongodb_provider: Option<Arc<MongoProvider>>,
 }
@@ -303,18 +304,21 @@ pub fn run() {
   }
   builder
     .setup(|app| {
-      let config_helper = Arc::new(ConfigHelper::new());
+      let env_config = EnvConfig::load();
       let app_data_dir = app
         .path()
         .app_data_dir()
         .expect("Failed to get app data directory. Ensure app is properly initialized.");
       let json_db_path = app_data_dir.clone();
       std::fs::create_dir_all(&json_db_path).ok();
+      let config = SchemaConfig::from_env("taskflow", app_data_dir.clone());
+      let system = tauri::async_runtime::block_on(setup_schema_system(config))
+        .expect("Failed to setup schema system");
       let json_provider = tauri::async_runtime::block_on(JsonProvider::new(&json_db_path))
         .expect("Failed to create JSON provider");
       let mongodb_provider = {
-        let uri = config_helper.mongo_db_uri.clone();
-        let db_name = config_helper.mongo_db_name.clone();
+        let uri = env_config.mongo_uri.clone();
+        let db_name = env_config.mongo_db_name.clone();
         match tauri::async_runtime::block_on(MongoProvider::connect(&uri, &db_name)) {
           Ok(p) => Some(Arc::new(p)),
           Err(e) => {
@@ -401,8 +405,8 @@ pub fn run() {
       let auth_service = Arc::new(AuthService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
-        config_helper.jwt_secret.clone(),
-        config_helper.rp_domain.clone(),
+        env_config.jwt_secret.clone(),
+        env_config.rp_domain.clone(),
         Some(auth_data_sync_service.clone()),
         profile_sync_unified_service.as_ref().clone(),
       ));
@@ -421,19 +425,22 @@ pub fn run() {
         json_provider.clone(),
         mongodb_provider.clone(),
         cascade_service.clone(),
-        config_helper.mongo_db_uri.clone(),
-        config_helper.mongo_db_name.clone(),
+        env_config.mongo_uri.clone(),
+        env_config.mongo_db_name.clone(),
       ));
       let notification_service = Arc::new(NotificationService::new(
         json_provider.clone(),
         mongodb_provider.clone(),
       ));
-      let schema_state = SchemaState::new(json_provider.clone());
       app.manage(json_provider.clone());
+      if let Some(sync) = system.sync_service {
+        app.manage(sync);
+      }
+      app.manage(AlgorithmRegistry::new());
       app.manage(AppState {
         logger: Arc::new(()),
         config: ConfigState {
-          config_helper,
+          env_config,
           json_provider,
           mongodb_provider,
         },
@@ -463,7 +470,6 @@ pub fn run() {
           profile_service,
           statistics_service,
         },
-        schema: schema_state,
       });
       Ok(())
     })
@@ -509,7 +515,7 @@ pub fn run() {
       get_all_archive_paginated,
       soft_delete,
       permanent_delete,
-      statistics_get,
+      stats_command::statistics_get,
       batch_soft_delete_cascade,
       batch_hard_delete_cascade,
       batch_restore_cascade,
@@ -588,12 +594,14 @@ pub fn run() {
       update_category,
       delete_category,
       get_schema,
+      tauri_shared::commands::algorithm_commands::execute_algorithm,
+      tauri_shared::commands::algorithm_commands::list_algorithms,
+      tauri_shared::get_schema,
       save_schema,
       get_all_schemas,
       delete_schema,
       get_ui_schema,
       save_ui_schema,
-      crud_execute,
       tauri_shared::check_for_update_command,
       tauri_shared::download_update_command,
       tauri_shared::install_update_command,

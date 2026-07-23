@@ -33,7 +33,7 @@ pub async fn request_password_reset(
   state
     .auth
     .auth_service
-    .request_password_reset(email, &state.config.config_helper)
+    .request_password_reset(email, &state.config.env_config)
     .await
 }
 #[tauri::command]
@@ -60,7 +60,7 @@ pub async fn change_password(
   state
     .auth
     .auth_service
-    .change_password(&token, &state.config.config_helper.jwt_secret, new_password)
+    .change_password(&token, &state.config.env_config.jwt_secret, new_password)
     .await
 }
 #[tauri::command]
@@ -202,19 +202,20 @@ pub async fn initialize_user_data(
     .auth_data_sync_service
     .initialize_user_data(&user_id)
     .await?;
-  Ok(crate::utils::response_helper::success_response(
-    serde_json::to_value(result).unwrap_or(serde_json::json!({})),
+  Ok(Response::success(
+    serde_json::to_value(result).unwrap_or(serde_json::Value::Null),
+    Some("Operation successful"),
   ))
 }
 use crate::models::response::ResponseModel as Resp;
 use crate::repositories::mongodb_provider::MongoProvider;
 use crate::services::github_service::GithubService;
-use crate::utils::response_helper::{err_response, err_response_formatted, success_response};
 use crate::AppState as AppSt;
 use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::json;
 use std::sync::Arc;
+use tauri_shared::response::Response;
 async fn get_user_github_token(
   state: &AppSt,
   user_id: &str,
@@ -227,14 +228,14 @@ async fn get_user_github_token(
     .json_provider
     .find_many(table_name, Some(&filter), None, None, None, true)
     .await
-    .map_err(|e| err_response_formatted("Database error", &e.to_string()))?
+    .map_err(|e| Response::error(format!("Database error: {}", e)))?
     .into_iter()
     .next()
-    .ok_or_else(|| err_response("User not found"))?;
+    .ok_or_else(|| Response::error("User not found"))?;
   let user = serde_json::from_value::<crate::entities::user_entity::UserEntity>(user_val)
-    .map_err(|e| err_response_formatted("Failed to parse user", &e.to_string()))?;
+    .map_err(|e| Response::error(format!("Failed to parse user: {}", e)))?;
   if user.github_access_token.is_empty() {
-    return Err(err_response("GitHub not connected"));
+    return Err(Response::error("GitHub not connected"));
   }
   Ok((user.github_access_token.clone(), user))
 }
@@ -262,7 +263,7 @@ async fn update_user_github_tokens(
   json_provider
     .patch(table_name, &update.user_id, update_data.clone())
     .await
-    .map_err(|e| err_response_formatted("Failed to patch user", &e.to_string()))?;
+    .map_err(|e| Response::error(format!("Failed to patch user: {}", e)))?;
   if let Some(mongo) = mongo_provider {
     let _ = mongo.patch(table_name, &update.user_id, update_data).await;
   }
@@ -270,25 +271,28 @@ async fn update_user_github_tokens(
 }
 #[tauri::command]
 pub async fn github_oauth_url(state: State<'_, AppSt>) -> Result<Resp, Resp> {
-  let client_id_github = state.config.config_helper.client_id_github.clone();
+  let client_id_github = state.config.env_config.client_id_github.clone();
   if client_id_github.is_empty() {
-    return Err(err_response(
+    return Err(Response::error(
       "GitHub OAuth not configured. Set CLIENT_ID_GITHUB in .env",
     ));
   }
-  let redirect_uri = if state.config.config_helper.callback_url_github.is_empty() {
+  let redirect_uri = if state.config.env_config.callback_url_github.is_empty() {
     format!(
       "https://{}/github/callback",
-      state.config.config_helper.rp_domain
+      state.config.env_config.rp_domain
     )
   } else {
-    state.config.config_helper.callback_url_github.clone()
+    state.config.env_config.callback_url_github.clone()
   };
   let service = GithubService::new();
   let url = service
     .get_authorization_url(&client_id_github, &redirect_uri)
     .await;
-  Ok(success_response(serde_json::json!(url)))
+  Ok(Response::success(
+    serde_json::json!(url),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_oauth_callback(
@@ -296,10 +300,10 @@ pub async fn github_oauth_callback(
   user_id: String,
   code: String,
 ) -> Result<Resp, Resp> {
-  let client_id_github = state.config.config_helper.client_id_github.clone();
-  let client_secret_github = state.config.config_helper.client_secret_github.clone();
+  let client_id_github = state.config.env_config.client_id_github.clone();
+  let client_secret_github = state.config.env_config.client_secret_github.clone();
   if client_id_github.is_empty() || client_secret_github.is_empty() {
-    return Err(err_response(
+    return Err(Response::error(
       "GitHub OAuth not configured. Set CLIENT_ID_GITHUB and CLIENT_SECRET_GITHUB in .env",
     ));
   }
@@ -307,11 +311,11 @@ pub async fn github_oauth_callback(
   let tokens = service
     .exchange_code_for_token(&client_id_github, &client_secret_github, &code)
     .await
-    .map_err(|e| err_response_formatted("GitHub OAuth failed", &e))?;
+    .map_err(|e| Response::error(format!("GitHub OAuth failed: {}", e)))?;
   let github_user = service
     .get_user(&tokens.access_token)
     .await
-    .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
+    .map_err(|e| Response::error(format!("Failed to get GitHub user: {}", e)))?;
   let github_username = github_user.login.clone();
   let _ = update_user_github_tokens(
     &state.data.repository_service.json_provider,
@@ -326,11 +330,14 @@ pub async fn github_oauth_callback(
     },
   )
   .await;
-  Ok(success_response(serde_json::json!({
-    "username": github_user.login,
-    "user_id": github_user.id.to_string(),
-    "avatar_url": github_user.avatar_url
-  })))
+  Ok(Response::success(
+    serde_json::json!({
+      "username": github_user.login,
+      "user_id": github_user.id.to_string(),
+      "avatar_url": github_user.avatar_url
+    }),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_get_repos(state: State<'_, AppSt>, user_id: String) -> Result<Resp, Resp> {
@@ -339,7 +346,7 @@ pub async fn github_get_repos(state: State<'_, AppSt>, user_id: String) -> Resul
   let repos = service
     .get_repos(&access_token)
     .await
-    .map_err(|e| err_response_formatted("Failed to get repos", &e))?;
+    .map_err(|e| Response::error(format!("Failed to get repos: {}", e)))?;
   let repo_list: Vec<serde_json::Value> = repos
     .into_iter()
     .map(|r| {
@@ -354,7 +361,10 @@ pub async fn github_get_repos(state: State<'_, AppSt>, user_id: String) -> Resul
       })
     })
     .collect();
-  Ok(success_response(serde_json::json!(repo_list)))
+  Ok(Response::success(
+    serde_json::json!(repo_list),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_get_connection_status(
@@ -362,14 +372,20 @@ pub async fn github_get_connection_status(
   user_id: String,
 ) -> Result<Resp, Resp> {
   match get_user_github_token(&state, &user_id).await {
-    Ok((_, user)) => Ok(success_response(serde_json::json!({
-      "connected": true,
-      "username": user.github_username,
-      "user_id": user.github_user_id
-    }))),
-    Err(_) => Ok(success_response(serde_json::json!({
-      "connected": false
-    }))),
+    Ok((_, user)) => Ok(Response::success(
+      serde_json::json!({
+        "connected": true,
+        "username": user.github_username,
+        "user_id": user.github_user_id
+      }),
+      Some("Operation successful"),
+    )),
+    Err(_) => Ok(Response::success(
+      serde_json::json!({
+        "connected": false
+      }),
+      Some("Operation successful"),
+    )),
   }
 }
 #[tauri::command]
@@ -388,11 +404,14 @@ pub async fn github_disconnect(state: State<'_, AppSt>, user_id: String) -> Resu
     .json_provider
     .patch(table_name, &user_id, update_data.clone())
     .await
-    .map_err(|e| err_response_formatted("Failed to patch user", &e.to_string()))?;
+    .map_err(|e| Response::error(format!("Failed to patch user: {}", e)))?;
   if let Some(mongo) = state.data.repository_service.mongodb_provider.as_ref() {
     let _ = mongo.patch(table_name, &user_id, update_data).await;
   }
-  Ok(success_response(serde_json::json!("Disconnected")))
+  Ok(Response::success(
+    serde_json::json!("Disconnected"),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_create_issue(
@@ -408,13 +427,16 @@ pub async fn github_create_issue(
   let issue = service
     .create_issue(&access_token, &repo_owner, &repo_name, &title, &body)
     .await
-    .map_err(|e| err_response_formatted("Failed to create issue", &e))?;
-  Ok(success_response(serde_json::json!({
-    "id": issue.id,
-    "number": issue.number,
-    "html_url": issue.html_url,
-    "title": issue.title
-  })))
+    .map_err(|e| Response::error(format!("Failed to create issue: {}", e)))?;
+  Ok(Response::success(
+    serde_json::json!({
+      "id": issue.id,
+      "number": issue.number,
+      "html_url": issue.html_url,
+      "title": issue.title
+    }),
+    None,
+  ))
 }
 #[tauri::command]
 pub async fn github_create_comment(
@@ -430,11 +452,14 @@ pub async fn github_create_comment(
   let comment = service
     .create_comment(&access_token, &repo_owner, &repo_name, issue_number, &body)
     .await
-    .map_err(|e| err_response_formatted("Failed to create comment", &e))?;
-  Ok(success_response(serde_json::json!({
-    "id": comment.id,
-    "html_url": comment.html_url
-  })))
+    .map_err(|e| Response::error(format!("Failed to create comment: {}", e)))?;
+  Ok(Response::success(
+    serde_json::json!({
+      "id": comment.id,
+      "html_url": comment.html_url
+    }),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_update_issue(
@@ -458,19 +483,22 @@ pub async fn github_update_issue(
       &body,
     )
     .await
-    .map_err(|e| err_response_formatted("Failed to update issue", &e))?;
-  Ok(success_response(serde_json::json!({
-    "id": issue.id,
-    "number": issue.number,
-    "html_url": issue.html_url,
-    "title": issue.title
-  })))
+    .map_err(|e| Response::error(format!("Failed to update issue: {}", e)))?;
+  Ok(Response::success(
+    serde_json::json!({
+      "id": issue.id,
+      "number": issue.number,
+      "html_url": issue.html_url,
+      "title": issue.title
+    }),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_start_device_flow(state: State<'_, AppSt>) -> Result<Resp, Resp> {
-  let client_id_github = state.config.config_helper.client_id_github.clone();
+  let client_id_github = state.config.env_config.client_id_github.clone();
   if client_id_github.is_empty() {
-    return Err(err_response(
+    return Err(Response::error(
       "GitHub OAuth not configured. Set CLIENT_ID_GITHUB in .env",
     ));
   }
@@ -478,12 +506,15 @@ pub async fn github_start_device_flow(state: State<'_, AppSt>) -> Result<Resp, R
   let (device_code, user_code, verification_uri) = service
     .start_device_code_flow(&client_id_github)
     .await
-    .map_err(|e| err_response_formatted("Failed to start device flow", &e))?;
-  Ok(success_response(serde_json::json!({
-    "device_code": device_code,
-    "user_code": user_code,
-    "verification_uri": verification_uri
-  })))
+    .map_err(|e| Response::error(format!("Failed to start device flow: {}", e)))?;
+  Ok(Response::success(
+    serde_json::json!({
+      "device_code": device_code,
+      "user_code": user_code,
+      "verification_uri": verification_uri
+    }),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn github_check_device_flow(
@@ -491,9 +522,9 @@ pub async fn github_check_device_flow(
   device_code: String,
   user_id: String,
 ) -> Result<Resp, Resp> {
-  let client_id_github = state.config.config_helper.client_id_github.clone();
+  let client_id_github = state.config.env_config.client_id_github.clone();
   if client_id_github.is_empty() {
-    return Err(err_response(
+    return Err(Response::error(
       "GitHub OAuth not configured. Set client_id_github in .env",
     ));
   }
@@ -506,7 +537,7 @@ pub async fn github_check_device_flow(
       let github_user = service
         .get_user(&tokens.access_token)
         .await
-        .map_err(|e| err_response_formatted("Failed to get GitHub user", &e))?;
+        .map_err(|e| Response::error(format!("Failed to get GitHub user: {}", e)))?;
       let access_token_clone = tokens.access_token.clone();
       let refresh_token_clone = tokens.refresh_token.clone();
       let expires_in_clone = tokens.expires_in;
@@ -523,20 +554,26 @@ pub async fn github_check_device_flow(
         },
       )
       .await;
-      Ok(success_response(serde_json::json!({
-        "success": true,
-        "access_token": tokens.access_token,
-        "refresh_token": tokens.refresh_token,
-        "expires_in": tokens.expires_in,
-        "username": github_user.login,
-        "user_id": github_user.id.to_string(),
-        "avatar_url": github_user.avatar_url
-      })))
+      Ok(Response::success(
+        serde_json::json!({
+          "success": true,
+          "access_token": tokens.access_token,
+          "refresh_token": tokens.refresh_token,
+          "expires_in": tokens.expires_in,
+          "username": github_user.login,
+          "user_id": github_user.id.to_string(),
+          "avatar_url": github_user.avatar_url
+        }),
+        Some("Operation successful"),
+      ))
     }
-    Ok(None) => Ok(success_response(serde_json::json!({
-      "success": false,
-      "pending": true
-    }))),
-    Err(e) => Err(err_response(&e)),
+    Ok(None) => Ok(Response::success(
+      serde_json::json!({
+        "success": false,
+        "pending": true
+      }),
+      Some("Operation successful"),
+    )),
+    Err(e) => Err(Response::error(e)),
   }
 }

@@ -6,9 +6,9 @@ crud_route!(update_group, "groups", "update");
 crud_route!(delete_group, "groups", "delete");
 use crate::models::response::ResponseModel;
 use crate::utils::auth::extract_user_from_token;
-use crate::utils::response_helper::success_response;
 use crate::AppState;
 use tauri::State;
+use tauri_shared::response::Response;
 #[tauri::command]
 pub async fn get_group_by_room(
   state: State<'_, AppState>,
@@ -17,7 +17,7 @@ pub async fn get_group_by_room(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.group_service.get_by_room_id(&room_id).await
@@ -31,7 +31,7 @@ pub async fn add_group_members(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.group_service.add_members(&id, member_ids).await
@@ -45,7 +45,7 @@ pub async fn remove_group_members(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state
@@ -62,7 +62,7 @@ pub async fn delete_group_cascade(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.group_service.hard_delete_cascade(&id).await
@@ -77,7 +77,7 @@ pub async fn get_messages_by_room(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state
@@ -99,7 +99,7 @@ pub async fn send_message(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let _ = state
@@ -130,7 +130,7 @@ pub async fn ensure_rooms_for_groups(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   let filter = serde_json::json!({});
@@ -179,10 +179,13 @@ pub async fn ensure_rooms_for_groups(
     let _ = state.chat.room_service.create(room_data).await?;
     created_count += 1;
   }
-  Ok(success_response(serde_json::json!({
-    "created": created_count,
-    "skipped": skipped_count
-  })))
+  Ok(Response::success(
+    serde_json::json!({
+      "created": created_count,
+      "skipped": skipped_count
+    }),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn mark_message_read(
@@ -193,7 +196,7 @@ pub async fn mark_message_read(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.mark_read(&id, &user_id).await
@@ -206,7 +209,7 @@ pub async fn delete_message(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.delete(&id).await
@@ -219,7 +222,7 @@ pub async fn hard_delete_message(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.hard_delete(&id).await
@@ -233,7 +236,7 @@ pub async fn edit_message(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.edit_message(&id, &content).await
@@ -247,7 +250,7 @@ pub async fn add_message_reaction(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state
@@ -265,7 +268,7 @@ pub async fn remove_message_reaction(
 ) -> Result<ResponseModel, ResponseModel> {
   let user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state
@@ -282,7 +285,7 @@ pub async fn delete_room_messages(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.delete_by_room(&room_id).await
@@ -295,7 +298,7 @@ pub async fn hard_delete_room_messages(
 ) -> Result<ResponseModel, ResponseModel> {
   let _ = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   )
   .map_err(|e| e)?;
   state.chat.chat_service.hard_delete_by_room(&room_id).await

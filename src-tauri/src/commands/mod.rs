@@ -10,8 +10,6 @@ pub mod category_command;
 pub mod chat_command;
 #[path = "comment.command.rs"]
 pub mod comment_command;
-#[path = "crud_command.rs"]
-pub mod crud_command;
 #[path = "daily_activity.command.rs"]
 pub mod daily_activity_command;
 #[path = "group.command.rs"]
@@ -24,6 +22,7 @@ pub mod profile_command;
 pub mod room_command;
 #[path = "schema.command.rs"]
 pub mod schema_command;
+
 #[path = "stats.command.rs"]
 pub mod stats_command;
 #[path = "subtask.command.rs"]

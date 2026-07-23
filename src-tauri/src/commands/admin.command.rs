@@ -1,9 +1,9 @@
 use crate::models::response::{ResponseModel, ResponseStatus};
 use crate::services::cascade::CascadeResult;
 use crate::utils::auth::{extract_user_from_token, validate_admin_role, validate_user_owns_data};
-use crate::utils::response_helper::{err_response, err_response_formatted, success_response};
 use crate::AppState;
 use tauri::State;
+use tauri_shared::response::Response;
 #[tauri::command]
 pub async fn get_all_admin_data(
   state: State<'_, AppState>,
@@ -11,7 +11,7 @@ pub async fn get_all_admin_data(
 ) -> Result<ResponseModel, ResponseModel> {
   validate_admin_role(
     &token,
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
     &state.system.manage_db_service.json_provider,
     state
       .system
@@ -36,7 +36,7 @@ pub async fn get_all_admin_paginated(
 ) -> Result<ResponseModel, ResponseModel> {
   validate_admin_role(
     &token,
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
     &state.config.json_provider,
     state
       .system
@@ -60,7 +60,7 @@ pub async fn soft_remove_data(
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
-    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
+    extract_user_from_token(&token, &state.config.env_config.jwt_secret).map_err(|e| e)?;
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
   let result = if use_json {
     state
@@ -75,7 +75,10 @@ pub async fn soft_remove_data(
       .soft_delete_cascade_mongo(&table, &id)
       .await?
   };
-  Ok(success_response(result))
+  Ok(Response::success(
+    serde_json::to_value(&result).unwrap_or_default(),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn hard_remove_data(
@@ -86,7 +89,7 @@ pub async fn hard_remove_data(
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
-    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
+    extract_user_from_token(&token, &state.config.env_config.jwt_secret).map_err(|e| e)?;
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
   let result = if use_json {
     state
@@ -101,7 +104,10 @@ pub async fn hard_remove_data(
       .permanent_delete_cascade_mongo(&table, &id)
       .await?
   };
-  Ok(success_response(result))
+  Ok(Response::success(
+    serde_json::to_value(&result).unwrap_or_default(),
+    Some("Operation successful"),
+  ))
 }
 #[tauri::command]
 pub async fn batch_soft_delete_cascade(
@@ -112,7 +118,7 @@ pub async fn batch_soft_delete_cascade(
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
-    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
+    extract_user_from_token(&token, &state.config.env_config.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
@@ -136,10 +142,7 @@ pub async fn batch_soft_delete_cascade(
     }
   }
   if results.is_empty() || all_failed {
-    return Err(err_response_formatted(
-      "All batch soft delete operations failed",
-      "",
-    ));
+    return Err(Response::error("All batch soft delete operations failed"));
   }
   Ok(ResponseModel {
     status: ResponseStatus::Success,
@@ -159,7 +162,7 @@ pub async fn batch_hard_delete_cascade(
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
-    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
+    extract_user_from_token(&token, &state.config.env_config.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
   let use_json = visibility.as_deref() == Some("private") || visibility.is_none();
@@ -183,10 +186,7 @@ pub async fn batch_hard_delete_cascade(
     }
   }
   if results.is_empty() || all_failed {
-    return Err(err_response_formatted(
-      "All batch hard delete operations failed",
-      "",
-    ));
+    return Err(Response::error("All batch hard delete operations failed"));
   }
   Ok(ResponseModel {
     status: ResponseStatus::Success,
@@ -206,7 +206,7 @@ pub async fn batch_restore_cascade(
   visibility: Option<String>,
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id =
-    extract_user_from_token(&token, &state.config.config_helper.jwt_secret).map_err(|e| e)?;
+    extract_user_from_token(&token, &state.config.env_config.jwt_secret).map_err(|e| e)?;
   let mut results: Vec<CascadeResult> = Vec::new();
   let mut all_failed = true;
   let mut all_affected_todo_ids: Vec<String> = Vec::new();
@@ -232,10 +232,7 @@ pub async fn batch_restore_cascade(
     }
   }
   if results.is_empty() || all_failed {
-    return Err(err_response_formatted(
-      "All batch restore operations failed",
-      "",
-    ));
+    return Err(Response::error("All batch restore operations failed"));
   }
   if !all_affected_todo_ids.is_empty() {
     let unique_todo_ids: Vec<String> = all_affected_todo_ids
@@ -277,7 +274,7 @@ pub async fn import_to_local(
   user_id: String,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
+  validate_user_owns_data(&token, &state.config.env_config.jwt_secret, &user_id)?;
   state
     .system
     .manage_db_service
@@ -291,9 +288,9 @@ pub async fn export_to_cloud(
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
   if user_id.is_empty() {
-    return Err(err_response("Missing required parameter: user_id"));
+    return Err(Response::error("Missing required parameter: user_id"));
   };
-  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
+  validate_user_owns_data(&token, &state.config.env_config.jwt_secret, &user_id)?;
   state
     .system
     .manage_db_service
@@ -332,11 +329,11 @@ pub async fn sync_visibility_to_provider(
 ) -> Result<ResponseModel, ResponseModel> {
   let _user_id = extract_user_from_token(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
   );
   let cascade_service = state.data.cascade_service.clone();
   if source_provider == target_provider {
-    return Err(err_response("Visibility is already set to this value"));
+    return Err(Response::error("Visibility is already set to this value"));
   }
   let delete_from_src =
     delete_from_source.unwrap_or_else(|| source_provider == "Json" && target_provider == "Mongo");
@@ -344,7 +341,7 @@ pub async fn sync_visibility_to_provider(
     "todo" | "todos" => "todos",
     "category" | "categories" => "categories",
     _ => {
-      return Err(err_response(&format!(
+      return Err(Response::error(&format!(
         "Unknown entity type: {}",
         entity_type
       )))
@@ -426,7 +423,7 @@ pub async fn get_tasks_by_month(
   let is_offline = offline.unwrap_or(false);
   let effective_visibility = visibility.as_deref().unwrap_or("private");
   if is_offline && effective_visibility != "private" {
-    return Err(err_response(
+    return Err(Response::error(
       "Operation not available while offline. Please connect to the internet and try again.",
     ));
   }
@@ -517,7 +514,7 @@ pub async fn import_private_to_local(
   user_id: String,
   token: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  validate_user_owns_data(&token, &state.config.config_helper.jwt_secret, &user_id)?;
+  validate_user_owns_data(&token, &state.config.env_config.jwt_secret, &user_id)?;
   state
     .system
     .manage_db_service

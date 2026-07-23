@@ -16,15 +16,15 @@ macro_rules! crud_route {
       token: Option<String>,
     ) -> Result<crate::models::response::ResponseModel, crate::models::response::ResponseModel> {
       use crate::utils::auth::{extract_profile_from_token, extract_user_from_token};
-      use crate::utils::response_helper::err_response;
+      use tauri_shared::response::Response;
       let user_id = extract_user_from_token(
         token.as_deref().unwrap_or(""),
-        &state.config.config_helper.jwt_secret,
+        &state.config.env_config.jwt_secret,
       )
       .ok();
       let profile_id = extract_profile_from_token(
         token.as_deref().unwrap_or(""),
-        &state.config.config_helper.jwt_secret,
+        &state.config.env_config.jwt_secret,
       )
       .ok();
       let data = data.map(|mut d| {
@@ -54,7 +54,7 @@ macro_rules! crud_route {
           limit,
         )
         .await
-        .map_err(|e| err_response(&e.message))
+        .map_err(|e| Response::error(&e.message))
     }
   };
 }

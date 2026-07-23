@@ -1,5 +1,4 @@
-// Re-export types from schema_service for use by Tauri commands
-pub use crate::services::schema_service::UiSchema;
+pub use tauri_shared::schema::UiSchema;
 
 use crate::models::response::ResponseModel;
 use crate::services::schema_service::SchemaService;
@@ -73,6 +72,7 @@ pub struct SchemaState {
 }
 
 impl SchemaState {
+  #[allow(dead_code)]
   pub fn new(json_provider: JsonProvider) -> Self {
     Self {
       schema_service: Arc::new(SchemaService::new(Arc::new(json_provider))),

@@ -1,19 +1,19 @@
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::auth::{extract_user_from_token, validate_admin_role};
-use crate::utils::response_helper::{err_response, success_response};
 use crate::AppState;
 use nosql_orm::prelude::DatabaseProvider;
 use nosql_orm::query::Filter;
 use std::sync::Arc;
 use tauri::State;
+use tauri_shared::response::Response;
 fn extract_user_id(
   state: &AppState,
   token: &Option<String>,
 ) -> Result<Option<String>, ResponseModel> {
   let user_id = token
     .as_ref()
-    .and_then(|t| extract_user_from_token(t, &state.config.config_helper.jwt_secret).ok());
+    .and_then(|t| extract_user_from_token(t, &state.config.env_config.jwt_secret).ok());
   Ok(user_id)
 }
 fn get_json_provider(state: &AppState) -> DataProvider {
@@ -32,7 +32,7 @@ fn archive_filter(user_id: Option<&str>) -> Result<Filter, ResponseModel> {
       "deleted_at": { "$isNotNull": true }
     }),
   };
-  Filter::from_json(&filter).map_err(|e| err_response(&format!("Filter error: {}", e)))
+  Filter::from_json(&filter).map_err(|e| Response::error(&format!("Filter error: {}", e)))
 }
 #[tauri::command]
 pub async fn get_all_archive_data(
@@ -47,27 +47,27 @@ pub async fn get_all_archive_data(
     let all_todos = provider
       .find_many("todos", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_tasks = provider
       .find_many("tasks", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_subtasks = provider
       .find_many("subtasks", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_comments = provider
       .find_many("comments", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_chats = provider
       .find_many("chats", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_categories = provider
       .find_many("categories", Some(&deleted_filter), None, None, None, true)
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let all_activities = provider
       .find_many(
         "daily_activities",
@@ -78,7 +78,7 @@ pub async fn get_all_archive_data(
         true,
       )
       .await
-      .map_err(|e| err_response(&e.message))?;
+      .map_err(|e| Response::error(&e.message))?;
     let result = serde_json::json!({
       "todos": all_todos,
       "tasks": all_tasks,
@@ -88,14 +88,14 @@ pub async fn get_all_archive_data(
       "categories": all_categories,
       "daily_activities": all_activities
     });
-    return Ok(success_response(result));
+    return Ok(Response::success(result, None));
   }
   let user_id_str = user_id.unwrap();
   let user_archive_filter = archive_filter(Some(&user_id_str))?;
   let user_todos = provider
     .find_many("todos", Some(&user_archive_filter), None, None, None, true)
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let task_ids: Vec<String> = user_todos
     .iter()
     .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
@@ -106,11 +106,11 @@ pub async fn get_all_archive_data(
       { "deleted_at": { "$isNotNull": true } }
     ]
   }))
-  .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+  .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
   let user_tasks = provider
     .find_many("tasks", Some(&tasks_filter), None, None, None, true)
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let subtask_task_ids: Vec<String> = user_tasks
     .iter()
     .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
@@ -121,21 +121,21 @@ pub async fn get_all_archive_data(
       { "deleted_at": { "$isNotNull": true } }
     ]
   }))
-  .map_err(|e| err_response(&format!("Filter error: {}", e)))?;
+  .map_err(|e| Response::error(&format!("Filter error: {}", e)))?;
   let user_subtasks = provider
     .find_many("subtasks", Some(&subtasks_filter), None, None, None, true)
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let comments_filter = archive_filter(Some(&user_id_str))?;
   let user_comments = provider
     .find_many("comments", Some(&comments_filter), None, None, None, true)
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let chats_filter = archive_filter(Some(&user_id_str))?;
   let user_chats = provider
     .find_many("chats", Some(&chats_filter), None, None, None, true)
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let categories_filter = archive_filter(Some(&user_id_str))?;
   let user_categories = provider
     .find_many(
@@ -147,7 +147,7 @@ pub async fn get_all_archive_data(
       true,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let daily_activities_filter = archive_filter(Some(&user_id_str))?;
   let user_daily_activities = provider
     .find_many(
@@ -159,7 +159,7 @@ pub async fn get_all_archive_data(
       true,
     )
     .await
-    .map_err(|e| err_response(&e.message))?;
+    .map_err(|e| Response::error(&e.message))?;
   let result = serde_json::json!({
     "todos": user_todos,
     "tasks": user_tasks,
@@ -169,7 +169,7 @@ pub async fn get_all_archive_data(
     "categories": user_categories,
     "daily_activities": user_daily_activities
   });
-  Ok(success_response(result))
+  Ok(Response::success(result, None))
 }
 #[tauri::command]
 pub async fn get_all_archive_paginated(
@@ -196,8 +196,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_todos)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_todos), None))
       }
       "tasks" => {
         let all_tasks = provider
@@ -210,8 +210,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_tasks)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_tasks), None))
       }
       "subtasks" => {
         let all_subtasks = provider
@@ -224,8 +224,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_subtasks)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_subtasks), None))
       }
       "comments" => {
         let all_comments = provider
@@ -238,8 +238,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_comments)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_comments), None))
       }
       "chats" => {
         let all_chats = provider
@@ -252,8 +252,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_chats)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_chats), None))
       }
       "categories" => {
         let all_categories = provider
@@ -266,8 +266,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_categories)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_categories), None))
       }
       "daily_activities" => {
         let all_activities = provider
@@ -280,8 +280,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_activities)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_activities), None))
       }
       _ => {
         let all_data = provider
@@ -294,12 +294,12 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_data)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_data), None))
       }
     }
   } else {
-    let user_id_str = user_id.ok_or_else(|| err_response("User not authenticated"))?;
+    let user_id_str = user_id.ok_or_else(|| Response::error("User not authenticated"))?;
     let user_archive_filter = archive_filter(Some(&user_id_str))?;
     match data_type.as_str() {
       "todos" => {
@@ -313,20 +313,20 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_todos)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_todos), None))
       }
       "tasks" => {
         let user_todos = provider
           .find_many("todos", Some(&user_archive_filter), None, None, None, true)
           .await
-          .map_err(|e| err_response(&e.message))?;
+          .map_err(|e| Response::error(&e.message))?;
         let todo_ids: Vec<String> = user_todos
           .iter()
           .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
           .collect();
         if todo_ids.is_empty() {
-          return Ok(success_response(serde_json::json!([])));
+          return Ok(Response::success(serde_json::json!([]), None));
         }
         let tasks_filter = Filter::from_json(&serde_json::json!({
           "$and": [
@@ -334,7 +334,7 @@ pub async fn get_all_archive_paginated(
             { "deleted_at": { "$isNotNull": true } }
           ]
         }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
         let tasks = provider
           .find_many(
             "tasks",
@@ -345,20 +345,20 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(tasks)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(tasks), None))
       }
       "subtasks" => {
         let all_tasks = provider
           .find_many("tasks", Some(&user_archive_filter), None, None, None, true)
           .await
-          .map_err(|e| err_response(&e.message))?;
+          .map_err(|e| Response::error(&e.message))?;
         let task_ids: Vec<String> = all_tasks
           .iter()
           .filter_map(|t| t.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
           .collect();
         if task_ids.is_empty() {
-          return Ok(success_response(serde_json::json!([])));
+          return Ok(Response::success(serde_json::json!([]), None));
         }
         let subtasks_filter = Filter::from_json(&serde_json::json!({
           "$and": [
@@ -366,7 +366,7 @@ pub async fn get_all_archive_paginated(
             { "deleted_at": { "$isNotNull": true } }
           ]
         }))
-        .map_err(|e| err_response(&format!("Invalid filter: {}", e)))?;
+        .map_err(|e| Response::error(&format!("Invalid filter: {}", e)))?;
         let subtasks = provider
           .find_many(
             "subtasks",
@@ -377,8 +377,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(subtasks)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(subtasks), None))
       }
       "comments" => {
         let comments = provider
@@ -391,8 +391,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(comments)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(comments), None))
       }
       "chats" => {
         let chats = provider
@@ -405,8 +405,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(chats)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(chats), None))
       }
       "categories" => {
         let categories = provider
@@ -419,8 +419,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(categories)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(categories), None))
       }
       "daily_activities" => {
         let activities = provider
@@ -433,8 +433,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(activities)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(activities), None))
       }
       _ => {
         let all_data = provider
@@ -447,8 +447,8 @@ pub async fn get_all_archive_paginated(
             true,
           )
           .await
-          .map_err(|e| err_response(&e.message))?;
-        Ok(success_response(serde_json::json!(all_data)))
+          .map_err(|e| Response::error(&e.message))?;
+        Ok(Response::success(serde_json::json!(all_data), None))
       }
     }
   }
@@ -465,7 +465,7 @@ pub async fn soft_delete(
   let user_id = extract_user_id(&state, &token)?;
   let is_global_admin = validate_admin_role(
     token.as_deref().unwrap_or(""),
-    &state.config.config_helper.jwt_secret,
+    &state.config.env_config.jwt_secret,
     &state.config.json_provider,
     state.config.mongodb_provider.as_ref(),
   )
@@ -484,10 +484,10 @@ pub async fn soft_delete(
       } else {
         None
       };
-      let todo = todo.ok_or_else(|| err_response("Todo not found"))?;
+      let todo = todo.ok_or_else(|| Response::error("Todo not found"))?;
       let user_id_str = user_id
         .as_ref()
-        .ok_or_else(|| err_response("User not found"))?;
+        .ok_or_else(|| Response::error("User not found"))?;
       let permission = crate::services::permission_service::PermissionService::get_todo_permission_with_profile_and_admin(
         &todo,
         user_id_str,
@@ -498,7 +498,7 @@ pub async fn soft_delete(
         match table.as_str() {
           "todos" => {
             if !perm.can_archive_todo() {
-              return Err(err_response(
+              return Err(Response::error(
                 "You don't have permission to archive this project",
               ));
             }
@@ -545,7 +545,7 @@ pub async fn soft_delete(
               false
             };
             if !can_archive {
-              return Err(err_response(&format!(
+              return Err(Response::error(&format!(
                 "You don't have permission to archive this {}",
                 table
               )));

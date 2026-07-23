@@ -1,10 +1,10 @@
 use crate::models::response::ResponseModel;
-use crate::utils::response_helper::err_response_formatted;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
 use serde_json::Value;
 use std::sync::Arc;
+use tauri_shared::response::Response;
 #[derive(Clone)]
 pub enum DataProvider {
   Json(Arc<JsonProvider>),
@@ -25,18 +25,18 @@ impl DataProvider {
       DataProvider::Json(p) => {
         DatabaseProvider::find_many(p.as_ref(), table, filter, skip, limit, sort_by, sort_asc)
           .await
-          .map_err(|e| err_response_formatted("Query failed", &e.to_string()))
+          .map_err(|e| Response::error(format!("Query failed: {}", e)))
       }
       DataProvider::Mongo(p) => {
         DatabaseProvider::find_many(p.as_ref(), table, filter, skip, limit, sort_by, sort_asc)
           .await
-          .map_err(|e| err_response_formatted("Query failed", &e.to_string()))
+          .map_err(|e| Response::error(format!("Query failed: {}", e)))
       }
       DataProvider::Both(json, mongo) => {
         let local =
           DatabaseProvider::find_many(json.as_ref(), table, filter, skip, limit, sort_by, sort_asc)
             .await
-            .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
+            .map_err(|e| Response::error(format!("Database error: {}", e)))?;
         let cloud = DatabaseProvider::find_many(
           mongo.as_ref(),
           table,
@@ -47,7 +47,7 @@ impl DataProvider {
           sort_asc,
         )
         .await
-        .map_err(|e| err_response_formatted("Database error", &e.to_string()))?;
+        .map_err(|e| Response::error(format!("Database error: {}", e)))?;
         Ok(local.into_iter().chain(cloud).collect())
       }
     }
@@ -56,10 +56,10 @@ impl DataProvider {
     match self {
       DataProvider::Json(p) => DatabaseProvider::find_by_id(p.as_ref(), table, id)
         .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string())),
+        .map_err(|e| Response::error(format!("Query failed: {}", e))),
       DataProvider::Mongo(p) => DatabaseProvider::find_by_id(p.as_ref(), table, id)
         .await
-        .map_err(|e| err_response_formatted("Query failed", &e.to_string())),
+        .map_err(|e| Response::error(format!("Query failed: {}", e))),
       DataProvider::Both(json, mongo) => {
         if let Ok(result) = DatabaseProvider::find_by_id(json.as_ref(), table, id).await {
           if result.is_some() {
@@ -68,7 +68,7 @@ impl DataProvider {
         }
         DatabaseProvider::find_by_id(mongo.as_ref(), table, id)
           .await
-          .map_err(|e| err_response_formatted("Query failed", &e.to_string()))
+          .map_err(|e| Response::error(format!("Query failed: {}", e)))
       }
     }
   }
@@ -76,10 +76,10 @@ impl DataProvider {
     match self {
       DataProvider::Json(p) => DatabaseProvider::insert(p.as_ref(), table, data)
         .await
-        .map_err(|e| err_response_formatted("Create failed in JSON", &e.to_string())),
+        .map_err(|e| Response::error(format!("Create failed in JSON: {}", e))),
       DataProvider::Mongo(p) => DatabaseProvider::insert(p.as_ref(), table, data)
         .await
-        .map_err(|e| err_response_formatted("Create failed in MongoDB", &e.to_string())),
+        .map_err(|e| Response::error(format!("Create failed in MongoDB: {}", e))),
       DataProvider::Both(json, mongo) => {
         let json_result = DatabaseProvider::insert(json.as_ref(), table, data.clone()).await;
         match json_result {
@@ -87,10 +87,7 @@ impl DataProvider {
             let _ = DatabaseProvider::insert(mongo.as_ref(), table, data).await;
             Ok(result)
           }
-          Err(e) => Err(err_response_formatted(
-            "Create failed in JSON",
-            &e.to_string(),
-          )),
+          Err(e) => Err(Response::error(&format!("Create failed in JSON: {}", e))),
         }
       }
     }
@@ -99,14 +96,14 @@ impl DataProvider {
     match self {
       DataProvider::Json(p) => DatabaseProvider::update(p.as_ref(), table, id, data)
         .await
-        .map_err(|e| err_response_formatted("Update failed in JSON", &e.to_string())),
+        .map_err(|e| Response::error(format!("Update failed in JSON: {}", e))),
       DataProvider::Mongo(p) => DatabaseProvider::update(p.as_ref(), table, id, data)
         .await
-        .map_err(|e| err_response_formatted("Update failed in MongoDB", &e.to_string())),
+        .map_err(|e| Response::error(format!("Update failed in MongoDB: {}", e))),
       DataProvider::Both(json, mongo) => {
         let json_result = DatabaseProvider::update(json.as_ref(), table, id, data.clone()).await;
         let _ = DatabaseProvider::update(mongo.as_ref(), table, id, data).await;
-        json_result.map_err(|e| err_response_formatted("Update failed in JSON", &e.to_string()))
+        json_result.map_err(|e| Response::error(format!("Update failed in JSON: {}", e)))
       }
     }
   }
@@ -114,14 +111,14 @@ impl DataProvider {
     match self {
       DataProvider::Json(p) => DatabaseProvider::patch(p.as_ref(), table, id, data)
         .await
-        .map_err(|e| err_response_formatted("Patch failed in JSON", &e.to_string())),
+        .map_err(|e| Response::error(format!("Patch failed in JSON: {}", e))),
       DataProvider::Mongo(p) => DatabaseProvider::patch(p.as_ref(), table, id, data)
         .await
-        .map_err(|e| err_response_formatted("Patch failed in MongoDB", &e.to_string())),
+        .map_err(|e| Response::error(format!("Patch failed in MongoDB: {}", e))),
       DataProvider::Both(json, mongo) => {
         let json_result = DatabaseProvider::patch(json.as_ref(), table, id, data.clone()).await;
         let _ = DatabaseProvider::patch(mongo.as_ref(), table, id, data).await;
-        json_result.map_err(|e| err_response_formatted("Patch failed in JSON", &e.to_string()))
+        json_result.map_err(|e| Response::error(format!("Patch failed in JSON: {}", e)))
       }
     }
   }
@@ -129,14 +126,14 @@ impl DataProvider {
     match self {
       DataProvider::Json(p) => DatabaseProvider::delete(p.as_ref(), table, id)
         .await
-        .map_err(|e| err_response_formatted("Delete failed in JSON", &e.to_string())),
+        .map_err(|e| Response::error(format!("Delete failed in JSON: {}", e))),
       DataProvider::Mongo(p) => DatabaseProvider::delete(p.as_ref(), table, id)
         .await
-        .map_err(|e| err_response_formatted("Delete failed in MongoDB", &e.to_string())),
+        .map_err(|e| Response::error(format!("Delete failed in MongoDB: {}", e))),
       DataProvider::Both(json, mongo) => {
         let json_result = DatabaseProvider::delete(json.as_ref(), table, id).await;
         let _ = DatabaseProvider::delete(mongo.as_ref(), table, id).await;
-        json_result.map_err(|e| err_response_formatted("Delete failed in JSON", &e.to_string()))
+        json_result.map_err(|e| Response::error(format!("Delete failed in JSON: {}", e)))
       }
     }
   }
