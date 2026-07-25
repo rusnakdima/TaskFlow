@@ -2,10 +2,10 @@
 mod commands;
 mod entities;
 mod errors;
-mod models;
-mod repositories;
-mod services;
-mod utils;
+pub mod models;
+pub mod repositories;
+pub mod services;
+pub mod utils;
 /* sys lib */
 use crate::repositories::data_provider::DataProvider;
 use std::sync::Arc;
@@ -38,9 +38,6 @@ use commands::{
     request_password_reset, reset_password, setup_totp, use_recovery_code, verify_code,
     verify_login_totp,
   },
-  category_command::{
-    create_category, delete_category, get_categories, get_category, update_category,
-  },
   crud_command::crud_execute,
   group_command::{
     add_group_members, add_message_reaction, create_group, delete_group, delete_group_cascade,
@@ -48,14 +45,11 @@ use commands::{
     get_groups, get_messages_by_room, hard_delete_message, hard_delete_room_messages,
     mark_message_read, remove_group_members, remove_message_reaction, send_message, update_group,
   },
-  profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
   stats_command::statistics_get,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
-  task_command::{create_task, delete_task, get_task, get_tasks, update_task},
   todo_command::{
-    change_todo_visibility, create_todo, delete_todo, get_todo, get_todo_permissions, get_todos,
-    transfer_todo_ownership, update_todo, update_todo_permissions,
+    change_todo_visibility, get_todo_permissions, transfer_todo_ownership, update_todo_permissions,
   },
 };
 /* services */
@@ -466,6 +460,7 @@ pub fn run() {
       });
       Ok(())
     })
+    .plugin(tauri_plugin_log::Builder::new().build())
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_mcp_bridge::Builder::new().build())
@@ -525,16 +520,6 @@ pub fn run() {
       github_start_device_flow,
       github_check_device_flow,
       github_update_issue,
-      get_todo,
-      get_todos,
-      create_todo,
-      update_todo,
-      delete_todo,
-      get_task,
-      get_tasks,
-      create_task,
-      update_task,
-      delete_task,
       get_subtask,
       get_subtasks,
       create_subtask,
@@ -581,17 +566,8 @@ pub fn run() {
       mark_all_notifications_read,
       delete_notification,
       clear_all_notifications,
-      get_profiles,
-      get_profile,
-      create_profile,
-      update_profile,
-      delete_profile,
-      create_category,
-      get_category,
-      get_categories,
-      update_category,
-      delete_category,
       crud_execute,
+      crate::commands::schema_command::get_schema,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {
