@@ -5,8 +5,8 @@
   "identifier": "com.tcs.taskflow",
   "build": {
     "beforeDevCommand": "bun run dev",
-    "devUrl": "http://localhost:5174",
-    "beforeBuildCommand": "bun run build",
+    "devUrl": "http://localhost:5176",
+    "beforeBuildCommand": "bun run build:svelte",
     "frontendDist": "../build"
   },
   "app": {
@@ -18,8 +18,8 @@
         "resizable": true,
         "width": 800,
         "height": 600,
-        "minHeight": 400,
-        "minWidth": 400,
+        "minHeight": 150,
+        "minWidth": 150,
         "devtools": true
       }
     ],
@@ -27,6 +27,11 @@
       "csp": null
     },
     "withGlobalTauri": true
+  },
+  "plugins": {
+    "updater": {
+      "active": false
+    }
   },
   "bundle": {
     "active": true,
@@ -54,7 +59,7 @@
     },
     "macOS": {
       "frameworks": [],
-      "minimumSystemVersion": "10.15",
+      "minimumSystemVersion": "",
       "exceptionDomain": "",
       "signingIdentity": null,
       "providerShortName": null,

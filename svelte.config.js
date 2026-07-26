@@ -14,7 +14,10 @@ const config = {
 		}),
 		alias: {
 			'$lib': './src/lib',
-			'$app': './src/app'
+			'@tauri-front/shared': '../tauri-front-shared/projects/shared/dist'
+		},
+		prerender: {
+			handleHttpError: 'ignore'
 		}
 	}
 };
