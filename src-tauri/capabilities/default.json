@@ -7,8 +7,6 @@
     "opener:default",
     "core:window:allow-get-all-windows",
     "core:webview:default",
-    "mcp-bridge:default",
-    "shell:allow-spawn",
-    "shell:allow-execute"
+    "mcp-bridge:default"
   ]
 }

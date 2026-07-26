@@ -23,72 +23,28 @@
     "module": "ES2022",
     "useDefineForClassFields": false,
     "paths": {
-      "@helpers/*": [
-        "./src/app/shared/utils/*"
-      ],
-      "@entities/*": [
-        "./src/app/entities/*"
-      ],
-      "@providers/*": [
-        "./src/app/providers/*"
-      ],
-      "@resolvers/*": [
-        "./src/app/features/tasks/services/*"
-      ],
-      "@services/*": [
-        "./src/app/services/*"
-      ],
-      "@api/*": [
-        "./src/app/api/*"
-      ],
-      "@core/*": [
-        "./src/app/core/*"
-      ],
-      "@env/*": [
-        "./src/environments/*"
-      ],
-      "@components/*": [
-        "./src/app/components/*"
-      ],
-      "@pages/*": [
-        "./src/app/pages/*"
-      ],
-      "@controllers/*": [
-        "./src/app/controllers/*"
-      ],
-      "@app/*": [
-        "./src/app/*"
-      ],
-      "@guards/*": [
-        "./src/app/shared/*"
-      ],
-      "@bases/*": [
-        "./src/app/bases/*"
-      ],
-      "@store/*": [
-        "./src/app/store/*"
-      ],
-      "@mixins/*": [
-        "./src/app/shared/*"
-      ],
-      "@constants/*": [
-        "./src/app/shared/utils/*"
-      ],
-      "@validators/*": [
-        "./src/app/shared/*"
-      ],
-      "@utils/*": [
-        "./src/app/shared/utils/*"
-      ],
-      "@shared/*": [
-        "./src/app/shared/*"
-      ],
-      "@tauri-front/shared": [
-        "node_modules/@tauri-front/shared"
-      ],
-      "@tauri-front/shared/*": [
-        "node_modules/@tauri-front/shared/*"
-      ]
+      "@helpers/*": ["./src/app/shared/utils/*"],
+      "@entities/*": ["./src/app/entities/*"],
+      "@providers/*": ["./src/app/providers/*"],
+      "@resolvers/*": ["./src/app/features/tasks/services/*"],
+      "@services/*": ["./src/app/services/*"],
+      "@api/*": ["./src/app/api/*"],
+      "@core/*": ["./src/app/core/*"],
+      "@env/*": ["./src/environments/*"],
+      "@components/*": ["./src/app/components/*"],
+      "@pages/*": ["./src/app/pages/*"],
+      "@controllers/*": ["./src/app/controllers/*"],
+      "@app/*": ["./src/app/*"],
+      "@guards/*": ["./src/app/shared/*"],
+      "@bases/*": ["./src/app/bases/*"],
+      "@store/*": ["./src/app/store/*"],
+      "@mixins/*": ["./src/app/shared/*"],
+      "@constants/*": ["./src/app/shared/utils/*"],
+      "@validators/*": ["./src/app/shared/*"],
+      "@utils/*": ["./src/app/shared/utils/*"],
+      "@shared/*": ["./src/app/shared/*"],
+      "@tauri-front/shared": ["node_modules/@tauri-front/shared"],
+      "@tauri-front/shared/*": ["node_modules/@tauri-front/shared/*"]
     },
     "ignoreDeprecations": "6.0"
   },

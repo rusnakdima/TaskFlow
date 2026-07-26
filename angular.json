@@ -5,9 +5,7 @@
   "cli": {
     "packageManager": "bun",
     "analytics": false,
-    "schematicCollections": [
-      "angular-eslint"
-    ]
+    "schematicCollections": ["angular-eslint"]
   },
   "projects": {
     "taskflow": {
@@ -48,20 +46,12 @@
             "outputPath": "dist/taskflow",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": [
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.css"
-            ],
+            "assets": ["src/assets"],
+            "styles": ["src/styles.css"],
             "scripts": [],
-            "allowedCommonJsDependencies": [
-              "progressbar.js"
-            ]
+            "allowedCommonJsDependencies": ["progressbar.js"]
           },
           "configurations": {
             "production": {
@@ -114,10 +104,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }

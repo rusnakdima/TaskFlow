@@ -18,8 +18,8 @@
         "resizable": true,
         "width": 800,
         "height": 600,
-        "minHeight": 150,
-        "minWidth": 150,
+        "minHeight": 400,
+        "minWidth": 400,
         "devtools": true
       }
     ],
@@ -27,11 +27,6 @@
       "csp": null
     },
     "withGlobalTauri": true
-  },
-  "plugins": {
-    "updater": {
-      "active": false
-    }
   },
   "bundle": {
     "active": true,
@@ -59,7 +54,7 @@
     },
     "macOS": {
       "frameworks": [],
-      "minimumSystemVersion": "",
+      "minimumSystemVersion": "10.15",
       "exceptionDomain": "",
       "signingIdentity": null,
       "providerShortName": null,
