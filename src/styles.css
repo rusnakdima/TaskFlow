@@ -7,15 +7,6 @@
 /* MDI Font */
 @import "@mdi/font/css/materialdesignicons.min.css";
 
-/* All 7 themes from shared library - dynamically selected via data-theme attribute */
-@import "@tauri-front/shared/styles/themes/index.css";
-
-/* UI System styles */
-@import "@tauri-front/shared/styles/ui-system.css";
-
-/* M3 semantic token utility classes */
-@import "@tauri-front/shared/styles/m3-tokens.css";
-
 /* Scan Flowbite source for classes */
 @source "../node_modules/flowbite";
 
