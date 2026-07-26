@@ -4,10 +4,10 @@
   "version": "0.18.0",
   "identifier": "com.tcs.taskflow",
   "build": {
-    "beforeDevCommand": "bun run start",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build:prod",
-    "frontendDist": "../dist/taskflow/browser"
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:5176",
+    "beforeBuildCommand": "bun run build:svelte",
+    "frontendDist": "../build"
   },
   "app": {
     "windows": [

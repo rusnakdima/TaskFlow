@@ -1,55 +1,14 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
-  "compileOnSave": false,
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "./dist/out-tsc",
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": true,
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "sourceMap": true,
-    "declaration": false,
-    "experimentalDecorators": true,
-    "moduleResolution": "node",
-    "importHelpers": true,
-    "target": "ES2022",
-    "module": "ES2022",
-    "useDefineForClassFields": false,
-    "lib": ["ES2022", "dom"],
-    "paths": {
-      "@helpers/*": ["./src/app/shared/utils/*"],
-      "@entities/*": ["./src/app/entities/*"],
-      "@providers/*": ["./src/app/providers/*"],
-      "@resolvers/*": ["./src/app/features/tasks/services/*"],
-      "@services/*": ["./src/app/services/*"],
-      "@core/*": ["./src/app/core/*"],
-      "@env/*": ["./src/environments/*"],
-      "@components/*": ["./src/app/components/*"],
-      "@pages/*": ["./src/app/pages/*"],
-      "@controllers/*": ["./src/app/controllers/*"],
-      "@app/*": ["./src/app/*"],
-      "@guards/*": ["./src/app/shared/*"],
-      "@bases/*": ["./src/app/bases/*"],
-      "@store/*": ["./src/app/store/*"],
-      "@mixins/*": ["./src/app/shared/*"],
-      "@constants/*": ["./src/app/shared/utils/*"],
-      "@validators/*": ["./src/app/shared/*"],
-      "@utils/*": ["./src/app/shared/utils/*"],
-      "@shared/*": ["./src/app/shared/*"],
-      "@tauri-shared/*": ["../_shared/*"]
-    }
-  },
-  "angularCompilerOptions": {
-    "enableI18nLegacyMessageIdFormat": false,
-    "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strict": true,
+    "moduleResolution": "bundler"
   }
 }
