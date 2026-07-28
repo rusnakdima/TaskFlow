@@ -26,13 +26,6 @@ vi.mock("@tauri-front/shared", () => ({
   groupByKey: vi.fn(() => new Map()),
 }));
 
-/* ── mock Angular Router ── */
-vi.mock("@angular/router", () => ({
-  Router: class {},
-  RouterModule: {},
-  NavigationEnd: class {},
-}));
-
 /* ── mock core services ── */
 vi.mock("@core/services/app-state.service", () => ({
   AppStateService: class {
