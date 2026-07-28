@@ -1,10 +1,11 @@
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;
 use serde_json::Value;
 use std::sync::Arc;
-use tauri_shared::response::Response;
+
 #[derive(Clone)]
 pub enum DataProvider {
   Json(Arc<JsonProvider>),

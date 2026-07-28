@@ -11,9 +11,10 @@ use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;
 /* entities */
 use crate::entities::profile_entity::ProfileEntity;
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 /* helpers */
-use tauri_shared::response::Response;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileSyncStatus {
   InBoth,

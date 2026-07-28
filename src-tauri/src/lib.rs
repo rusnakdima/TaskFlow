@@ -49,9 +49,7 @@ use commands::{
   },
   profile_command::{create_profile, delete_profile, get_profile, get_profiles, update_profile},
   room_command::{create_room, delete_room, get_room, get_rooms, update_room},
-  schema_command::{
-    delete_schema, get_all_schemas, get_schema, get_ui_schema, save_schema, save_ui_schema,
-  },
+  schema_command::get_schema,
   subtask_command::{create_subtask, delete_subtask, get_subtask, get_subtasks, update_subtask},
   task_command::{create_task, delete_task, get_task, get_tasks, update_task},
   todo_command::{
@@ -369,7 +367,7 @@ pub fn run() {
         profile_service.as_ref().clone(),
         app.handle().clone(),
       ));
-      let crud_service = Arc::new(CrudService::new(json_provider.clone()));
+      let crud_service = Arc::new(CrudService::new(Arc::new(json_provider.clone())));
       let data_provider = DataProvider::Json(Arc::new(json_provider.clone()));
       let mongo_data_provider: Option<DataProvider> = mongodb_provider
         .as_ref()
@@ -594,18 +592,20 @@ pub fn run() {
       update_category,
       delete_category,
       get_schema,
-      tauri_shared::commands::algorithm_commands::execute_algorithm,
+      tauri_shared::commands::algorithm_commands::algo_execute,
       tauri_shared::commands::algorithm_commands::list_algorithms,
-      tauri_shared::get_schema,
-      save_schema,
-      get_all_schemas,
-      delete_schema,
-      get_ui_schema,
-      save_ui_schema,
+      tauri_shared::commands::schema_commands::save_schema,
+      tauri_shared::commands::schema_commands::get_all_schemas,
+      tauri_shared::commands::schema_commands::delete_schema,
+      tauri_shared::commands::schema_commands::get_ui_schema,
+      tauri_shared::commands::schema_commands::save_ui_schema,
       tauri_shared::check_for_update_command,
       tauri_shared::download_update_command,
       tauri_shared::install_update_command,
       tauri_shared::get_current_version,
+      tauri_shared::commands::logger_commands::get_log_entries,
+      tauri_shared::commands::logger_commands::set_log_level,
+      tauri_shared::commands::logger_commands::clear_logs,
     ])
     .run(tauri::generate_context!())
     .unwrap_or_else(|e| {

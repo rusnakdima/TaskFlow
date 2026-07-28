@@ -6,12 +6,6 @@ pub mod archive_command;
 pub mod auth_command;
 #[path = "category.command.rs"]
 pub mod category_command;
-#[path = "chat.command.rs"]
-pub mod chat_command;
-#[path = "comment.command.rs"]
-pub mod comment_command;
-#[path = "daily_activity.command.rs"]
-pub mod daily_activity_command;
 #[path = "group.command.rs"]
 pub mod group_command;
 #[path = "macros.rs"]
@@ -31,5 +25,3 @@ pub mod subtask_command;
 pub mod task_command;
 #[path = "todo.command.rs"]
 pub mod todo_command;
-#[path = "user.command.rs"]
-pub mod user_command;

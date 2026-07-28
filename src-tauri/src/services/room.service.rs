@@ -1,3 +1,4 @@
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::collection_metadata::add_collection_metadata;
@@ -5,7 +6,7 @@ use crate::utils::load_param::parse_load_param;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::relations::RelationLoader;
 use serde_json::{json, Value};
-use tauri_shared::response::Response;
+
 pub struct RoomService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,

@@ -1,10 +1,11 @@
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::visibility::get_visibility;
 use nosql_orm::cascade::CascadeManager;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};
-use tauri_shared::response::Response;
+
 pub struct ChatService {
   json_provider: DataProvider,
   mongo_provider: Option<DataProvider>,

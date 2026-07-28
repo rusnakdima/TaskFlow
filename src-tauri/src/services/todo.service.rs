@@ -1,3 +1,4 @@
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
@@ -5,7 +6,7 @@ use crate::services::permission_service::PermissionService;
 use crate::utils::cascade::soft_delete_cascade_all;
 use crate::utils::visibility::get_visibility;
 use serde_json::{json, Value};
-use tauri_shared::response::Response;
+
 pub struct TodoService {
   base: BaseCrudService,
 }

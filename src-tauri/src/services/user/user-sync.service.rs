@@ -11,9 +11,10 @@ use tokio::time::timeout;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;
 /* entities */
+use crate::models::response::Response;
 use crate::models::response::ResponseModel;
 /* helpers */
-use tauri_shared::response::Response;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum UserSyncStatus {
   InBoth,
