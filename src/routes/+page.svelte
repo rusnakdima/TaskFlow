@@ -1,40 +1,47 @@
 <script lang="ts">
-	import { Card, Text, Button } from '@tauri-front/shared';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { DynamicPage, NotFoundPage, SchemaErrorPage, schemaLoader } from '@tauri-front/shared';
+
+	let loading = true;
+	let error: string | null = null;
+
+	$: currentRoute = $page.url.pathname;
+	$: schema = schemaLoader.getSchema();
+	$: currentPage = schema?.pages.find((p: any) => p.route === currentRoute);
+	$: layoutRegions = schema?.layoutRegions || [];
+	$: layoutMode = currentPage?.layoutMode || 'default';
+
+	onMount(async () => {
+		try {
+			if (!schema) {
+				await schemaLoader.loadFromUrl('/schemas/taskflowschemas.json');
+			}
+		} catch (e: any) {
+			error = e.message;
+			console.error('Schema load error:', e);
+		} finally {
+			loading = false;
+		}
+	});
 </script>
 
 <svelte:head>
-	<title>TaskFlow - Dashboard</title>
+	<title>TaskFlow - Schema-driven</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<Card variant="elevated" class="p-6">
-		<Text variant="heading" class="mb-4">Welcome to TaskFlow</Text>
-		<Text variant="body" class="text-gray-600 dark:text-gray-400 mb-6">
-			TaskFlow is a powerful task and project management application. 
-			Get started by creating your first task or exploring the settings.
-		</Text>
-		<div class="flex gap-4">
-			<Button variant="primary" on:click={() => window.location.href = '/settings'}>
-				Get Started
-			</Button>
-			<Button variant="outline" on:click={() => window.location.href = '/about'}>
-				Learn More
-			</Button>
-		</div>
-	</Card>
-
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-		<Card variant="outlined" class="p-4">
-			<Text variant="label" class="text-gray-500 dark:text-gray-400">Total Tasks</Text>
-			<Text variant="heading" class="text-3xl mt-2">0</Text>
-		</Card>
-		<Card variant="outlined" class="p-4">
-			<Text variant="label" class="text-gray-500 dark:text-gray-400">In Progress</Text>
-			<Text variant="heading" class="text-3xl mt-2">0</Text>
-		</Card>
-		<Card variant="outlined" class="p-4">
-			<Text variant="label" class="text-gray-500 dark:text-gray-400">Completed</Text>
-			<Text variant="heading" class="text-3xl mt-2">0</Text>
-		</Card>
+{#if loading}
+	<div class="flex items-center justify-center min-h-[400px]">
+		<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
 	</div>
-</div>
+{:else if error}
+	<SchemaErrorPage message={error} />
+{:else if schema}
+	{#if currentPage}
+		<DynamicPage schema={currentPage} />
+	{:else}
+		<NotFoundPage message="Page not found in schema" />
+	{/if}
+{:else}
+	<SchemaErrorPage message="No schema loaded" />
+{/if}
