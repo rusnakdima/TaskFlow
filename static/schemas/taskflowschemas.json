@@ -1,0 +1,3378 @@
+{
+  "id": "taskflow",
+  "schemaVersion": "1.0.0",
+  "app": {
+    "id": "taskflow",
+    "name": "TaskFlow",
+    "style": "material-design-v3"
+  },
+  "layoutRegions": [
+    {
+      "id": "app-header-region",
+      "componentId": "app-header",
+      "classes": "flex items-center justify-between gap-4 px-6 py-3 bg-base-100 border-b border-base-300",
+      "props": {
+        "logo": "TaskFlow",
+        "showSearch": true,
+        "showUserMenu": true
+      },
+      "routes": {
+        "exclude": [
+          "/login",
+          "/signup",
+          "/reset-password",
+          "/change-password",
+          "/login/qr"
+        ]
+      },
+      "children": []
+    },
+    {
+      "id": "app-sidebar-region",
+      "componentId": "app-sidebar",
+      "classes": "flex flex-col gap-2 p-4 bg-base-200 min-h-screen w-64 border-r border-base-300",
+      "props": {
+        "title": "TaskFlow",
+        "collapsible": true,
+        "items": [
+          {
+            "id": "nav-dashboard",
+            "label": "Dashboard",
+            "icon": "dashboard",
+            "link": "/dashboard"
+          },
+          {
+            "id": "nav-stats",
+            "label": "Stats",
+            "icon": "bar_chart",
+            "link": "/stats"
+          },
+          {
+            "id": "nav-calendar",
+            "label": "Calendar",
+            "icon": "calendar_month",
+            "link": "/calendar"
+          },
+          {
+            "id": "nav-todos",
+            "label": "Projects",
+            "icon": "folder",
+            "link": "/todos"
+          },
+          {
+            "id": "nav-chat",
+            "label": "Chat",
+            "icon": "chat",
+            "link": "/chat"
+          },
+          {
+            "id": "nav-profile",
+            "label": "Profile",
+            "icon": "person",
+            "link": "/profile"
+          },
+          {
+            "id": "nav-settings",
+            "label": "Settings",
+            "icon": "settings",
+            "link": "/settings"
+          },
+          {
+            "id": "nav-archive",
+            "label": "Archive",
+            "icon": "archive",
+            "link": "/archive"
+          },
+          {
+            "id": "nav-categories",
+            "label": "Categories",
+            "icon": "category",
+            "link": "/categories"
+          },
+          {
+            "id": "nav-sync",
+            "label": "Sync",
+            "icon": "sync",
+            "link": "/sync"
+          },
+          {
+            "id": "nav-data-management",
+            "label": "Data Management",
+            "icon": "storage",
+            "link": "/data-management"
+          },
+          {
+            "id": "nav-about",
+            "label": "About",
+            "icon": "info",
+            "link": "/about"
+          }
+        ]
+      },
+      "routes": {
+        "exclude": [
+          "/login",
+          "/signup",
+          "/reset-password",
+          "/change-password",
+          "/login/qr"
+        ]
+      },
+      "children": []
+    }
+  ],
+  "pages": [
+    {
+      "id": "login-page",
+      "name": "Login",
+      "route": "/login",
+      "meta": {
+        "title": "Login",
+        "icon": "login",
+        "breadcrumb": [
+          "TaskFlow",
+          "Login"
+        ]
+      },
+      "layout": "auth",
+      "layouts": [
+        {
+          "id": "auth-layout",
+          "type": "flex",
+          "direction": "column",
+          "alignItems": "center",
+          "justifyItems": "center",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "flex flex-col items-center justify-center min-h-screen bg-base-200 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "login-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "login-form",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-3 mx-auto",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Sign In",
+            "subtitle": "Welcome back"
+          }
+        },
+        {
+          "id": "login-email",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Email",
+            "type": "email",
+            "placeholder": "Enter your email"
+          }
+        },
+        {
+          "id": "login-password",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Password",
+            "type": "password",
+            "placeholder": "Enter your password"
+          }
+        },
+        {
+          "id": "login-submit",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Sign In",
+            "fullWidth": true
+          }
+        }
+      ],
+      "layoutMode": "auth"
+    },
+    {
+      "id": "signup-page",
+      "name": "Sign Up",
+      "route": "/signup",
+      "meta": {
+        "title": "Sign Up",
+        "icon": "person_add",
+        "breadcrumb": [
+          "TaskFlow",
+          "Sign Up"
+        ]
+      },
+      "layout": "auth",
+      "layouts": [
+        {
+          "id": "auth-layout",
+          "type": "flex",
+          "direction": "column",
+          "alignItems": "center",
+          "justifyItems": "center",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "flex flex-col items-center justify-center min-h-screen bg-base-200 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "signup-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "signup-form",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-4 mx-auto",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Create Account",
+            "subtitle": "Join TaskFlow"
+          }
+        },
+        {
+          "id": "signup-name",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Full Name",
+            "type": "text",
+            "placeholder": "Enter your name"
+          }
+        },
+        {
+          "id": "signup-email",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Email",
+            "type": "email",
+            "placeholder": "Enter your email"
+          }
+        },
+        {
+          "id": "signup-password",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Password",
+            "type": "password",
+            "placeholder": "Create a password"
+          }
+        },
+        {
+          "id": "signup-submit",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 4,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Sign Up",
+            "fullWidth": true
+          }
+        }
+      ],
+      "layoutMode": "auth"
+    },
+    {
+      "id": "reset-password-page",
+      "name": "Reset Password",
+      "route": "/reset-password",
+      "meta": {
+        "title": "Reset Password",
+        "icon": "lock_reset",
+        "breadcrumb": [
+          "TaskFlow",
+          "Reset Password"
+        ]
+      },
+      "layout": "auth",
+      "layouts": [
+        {
+          "id": "auth-layout",
+          "type": "flex",
+          "direction": "column",
+          "alignItems": "center",
+          "justifyItems": "center",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "flex flex-col items-center justify-center min-h-screen bg-base-200 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "reset-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "reset-form",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-3 mx-auto",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Reset Password",
+            "subtitle": "We'll send you a reset code"
+          }
+        },
+        {
+          "id": "reset-email",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Email",
+            "type": "email",
+            "placeholder": "Enter your email"
+          }
+        },
+        {
+          "id": "reset-code",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Reset Code",
+            "type": "text",
+            "placeholder": "Enter reset code"
+          }
+        },
+        {
+          "id": "reset-submit",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Reset Password",
+            "fullWidth": true
+          }
+        }
+      ],
+      "layoutMode": "auth"
+    },
+    {
+      "id": "change-password-page",
+      "name": "Change Password",
+      "route": "/change-password",
+      "meta": {
+        "title": "Change Password",
+        "icon": "lock",
+        "breadcrumb": [
+          "TaskFlow",
+          "Change Password"
+        ]
+      },
+      "layout": "auth",
+      "layouts": [
+        {
+          "id": "auth-layout",
+          "type": "flex",
+          "direction": "column",
+          "alignItems": "center",
+          "justifyItems": "center",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "flex flex-col items-center justify-center min-h-screen bg-base-200 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "change-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "change-form",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-3 mx-auto",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Change Password"
+          }
+        },
+        {
+          "id": "change-current",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Current Password",
+            "type": "password"
+          }
+        },
+        {
+          "id": "change-new",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "New Password",
+            "type": "password"
+          }
+        },
+        {
+          "id": "change-submit",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Change Password",
+            "fullWidth": true
+          }
+        }
+      ],
+      "layoutMode": "auth"
+    },
+    {
+      "id": "qr-login-page",
+      "name": "QR Login",
+      "route": "/login/qr",
+      "meta": {
+        "title": "QR Login",
+        "icon": "qr_code",
+        "breadcrumb": [
+          "TaskFlow",
+          "QR Login"
+        ]
+      },
+      "layout": "auth",
+      "layouts": [
+        {
+          "id": "auth-layout",
+          "type": "flex",
+          "direction": "column",
+          "alignItems": "center",
+          "justifyItems": "center",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "flex flex-col items-center justify-center min-h-screen bg-base-200 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "qr-login-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "qr-display",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-2 mx-auto",
+          "gridPosition": {
+            "column": 4,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Scan QR Code"
+          }
+        },
+        {
+          "id": "qr-instructions",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-1 mx-auto",
+          "gridPosition": {
+            "column": 4,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Instructions",
+            "message": "Open TaskFlow app and scan the QR code to sign in"
+          }
+        }
+      ],
+      "layoutMode": "auth"
+    },
+    {
+      "id": "dashboard-page",
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "meta": {
+        "title": "Dashboard",
+        "icon": "dashboard",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Dashboard"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "dashboard-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "welcome-section",
+          "componentId": "app-card",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Welcome back!",
+            "subtitle": "Here's what's happening with your tasks today."
+          }
+        },
+        {
+          "id": "stats-total",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Total Tasks",
+            "icon": "assignment",
+            "iconBgClass": "bg-indigo-500",
+            "variant": "indigo"
+          }
+        },
+        {
+          "id": "stats-completed",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Completed",
+            "icon": "task_alt",
+            "iconBgClass": "bg-green-500",
+            "variant": "green"
+          }
+        },
+        {
+          "id": "stats-in-progress",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "In Progress",
+            "icon": "pending",
+            "iconBgClass": "bg-blue-500",
+            "variant": "blue"
+          }
+        },
+        {
+          "id": "stats-overdue",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 9,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Overdue",
+            "icon": "warning",
+            "iconBgClass": "bg-red-500",
+            "variant": "red"
+          }
+        },
+        {
+          "id": "progress-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Task Progress"
+          }
+        },
+        {
+          "id": "all-tasks-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 6,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "All Tasks"
+          }
+        },
+        {
+          "id": "new-project-btn",
+          "componentId": "app-button",
+          "classes": "col-span-1 row-span-1 justify-self-end",
+          "gridPosition": {
+            "column": 11,
+            "row": 1,
+            "colSpan": 1,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "New Project",
+            "icon": "add"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "stats-page",
+      "name": "Statistics",
+      "route": "/stats",
+      "meta": {
+        "title": "Statistics",
+        "icon": "bar_chart",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Statistics"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "stats-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Statistics",
+            "showBack": false
+          }
+        },
+        {
+          "id": "time-range-selector",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "day",
+                "label": "This Day",
+                "icon": "today"
+              },
+              {
+                "id": "week",
+                "label": "This Week",
+                "icon": "date_range"
+              },
+              {
+                "id": "month",
+                "label": "This Month",
+                "icon": "calendar_month"
+              },
+              {
+                "id": "quarter",
+                "label": "This Quarter",
+                "icon": "calendar_view_month"
+              },
+              {
+                "id": "year",
+                "label": "This Year",
+                "icon": "calendar_today"
+              }
+            ],
+            "active": "week"
+          }
+        },
+        {
+          "id": "stats-total-tasks",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Total Tasks",
+            "icon": "assignment"
+          }
+        },
+        {
+          "id": "stats-completion-rate",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Completion Rate",
+            "icon": "trending_up"
+          }
+        },
+        {
+          "id": "stats-avg-time",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Average Time",
+            "icon": "schedule"
+          }
+        },
+        {
+          "id": "stats-productivity",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 9,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Productivity Score",
+            "icon": "star"
+          }
+        },
+        {
+          "id": "completion-trend",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 8,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Completion Trend"
+          }
+        },
+        {
+          "id": "achievements",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-2",
+          "gridPosition": {
+            "column": 8,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Achievements"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "calendar-page",
+      "name": "Calendar",
+      "route": "/calendar",
+      "meta": {
+        "title": "Calendar",
+        "icon": "calendar_month",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Calendar"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "calendar-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Calendar",
+            "showBack": false
+          }
+        },
+        {
+          "id": "calendar-view-toggle",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "month",
+                "label": "Month"
+              },
+              {
+                "id": "week",
+                "label": "Week"
+              }
+            ],
+            "active": "month"
+          }
+        },
+        {
+          "id": "calendar-grid",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 8,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Calendar Grid"
+          }
+        },
+        {
+          "id": "date-panel",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-4",
+          "gridPosition": {
+            "column": 8,
+            "row": 2,
+            "colSpan": 4,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Selected Date"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "chat-page",
+      "name": "Chat",
+      "route": "/chat",
+      "meta": {
+        "title": "Chat",
+        "icon": "chat",
+        "breadcrumb": [
+          "TaskFlow",
+          "Collaboration",
+          "Chat"
+        ]
+      },
+      "layout": "split",
+      "layouts": [
+        {
+          "id": "split-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gridTemplateRows": "repeat(6, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "height": "screen",
+          "class": "grid grid-cols-12 grid-rows-6 gap-4 p-6 min-h-screen"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "chat-sidebar",
+          "componentId": "app-sidebar",
+          "classes": "col-span-3 row-span-6",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 3,
+            "rowSpan": 6
+          },
+          "props": {
+            "title": "Conversations",
+            "collapsible": true
+          }
+        },
+        {
+          "id": "chat-messages",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-5",
+          "gridPosition": {
+            "column": 3,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 5
+          },
+          "props": {
+            "title": "Messages"
+          }
+        },
+        {
+          "id": "chat-input",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 5,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "placeholder": "Type a message...",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "chat-details",
+          "componentId": "app-card",
+          "classes": "col-span-3 row-span-6",
+          "gridPosition": {
+            "column": 9,
+            "row": 1,
+            "colSpan": 3,
+            "rowSpan": 6
+          },
+          "props": {
+            "title": "Details"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "todos-page",
+      "name": "Projects",
+      "route": "/todos",
+      "meta": {
+        "title": "Projects",
+        "icon": "folder",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Projects"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "todos-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Projects",
+            "showBack": false
+          }
+        },
+        {
+          "id": "visibility-selector",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "all",
+                "label": "All"
+              },
+              {
+                "id": "private",
+                "label": "Private"
+              },
+              {
+                "id": "shared",
+                "label": "Shared"
+              },
+              {
+                "id": "public",
+                "label": "Public"
+              }
+            ],
+            "active": "all"
+          }
+        },
+        {
+          "id": "todos-stats-total",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Total Projects",
+            "icon": "assignment"
+          }
+        },
+        {
+          "id": "todos-stats-active",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 3,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Active",
+            "icon": "play_circle"
+          }
+        },
+        {
+          "id": "todos-stats-completed",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Completed",
+            "icon": "check_circle"
+          }
+        },
+        {
+          "id": "todos-stats-week",
+          "componentId": "app-stats-card",
+          "classes": "col-span-3 row-span-1",
+          "gridPosition": {
+            "column": 9,
+            "row": 2,
+            "colSpan": 3,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "This Week",
+            "icon": "calendar_today"
+          }
+        },
+        {
+          "id": "todos-list",
+          "componentId": "app-data-table",
+          "classes": "col-span-12 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 12,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Projects List",
+            "viewModes": [
+              "table",
+              "grid",
+              "kanban"
+            ]
+          }
+        },
+        {
+          "id": "new-todo-btn",
+          "componentId": "app-button",
+          "classes": "col-span-1 row-span-1 justify-self-end",
+          "gridPosition": {
+            "column": 11,
+            "row": 1,
+            "colSpan": 1,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "New Project",
+            "icon": "add"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "tasks-page",
+      "name": "Tasks",
+      "route": "/todos/:todoId/tasks",
+      "meta": {
+        "title": "Tasks",
+        "icon": "task",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Tasks"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "tasks-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Tasks",
+            "showBack": true
+          }
+        },
+        {
+          "id": "todo-info",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Project Info"
+          }
+        },
+        {
+          "id": "kanban-pending",
+          "componentId": "app-card",
+          "classes": "col-span-2 row-span-2",
+          "gridPosition": {
+            "column": 4,
+            "row": 1,
+            "colSpan": 2,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Pending",
+            "variant": "blue"
+          }
+        },
+        {
+          "id": "kanban-in-progress",
+          "componentId": "app-card",
+          "classes": "col-span-2 row-span-2",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 2,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "In Progress",
+            "variant": "orange"
+          }
+        },
+        {
+          "id": "kanban-completed",
+          "componentId": "app-card",
+          "classes": "col-span-2 row-span-2",
+          "gridPosition": {
+            "column": 8,
+            "row": 1,
+            "colSpan": 2,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Completed",
+            "variant": "green"
+          }
+        },
+        {
+          "id": "kanban-skipped",
+          "componentId": "app-card",
+          "classes": "col-span-2 row-span-2",
+          "gridPosition": {
+            "column": 10,
+            "row": 1,
+            "colSpan": 2,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Skipped",
+            "variant": "gray"
+          }
+        },
+        {
+          "id": "tasks-list",
+          "componentId": "app-data-table",
+          "classes": "col-span-12 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 12,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "All Tasks",
+            "viewModes": [
+              "table",
+              "grid",
+              "kanban"
+            ]
+          }
+        },
+        {
+          "id": "new-task-btn",
+          "componentId": "app-button",
+          "classes": "col-span-1 row-span-1 justify-self-end",
+          "gridPosition": {
+            "column": 11,
+            "row": 1,
+            "colSpan": 1,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "New Task",
+            "icon": "add"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "subtasks-page",
+      "name": "Subtasks",
+      "route": "/todos/:todoId/tasks/:taskId/subtasks",
+      "meta": {
+        "title": "Subtasks",
+        "icon": "subtask",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Subtasks"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "subtasks-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Subtasks",
+            "showBack": true
+          }
+        },
+        {
+          "id": "subtasks-list",
+          "componentId": "app-data-table",
+          "classes": "col-span-12 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Subtasks",
+            "viewModes": [
+              "table",
+              "grid",
+              "kanban"
+            ]
+          }
+        },
+        {
+          "id": "new-subtask-btn",
+          "componentId": "app-button",
+          "classes": "col-span-1 row-span-1 justify-self-end",
+          "gridPosition": {
+            "column": 11,
+            "row": 1,
+            "colSpan": 1,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "New Subtask",
+            "icon": "add"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "profile-page",
+      "name": "Profile",
+      "route": "/profile",
+      "meta": {
+        "title": "Profile",
+        "icon": "person",
+        "breadcrumb": [
+          "TaskFlow",
+          "Personal",
+          "Profile"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "profile-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Profile",
+            "showBack": false
+          }
+        },
+        {
+          "id": "profile-card",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Profile Info"
+          }
+        },
+        {
+          "id": "profile-avatar",
+          "componentId": "app-avatar",
+          "classes": "col-span-1 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 1,
+            "rowSpan": 1
+          },
+          "props": {
+            "size": "lg"
+          }
+        },
+        {
+          "id": "profile-actions",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-2",
+          "gridPosition": {
+            "column": 4,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Quick Actions"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "manage-profile-page",
+      "name": "Manage Profile",
+      "route": "/profile/manage",
+      "meta": {
+        "title": "Manage Profile",
+        "icon": "edit",
+        "breadcrumb": [
+          "TaskFlow",
+          "Personal",
+          "Manage Profile"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "manage-profile-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Manage Profile",
+            "showBack": true
+          }
+        },
+        {
+          "id": "manage-profile-form",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-3",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Profile Details"
+          }
+        },
+        {
+          "id": "avatar-selector",
+          "componentId": "app-avatar",
+          "classes": "col-span-4 row-span-2",
+          "gridPosition": {
+            "column": 8,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 2
+          },
+          "props": {
+            "size": "xl"
+          }
+        },
+        {
+          "id": "save-profile-btn",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 4,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Save Changes"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "create-todo-page",
+      "name": "Create Project",
+      "route": "/todos/create_todo",
+      "meta": {
+        "title": "Create Project",
+        "icon": "add_box",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Create Project"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "create-todo-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Create Project",
+            "showBack": true
+          }
+        },
+        {
+          "id": "basic-info-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Basic Info"
+          }
+        },
+        {
+          "id": "todo-title-input",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title",
+            "placeholder": "Project title",
+            "required": true
+          }
+        },
+        {
+          "id": "todo-description-input",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea",
+            "placeholder": "Project description"
+          }
+        },
+        {
+          "id": "category-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Categories"
+          }
+        },
+        {
+          "id": "priority-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Priority"
+          }
+        },
+        {
+          "id": "visibility-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Visibility"
+          }
+        },
+        {
+          "id": "assignees-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Assignees"
+          }
+        },
+        {
+          "id": "create-todo-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 4,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Create Project"
+          }
+        },
+        {
+          "id": "create-todo-cancel",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 4,
+            "row": 4,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "secondary",
+            "label": "Cancel"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "edit-todo-page",
+      "name": "Edit Project",
+      "route": "/todos/:todoId/edit_todo",
+      "meta": {
+        "title": "Edit Project",
+        "icon": "edit",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Edit Project"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "edit-todo-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Edit Project",
+            "showBack": true
+          }
+        },
+        {
+          "id": "edit-basic-info",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Basic Info"
+          }
+        },
+        {
+          "id": "edit-todo-title",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title"
+          }
+        },
+        {
+          "id": "edit-todo-description",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "edit-category",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Categories"
+          }
+        },
+        {
+          "id": "edit-priority",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Priority"
+          }
+        },
+        {
+          "id": "edit-visibility",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Visibility"
+          }
+        },
+        {
+          "id": "edit-assignees",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Assignees"
+          }
+        },
+        {
+          "id": "edit-todo-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 4,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Save Changes"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "create-task-page",
+      "name": "Create Task",
+      "route": "/todos/:todoId/tasks/create_task",
+      "meta": {
+        "title": "Create Task",
+        "icon": "add_task",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Create Task"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "create-task-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Create Task",
+            "showBack": true
+          }
+        },
+        {
+          "id": "task-basic-info",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Basic Info"
+          }
+        },
+        {
+          "id": "task-title-input",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title",
+            "required": true
+          }
+        },
+        {
+          "id": "task-description-input",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "task-priority",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Priority"
+          }
+        },
+        {
+          "id": "task-timeline",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Timeline"
+          }
+        },
+        {
+          "id": "create-task-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Create Task"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "edit-task-page",
+      "name": "Edit Task",
+      "route": "/todos/:todoId/tasks/:taskId/edit_task",
+      "meta": {
+        "title": "Edit Task",
+        "icon": "edit",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Edit Task"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "edit-task-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Edit Task",
+            "showBack": true
+          }
+        },
+        {
+          "id": "edit-task-basic",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Basic Info"
+          }
+        },
+        {
+          "id": "edit-task-title",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title"
+          }
+        },
+        {
+          "id": "edit-task-description",
+          "componentId": "app-input",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "edit-task-priority",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Priority"
+          }
+        },
+        {
+          "id": "edit-task-timeline",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Timeline"
+          }
+        },
+        {
+          "id": "edit-task-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Save Changes"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "create-subtask-page",
+      "name": "Create Subtask",
+      "route": "/todos/:todoId/tasks/:taskId/subtasks/create_subtask",
+      "meta": {
+        "title": "Create Subtask",
+        "icon": "add_task",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Create Subtask"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "create-subtask-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Create Subtask",
+            "showBack": true
+          }
+        },
+        {
+          "id": "subtask-form",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Subtask Details"
+          }
+        },
+        {
+          "id": "subtask-title-input",
+          "componentId": "app-input",
+          "classes": "col-span-8 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title",
+            "required": true
+          }
+        },
+        {
+          "id": "subtask-description-input",
+          "componentId": "app-input",
+          "classes": "col-span-8 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 8,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "create-subtask-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Create Subtask"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "edit-subtask-page",
+      "name": "Edit Subtask",
+      "route": "/todos/:todoId/tasks/:taskId/subtasks/:subtaskId/edit_subtask",
+      "meta": {
+        "title": "Edit Subtask",
+        "icon": "edit",
+        "breadcrumb": [
+          "TaskFlow",
+          "Workspace",
+          "Edit Subtask"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "edit-subtask-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Edit Subtask",
+            "showBack": true
+          }
+        },
+        {
+          "id": "edit-subtask-form",
+          "componentId": "app-card",
+          "classes": "col-span-8 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Subtask Details"
+          }
+        },
+        {
+          "id": "edit-subtask-title",
+          "componentId": "app-input",
+          "classes": "col-span-8 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 8,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Title"
+          }
+        },
+        {
+          "id": "edit-subtask-description",
+          "componentId": "app-input",
+          "classes": "col-span-8 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 8,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Description",
+            "type": "textarea"
+          }
+        },
+        {
+          "id": "edit-subtask-submit",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Save Changes"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "settings-page",
+      "name": "Settings",
+      "route": "/settings",
+      "meta": {
+        "title": "Settings",
+        "icon": "settings",
+        "breadcrumb": [
+          "TaskFlow",
+          "Personal",
+          "Settings"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "settings-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Settings",
+            "showBack": false
+          }
+        },
+        {
+          "id": "settings-tabs",
+          "componentId": "app-tabs",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "tabs": [
+              "Notifications",
+              "Security",
+              "Integrations",
+              "Appearance"
+            ]
+          }
+        },
+        {
+          "id": "notifications-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Notification Settings"
+          }
+        },
+        {
+          "id": "chat-volume-slider",
+          "componentId": "app-slider",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Chat Volume",
+            "min": 0,
+            "max": 100,
+            "value": 50
+          }
+        },
+        {
+          "id": "notification-sounds-toggle",
+          "componentId": "app-switch",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Enable Notification Sounds",
+            "checked": true
+          }
+        },
+        {
+          "id": "security-section",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Security Settings"
+          }
+        },
+        {
+          "id": "totp-toggle",
+          "componentId": "app-switch",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Enable TOTP",
+            "checked": false
+          }
+        },
+        {
+          "id": "appearance-section",
+          "componentId": "app-card",
+          "classes": "col-span-12 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 4,
+            "colSpan": 12,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Appearance"
+          }
+        },
+        {
+          "id": "theme-grid",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 4,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "light",
+                "label": "Light",
+                "icon": "light_mode"
+              },
+              {
+                "id": "dark",
+                "label": "Dark",
+                "icon": "dark_mode"
+              },
+              {
+                "id": "system",
+                "label": "System",
+                "icon": "settings_suggest"
+              }
+            ],
+            "active": "system"
+          }
+        },
+        {
+          "id": "save-settings-btn",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 6,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Save Settings"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "categories-page",
+      "name": "Categories",
+      "route": "/categories",
+      "meta": {
+        "title": "Categories",
+        "icon": "category",
+        "breadcrumb": [
+          "TaskFlow",
+          "Admin",
+          "Categories"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "categories-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Categories",
+            "showBack": false
+          }
+        },
+        {
+          "id": "categories-view-toggle",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "table",
+                "label": "Table"
+              },
+              {
+                "id": "grid",
+                "label": "Grid"
+              },
+              {
+                "id": "list",
+                "label": "List"
+              }
+            ],
+            "active": "table"
+          }
+        },
+        {
+          "id": "categories-list",
+          "componentId": "app-data-table",
+          "classes": "col-span-8 row-span-3",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 8,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Categories"
+          }
+        },
+        {
+          "id": "category-form",
+          "componentId": "app-card",
+          "classes": "col-span-4 row-span-3",
+          "gridPosition": {
+            "column": 8,
+            "row": 2,
+            "colSpan": 4,
+            "rowSpan": 3
+          },
+          "props": {
+            "title": "Add Category"
+          }
+        },
+        {
+          "id": "category-name-input",
+          "componentId": "app-input",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 8,
+            "row": 2,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "label": "Category Name"
+          }
+        },
+        {
+          "id": "add-category-btn",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 8,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Add Category"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "sync-page",
+      "name": "Data Synchronization",
+      "route": "/sync",
+      "meta": {
+        "title": "Data Synchronization",
+        "icon": "sync",
+        "breadcrumb": [
+          "TaskFlow",
+          "Admin",
+          "Sync"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "sync-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Data Synchronization",
+            "showBack": false
+          }
+        },
+        {
+          "id": "sync-status-card",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Sync Status"
+          }
+        },
+        {
+          "id": "sync-actions-card",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Actions"
+          }
+        },
+        {
+          "id": "sync-now-btn",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Sync Now",
+            "icon": "sync"
+          }
+        },
+        {
+          "id": "export-btn",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 6,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "secondary",
+            "label": "Export to Cloud",
+            "icon": "cloud_upload"
+          }
+        },
+        {
+          "id": "sync-history",
+          "componentId": "app-card",
+          "classes": "col-span-12 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 12,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Sync History"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "archive-page",
+      "name": "Archive",
+      "route": "/archive",
+      "meta": {
+        "title": "Archive",
+        "icon": "archive",
+        "breadcrumb": [
+          "TaskFlow",
+          "Personal",
+          "Archive"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "archive-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Archive",
+            "showBack": false
+          }
+        },
+        {
+          "id": "archive-list",
+          "componentId": "app-data-table",
+          "classes": "col-span-12 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Archived Items"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "data-management-page",
+      "name": "Data Management",
+      "route": "/data-management",
+      "meta": {
+        "title": "Data Management",
+        "icon": "storage",
+        "breadcrumb": [
+          "TaskFlow",
+          "Admin",
+          "Data Management"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "data-mgmt-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "Data Management",
+            "showBack": false
+          }
+        },
+        {
+          "id": "data-view-toggle",
+          "componentId": "app-segment-selector",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "options": [
+              {
+                "id": "admin",
+                "label": "Admin"
+              },
+              {
+                "id": "archive",
+                "label": "Archive"
+              }
+            ],
+            "active": "admin"
+          }
+        },
+        {
+          "id": "data-table",
+          "componentId": "app-data-table",
+          "classes": "col-span-12 row-span-4",
+          "gridPosition": {
+            "column": 1,
+            "row": 2,
+            "colSpan": 12,
+            "rowSpan": 4
+          },
+          "props": {
+            "title": "Data Management"
+          }
+        },
+        {
+          "id": "bulk-actions",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 6,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "secondary",
+            "label": "Bulk Actions"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "about-page",
+      "name": "About",
+      "route": "/about",
+      "meta": {
+        "title": "About",
+        "icon": "info",
+        "breadcrumb": [
+          "TaskFlow",
+          "Admin",
+          "About"
+        ]
+      },
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "about-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "About",
+            "showBack": false
+          }
+        },
+        {
+          "id": "about-info-card",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "TaskFlow",
+            "subtitle": "Version 1.0.0"
+          }
+        },
+        {
+          "id": "about-description",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2",
+          "gridPosition": {
+            "column": 6,
+            "row": 1,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "About",
+            "message": "TaskFlow is a project and task management application"
+          }
+        },
+        {
+          "id": "check-updates-btn",
+          "componentId": "app-button",
+          "classes": "col-span-4 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 3,
+            "colSpan": 4,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Check for Updates",
+            "icon": "update"
+          }
+        }
+      ],
+      "layoutMode": "default"
+    },
+    {
+      "id": "not-found-page",
+      "name": "Not Found",
+      "route": "/404",
+      "meta": {
+        "title": "Page Not Found",
+        "icon": "error_outline",
+        "breadcrumb": [
+          "TaskFlow",
+          "404"
+        ]
+      },
+      "layoutMode": "default",
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "not-found-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "not-found-card",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2 mx-auto",
+          "gridPosition": {
+            "column": 4,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Page Not Found",
+            "subtitle": "The page you are looking for does not exist."
+          }
+        },
+        {
+          "id": "not-found-home-btn",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 4,
+            "row": 4,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Go Home",
+            "fullWidth": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "schema-error-page",
+      "name": "Schema Error",
+      "route": "/schema-error",
+      "meta": {
+        "title": "Schema Error",
+        "icon": "report_problem",
+        "breadcrumb": [
+          "TaskFlow",
+          "Schema Error"
+        ]
+      },
+      "layoutMode": "default",
+      "layout": "default",
+      "layouts": [
+        {
+          "id": "default-layout",
+          "type": "grid",
+          "gridTemplateColumns": "repeat(12, minmax(0, 1fr))",
+          "gap": 16,
+          "width": "full",
+          "class": "grid grid-cols-12 gap-4 p-6"
+        }
+      ],
+      "canvasElements": [
+        {
+          "id": "schema-error-header",
+          "componentId": "app-header",
+          "classes": "col-span-12 row-span-1",
+          "gridPosition": {
+            "column": 1,
+            "row": 1,
+            "colSpan": 12,
+            "rowSpan": 1
+          },
+          "props": {
+            "title": "TaskFlow",
+            "showBack": false
+          }
+        },
+        {
+          "id": "schema-error-card",
+          "componentId": "app-card",
+          "classes": "col-span-6 row-span-2 mx-auto",
+          "gridPosition": {
+            "column": 4,
+            "row": 2,
+            "colSpan": 6,
+            "rowSpan": 2
+          },
+          "props": {
+            "title": "Schema Error",
+            "subtitle": "There was a problem loading the application configuration."
+          }
+        },
+        {
+          "id": "schema-error-retry-btn",
+          "componentId": "app-button",
+          "classes": "col-span-6 row-span-1",
+          "gridPosition": {
+            "column": 4,
+            "row": 4,
+            "colSpan": 6,
+            "rowSpan": 1
+          },
+          "props": {
+            "variant": "accent",
+            "label": "Retry",
+            "fullWidth": true
+          }
+        }
+      ]
+    }
+  ],
+  "handlers": {
+    "navigateHome": {
+      "type": "navigation",
+      "target": "/dashboard",
+      "description": "Navigate to the home/dashboard page"
+    },
+    "retryLoad": {
+      "type": "action",
+      "action": "reload",
+      "description": "Retry loading the current page or schema"
+    }
+  },
+  "stores": {}
+}

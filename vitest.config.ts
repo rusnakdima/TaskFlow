@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
     globals: true,
-    setupFiles: ['./src/test-setup.ts'],
+
   },
   resolve: {
     alias: {
@@ -32,6 +32,7 @@ export default defineConfig({
       '@utils': resolve(__dirname, './src/app/shared/utils'),
       '@shared': resolve(__dirname, './src/app/shared'),
       '@tauri-front/shared': resolve(__dirname, '../tauri-front-shared/projects/shared/dist'),
+      '@angular/core': resolve(__dirname, 'src/__mocks__/@angular/core.ts'),
     },
   },
   esbuild: {
