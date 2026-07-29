@@ -11,7 +11,7 @@ use nosql_orm::providers::JsonProvider;
 use crate::entities::daily_activity_entity::{
   DailyActivityCreateModel, DailyActivityModel, DailyActivityUpdateModel,
 };
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 #[derive(Clone)]
 pub struct ActivityStorage {
   pub json_provider: JsonProvider,

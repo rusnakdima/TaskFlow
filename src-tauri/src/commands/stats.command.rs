@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::AppState;
 use tauri::State;
 #[tauri::command]

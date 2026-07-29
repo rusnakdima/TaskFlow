@@ -4,7 +4,7 @@ use super::queries::{
   merge_immutable_fields, resolve_visibility_for_offline, DataSource,
 };
 use crate::entities::{provider_type_entity::ProviderType, table_entity::validate_model};
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;

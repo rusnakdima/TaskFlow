@@ -9,7 +9,7 @@ pub mod category_command;
 #[path = "group.command.rs"]
 pub mod group_command;
 #[path = "macros.rs"]
-pub mod macros;
+mod macros;
 #[path = "profile.command.rs"]
 pub mod profile_command;
 #[path = "room.command.rs"]

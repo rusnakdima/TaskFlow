@@ -14,7 +14,7 @@ macro_rules! crud_route {
       page: Option<u64>,
       limit: Option<u64>,
       token: Option<String>,
-    ) -> Result<crate::models::response::ResponseModel, crate::models::response::ResponseModel> {
+    ) -> Result<crate::task_response::ResponseModel, crate::task_response::ResponseModel> {
       use crate::utils::auth::{extract_profile_from_token, extract_user_from_token};
       use tauri_shared::response::Response;
       let user_id = extract_user_from_token(

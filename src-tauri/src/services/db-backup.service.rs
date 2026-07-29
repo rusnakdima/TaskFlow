@@ -1,4 +1,4 @@
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 use crate::utils::common::filter_deleted;
 use nosql_orm::prelude::Filter;
 use nosql_orm::provider::DatabaseProvider;

@@ -13,7 +13,7 @@ use crate::entities::{
   profile_entity::ProfileEntity, signup_form_entity::SignupForm, table_entity::TableModelType,
   user_entity::UserEntity,
 };
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use crate::utils::timestamp::get_current_datetime;
 use tauri_shared::response::Response;

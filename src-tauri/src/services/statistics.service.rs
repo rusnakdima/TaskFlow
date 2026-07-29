@@ -6,7 +6,7 @@ use nosql_orm::prelude::{DatabaseProvider, Filter};
 use nosql_orm::providers::JsonProvider;
 /* models */
 use crate::entities::statistics_entity::StatisticsResponseModel;
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use tauri_shared::response::Response;
 /* statistics modules */

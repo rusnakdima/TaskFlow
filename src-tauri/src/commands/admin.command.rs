@@ -1,4 +1,4 @@
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 use crate::services::cascade::CascadeResult;
 use crate::utils::auth::{extract_user_from_token, validate_admin_role, validate_user_owns_data};
 use crate::AppState;

@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use tauri_shared::response::Response;
 pub struct BaseCrudService {

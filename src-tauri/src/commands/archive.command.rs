@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::utils::auth::{extract_user_from_token, validate_admin_role};
 use crate::AppState;

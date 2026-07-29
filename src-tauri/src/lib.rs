@@ -4,6 +4,7 @@ mod domain;
 pub mod entities;
 mod errors;
 mod models;
+pub mod task_response;
 mod repositories;
 mod services;
 mod utils;
@@ -83,7 +84,7 @@ use services::{
 use tauri_shared::crud::service::CrudService;
 use tauri_shared::storage::{setup_schema_system, SchemaConfig, SchemaSyncState};
 /* nosql_orm */
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 #[tauri::command]
 async fn sync_data(state: State<'_, AppState>, user_id: String) -> Result<ResponseModel, String> {

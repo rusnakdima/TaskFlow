@@ -4,7 +4,7 @@ crud_route!(get_todos, "todos", "getAll");
 crud_route!(create_todo, "todos", "create");
 crud_route!(update_todo, "todos", "update");
 crud_route!(delete_todo, "todos", "delete");
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::utils::visibility::get_visibility;
 use crate::AppState;
 use std::collections::HashMap;

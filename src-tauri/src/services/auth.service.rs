@@ -14,7 +14,7 @@ use super::profile::profile_sync_unified::ProfileSyncUnifiedService;
 use crate::entities::{
   login_form_entity::LoginForm, password_reset::PasswordReset, signup_form_entity::SignupForm,
 };
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 /* helpers */
 use tauri_shared::env::EnvConfig;
 #[derive(Clone)]

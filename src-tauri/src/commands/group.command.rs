@@ -4,7 +4,7 @@ crud_route!(get_groups, "groups", "getAll");
 crud_route!(create_group, "groups", "create");
 crud_route!(update_group, "groups", "update");
 crud_route!(delete_group, "groups", "delete");
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::utils::auth::extract_user_from_token;
 use crate::AppState;
 use tauri::State;

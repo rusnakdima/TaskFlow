@@ -1,6 +1,6 @@
 use super::auth_token::AuthTokenService;
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 use crate::utils::{profile::check_profile_exists, qr};
 use data_encoding::BASE64URL;
 use nosql_orm::provider::DatabaseProvider;

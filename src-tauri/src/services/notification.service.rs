@@ -6,8 +6,8 @@ use std::sync::Arc;
 /* providers */
 use crate::repositories::data_provider::DataProvider;
 /* entities */
-use crate::models::response::Response;
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
+use tauri_shared::response::Response;
 /* helpers */
 
 pub struct NotificationService {

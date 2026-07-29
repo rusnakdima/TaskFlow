@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::repositories::{json_provider::JsonProvider, mongodb_provider::MongoProvider};
 use nosql_orm::provider::DatabaseProvider;
 /* models */
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use crate::utils::common::convert_data_to_object;
 /* services */

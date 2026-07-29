@@ -7,7 +7,7 @@ use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 /* models */
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* services */
 use crate::services::auth::auth_data_sync::AuthDataSyncService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;

@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
-use crate::models::response::Response;
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
+use tauri_shared::response::Response;
 use tauri_shared::algorithms::sanitization::sanitize_for_mongo;
 
 use super::{CascadeResult, CascadeService};

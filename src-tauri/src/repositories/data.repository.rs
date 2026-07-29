@@ -1,5 +1,5 @@
-use crate::models::response::Response;
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
+use tauri_shared::response::Response;
 use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 use nosql_orm::query::Filter;

@@ -1,7 +1,7 @@
 use crate::entities::{
   login_form_entity::LoginForm, password_reset::PasswordReset, signup_form_entity::SignupForm,
 };
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::AppState;
 use tauri::State;
 #[tauri::command]
@@ -115,7 +115,7 @@ pub async fn get_user_security_status(
   state: State<'_, AppState>,
   username: String,
 ) -> Result<ResponseModel, ResponseModel> {
-  use crate::models::response::{ResponseModel, ResponseStatus};
+  use crate::task_response::{ResponseModel, ResponseStatus};
   let user = crate::utils::auth::find_user_by_username(
     &state.config.json_provider,
     state.config.mongodb_provider.as_ref(),
@@ -207,7 +207,7 @@ pub async fn initialize_user_data(
     Some("Operation successful"),
   ))
 }
-use crate::models::response::ResponseModel as Resp;
+use crate::task_response::ResponseModel as Resp;
 use crate::repositories::mongodb_provider::MongoProvider;
 use crate::services::github_service::GithubService;
 use crate::AppState as AppSt;

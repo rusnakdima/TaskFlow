@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;

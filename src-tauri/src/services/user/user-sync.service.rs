@@ -11,8 +11,8 @@ use tokio::time::timeout;
 use crate::repositories::json_provider::JsonProvider;
 use crate::repositories::mongodb_provider::MongoProvider;
 /* entities */
-use crate::models::response::Response;
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
+use tauri_shared::response::Response;
 /* helpers */
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]

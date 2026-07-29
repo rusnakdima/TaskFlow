@@ -6,7 +6,7 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::JsonProvider;
 use nosql_orm::providers::MongoProvider;
 /* models */
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /// ProfileService - Handles profile-specific sync operations
 /// Note: CRUD operations are handled by RepositoryService via manageData endpoint
 /// This service only handles profile-specific cloud sync operations

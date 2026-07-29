@@ -1,7 +1,7 @@
 /* sys lib */
 use std::sync::Arc;
 /* entities */
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use serde::{Deserialize, Serialize};
 /* services */
 use crate::services::profile::profile_sync_unified::{

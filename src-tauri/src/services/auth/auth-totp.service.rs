@@ -10,7 +10,7 @@ use nosql_orm::query::Filter;
 use nosql_orm::repository::Repository;
 /* models */
 use crate::entities::{profile_entity::ProfileEntity, user_entity::UserEntity};
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use crate::utils::qr;
 use tauri_shared::response::Response;

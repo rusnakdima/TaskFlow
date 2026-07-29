@@ -10,7 +10,7 @@ use super::auth_token::AuthTokenService;
 use crate::services::profile::profile_sync_unified::ProfileSyncUnifiedService;
 /* models */
 use crate::entities::login_form_entity::LoginForm;
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use crate::utils::auth::find_user_by_username;
 use tauri_shared::response::Response;

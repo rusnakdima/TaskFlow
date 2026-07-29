@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use crate::services::base_crud_service::BaseCrudService;
 use crate::services::permission_service::PermissionService;

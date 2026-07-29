@@ -6,7 +6,7 @@ use nosql_orm::provider::DatabaseProvider;
 use nosql_orm::providers::{JsonProvider, MongoProvider};
 /* models */
 use crate::entities::{table_entity::TableModelType, user_entity::UserEntity};
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use bcrypt::{hash, DEFAULT_COST};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};

@@ -12,7 +12,7 @@ use nosql_orm::repository::Repository;
 use crate::entities::{
   password_reset::PasswordReset, table_entity::TableModelType, user_entity::UserEntity,
 };
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* helpers */
 use tauri_shared::env::EnvConfig;
 use tauri_shared::response::Response;

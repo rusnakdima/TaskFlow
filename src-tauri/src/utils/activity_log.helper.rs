@@ -6,7 +6,7 @@ use crate::utils::activity::storage::ActivityStorage;
 /* providers */
 use nosql_orm::providers::JsonProvider;
 /* models */
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 #[derive(Clone)]
 pub struct ActivityLogHelper {
   pub storage: ActivityStorage,

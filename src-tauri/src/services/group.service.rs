@@ -1,4 +1,4 @@
-use crate::models::response::ResponseModel;
+use crate::task_response::ResponseModel;
 use crate::repositories::data_provider::DataProvider;
 use nosql_orm::provider::DatabaseProvider;
 use serde_json::{json, Value};

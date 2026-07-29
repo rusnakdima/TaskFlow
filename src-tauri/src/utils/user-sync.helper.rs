@@ -5,7 +5,7 @@ use serde_json::Value;
 /* helpers */
 use nosql_orm::timestamps::timestamp_now_rfc3339;
 /* entities */
-use crate::models::response::{ResponseModel, ResponseStatus};
+use crate::task_response::{ResponseModel, ResponseStatus};
 /* providers */
 use nosql_orm::providers::JsonProvider;
 /// Helper method
