@@ -49,3 +49,6 @@ Thumbs.db
 *.sh
 
 .continue
+# SvelteKit
+.svelte-kit/
+build/
