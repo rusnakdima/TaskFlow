@@ -75,6 +75,25 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
+
+      - name: Format
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Security Audit
+        run: cargo audit
+
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Feature Powerset
+        run: cargo hack --feature-powerset --exclude-optional-deps
+
       - name: Install frontend dependencies
         run: bun install
 
