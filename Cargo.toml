@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["src"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+dioxus = { version = "0.8.0-alpha.1", features = ["desktop"] }
+dioxus-shared = { path = "../../dioxus-shared", features = ["dioxus-ui"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

@@ -1,0 +1,72 @@
+@startuml
+title TaskFlow — Deployment Architecture
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+node "Desktop (Tauri v2)" as TAURI_APP {
+  package "Frontend (WebView)" {
+    [HTML/CSS/JS\nFrontend Bundle]
+  }
+  package "Backend (Rust)" {
+    [Tauri Commands\n(IPC Bridge)]
+    package "Services Layer" {
+      [AuthService]
+      [TodoService]
+      [TaskService]
+      [ChatService]
+      [GroupService]
+      [RepositoryService]
+      [CascadeService]
+    }
+    package "Data Providers" {
+      [JsonProvider\n(Local JSON Files)]
+      [MongoProvider\n(MongoDB)]
+    }
+  }
+}
+
+database "Local Storage" {
+  [JSON Files\n~/.taskflow/*.json]
+}
+
+database "MongoDB Atlas" as MONGO {
+  [users]
+  [todos]
+  [tasks]
+  [subtasks]
+  [groups]
+  [rooms]
+  [chats]
+  [profiles]
+}
+
+cloud "GitHub API" as GITHUB {
+  [Issues]
+  [Repositories]
+}
+
+TAURI_APP --> JsonProvider : read/write\nlocal data
+TAURI_APP --> MONGO : sync\ncloud data
+TAURI_APP --> GITHUB : oauth\nintegration
+JsonProvider --> "Local Storage"
+MongoProvider --> MONGO
+
+note bottom of TAURI_APP
+  Tauri v2.11 with plugins:
+  - tauri-plugin-mcp-bridge (MCP tools)
+  - tauri-plugin-http
+  - tauri-plugin-log
+  - tauri-plugin-shell
+  - tauri-plugin-opener
+end note
+
+note over JsonProvider
+  nosql_orm with JsonProvider
+  JSON files stored at app_data_dir
+end note
+
+note over MongoProvider
+  nosql_orm with MongoProvider
+  Connection: mongo_db_uri / mongo_db_name
+end note
+@enduml

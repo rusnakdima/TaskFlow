@@ -1,0 +1,60 @@
+@startuml
+title TaskFlow — AppState Structure
+skinparam componentStyle rectangle
+
+rectangle "AppState" #LightBlue {
+  rectangle "config: ConfigState" #GhostWhite {
+    rectangle "config_helper: Arc<ConfigHelper>"
+    rectangle "json_provider: JsonProvider"
+    rectangle "mongodb_provider: Option<Arc<MongoProvider>>"
+  }
+
+  rectangle "auth: AuthState" #LightGreen {
+    rectangle "auth_service: Arc<AuthService>"
+    rectangle "totp_service: Arc<AuthTotpService>"
+    rectangle "qr_auth_service: Arc<QrAuthService>"
+    rectangle "auth_data_sync_service: Arc<AuthDataSyncService>"
+  }
+
+  rectangle "data: DataState" #LightYellow {
+    rectangle "repository_service: Arc<RepositoryService>"
+    rectangle "todo_service: Arc<TodoService>"
+    rectangle "task_service: Arc<TaskService>"
+    rectangle "subtask_service: Arc<SubtaskService>"
+    rectangle "category_service: Arc<CategoryService>"
+    rectangle "cascade_service: CascadeService"
+    rectangle "crud_service: Arc<CrudService>"
+  }
+
+  rectangle "chat: ChatState" #LightPink {
+    rectangle "chat_service: Arc<ChatService>"
+    rectangle "group_service: Arc<GroupService>"
+    rectangle "room_service: Arc<RoomService>"
+  }
+
+  rectangle "system: SystemState" #LightCoral {
+    rectangle "about_service: Arc<AboutService>"
+    rectangle "manage_db_service: Arc<ManageDbService>"
+    rectangle "notification_service: Arc<NotificationService>"
+    rectangle "profile_service: Arc<ProfileService>"
+    rectangle "statistics_service: Arc<StatisticsService>"
+  }
+
+  rectangle "logger: Arc<()>" #GhostWhite
+}
+
+note bottom of AppState
+  All state registered via app.manage(AppState { ... })
+  Accessed via State<'_, AppState> in commands
+  Dual-provider: JsonProvider (local) + MongoProvider (cloud)
+end note
+
+note over config
+  ConfigHelper reads: jwt_secret, mongo_db_uri, mongo_db_name, json_db_name
+end note
+
+note over data
+  RepositoryService routes CRUD to JsonProvider or MongoProvider
+  CascadeService handles soft/hard delete cascades
+end note
+@enduml
