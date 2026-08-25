@@ -52,3 +52,5 @@ Thumbs.db
 # SvelteKit
 .svelte-kit/
 build/
+
+/target
