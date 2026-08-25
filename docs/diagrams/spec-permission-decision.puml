@@ -1,0 +1,64 @@
+@startuml spec-permission-decision
+title TaskFlow — Todo Permission Decision (target, exact master table)
+skinparam ActivityFontSize 12
+
+start
+:Input: todo doc, user_id, profile_id?, is_global_admin?;
+
+if (todo.user_id == user_id?) then (yes)
+  :**OWNER**;
+  stop
+else (no)
+endif
+
+if (user in todo.assignees?\n(matches user_id OR profile_id)) then (no)
+  partition "visibility fallback" {
+    if (visibility == "public") then (yes)
+      if (is_global_admin) then (yes)
+        :MODERATOR;
+        stop
+      else (no)
+        :VIEWER;
+        stop
+      endif
+    elseif (visibility == "shared") then (yes)
+      if (is_global_admin) then (yes)
+        :MODERATOR;
+        stop
+      else (no)
+        :no access (None);
+        stop
+      endif
+    else (private)
+      :no access (None);
+      stop
+    endif
+  }
+else (yes)
+  :role = assignee_roles[assignee_id]\n(default **"viewer"** when missing);\nparse case-insensitive:\n"viewer"|anything->VIEWER, "editor"->EDITOR,\n"admin"/"moderator"->MODERATOR;
+  stop
+endif
+
+note as N1
+  Capability matrix (TodoPermission):
+  - can_delete_todo ............ OWNER only
+  - can_edit_todo_fields ....... MODERATOR, OWNER
+  - can_archive_todo ........... OWNER only
+  - create/edit/delete task .... EDITOR+ (non-moderators also
+    require task.user_id == caller)
+  - edit/delete subtask ........ EDITOR+ + creator-match rule
+  - create/edit/delete comment . EDITOR+
+  - archive task/subtask/comment MODERATOR+
+
+  Task/Subtask extra gate:
+  is_owner_or_admin(todo) => always allowed;
+  otherwise role EDITOR+ AND creator match.
+
+  transfer_ownership: OWNER only.
+
+  List filters:
+  private => {visibility:private, user_id}
+  shared  => owner OR assignees in [profile_id,user_id]
+  all     => $or of private/shared/public branches
+endnote
+@enduml

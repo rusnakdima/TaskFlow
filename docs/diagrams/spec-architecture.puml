@@ -1,0 +1,63 @@
+@startuml spec-architecture-taskflow
+title TaskFlow — Target Component Architecture (Dioxus, desktop local-first)
+skinparam componentStyle rectangle
+
+package "presentation (Dioxus RSX)" {
+  [Dashboard]
+  [Todos page\n(list/board/table views)]
+  [Tasks Kanban + calendar]
+  [Subtasks / Categories]
+  [Stats page (charts)]
+  [Auth pages\n(login/register/change-password)]
+  [Chat UI / rooms sidebar]
+  [Settings / About / Data-mgmt]
+}
+
+package "application" {
+  [Todo/Task/Subtask handlers\n+ real current_user.id]
+  [CascadeService\ndelete/restore/batch]
+  [VisibilitySync\nchange_todo_visibility]
+  [PermissionGate\nevery read/write]
+  [AuthService\nbcrypt + JWT-shaped session]
+  [StatisticsEngine\nwindows, analytics, charts]
+  [ActivityRecorder]
+  [Search & filters]
+  [Notifications]
+  [Group/Room/DM service]
+  [Chat message service]
+}
+
+package "domain" {
+  database "Pure rules" {
+    [Permission decision table\nVIEWER<EDITOR<MOD<OWNER,\ndefault role "viewer"]
+    [Cascade relation graph\ntodos->tasks->subtasks->comments]
+    [Kanban order math\norder = len-1-index]
+    [Statistics formulas\ncompletion %, avg hours,\nproductivity score, change %]
+    [Entities: todo/task/subtask/\ncategory/chat/comment/group/\nroom/profile/user/notification]
+  }
+}
+
+package "infrastructure" {
+  [BaseCrudService over JSON provider\ncollections: todos tasks subtasks categories\nchats comments groups rooms users profiles\nnotifications daily_activities schemas\nunder app_data_dir]
+  [Deleted-at archive store\n(soft-delete surface)]
+  [Backup/export routines]
+}
+
+[Dashboard] --> [StatisticsEngine]
+[Tasks Kanban + calendar] --> [Kanban order math\norder = len-1-index]
+[Todo/Task/Subtask handlers\n+ real current_user.id] --> [PermissionGate\nevery read/write]
+[CascadeService\ndelete/restore/batch] --> [Cascade relation graph\ntodos->tasks->subtasks->comments]
+[StatisticsEngine\nwindows, analytics, charts] --> [Statistics formulas\ncompletion %, avg hours,\nproductivity score, change %]
+[VisibilitySync\nchange_todo_visibility] --> [Cascade relation graph\ntodos->tasks->subtasks->comments]
+[ActivityRecorder] --> [BaseCrudService over JSON provider\ncollections: todos tasks subtasks categories\nchats comments groups rooms users profiles\nnotifications daily_activities schemas\nunder app_data_dir]
+[Todo/Task/Subtask handlers\n+ real current_user.id] --> [BaseCrudService over JSON provider\ncollections: todos tasks subtasks categories\nchats comments groups rooms users profiles\nnotifications daily_activities schemas\nunder app_data_dir]
+[AuthService\nbcrypt + JWT-shaped session] --> [BaseCrudService over JSON provider\ncollections: todos tasks subtasks categories\nchats comments groups rooms users profiles\nnotifications daily_activities schemas\nunder app_data_dir]
+
+note bottom of [BaseCrudService over JSON provider\ncollections: todos tasks subtasks categories\nchats comments groups rooms users profiles\nnotifications daily_activities schemas\nunder app_data_dir]
+  Master's Mongo dual-provider routing
+  (private -> JSON, shared/public -> Mongo,
+  OFFLINE_MODE override) is intentionally reduced
+  to the single JSON provider; collection names
+  and document shapes stay at parity.
+end note
+@enduml

@@ -1,0 +1,74 @@
+@startuml spec-cascade-delete-restore
+title TaskFlow — Cascade Delete / Restore (target, exact master semantics)
+start
+
+partition "soft_delete_cascade(table, id)" {
+  :deleted = {"<table>_<id>"};
+  switch (table?)
+  case (todos)
+    :cascade soft-delete todo\n=> all tasks => their subtasks => their comments\n(stamp deleted_at on every reached doc);
+  case (tasks)
+    :cascade soft-delete task\n=> subtasks => comments;
+  case (subtasks)
+    :cascade soft-delete subtask;
+  case (comments)
+    :soft-delete comment;
+  case (chats / categories)
+    :single-node soft delete (no children);
+  case (unknown)
+    #FFCCCC:ERROR "Unknown table for cascade soft delete";
+    stop
+  endswitch
+  :for each deleted id: activity_monitor.log_action(entity,"delete",{});
+  :CascadeResult {deleted_ids, per-level counts};
+}
+
+partition "restore_cascade(table, id)" {
+  :restored = {"<table>_<id>"};
+  switch (table?)
+  case (todos)
+    :restore cascade upward relations\n(children restored with parent);
+  case (tasks)
+    :restore cascade;\nrecord affected_todo_ids (task.todo_id);
+  case (subtasks)
+    :restore cascade;\nwalk subtask.task_id -> task.todo_id\n=> record affected_todo_ids;
+  case (comments)
+    :patch comments.deleted_at = null (direct);
+  case (chats / categories)
+    :single-node restore;
+  endswitch
+  :result.restored_ids, result.affected_todo_ids;
+}
+
+partition "visibility change child-sync (change_todo_visibility)" {
+  :patch todo.visibility + updated_at (RFC3339 now);
+  if (visibility unchanged at entry?) then (yes)
+    :early return (no sync);
+    stop
+  else (no)
+  endif
+  :for each task of todo:
+    - upsert task into target provider
+      (sanitize: recursively drop keys starting with '$')
+    - for its subtasks and comments: same upsert;
+  note right
+    Master also supports delete_from_source =>
+    permanent_delete_cascade on the origin provider.
+    Desktop target keeps the upsert-everywhere semantics,
+    drops the second-provider transport.
+  end note
+}
+
+note as N1
+  Batch admin ops reuse these primitives per id;
+  batch succeeds if >=1 id succeeded.
+
+  Deleting a todo WITHOUT cascade (plain single-doc delete)
+  is the regression to prevent: DeleteTodo/DeleteTask must
+  route through this cascade path.
+
+  Archive view = listing of soft-deleted docs;
+  permanent_delete = hard delete with same relation walk.
+endnote
+stop
+@enduml

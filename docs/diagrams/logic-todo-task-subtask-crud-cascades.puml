@@ -1,0 +1,119 @@
+@startuml logic-todo-task-subtask-crud-cascades
+title TaskFlow MASTER — Todo/Task/Subtask CRUD + Cascade Delete/Sync\n(sources: src-tauri/src/services/{todo,task,subtask}.service.rs,\nutils/cascade.helper.rs, services/cascade/*.service.rs, commands/todo.command.rs)
+
+|#lightblue|Master TodoService / TaskService / SubtaskService|
+
+start
+:Request (table=todos|tasks|subtasks, op=create|get|getAll|update|delete, user_id);
+
+if (Operation?) then (get / getAll)
+  if (get by id?) then (yes)
+    :find_by_id("todos", id) on **JSON** provider;
+    if (Doc found?) then (no)
+      #FFCCCC:err "Todo not found";
+      stop
+    else (yes)
+      if (PermissionService::can_view_todo(doc, user_id)?
+          private -> owner only;
+          shared  -> owner or assignee;
+          public  -> anyone) then (denied)
+        #FFCCCC:err "Unauthorized: ... permission to view";
+        stop
+      else (allowed)
+        :return doc;
+        stop
+      endif
+    endif
+  else (getAll)
+    :provider = get_provider(visibility)\n(private -> Json, else Mongo);
+    :filter = PermissionService::get_todo_filter_for_user(user_id)\nAND optional caller filter ($and);
+    :find_many(table, filter, skip, limit);
+    :return docs;
+    stop
+  endif
+elseif (create) then (create)
+  :provider = get_provider(visibility);
+  if (subtask? then verify task->todo chain:\ncan_add_task_to_todo(todo, user_id)) then (denied)
+    #FFCCCC:err "Unauthorized: ... add subtasks";
+    stop
+  else (ok)
+    :provider.insert(table, data);
+    :return doc;
+    stop
+  endif
+elseif (update) then (update)
+  :find existing on JSON provider;
+  if (Found?) then (no)
+    #FFCCCC:err "<Entity> not found";
+    stop
+  else (yes)
+    :stored_visibility = get_visibility(existing);
+    :provider = get_provider(stored_visibility);
+    if (can_edit_todo/task/subtask(existing[, task][, todo], user_id)?\nrole from assignee_roles; creator-scoped for tasks/subtasks) then (denied)
+      #FFCCCC:err "Unauthorized: ... edit";
+      stop
+    else (allowed)
+      :force update.visibility := stored_visibility\n(caller cannot flip visibility via generic update);
+      :patch(table, id, data);
+      :return updated doc;
+      stop
+    endif
+  endif
+else (delete)
+  :find existing on JSON provider;
+  if (Found?) then (no)
+    #FFCCCC:err "<Entity> not found";
+    stop
+  else (yes)
+    :visibility = get_visibility(existing);
+    :provider = get_provider(visibility);
+    if (can_delete_todo/task/subtask(...)?\nowner/moderator only for todo;\ncreator-or-admin for task/subtask) then (denied)
+      #FFCCCC:err "Unauthorized: ... delete";
+      stop
+    else (allowed)
+      :soft_delete_cascade_all(provider, table, id);
+      note right
+        nosql_orm CascadeManager:
+        todos     -> tasks -> subtasks (+comments)
+        tasks     -> subtasks
+        subtasks  -> (leaf)
+        comments  -> (leaf)
+        chats/categories -> single soft delete
+        Sets deleted_at on every reached node,
+        tracked in HashSet<table_id>.
+      endnote
+      :return success {};
+      stop
+    endif
+  endif
+endif
+
+partition "Visibility change (commands/todo.command.rs:change_todo_visibility)" {
+  :extract_user_from_token(token, jwt_secret);
+  :load todo via repository_service.execute("get", ...);
+  :old_visibility = get_visibility(doc);
+  if (old_visibility == new_visibility?) then (yes)
+    :success "Visibility unchanged" (no-op);
+    stop
+  else (no)
+    :execute("update", {visibility: new});
+    if (provider route changes? Json<->Mongo) then (yes)
+      :CascadeService.sync_todo_with_children(
+         todo_id, source, target, new_visibility, false);
+      note right
+        - reload todo from source (missing -> silent ok)
+        - patch visibility+updated_at on BOTH providers
+        - for each child task: sync_task_with_children
+          (to_json path skips task whose parent todo
+           is non-private on Mongo)
+        - delete_from_source=true additionally
+          permanent-deletes json subtree
+      endnote
+    else (same provider)
+      :no cascade needed;
+    endif
+    :success "Visibility changed successfully";
+    stop
+  endif
+}
+@enduml

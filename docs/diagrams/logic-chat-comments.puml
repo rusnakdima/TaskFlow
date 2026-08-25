@@ -1,0 +1,60 @@
+@startuml logic-chat-comments
+title TaskFlow MASTER — Chat messages / Comments\n(sources: src-tauri/src/services/chat.service.rs, commands/group.command.rs,\nentities/{chat,comment}.entity.rs)
+
+|#lightblue|ChatService (messages)|
+start
+:send_message(room_id, sender_id, receiver_id?, dm_name, content, reply_id?);
+:find_or_create_dm_room(room_id, sender, receiver, dm_name);
+:message = {room_id, sender_id, content,\nread_by:[sender_id], created_at/updated_at};\nreply_id attached only when provided;
+:insert "chats";
+
+partition "get_messages_by_room(room_id, skip, limit)" {
+  :find_many("chats", {room_id}, skip, limit)\nchronological paging;
+}
+
+partition "mark_message_read(id, user_id)" {
+  :load message;
+  if (user_id ∈ read_by?) then (yes)
+    :idempotent no-op patch;
+  else (no)
+    :read_by.push(user_id); patch {read_by, updated_at};
+  endif
+}
+
+partition "edit_message(id, content)" {
+  :patch {content, updated_at, is_edited:true};
+}
+
+partition "add_reaction(message_id, emoji, user_id)" {
+  :reactions = existing array or [];
+  if (same user+emoji entry exists?) then (yes)
+    :append user_id to that entry's users\n(merge, no duplicate entry);
+  else (no)
+    :push {emoji, users:[user_id]};
+  endif
+  :patch reactions;
+}
+
+partition "remove_reaction(message_id, emoji, user_id)" {
+  foreach reaction r:
+    if (r.emoji == emoji) then
+      r.users.remove(user_id);\nkeep entry only if users non-empty;
+  :patch filtered reactions;
+}
+
+partition "Deletion ladder" {
+  :delete_message      -> soft delete single chat (deleted_at set);
+  :hard_delete_message -> physical remove single chat;
+  :delete_room_messages      -> soft delete every chat in room;
+  :hard_delete_room_messages -> physical remove every chat in room;
+  note right
+    Group cascade delete (see categories-groups-rooms
+    diagram) calls the HARD variant for both providers.
+  endnote
+}
+
+|#lightblue|Comments (on todos/tasks/subtasks)|
+start
+:CommentEntity {parent table + id, author, content,\ncreated_at, deleted_at?};
+:CascadeManager registers comments as children of\ntasks/subtasks — parent soft delete cascades to them;\nArchive view lists "comments" with deleted_at filter;\nstop
+@enduml
