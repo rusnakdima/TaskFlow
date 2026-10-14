@@ -1,5 +1,0 @@
-# Ignore Rust build artifacts
-target/
-
-# Ignore Android project files
-gen/android/

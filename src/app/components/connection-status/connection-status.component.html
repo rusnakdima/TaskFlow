@@ -1,9 +1,0 @@
-<div
-  class="connection-status"
-  [class]="'status-' + connectionStatus()"
-  [matTooltip]="statusTooltip()"
-  (click)="refreshConnection()"
->
-  <span class="status-dot"></span>
-  <span class="status-label hidden md:inline">{{ statusLabel() }}</span>
-</div>

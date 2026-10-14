@@ -1,0 +1,9 @@
+[package]
+name = "taskflow"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+forge = { path = "../../forge" }

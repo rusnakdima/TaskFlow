@@ -1,0 +1,9 @@
+tasks
+projects
+calendar
+stats
+chat
+categories
+sync
+archive
+admin
