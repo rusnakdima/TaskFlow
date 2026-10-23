@@ -13,3 +13,5 @@ Thumbs.db
 # Build artifacts
 /build/
 /dist/
+# Workspace-managed lockfile (the workspace root owns dependency resolution)
+/Cargo.lock
