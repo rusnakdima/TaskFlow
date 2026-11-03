@@ -3,5 +3,14 @@ name = "taskflow"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+# The app runs the native GPUI shell by default (full migration, 2026-11-03).
+# `cargo run -p taskflow` opens the native window; `--no-default-features` keeps
+# the WebView path as the parity reference until Q7 deletes it. `forge`
+# itself stays feature-gated, so the shell-purity gate's default-feature
+# tree is unchanged.
+default = ["native-shell"]
+native-shell = ["forge/native-shell"]
+
 [dependencies]
 forge = { path = "../forge" }
