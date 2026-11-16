@@ -11,6 +11,7 @@ edition = "2021"
 # tree is unchanged.
 default = ["native-shell"]
 native-shell = ["forge/native-shell"]
+web-server = ["forge/web-server"]
 
 [dependencies]
 forge = { path = "../forge" }
